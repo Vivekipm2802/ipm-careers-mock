@@ -1,0 +1,59 @@
+.main{
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;justify-content: space-between;align-content: center;
+}
+
+.left{
+   
+    width: 350px;
+   
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    align-items: center;justify-content: center;align-content: center;
+}
+.bottom{
+    bottom: 5px;
+    font-size: 12px;
+}
+.logo{
+    position: absolute;
+    top: 20px;
+    left: 0;
+    width: 100%;
+    
+    height: 80px;
+}
+.right{
+    flex: 1;
+   
+    text-align: center;
+  
+    
+}
+
+/* .gamecontainer {
+    background: rgb(238, 237, 235);
+    
+}
+ */
+@media only screen and (max-width:968px) {
+    .left{
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        flex-direction: row;
+        width: 100%;
+        z-index: 49;
+    }
+
+    .logo{
+        display: none;
+    }
+    
+}

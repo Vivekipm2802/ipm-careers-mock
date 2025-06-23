@@ -1,0 +1,226 @@
+.input:focus,
+.input:hover {
+    outline: 0;
+    border: 1px solid var(--brand-col2);
+}
+
+.label {
+    font-family: Poppins;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 15px 0 5px 0;
+    display: block;
+}
+
+.input[type="date"]::-webkit-calendar-picker-indicator {
+    background-color: transparent;
+    bottom: 0;
+    opacity: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+}
+
+.tog {
+    position: absolute;
+    z-index: 9;
+    right: 10px;
+    top: 58%;
+    cursor: pointer;
+    transform: translateY(-50%);
+}
+
+.col1 .log {
+    color: var(--brand-col1);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.password {
+    width: 100%;
+    margin: 0 auto;
+    position: relative;
+}
+
+.submit {
+    font-family: Poppins !important;
+    padding: 10px 30px;
+    background-color: var(--brand-col2);
+    font-family: Poppins;
+    font-weight: 500;
+    border-radius: 7px;
+    outline: 0;
+    border: 0;
+    color: black;
+    margin: 5px auto;
+    display: block;
+}
+
+.submit:hover {
+    border: 1px solid white;
+    box-shadow: 4px 4px 12px -5px var(--brand-col2);
+}
+
+.input {
+    font-family: Poppins;
+    width: 100%;
+    box-shadow: 10px 9px 22px -10px #00000022;
+    padding: 1vh;
+    border-radius: 10px;
+    border: 0;
+    line-height: normal;
+    border-color: 1px solid #ddd;
+    margin: 5px 0;
+    background-color: white;
+    position: relative;
+    border: 1px solid white;
+    font-size: 12px;
+    transition: all .3s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.g {
+    font-family: Poppins;
+}
+
+.logout {
+    cursor: pointer;
+    border-radius: 200px;
+    background-color: var(--brand-col2);
+    border: 0;
+    padding: 10px 20px;
+    margin: 5px 0;
+    font-family: Poppins;
+}
+
+.suggest {
+    font-family: Poppins;
+    font-weight: 500;
+}
+
+.ro {
+    width: 100%;
+    flex-direction: row;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #999;
+}
+
+.save::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: -20px;
+    background-color: white;
+    transform: scale(0);
+    width: 40px;
+    height: 40px;
+    border-radius: 2300px;
+    opacity: 0.5;
+    z-index: 0;
+}
+
+.save:hover::before {
+    opacity: 0;
+    transform: scale(7);
+    transition: all .9s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.maincont {
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+    align-content: center;
+    font-family: Poppins;
+}
+
+.maincont * {
+    font-family: Poppins;
+}
+
+.col1,
+.col2 {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+    padding: 20px 3%;
+}
+
+.bgfill {
+    position: fixed;
+    width: 100%;
+    left: 0;
+    height: 100%;
+
+    top: 0;
+    background-image: url('/grid2.png');
+    opacity: 0.5;
+    background-size: 600px;
+}
+
+.form {
+    position: relative;
+    z-index: 9;
+    width: 100%;
+    transition: all .3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    opacity: 1s;
+}
+.form h2{
+    font-size: 2vw;
+    font-weight: 600;
+}
+.hid {
+    transition: all .4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    opacity: 0;
+}
+
+.col1 {
+    position: relative;
+   width: 50%;
+    background-color: rgba(250, 250, 250, 0.61);
+    justify-content: space-between;
+}
+
+.logo {
+    position: absolute;
+    left: 30px;
+    top: 30px;
+    z-index: 2;
+    width: calc(14vw + 80px);
+}
+
+/* .col2 img{
+    width: 80%;
+} */
+.button{
+    padding: 10px 20px;
+    background-color: var(--brand-col2);
+    border: 0;
+    border-radius: 10px;
+    margin: 10px 0;
+    cursor: pointer;
+}
+@media only screen and (max-width:768px) {
+    .col2{
+        display: none;
+    }
+    .logo{
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(30vw + 80px);
+    }
+    .form h2{
+        font-size: 22px;
+    }
+}

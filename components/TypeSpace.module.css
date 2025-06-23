@@ -1,0 +1,96 @@
+.inputholder {
+    min-height: 50px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 4px 4px 12px -4px #00000033;
+    position: relative;
+    width: 100%;
+}
+
+.edit {
+    width: 60%;
+    margin: 0 auto;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    height: 50px;
+}
+
+.letter {
+    font-size: 32px;
+    font-family: SF Pro Display;
+    color: var(--brand-col1);
+    opacity: 0;
+    font-weight: 600;
+    animation: up .4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    animation-fill-mode: forwards;
+    transition: all .4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    display: inline-block;
+}
+
+.blinker {
+    width: 2px;
+    height: 50px;
+    pointer-events: none;
+    background-color: var(--brand-col1);
+    animation: blink 1s normal infinite cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+@keyframes blink {
+    0% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+.instruct {
+    margin: 0;
+    color: #999;
+    font-family: SF Pro Display;
+    font-size: 26px;
+}
+
+.submit {
+    cursor: pointer;
+    background-color: var(--brand-col2);
+    border-radius: 10px;
+    padding: 10px 20px;
+    border: 0;
+    font-size: 12px;
+    font-family: SF Pro Display;
+    position: absolute;
+    bottom: 10px;
+    right: 10px
+}
+
+.input {
+    width: 100%;
+    position: absolute;
+    height: 100%;
+    opacity: 0;
+}
+
+.texthold {
+    padding: 10px 20px;
+    text-align: center;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+}
+
+@keyframes up {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0px);
+    }
+}

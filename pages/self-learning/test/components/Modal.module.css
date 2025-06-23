@@ -1,0 +1,163 @@
+.modal_overlay {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+   
+    left: 0;
+    top: 0;
+    z-index: 9999999999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+    perspective: 1000px;
+    perspective-origin: 50% 50%;
+    animation: comin .2s normal cubic-bezier(0.075, 0.82, 0.165, 1);
+    animation-fill-mode: forwards;
+}
+
+.modal {
+   box-shadow: 4px 4px 12px -5px #00000027;
+   border: 1px solid #ddd;
+    background-color: white;
+    margin: 0em 15em;
+    
+    min-width: 200px;
+    width: 500px;
+    overflow: hidden;
+    max-width: 90vw;
+    border-radius: 20px;
+    min-height: 30vh;
+    height: 380px;
+    max-height: 90vh;
+    top: '50%';
+          left: '50%';
+          transform: 'translate(-50%, -50%)';
+   
+    padding: 0px;
+  
+ z-index: 999990;
+ position: fixed;
+    padding-top: 50px;
+}
+
+.close {
+    position: absolute;
+    top: 0px;
+    padding: 2px;
+    opacity: 1;
+    width: 100%;
+    left: 0;
+    padding: 10px 20px;
+    display: flex;
+    cursor: move;
+    z-index: 0;
+    justify-content: flex-end;
+    border-bottom: 1px solid #fff;
+    box-shadow: 1px 1px 4px -3px #00000088;
+    background: rgb(186, 186, 186);
+    background: linear-gradient(90deg, rgb(226, 226, 226) 0%, rgba(223, 223, 223, 1) 100%);
+}
+
+.close a {
+    z-index: 9;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+}
+
+.invisble {
+    flex: 1;
+    width: 100%;
+}
+
+.close svg {
+    width: 20px;
+    border-radius: 200px;
+    padding: 5px;
+    height: 20px;
+    margin-left: 5px;
+}
+
+.close svg path {
+    fill: rgb(255, 254, 254);
+}
+
+.close .minbtn svg {
+    background-color: #00cd1c;
+}
+
+.close .maxbtn svg {
+    background-color: #ffbc00;
+}
+
+.close .closebtn svg {
+    background-color: rgb(247, 43, 43);
+    transform: rotate(45deg);
+}
+
+.close::before {
+    display: none;
+}
+
+@keyframes slide {
+    0% {
+        transform: translateY(50%) rotate(-45deg);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0%) rotate(45deg);
+        opacity: 1;
+    }
+}
+
+@keyframes comin {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.extra {
+    backdrop-filter: blur(12px);
+    background-color: var(--brand-col1);
+}
+
+@keyframes fadeIn {
+    0% {
+        transform: scale(0.5) translateY(50px) rotateX(25deg) rotateY(-2deg);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) translateY(0px) rotateX(0deg) rotateY(0deg);
+        opacity: 1;
+    }
+}
+
+.fullscreen {
+    width: 60vmax;
+    max-width: 100vmax;
+    height: 60vmin;
+   
+
+}
+
+@media only screen and (max-width:968px) {
+    .modal {
+        background-color: white;
+        margin: 0em 1em;
+        width: 100%;
+        padding: 2em;
+    }
+    .fullscreen {
+        width: 100vmin;
+        max-width: 100vmin;
+        height: 100vmax;
+        max-height: var(--max-height-main);
+        border-radius: 0;
+    }
+}

@@ -1,0 +1,38 @@
+.square:hover .bg{
+    background-color: var(--brand-col2);
+}
+
+
+.bg[data-status="null"]{
+    background-color: #66686b;
+}
+
+.bg[data-status="pending"]{
+    background-color: #87a9ff;
+}
+
+.bg[data-status="confirmed"]{
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+}
+.bg[data-status="available"]{
+    background-color: var(--brand-col2);
+    border-color: var(--brand-col2);
+    
+}
+.bg[data-status="available"] + p{
+   color: black;
+    
+}
+.bg[data-status="rejected"]{
+    background-color: #f51616;
+    border-color: #f51616;
+}
+.bg[data-status="scheduled"], .bg[data-status="attended"]{
+    background-color: #325fd1;
+    border-color: #325fd1;
+}
+.bg[data-status="completed"]{
+    background-color: #22c55e;
+    border-color: #22c55e;
+}

@@ -1,0 +1,123 @@
+.mainwrap{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;align-items: center;
+    align-content: center;
+    padding: 10px 20px;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: white;
+    box-shadow: 4px 4px 12px -10px #00000022;
+    border-radius: 20px;
+    font-family: Poppins;
+    font-size: 12px;
+}
+
+.header,.lead{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+}
+.header{
+    background-color: var(--brand-col1);
+}
+.header h2{
+    color: white;
+    font-weight: 500;
+    font-size: 14px;
+}
+.dates{
+    display: flex;
+    font-family: Poppins;
+    flex-direction: row;
+    padding: 10px 20px;
+    justify-content: flex-start;align-items: flex-end;
+    align-content: flex-start;
+}
+.heading{
+    font-size: 26pt;
+    margin: 5px 0;
+    color: var(--brand-col1);
+    padding: 0px 20px;
+    font-family: Poppins;
+}
+.filter,.csv{
+    background-color: var(--brand-col2);
+    border-radius: 10px;
+    padding: 10px 20px;
+    color: white;
+    cursor: pointer;
+}
+.csv{
+    display: inline-block;
+    background-color: var(--brand-col1);
+}
+.dates input{
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    color: #999;
+}
+.dates > div{
+    display: flex;
+    margin-right: 10px;
+    flex-direction: column;
+}
+.lead p ,.header h2{
+    flex: 1;
+    text-align: center;
+    margin: 5px 0;
+}
+
+.paginate{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    margin: 20px 0;
+    align-items: flex-start;
+    align-content: center;
+}
+.next,.prev{
+    padding: 0px;
+    border-radius: 100px;
+    background-color: #ddd;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+
+}
+
+.page.pagination_active{
+    color: white;
+    background-color: var(--brand-col1);
+}
+.paginate [disabled]{
+pointer-events: none;
+opacity: 0.5;
+}
+
+.page{
+    padding: 5px;
+    background-color: #ddd;
+    color: black;
+    border-radius: 10px;
+    margin: 0 5px;
+    
+    width: 24px;
+    font-size: 14px;
+    text-align: center;
+    height: 24px;
+    font-family: SF Pro Display;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+    cursor: pointer;
+
+}

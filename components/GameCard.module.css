@@ -1,0 +1,86 @@
+.gameblock {
+    width: 100%;
+    height: auto;
+    min-height: 20vh;
+    border-radius: 20px;
+    background-position: top;
+    background-size: cover;
+    position: relative;
+    background-repeat: no-repeat;
+    overflow: hidden;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: all .4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.gameblock:hover {
+    filter: brightness(0.95);
+    transform: scale(0.99) rotateX(10deg);
+    perspective: 100px;
+    perspective-origin: 100px 0px;
+    transform-style: preserve-3d;
+}
+
+.coming {
+    filter: grayscale(1);
+    pointer-events: none;
+    opacity: 1;
+}
+
+.gameblock::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: -20px;
+    background-color: white;
+    transform: scale(0);
+    width: 40px;
+    height: 40px;
+    border-radius: 2300px;
+    opacity: 0.5;
+    z-index: 0;
+}
+
+.gameblock:hover::before {
+    opacity: 0;
+    transform: scale(17);
+    transition: all .9s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.gameblock p:not(.badge) {
+    font-size: 36px;
+    font-weight: 500;
+    padding: 20px 30px;
+    margin: 0;
+    font-family: SF Pro Display;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.game {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    mix-blend-mode: screen;
+    width: auto;
+    height: 60%;
+    transition: all .9s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.gameblock:hover .game {
+    transform: translateY(30px) rotate(10deg);
+}
+
+.badge {
+    background-color: white;
+    border-radius: 200px;
+    position: relative;
+    right: 10px !important;
+    position: absolute;
+    top: 0px !important;
+    display: inline;
+    font-family: SF Pro Display;
+    font-size: 12px !important;
+    padding: 5px 10px !important;
+}
