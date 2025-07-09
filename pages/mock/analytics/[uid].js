@@ -335,7 +335,7 @@ function getStatusCounts() {
     });
   
     // Iterate over the `miscData` and count "Marked for Review" and "Not Answered"
-    miscData.forEach(item => {
+    miscData?.forEach(item => {
       if (item.status === "review" && !answered.some(answeredItem => answeredItem.id === item.id)) {
         markedForReviewCount += 1;
       } else if (!answered.some(answeredItem => answeredItem.id === item.id)) {
