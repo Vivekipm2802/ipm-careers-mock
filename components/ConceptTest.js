@@ -2707,19 +2707,28 @@ export default function Concept({ role, group, onBack }) {
                                 Watch Video
                               </Button>
                             )}
-                            <Button
-                              as={Link}
-                              target="_blank"
-                              href={`/test/${activeLevel?.uuid}`}
-                              size="lg"
-                              startContent={
-                                <div className="w-3 h-3 rounded-full  animate-ping bg-secondary -z-[1]"></div>
-                              }
-                              endContent={<ArrowRight></ArrowRight>}
-                              className="bg-white shadow-md border-1 relative rounded-full text-black "
-                            >
-                              Start Test
-                            </Button>
+                            {!(
+                              plays &&
+                              plays?.filter(
+                                (item) => item.test_uuid.id == activeLevel?.id
+                              )?.length > 0
+                            ) ? (
+                              <Button
+                                as={Link}
+                                target="_blank"
+                                href={`/test/${activeLevel?.uuid}`}
+                                size="lg"
+                                startContent={
+                                  <div className="w-3 h-3 rounded-full  animate-ping bg-secondary -z-[1]"></div>
+                                }
+                                endContent={<ArrowRight></ArrowRight>}
+                                className="bg-white shadow-md border-1 relative rounded-full text-black "
+                              >
+                                Start Test
+                              </Button>
+                            ) : (
+                              <></>
+                            )}
 
                             {plays &&
                               plays?.filter(
