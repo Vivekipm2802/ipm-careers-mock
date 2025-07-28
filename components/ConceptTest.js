@@ -1823,19 +1823,7 @@ export default function Concept({ role, group, onBack }) {
                                                   getLeaderBoard(i.uuid);
                                               }}
                                               className={
-                                                `${
-                                                  d == 0 ||
-                                                  role == "admin" ||
-                                                  (plays &&
-                                                    plays.some(
-                                                      (item) =>
-                                                        item.isPassed &&
-                                                        levelData[d - 1]?.id ==
-                                                          item?.test_uuid?.id
-                                                    ))
-                                                    ? ""
-                                                    : "pointer-events-none opacity-70 grayscale cursor-not-allowed"
-                                                } w-full flex flex-col justify-between cursor-pointer h-auto text-left shadow-sm p-3 rounded-md hover:scale-[0.995]  bg-white  transition-all hover:shadow-md ` +
+                                                `w-full flex flex-col justify-between cursor-pointer h-auto text-left shadow-sm p-3 rounded-md hover:scale-[0.995]  bg-white  transition-all hover:shadow-md ` +
                                                 (activeLevel?.id == i.id
                                                   ? " border-1 border-secondary bg-secondary-50"
                                                   : "")
@@ -1853,23 +1841,6 @@ export default function Concept({ role, group, onBack }) {
                                                       stroke="white"
                                                     ></CheckCircle2>
                                                   )}
-                                                {d == 0 ||
-                                                role == "admin" ||
-                                                (plays &&
-                                                  plays.some(
-                                                    (item) =>
-                                                      item.isPassed &&
-                                                      levelData[d - 1]?.id ==
-                                                        item?.test_uuid?.id
-                                                  )) ? (
-                                                  ""
-                                                ) : (
-                                                  <div className="flex flex-col items-center justify-center">
-                                                    <LockIcon
-                                                      size={16}
-                                                    ></LockIcon>
-                                                  </div>
-                                                )}
                                                 {role == "admin" ? (
                                                   <div className="flex flex-row items-center justify-between">
                                                     <Popover
