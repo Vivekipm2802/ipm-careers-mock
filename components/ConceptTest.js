@@ -223,7 +223,7 @@ export default function Concept({ role, group, onBack }) {
           return i.uuid;
         })
       )
-      .match({ user: userDetails?.email, isPassed: true });
+      .match({ user: userDetails?.email });
     if (data) {
       console.log(data);
       setPlays(data);
