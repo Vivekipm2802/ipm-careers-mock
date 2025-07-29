@@ -654,11 +654,28 @@ export default function Concept({ role, group, onBack }) {
                           }
                           as={Link}
                           target="_blank"
-                          href={`/test/analytics/${i?.uid}`}
+                          href={`/test/result/${i?.uid}`}
                           size="sm"
                           color="success"
+                          className="mr-2"
                         >
-                          View Result & Analytics
+                          View Result
+                        </Button>
+                        <Button
+                          endContent={
+                            <ChartSplineIcon size={16}></ChartSplineIcon>
+                          }
+                          as={Link}
+                          target="_blank"
+                          href={`/test/analytics/${i?.uid}`}
+                          size="sm"
+                          style={{
+                            background:
+                              "linear-gradient(90deg, #7b2ff2 0%, #f357a8 100%)",
+                            color: "#fff",
+                          }}
+                        >
+                          View Analysis
                         </Button>
                       </div>
                     </div>
