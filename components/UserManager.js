@@ -19,6 +19,7 @@ import {
   Select,
   SelectItem,
   Spacer,
+  Spinner,
 } from "@nextui-org/react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -63,7 +64,6 @@ export default function UserManager(props) {
   };
 
   async function getEmails(page = 0, pageSize = EMAIL_PAGE_SIZE, search = "") {
-    if (search !== "" && (loadingEmails || !hasMoreEmails)) return;
     setLoadingEmails(true);
     const offset = page * pageSize;
     let data = [];
@@ -282,40 +282,53 @@ export default function UserManager(props) {
                 setFilterText(e.target.value);
               }}
             ></Input>
-            <CheckboxGroup
-              value={selectedEmails}
-              onValueChange={(e) => {
-                setSelectedEmails(e);
-              }}
-            >
-              {emails && (
-                <VirtualList
-                  height={300}
-                  itemCount={emails.length}
-                  itemSize={40}
-                  width="100%"
-                  onItemsRendered={({ visibleStopIndex }) => {
-                    if (
-                      hasMoreEmails &&
-                      !loadingEmails &&
-                      visibleStopIndex >= emails.length - 10
-                    ) {
-                      getEmails(emailPage, EMAIL_PAGE_SIZE, filterText);
-                    }
-                  }}
-                >
-                  {({ index, style }) => {
-                    const eml = emails[index];
-                    if (!eml) return null;
-                    return (
-                      <div style={style} key={eml.value}>
-                        <Checkbox value={eml.value}>{eml.value}</Checkbox>
+            {loadingEmails && emails.length === 0 ? (
+              <div className="flex justify-center items-center py-10">
+                <Spinner size="lg" color="primary" />
+              </div>
+            ) : (
+              <CheckboxGroup
+                value={selectedEmails}
+                onValueChange={(e) => {
+                  setSelectedEmails(e);
+                }}
+              >
+                {emails && (
+                  <>
+                    <VirtualList
+                      height={300}
+                      itemCount={emails.length}
+                      itemSize={40}
+                      width="100%"
+                      onItemsRendered={({ visibleStopIndex }) => {
+                        if (
+                          hasMoreEmails &&
+                          !loadingEmails &&
+                          visibleStopIndex >= emails.length - 10
+                        ) {
+                          getEmails(emailPage, EMAIL_PAGE_SIZE, filterText);
+                        }
+                      }}
+                    >
+                      {({ index, style }) => {
+                        const eml = emails[index];
+                        if (!eml) return null;
+                        return (
+                          <div style={style} key={eml.value}>
+                            <Checkbox value={eml.value}>{eml.value}</Checkbox>
+                          </div>
+                        );
+                      }}
+                    </VirtualList>
+                    {loadingEmails && emails.length > 0 && (
+                      <div className="flex justify-center py-2">
+                        <Spinner size="sm" color="primary" />
                       </div>
-                    );
-                  }}
-                </VirtualList>
-              )}
-            </CheckboxGroup>
+                    )}
+                  </>
+                )}
+              </CheckboxGroup>
+            )}
           </ModalBody>
           <ModalFooter>
             <Button
@@ -351,6 +364,7 @@ export default function UserManager(props) {
                     selectedEmails.slice(0, 10).map((eml, idx) => {
                       return (
                         <Chip
+                          key={eml}
                           endContent={
                             <svg
                               onClick={() => {
@@ -457,7 +471,10 @@ export default function UserManager(props) {
               {enrolledCourses != undefined &&
                 enrolledCourses.map((i, d) => {
                   return (
-                    <div className="font-bold w-full text-left p-2 border-1 flex flex-row items-center justify-between text-sm  rounded-lg my-2 mx-0 bg-green-100 border-green-400 text-green-500">
+                    <div
+                      key={i.id}
+                      className="font-bold w-full text-left p-2 border-1 flex flex-row items-center justify-between text-sm  rounded-lg my-2 mx-0 bg-green-100 border-green-400 text-green-500"
+                    >
                       {i.course?.title}
                       <Popover
                         key={"99"}
