@@ -955,7 +955,7 @@ function MockTestEditor({ userData, role }) {
     }
   }
   return (
-    <div className="text-left sf w-full flex h-full flex-col overflow-hidden">
+    <div className="text-left sf w-full flex h-full flex-col overflow-auto">
       {views > 0 ? (
         <div className="flex flex-row items-center justify-start">
           <Button
