@@ -1,28 +1,132 @@
+import { serversupabase } from "@/utils/supabaseClient";
+
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
+  if (req.method !== "POST") {
+    return res
+      .status(405)
+      .json({ success: false, message: "Method not allowed" });
   }
 
-  const MAX_ATTEMPTS = 10;
-  let attempt = 0;
-  let result = null;
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) {
+    return res
+      .status(500)
+      .json({ success: false, message: "OpenAI API key not configured" });
+  }
 
-  while (attempt < MAX_ATTEMPTS) {
-    try {
-      const response = await fetch('https://openaitest-1gl9.onrender.com/api/generate-word');
-      result = await response.json();
-
-      console.log(`Attempt ${attempt + 1}:`, result);
-
-      if (result.success) {
-        return res.status(200).json({ success: true, message: 'Generated Word Successfully' });
+  try {
+    // 1. Generate a random English word and its meaning using OpenAI
+    const openaiRes = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
+              content:
+                'You are a helpful assistant that generates a random English word and its meaning. Respond in JSON: {"word": "...", "meaning": "..."}',
+            },
+            {
+              role: "user",
+              content:
+                'Generate a random English word and its meaning. Respond in JSON: {"word": "...", "meaning": "..."}',
+            },
+          ],
+          max_tokens: 100,
+          temperature: 0.8,
+        }),
       }
-    } catch (error) {
-      console.error(`Attempt ${attempt + 1} failed:`, error);
+    );
+
+    if (!openaiRes.ok) {
+      const errorText = await openaiRes.text();
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message: "OpenAI API error",
+          error: errorText,
+        });
     }
 
-    attempt++;
-  }
+    const openaiData = await openaiRes.json();
+    const content = openaiData.choices?.[0]?.message?.content;
 
-  return res.status(400).json({ success: false, message: 'Failed to generate word after 10 attempts' });
+    let wordObj;
+    try {
+      wordObj = JSON.parse(content);
+    } catch (e) {
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message: "Failed to parse OpenAI response",
+          raw: content,
+        });
+    }
+
+    const { word, meaning } = wordObj;
+    if (!word || !meaning) {
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message: "OpenAI response missing word or meaning",
+          raw: content,
+        });
+    }
+
+    // 2. Insert into Supabase
+    // Find the latest date in the table, and set the new word's date to the next day
+    const { data: latest, error: latestError } = await serversupabase
+      .from("word_of_the_day")
+      .select("date")
+      .order("date", { ascending: false })
+      .limit(1);
+
+    let nextDate;
+    if (latestError) {
+      // fallback: today
+      nextDate = new Date();
+    } else if (latest && latest.length > 0) {
+      const lastDate = new Date(latest[0].date);
+      lastDate.setDate(lastDate.getDate() + 1);
+      nextDate = lastDate;
+    } else {
+      nextDate = new Date();
+    }
+    const dateStr = nextDate.toISOString().split("T")[0];
+
+    const { data: insertData, error: insertError } = await serversupabase
+      .from("word_of_the_day")
+      .insert([{ word, meaning, date: dateStr }])
+      .select();
+
+    if (insertError) {
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message: "Failed to insert word into database",
+          error: insertError.message,
+        });
+    }
+
+    return res.status(200).json({ success: true, word: insertData[0] });
+  } catch (error) {
+    console.error("Error generating word:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+  }
 }

@@ -1,29 +1,110 @@
+import { serversupabase } from "@/utils/supabaseClient";
+
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-      return res.status(405).json({ message: 'Method Not Allowed' });
-    }
-  
-    const MAX_ATTEMPTS = 10;
-    let attempt = 0;
-    let result = null;
-  
-    while (attempt < MAX_ATTEMPTS) {
-      try {
-        const response = await fetch('https://openaitest-1gl9.onrender.com/api/generate-rc');
-        result = await response.json();
-  
-        console.log(`Attempt ${attempt + 1}:`, result);
-  
-        if (result.success) {
-          return res.status(200).json({ success: true, message: 'Generated Word Successfully' });
-        }
-      } catch (error) {
-        console.error(`Attempt ${attempt + 1} failed:`, error);
-      }
-  
-      attempt++;
-    }
-  
-    return res.status(400).json({ success: false, message: 'Failed to generate word after 10 attempts' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ message: "Method Not Allowed" });
   }
-  
+
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) {
+    return res
+      .status(500)
+      .json({ success: false, message: "OpenAI API key not configured" });
+  }
+
+  try {
+    // 1. Generate a Reading Comprehension (RC) using OpenAI
+    const openaiRes = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
+              content:
+                'You are a helpful assistant that generates a Reading Comprehension (RC) quiz for students. Respond in JSON with the following structure: {"passage": "...", "questions": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..."}]}. The passage should be 150-300 words, and there should be 3-5 questions. Each question must have 4 options, one correct answer, and a brief explanation.',
+            },
+            {
+              role: "user",
+              content:
+                'Generate a Reading Comprehension (RC) quiz. Respond in JSON: {"passage": "...", "questions": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..."}]}',
+            },
+          ],
+          max_tokens: 800,
+          temperature: 0.8,
+        }),
+      }
+    );
+
+    if (!openaiRes.ok) {
+      const errorText = await openaiRes.text();
+      return res.status(500).json({
+        success: false,
+        message: "OpenAI API error",
+        error: errorText,
+      });
+    }
+
+    const openaiData = await openaiRes.json();
+    const content = openaiData.choices?.[0]?.message?.content;
+
+    let rcObj;
+    try {
+      rcObj = JSON.parse(content);
+    } catch (e) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to parse OpenAI response",
+        raw: content,
+      });
+    }
+
+    const { passage, questions } = rcObj;
+    if (
+      !passage ||
+      !questions ||
+      !Array.isArray(questions) ||
+      questions.length === 0
+    ) {
+      return res.status(500).json({
+        success: false,
+        message: "OpenAI response missing passage or questions",
+        raw: content,
+      });
+    }
+
+    // Insert the generated RC into daily_rc_quiz
+    const { data, error } = await serversupabase
+      .from("daily_rc")
+      .insert([{ content: passage, options: questions }])
+      .select();
+
+    if (error) {
+      console.error("Error inserting RC:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to save RC to database",
+        error: error.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Generated RC Successfully",
+      rc: data[0],
+    });
+  } catch (error) {
+    console.error("Error generating RC:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+}

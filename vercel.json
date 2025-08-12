@@ -1,0 +1,14 @@
+{
+  "cron": [
+    {
+      "path": "/api/generateWord",
+      "schedule": "0 19 * * *",
+      "method": "POST"
+    },
+    {
+      "path": "/api/generateRC",
+      "schedule": "0 19 * * *",
+      "method": "POST"
+    }
+  ]
+}
