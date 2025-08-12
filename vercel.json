@@ -1,5 +1,5 @@
 {
-  "cron": [
+  "crons": [
     {
       "path": "/api/generateWord",
       "schedule": "0 19 * * *",
