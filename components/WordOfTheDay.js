@@ -15,6 +15,7 @@ export default function WordOfTheDay() {
     const { data, error } = await supabase
       .from("word_of_the_day")
       .select("*")
+      .order("created_at", { ascending: false })
       .limit(1);
     if (error) {
       toast.error("Unable to get the word of the day");
