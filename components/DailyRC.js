@@ -46,8 +46,10 @@ export default function DailyRC() {
   }
   async function getQuestion() {
     const { data, error } = await supabase
-      .from("daily_rc_quiz")
-      .select("*,answer_key(*)");
+      .from("daily_rc")
+      .select("*, answer_key(*)")
+      .order("created_at", { ascending: false })
+      .limit(1);
     if (error) {
       setLoading(false);
       return;
@@ -92,7 +94,10 @@ export default function DailyRC() {
           setModal(undefined);
         }}
       >
-        <ModalContent>
+        <ModalContent
+          className="max-w-3xl m-0"
+          style={{ height: "90vh", overflowY: "auto" }}
+        >
           <ModalHeader className="text-primary text-2xl">Solution</ModalHeader>
           <ModalBody>
             <h2 className="font-medium text-sm text-left">{modal?.title}</h2>
@@ -100,10 +105,111 @@ export default function DailyRC() {
               className="w-full text-sm"
               dangerouslySetInnerHTML={{ __html: modal?.content }}
             ></div>
-            <ScrollShadow
-              className="w-full text-medium max-h-[50vh] p-2 border-1 border-lime-600 rounded-xl bg-lime-100"
-              dangerouslySetInnerHTML={{ __html: modal?.answer_key?.solution }}
-            ></ScrollShadow>
+            {Array.isArray(modal?.options) &&
+            modal?.options.length > 0 &&
+            typeof modal?.options[0] === "object" &&
+            modal?.options[0]?.question ? (
+              <div className="w-full text-medium max-h-[50vh] p-2 border-1 border-lime-600 rounded-xl bg-lime-100 overflow-auto rounded-xl">
+                {modal?.options.map((qObj, idx) => {
+                  // Determine correct index (answer may be letter like "A","B",... or index)
+                  const correctIndex =
+                    typeof qObj.answer === "string"
+                      ? Math.max(
+                          0,
+                          (qObj.answer.toUpperCase().charCodeAt(0) || 65) - 65
+                        )
+                      : typeof qObj.answer === "number"
+                      ? qObj.answer
+                      : undefined;
+
+                  // If we passed userSelections when opening modal, pick it; else undefined
+                  const userIndex =
+                    modal?.__userSelections &&
+                    Array.isArray(modal.__userSelections)
+                      ? modal.__userSelections[idx]
+                      : undefined;
+
+                  return (
+                    <div key={idx} className="mb-4 bg-white rounded-lg p-3">
+                      <div className="font-semibold mb-2">
+                        Q{idx + 1}. {qObj.question}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {qObj.options?.map((opt, oIdx) => {
+                          const isUser = userIndex === oIdx;
+                          const isCorrect = correctIndex === oIdx;
+
+                          let classes = "rounded-md px-3 py-2 border text-sm";
+                          if (isCorrect && isUser) {
+                            classes +=
+                              " border-lime-600 bg-lime-100 text-lime-800";
+                          } else if (isCorrect) {
+                            classes +=
+                              " border-emerald-600 bg-emerald-50 text-emerald-800";
+                          } else if (isUser) {
+                            classes += " border-red-600 bg-red-50 text-red-800";
+                          } else {
+                            classes += " border-default-200 bg-default-50";
+                          }
+
+                          // Option text may or may not have prefix like "A. ..."
+                          const optLabel =
+                            typeof opt === "string" ? opt : String(opt);
+
+                          return (
+                            <div key={oIdx} className={classes}>
+                              {optLabel}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-2 text-xs text-foreground-600">
+                        {userIndex !== undefined ? (
+                          <div>
+                            Your answer:{" "}
+                            <span
+                              className={
+                                userIndex === correctIndex
+                                  ? "text-lime-700 font-medium"
+                                  : "text-red-700 font-medium"
+                              }
+                            >
+                              {typeof qObj.options?.[userIndex] === "string"
+                                ? qObj.options[userIndex]
+                                : String(qObj.options?.[userIndex])}
+                            </span>
+                          </div>
+                        ) : null}
+                        {correctIndex !== undefined ? (
+                          <div>
+                            Correct answer:{" "}
+                            <span className="text-emerald-700 font-medium">
+                              {typeof qObj.options?.[correctIndex] === "string"
+                                ? qObj.options[correctIndex]
+                                : String(qObj.options?.[correctIndex])}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {qObj.explanation ? (
+                        <div className="mt-2 text-sm text-foreground-700">
+                          {qObj.explanation}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <ScrollShadow
+                className="w-full text-medium max-h-[50vh] p-2 border-1 border-lime-600 rounded-xl bg-lime-100"
+                dangerouslySetInnerHTML={{
+                  __html: modal?.answer_key?.solution,
+                }}
+              ></ScrollShadow>
+            )}
           </ModalBody>
           <ModalFooter></ModalFooter>
         </ModalContent>
