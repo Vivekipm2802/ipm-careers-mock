@@ -341,7 +341,7 @@ function QuestionCard({ item, onSubmit, submissions, onView }) {
                         className="gap-2"
                       >
                         {qObj.options.map((opt, optIdx) => (
-                          <Radio key={optIdx} value={optIdx}>
+                          <Radio key={optIdx} value={String(optIdx)}>
                             {opt}
                           </Radio>
                         ))}
@@ -358,7 +358,7 @@ function QuestionCard({ item, onSubmit, submissions, onView }) {
                   className="gap-2"
                 >
                   {options.map((option, index) => (
-                    <Radio key={index} value={index}>
+                    <Radio key={index} value={String(index)}>
                       {option}
                     </Radio>
                   ))}
@@ -380,7 +380,16 @@ function QuestionCard({ item, onSubmit, submissions, onView }) {
               color="primary"
               onPress={(e) => {
                 answer != undefined
-                  ? onSubmit(answer)
+                  ? onSubmit(
+                      typeof answer === "object"
+                        ? Object.fromEntries(
+                            Object.entries(answer).map(([k, v]) => [
+                              k,
+                              parseInt(v, 10),
+                            ])
+                          )
+                        : parseInt(answer, 10)
+                    )
                   : toast.error("Your Answer is empty" + answer);
               }}
               className="w-auto mr-2"
