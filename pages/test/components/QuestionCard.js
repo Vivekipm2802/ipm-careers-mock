@@ -8,6 +8,7 @@ import {
   Spacer,
 } from "@nextui-org/react";
 import { Check } from "lucide-react";
+import { useState } from "react";
 
 export default function QuestionCard({
   question,
@@ -20,6 +21,7 @@ export default function QuestionCard({
   if (!question) {
     return <div>Question Undefined</div>;
   }
+  const [answeredData, setAnsweredData] = useState();
   const { id, title, type, questionimage, options, label } = question;
 
   const isDevelopment = process.env.NODE_ENV === "development";
@@ -59,7 +61,7 @@ export default function QuestionCard({
                       ?.selectedOption
                   }
                   onValueChange={(e) =>
-                    onSelect({ selectedOption: e, ...question })
+                    setAnsweredData({ selectedOption: e, ...question })
                   }
                 >
                   {options.map((option, index) => (
@@ -91,7 +93,9 @@ export default function QuestionCard({
                   <Spacer y={4} />
                   <Input
                     /* value={selectedAnswer} */
-                    onChange={(e) => onSelect({ id, value: e.target.value })}
+                    onChange={(e) =>
+                      setAnsweredData({ id, value: e.target.value })
+                    }
                     placeholder="Enter your Answer Here"
                     label="Answer"
                   />
@@ -115,6 +119,31 @@ export default function QuestionCard({
             }
           >
             {isMarked ? "Marked for Review" : "Mark this question for Review"}
+          </Button>
+          <Button
+            color="primary"
+            className="text-white ml-2"
+            size="sm"
+            onPress={() => {
+              if (answeredData) {
+                onSelect(answeredData);
+                setAnsweredData(undefined);
+              }
+            }}
+          >
+            Save & Next
+            <svg
+              width="14"
+              height="14"
+              fill="none"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M8.293 4.293a1 1 0 0 0 0 1.414L14.586 12l-6.293 6.293a1 1 0 1 0 1.414 1.414l7-7a1 1 0 0 0 0-1.414l-7-7a1 1 0 0 0-1.414 0Z"
+                fill="#fff"
+              />
+            </svg>
           </Button>
         </div>
       </div>
