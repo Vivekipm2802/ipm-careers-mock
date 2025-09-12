@@ -193,11 +193,11 @@ const Game = () => {
 
     if (isCorrect) {
       setScore(score + config.increment);
-      if (level < questions?.length) {
+      if (level < questions?.length - 1) {
         incrementLevel();
       }
     } else {
-      if (level < questions?.length) {
+      if (level < questions?.length - 1) {
         incrementLevel();
       }
       setScore(score - config.decrement);
@@ -205,7 +205,14 @@ const Game = () => {
   };
 
   const incrementLevel = () => {
-    setLevel((res) => res + 1);
+    setLevel((res) => {
+      // Only increment if not at last question
+      if (res < questions.length - 1) {
+        return res + 1;
+      }
+
+      return res;
+    });
   };
 
   useEffect(() => {
@@ -231,8 +238,6 @@ const Game = () => {
       if (questions?.length > report?.length) {
         setConfirmModal(true);
         setLevel(questions?.length - 1);
-      } else {
-        handleComplete();
       }
     }
   }, [level]);
