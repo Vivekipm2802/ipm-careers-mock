@@ -1,23 +1,12 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  useMemo,
-} from "react";
+import React, { useState, useEffect } from "react";
 import Flasher from "@/components/Flasher";
 import {
-  Avatar,
   Button,
-  Divider,
-  Input,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Radio,
-  RadioGroup,
   ScrollShadow,
   Spacer,
 } from "@nextui-org/react";
@@ -42,6 +31,7 @@ import Leaderboard from "./components/Leaderboard2";
 import DraggableModal from "../mock/components/Modal";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { toast } from "react-hot-toast";
 
 const Game = () => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
@@ -324,6 +314,7 @@ const Game = () => {
               color="default"
               className="from-primary border-1 border-white shadow-md shadow-primary-400 to-primary-600 bg-gradient-to-r text-white"
               onPress={() => {
+                setConfirmModal(false);
                 handleComplete();
               }}
             >
@@ -463,6 +454,15 @@ const Game = () => {
                   (item) =>
                     item?.id == questions[level]?.id && item?.status == "review"
                 )}
+                onFinish={() => {
+                  if (!report || report.length === 0) {
+                    toast.error(
+                      "Please attempt at least 1 question to submit the test"
+                    );
+                  } else {
+                    setConfirmModal(true);
+                  }
+                }}
               />
             </div>
           </>

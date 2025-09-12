@@ -17,6 +17,7 @@ export default function QuestionCard({
   onReview,
   isMarked,
   report,
+  onFinish,
 }) {
   if (!question) {
     return <div>Question Undefined</div>;
@@ -106,44 +107,56 @@ export default function QuestionCard({
             </ul>
           </div>
         </div>
-        <div className="sticky bg-white border-t-1 w-full bottom-0 p-4">
-          <Button
-            color={isMarked ? "success" : "primary"}
-            variant={isMarked ? "flat" : undefined}
-            size="sm"
-            onPress={() => {
-              isMarked ? "" : onReview(question.id);
-            }}
-            startContent={
-              isMarked && <Check className="text-success" size={16}></Check>
-            }
-          >
-            {isMarked ? "Marked for Review" : "Mark this question for Review"}
-          </Button>
-          <Button
-            color="primary"
-            className="text-white ml-2"
-            size="sm"
-            onPress={() => {
-              if (answeredData) {
-                onSelect(answeredData);
-                setAnsweredData(undefined);
+        <div className="sticky bg-white border-t-1 w-full bottom-0 p-4 flex items-center justify-between">
+          <div>
+            <Button
+              color={isMarked ? "success" : "primary"}
+              variant={isMarked ? "flat" : undefined}
+              size="sm"
+              onPress={() => {
+                isMarked ? "" : onReview(question.id);
+              }}
+              startContent={
+                isMarked && <Check className="text-success" size={16}></Check>
               }
+            >
+              {isMarked ? "Marked for Review" : "Mark this question for Review"}
+            </Button>
+            <Button
+              color="primary"
+              className="text-white ml-2"
+              size="sm"
+              onPress={() => {
+                if (answeredData) {
+                  onSelect(answeredData);
+                  setAnsweredData(undefined);
+                }
+              }}
+            >
+              Save & Next
+              <svg
+                width="14"
+                height="14"
+                fill="none"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8.293 4.293a1 1 0 0 0 0 1.414L14.586 12l-6.293 6.293a1 1 0 1 0 1.414 1.414l7-7a1 1 0 0 0 0-1.414l-7-7a1 1 0 0 0-1.414 0Z"
+                  fill="#fff"
+                />
+              </svg>
+            </Button>
+          </div>
+          <Button
+            color="danger"
+            className="text-white"
+            size="sm"
+            onPress={() => {
+              if (onFinish) onFinish();
             }}
           >
-            Save & Next
-            <svg
-              width="14"
-              height="14"
-              fill="none"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M8.293 4.293a1 1 0 0 0 0 1.414L14.586 12l-6.293 6.293a1 1 0 1 0 1.414 1.414l7-7a1 1 0 0 0 0-1.414l-7-7a1 1 0 0 0-1.414 0Z"
-                fill="#fff"
-              />
-            </svg>
+            Finish Test
           </Button>
         </div>
       </div>
