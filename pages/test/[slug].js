@@ -67,6 +67,7 @@ const Game = () => {
       .insert({
         test_uuid: parentData?.uuid,
         report: a,
+        score,
       })
       .select();
     if (data && data.length != 0) {
