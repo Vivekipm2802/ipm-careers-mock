@@ -18,7 +18,7 @@ import {
   Spacer,
 } from "@nextui-org/react";
 import { motion } from "framer-motion";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, Info } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNMNContext } from "./NMNContext";
@@ -274,7 +274,7 @@ function QuestionCard({ item, onSubmit, submissions, onView }) {
                 size={24}
               ></CheckCircle2>
             ) : (
-              <XCircle className="text-red-500 flex-shrink-0"></XCircle>
+              <></>
             )}
 
             <Spacer x={2}></Spacer>
@@ -284,8 +284,10 @@ function QuestionCard({ item, onSubmit, submissions, onView }) {
                 streak.
               </span>
             ) : (
-              <span className="text-red-700">
-                Sorry , Your answer is incorrect. Try again tomorrow
+              <span>
+                Today's streak secured🔥 Keep it rolling!
+                <br />
+                See you tomorrow
               </span>
             )}
           </h2>
@@ -293,7 +295,7 @@ function QuestionCard({ item, onSubmit, submissions, onView }) {
             <Button
               className="te"
               color="primary"
-              size="sm"
+              size="md"
               onPress={() => {
                 onView();
               }}
