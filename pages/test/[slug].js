@@ -51,6 +51,7 @@ const Game = () => {
   const [parentData, setParentData] = useState();
   const [leaderboard, setLeaderBoard] = useState();
   const [report, setReport] = useState([]);
+  const [tempAnswers, setTempAnswers] = useState({}); // For immediate icon feedback
   const [activeExplanation, setActiveExplanation] = useState();
   const [drawerActive, setDrawerActive] = useState(false);
   const [calculatorActive, setCalculatorActive] = useState(false);
@@ -174,18 +175,46 @@ const Game = () => {
     });
   };
 
+  const handleTempAnswer = (answerData) => {
+    // Update temporary answers for immediate icon feedback
+    setTempAnswers((prev) => ({
+      ...prev,
+      [answerData.id]: answerData,
+    }));
+  };
+
   const handleSubmit = (answerData) => {
+    // Clear temp answer when actually submitting
+    setTempAnswers((prev) => {
+      const newTemp = { ...prev };
+      delete newTemp[answerData.id];
+      return newTemp;
+    });
     const { selectedOption, options, id, type } = answerData;
     const currentOption = options[selectedOption - 1];
     const isCorrect = currentOption?.isCorrect;
     const answer =
       type == "options" ? currentOption?.title : currentOption?.title;
 
+    const existingReport = report.find((item) => item.id == id);
+    let status = "answered";
+
+    if (existingReport) {
+      if (
+        existingReport.status === "review" ||
+        existingReport.status === "markedForReview"
+      ) {
+        // If already marked for review (or already marked for review), now it's both answered and marked for review
+        status = "markedForReview";
+      } else {
+        // If already answered, keep as answered
+        status = "answered";
+      }
+    }
+
     addToReport({
       id: id,
-      status: report.find((item) => item.id == id)
-        ? "markedForReview"
-        : "answered",
+      status: status,
       selectedOption: selectedOption,
       timestamp: timeDuration - totalSeconds,
       isCorrect: isCorrect,
@@ -450,12 +479,26 @@ const Game = () => {
                 isPlaying={!(showModal || isHintVisible)}
                 key={level}
                 onReview={(e) => {
-                  addToReport({ id: e, status: "review" });
+                  const existingReport = report.find((item) => item.id === e);
+                  const hasTempAnswer = tempAnswers && tempAnswers[e];
+
+                  if (
+                    (existingReport && existingReport.status === "answered") ||
+                    hasTempAnswer
+                  ) {
+                    // If already answered (either saved or temporary), mark as both answered and reviewed
+                    addToReport({ id: e, status: "markedForReview" });
+                  } else {
+                    // If not answered yet, just mark for review
+                    addToReport({ id: e, status: "review" });
+                  }
                 }}
                 question={questions[level]}
                 onSelect={(e) => {
                   handleSubmit(e);
                 }}
+                onTempAnswer={handleTempAnswer}
+                onNext={incrementLevel}
                 isMarked={report?.some(
                   (item) =>
                     item?.id == questions[level]?.id && item?.status == "review"
@@ -741,6 +784,7 @@ const Game = () => {
             gamestate={gamestate}
             questions={questions}
             report={report}
+            tempAnswers={tempAnswers}
             sideBarActive={sideBarActive}
             setSidebarActive={(e) => {
               setSidebarActive(e);

@@ -18,6 +18,8 @@ export default function QuestionCard({
   isMarked,
   report,
   onFinish,
+  onTempAnswer,
+  onNext,
 }) {
   if (!question) {
     return <div>Question Undefined</div>;
@@ -61,9 +63,14 @@ export default function QuestionCard({
                     report?.find((item) => item.id == question.id)
                       ?.selectedOption
                   }
-                  onValueChange={(e) =>
-                    setAnsweredData({ selectedOption: e, ...question })
-                  }
+                  onValueChange={(e) => {
+                    const answerData = { selectedOption: e, ...question };
+                    setAnsweredData(answerData);
+                    // Immediately notify parent for icon update
+                    if (onTempAnswer) {
+                      onTempAnswer(answerData);
+                    }
+                  }}
                 >
                   {options.map((option, index) => (
                     <Radio
@@ -94,9 +101,14 @@ export default function QuestionCard({
                   <Spacer y={4} />
                   <Input
                     /* value={selectedAnswer} */
-                    onChange={(e) =>
-                      setAnsweredData({ id, value: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const answerData = { id, value: e.target.value };
+                      setAnsweredData(answerData);
+                      // Immediately notify parent for icon update
+                      if (onTempAnswer) {
+                        onTempAnswer(answerData);
+                      }
+                    }}
                     placeholder="Enter your Answer Here"
                     label="Answer"
                   />
@@ -128,12 +140,25 @@ export default function QuestionCard({
               size="sm"
               onPress={() => {
                 if (answeredData) {
+                  // If there's unsaved answer data, save it
                   onSelect(answeredData);
                   setAnsweredData(undefined);
+                } else {
+                  // If already answered or marked for review, navigate to next question
+                  setAnsweredData(undefined);
+                  if (
+                    onNext &&
+                    report?.find((item) => item.id == question.id)
+                  ) {
+                    onNext();
+                  }
                 }
               }}
+              isDisabled={
+                !answeredData && !report?.find((item) => item.id == question.id)
+              }
             >
-              Save & Next
+              {answeredData ? "Save & Next" : "Next"}
               <svg
                 width="14"
                 height="14"
