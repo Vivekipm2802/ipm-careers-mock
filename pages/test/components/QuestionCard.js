@@ -8,7 +8,7 @@ import {
   Spacer,
 } from "@nextui-org/react";
 import { Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function QuestionCard({
   question,
@@ -20,14 +20,27 @@ export default function QuestionCard({
   onFinish,
   onTempAnswer,
   onNext,
+  onClearResponse,
 }) {
   if (!question) {
     return <div>Question Undefined</div>;
   }
   const [answeredData, setAnsweredData] = useState();
+  const [inputValue, setInputValue] = useState("");
   const { id, title, type, questionimage, options, label } = question;
 
   const isDevelopment = process.env.NODE_ENV === "development";
+
+  // Reset input value when question changes or when response is cleared
+  useEffect(() => {
+    const existingReport = report?.find((item) => item.id === question.id);
+    if (!existingReport) {
+      setInputValue("");
+      setAnsweredData(undefined);
+    } else if (existingReport && type === "input" && existingReport.value) {
+      setInputValue(existingReport.value || "");
+    }
+  }, [question.id, report, type]);
 
   return (
     <div className="font-sans w-full flex-1 flex flex-col text-left overflow-hidden">
@@ -61,7 +74,10 @@ export default function QuestionCard({
                   classNames={{ label: "gradtext text-md font-bold" }}
                   value={
                     report?.find((item) => item.id == question.id)
-                      ?.selectedOption
+                      ?.selectedOption ||
+                    (answeredData?.selectedOption
+                      ? String(answeredData.selectedOption)
+                      : "")
                   }
                   onValueChange={(e) => {
                     const answerData = { selectedOption: e, ...question };
@@ -75,7 +91,7 @@ export default function QuestionCard({
                   {options.map((option, index) => (
                     <Radio
                       className="flex flex-row items-center justify-start"
-                      value={index + 1}
+                      value={String(index + 1)}
                       key={index}
                     >
                       {option.image ? (
@@ -100,8 +116,9 @@ export default function QuestionCard({
                 <>
                   <Spacer y={4} />
                   <Input
-                    /* value={selectedAnswer} */
+                    value={inputValue}
                     onChange={(e) => {
+                      setInputValue(e.target.value);
                       const answerData = { id, value: e.target.value };
                       setAnsweredData(answerData);
                       // Immediately notify parent for icon update
@@ -133,6 +150,24 @@ export default function QuestionCard({
               }
             >
               {isMarked ? "Marked for Review" : "Mark this question for Review"}
+            </Button>
+            <Button
+              color="warning"
+              variant="flat"
+              className="ml-2"
+              size="sm"
+              onPress={() => {
+                if (onClearResponse) {
+                  onClearResponse(question.id);
+                  setAnsweredData(undefined);
+                  setInputValue("");
+                }
+              }}
+              isDisabled={
+                !answeredData && !report?.find((item) => item.id == question.id)
+              }
+            >
+              Clear Response
             </Button>
             <Button
               color="primary"

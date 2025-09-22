@@ -183,6 +183,20 @@ const Game = () => {
     }));
   };
 
+  const handleClearResponse = (questionId) => {
+    // Remove from report
+    setReport((prevReport) => {
+      return prevReport.filter((item) => item.id !== questionId);
+    });
+
+    // Remove from temp answers
+    setTempAnswers((prev) => {
+      const newTemp = { ...prev };
+      delete newTemp[questionId];
+      return newTemp;
+    });
+  };
+
   const handleSubmit = (answerData) => {
     // Clear temp answer when actually submitting
     setTempAnswers((prev) => {
@@ -498,6 +512,7 @@ const Game = () => {
                   handleSubmit(e);
                 }}
                 onTempAnswer={handleTempAnswer}
+                onClearResponse={handleClearResponse}
                 onNext={incrementLevel}
                 isMarked={report?.some(
                   (item) =>
