@@ -2892,25 +2892,28 @@ export default function Home(props) {
 
                 {slug == "lvr" ? (
                   <>
-                    {/* <VideoGroups
-                    title="Select Live Video Pack"
-                    role={props?.type}
-                    type={"lvideo"}
-                  >
-                    {({ group, clearSelection }) => (
-                      <PreRecorded
-                        onBack={(e) => {
-                          clearSelection();
-                        }}
-                        group={group}
-                        title={"Live Recorded Videos"}
-                        listName={"lvideos"}
-                        categoryName={"lvcategory"}
+                    {props?.type === "admin" ? (
+                      <VideoGroups
+                        title="Select Live Video Pack"
                         role={props?.type}
-                      ></PreRecorded>
+                        type={"lvideo"}
+                      >
+                        {({ group, clearSelection }) => (
+                          <PreRecorded
+                            onBack={(e) => {
+                              clearSelection();
+                            }}
+                            group={group}
+                            title={"Live Recorded Videos"}
+                            listName={"lvideos"}
+                            categoryName={"lvcategory"}
+                            role={props?.type}
+                          ></PreRecorded>
+                        )}
+                      </VideoGroups>
+                    ) : (
+                      <ComingSoon message="Self Learning (Live Recordings) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
                     )}
-                  </VideoGroups> */}
-                    <ComingSoon message="Self Learning (Live Recordings) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
                   </>
                 ) : (
                   ""
@@ -3319,8 +3322,11 @@ export default function Home(props) {
 
                 {slug == "pdfs" ? (
                   <>
-                    {/* <PDFViewer type={props?.type || "user"}></PDFViewer> */}
-                    <ComingSoon message="Self Learning (Class Notes) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                    {props?.type === "admin" ? (
+                      <PDFViewer type={props?.type || "user"}></PDFViewer>
+                    ) : (
+                      <ComingSoon message="Self Learning (Class Notes) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                    )}
                   </>
                 ) : (
                   ""
@@ -3605,22 +3611,28 @@ Vocab by MindMaps will be available soon</h2>
 
                 {slug == "pyqconcept" ? (
                   <>
-                    {/* <PYQManager
-                      viewBy="topic"
-                      isAdmin={props?.type == "admin"}
-                    ></PYQManager> */}
-                    <ComingSoon message="Previous Year Papers (Concept Based) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                    {props?.type === "admin" ? (
+                      <PYQManager
+                        viewBy="topic"
+                        isAdmin={props?.type == "admin"}
+                      ></PYQManager>
+                    ) : (
+                      <ComingSoon message="Previous Year Papers (Concept Based) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                    )}
                   </>
                 ) : (
                   ""
                 )}
                 {slug == "pyqyear" ? (
                   <>
-                    {/* <PYQManager
-                      viewBy="year"
-                      isAdmin={props?.type == "admin"}
-                    ></PYQManager> */}
-                    <ComingSoon message="Previous Year Papers (By Years) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                    {props?.type === "admin" ? (
+                      <PYQManager
+                        viewBy="year"
+                        isAdmin={props?.type == "admin"}
+                      ></PYQManager>
+                    ) : (
+                      <ComingSoon message="Previous Year Papers (By Years) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                    )}
                   </>
                 ) : (
                   ""
