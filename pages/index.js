@@ -43,6 +43,7 @@ import { logoutUser } from "@/supabase/userUtility";
 import ImageUploader from "@/components/ImageUploader";
 import GameCard from "@/components/GameCard";
 import Webinars from "@/components/Webinars";
+import ComingSoon from "@/components/ComingSoon";
 import Generator from "@/components/Generator";
 import BookBySubject from "@/components/BookBySubject";
 import SWOTEditor from "@/components/SWOTEditor";
@@ -3597,18 +3598,24 @@ Vocab by MindMaps will be available soon</h2>
                 )}
 
                 {slug == "pyqconcept" ? (
-                  <PYQManager
-                    viewBy="topic"
-                    isAdmin={props?.type == "admin"}
-                  ></PYQManager>
+                  <>
+                    {/* <PYQManager
+                      viewBy="topic"
+                      isAdmin={props?.type == "admin"}
+                    ></PYQManager> */}
+                    <ComingSoon message="Previous Year Papers (Concept Based) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                  </>
                 ) : (
                   ""
                 )}
                 {slug == "pyqyear" ? (
-                  <PYQManager
-                    viewBy="year"
-                    isAdmin={props?.type == "admin"}
-                  ></PYQManager>
+                  <>
+                    {/* <PYQManager
+                      viewBy="year"
+                      isAdmin={props?.type == "admin"}
+                    ></PYQManager> */}
+                    <ComingSoon message="Previous Year Papers (By Years) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                  </>
                 ) : (
                   ""
                 )}
