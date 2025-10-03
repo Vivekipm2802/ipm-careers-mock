@@ -2891,7 +2891,8 @@ export default function Home(props) {
                 {/* Live Video Recording */}
 
                 {slug == "lvr" ? (
-                  <VideoGroups
+                  <>
+                    {/* <VideoGroups
                     title="Select Live Video Pack"
                     role={props?.type}
                     type={"lvideo"}
@@ -2908,7 +2909,9 @@ export default function Home(props) {
                         role={props?.type}
                       ></PreRecorded>
                     )}
-                  </VideoGroups>
+                  </VideoGroups> */}
+                    <ComingSoon message="Self Learning (Live Recordings) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                  </>
                 ) : (
                   ""
                 )}
@@ -3315,7 +3318,10 @@ export default function Home(props) {
                 )}
 
                 {slug == "pdfs" ? (
-                  <PDFViewer type={props?.type || "user"}></PDFViewer>
+                  <>
+                    {/* <PDFViewer type={props?.type || "user"}></PDFViewer> */}
+                    <ComingSoon message="Self Learning (Class Notes) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                  </>
                 ) : (
                   ""
                 )}
