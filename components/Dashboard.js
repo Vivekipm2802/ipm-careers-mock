@@ -12,12 +12,14 @@ import { toast } from "react-hot-toast";
 import DailyRC from "./DailyRC";
 import WordOfTheDay from "./WordOfTheDay";
 import Loader from "./Loader";
+import axios from "axios";
 
 export default function Dashboard({ userData }) {
   const [isNull, setIsNull] = useState(true);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState();
   const [classes, setClasses] = useState();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   async function getClasses() {
     const { data, error } = await supabase
@@ -37,6 +39,19 @@ export default function Dashboard({ userData }) {
   }
 
   const { setCTXSlug, sk, setSK, userCourses } = useNMNContext();
+
+  async function checkAdminStatus() {
+    try {
+      const response = await axios.post("/api/isAdmin", {
+        email: userData?.email,
+      });
+      if (response.data.success) {
+        setIsAdmin(true);
+      }
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+    }
+  }
 
   async function getResults() {
     const { data, error } = await supabase
@@ -109,7 +124,10 @@ export default function Dashboard({ userData }) {
   useEffect(() => {
     getResults();
     getClasses();
-  }, []);
+    if (userData?.email) {
+      checkAdminStatus();
+    }
+  }, [userData?.email]);
 
   const t1 = `Hi ${userData?.user_metadata?.full_name || "Unknown User"},`;
   const t2 = "Welcome to IPM Careers Study Panel";
@@ -271,7 +289,7 @@ export default function Dashboard({ userData }) {
         </div>
       </div>
       <Spacer y={2}></Spacer>
-      <ClassDashboard classes={classes ?? []}></ClassDashboard>
+      {isAdmin && <ClassDashboard classes={classes ?? []}></ClassDashboard>}
       {/* <div className="p-4 border-1 border-gray-200 my-2 rounded-xl flex flex-col justify-start items-start">
     <h2 className="font-sans w-full text-left text-primary p-1 text-2xl font-bold">Assigned Tests</h2>
     <div className="flex relative flex-row items-center justify-start w-full flex-wrap">
@@ -282,34 +300,36 @@ export default function Dashboard({ userData }) {
     </div>
 </div> */}
 
-      <div className="flex flex-col lg:flex-row items-start justify-start">
-        <div className="p-4 flex-1 lg:w-[unset] w-full border-1 border-gray-200 my-2 rounded-xl flex flex-col justify-start items-start">
-          <h2 className="font-sans w-full text-left text-primary p-1 text-2xl font-bold">
-            Your Courses
-          </h2>
-          <div className="flex flex-row items-center justify-start w-full flex-wrap relative">
-            {isDemo ? <DemoComponent></DemoComponent> : ""}
-            {userCourses &&
-              userCourses.map((i, d) => {
-                return (
-                  <div className="flex-[50%] flex-grow-0 relative bg-gradient-to-b from-gray-100 hover:shadow-lg hover:border-primary transition-all to-white shadow-md overflow-hidden flex flex-col rounded-xl border-1 border-gray-200 p-4">
-                    <div className=" pointer-events-none w-32 h-32 absolute -right-16 -top-16 bg-primary opacity-50 rounded-full"></div>
-                    <Spacer y={6}></Spacer>
-                    <h2 className="font-bold text-2xl text-left text-primary">
-                      {i?.course?.title}
-                    </h2>
-                  </div>
-                );
-              })}
+      {isAdmin && (
+        <div className="flex flex-col lg:flex-row items-start justify-start">
+          <div className="p-4 flex-1 lg:w-[unset] w-full border-1 border-gray-200 my-2 rounded-xl flex flex-col justify-start items-start">
+            <h2 className="font-sans w-full text-left text-primary p-1 text-2xl font-bold">
+              Your Courses
+            </h2>
+            <div className="flex flex-row items-center justify-start w-full flex-wrap relative">
+              {isDemo ? <DemoComponent></DemoComponent> : ""}
+              {userCourses &&
+                userCourses.map((i, d) => {
+                  return (
+                    <div className="flex-[50%] flex-grow-0 relative bg-gradient-to-b from-gray-100 hover:shadow-lg hover:border-primary transition-all to-white shadow-md overflow-hidden flex flex-col rounded-xl border-1 border-gray-200 p-4">
+                      <div className=" pointer-events-none w-32 h-32 absolute -right-16 -top-16 bg-primary opacity-50 rounded-full"></div>
+                      <Spacer y={6}></Spacer>
+                      <h2 className="font-bold text-2xl text-left text-primary">
+                        {i?.course?.title}
+                      </h2>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+
+          <Spacer className=" hidden md:flex " x={4} y={4}></Spacer>
+          <div className="p-0 flex-1 lg:w-[unset] w-full my-2 rounded-xl flex flex-col justify-start items-start">
+            {isDemo ? <DemoComponent floating={true}></DemoComponent> : ""}
+            <StudentAttendance></StudentAttendance>
           </div>
         </div>
-
-        <Spacer className=" hidden md:flex " x={4} y={4}></Spacer>
-        <div className="p-0 flex-1 lg:w-[unset] w-full my-2 rounded-xl flex flex-col justify-start items-start">
-          {isDemo ? <DemoComponent floating={true}></DemoComponent> : ""}
-          <StudentAttendance></StudentAttendance>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
