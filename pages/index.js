@@ -2755,11 +2755,17 @@ export default function Home(props) {
                 )}
 
                 {slug == "studyplan" ? (
-                  <Generator
-                    role={props?.type}
-                    enrolled={coursesEnrolled || []}
-                    userData={userData}
-                  ></Generator>
+                  <>
+                    {props?.type === "admin" ? (
+                      <Generator
+                        role={props?.type}
+                        enrolled={coursesEnrolled || []}
+                        userData={userData}
+                      ></Generator>
+                    ) : (
+                      <ComingSoon message="My Plan (Study Plan Generator) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                    )}
+                  </>
                 ) : (
                   ""
                 )}
@@ -2777,14 +2783,20 @@ export default function Home(props) {
                   ""
                 )}
                 {slug == "topic-wise" ? (
-                  <div className="flex flex-col w-full h-full">
-                    <DashTrack
-                      userData={userData}
-                      goToTest={() => {
-                        setSlug("kyc");
-                      }}
-                    ></DashTrack>
-                  </div>
+                  <>
+                    {props?.type === "admin" ? (
+                      <div className="flex flex-col w-full h-full">
+                        <DashTrack
+                          userData={userData}
+                          goToTest={() => {
+                            setSlug("kyc");
+                          }}
+                        ></DashTrack>
+                      </div>
+                    ) : (
+                      <ComingSoon message="Classes (Progress Tracker) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                    )}
+                  </>
                 ) : (
                   ""
                 )}
@@ -2856,7 +2868,17 @@ export default function Home(props) {
                   ""
                 )}
                 {slug == "batch-creator" ? <BatchCreator></BatchCreator> : ""}
-                {slug == "batch-wise" ? <Classes></Classes> : ""}
+                {slug == "batch-wise" ? (
+                  <>
+                    {props?.type === "admin" ? (
+                      <Classes></Classes>
+                    ) : (
+                      <ComingSoon message="Classes (Online Classes) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                    )}
+                  </>
+                ) : (
+                  ""
+                )}
                 {slug == "teacher-manager" ? (
                   <TeacherManager></TeacherManager>
                 ) : (
