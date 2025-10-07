@@ -81,7 +81,7 @@ export default function PYQManager({
   const [newTopic, setNewTopic] = useState({
     name: "",
     description: "",
-    // icon_url: "",
+    icon_url: "",
   });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState(null);
@@ -411,7 +411,7 @@ export default function PYQManager({
       setNewTopic({
         name: "",
         description: "",
-        //  icon_url: ""
+        icon_url: ""
       });
       setIsAddingTopic(false);
       await fetchTopics();
@@ -642,7 +642,15 @@ export default function PYQManager({
                             : "bg-gray-100 text-gray-600"
                         }`}
                       >
-                        <Tag className="h-5 w-5" />
+                        {topic.icon_url ? (
+                          <img
+                            src={topic.icon_url}
+                            alt={topic.name}
+                            className="object-contain"
+                          />
+                        ) : (
+                          <Tag className="h-5 w-5" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4
@@ -1437,7 +1445,7 @@ export default function PYQManager({
                       }
                     />
                   </div>
-                  {/* <div>
+                  <div>
                     <label className="block text-sm font-medium mb-1">
                       Topic Icon (Optional)
                     </label>
@@ -1447,7 +1455,7 @@ export default function PYQManager({
                         setNewTopic({ ...newTopic, icon_url: url })
                       }
                     />
-                  </div> */}
+                  </div>
                 </div>
               </ModalBody>
               <ModalFooter>
