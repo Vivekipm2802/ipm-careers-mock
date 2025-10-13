@@ -941,13 +941,55 @@ export default function PYQManager({
                 </div>
               ) : (
                 /* Answer Based Question - Display using dangerouslySetInnerHTML */
-                <div>
-                  <h4 className="text-lg font-semibold mb-3">Answer:</h4>
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: selectedQuestion.answer,
-                    }}
-                  />
+                <div className="flex gap-6">
+                  <div className="flex-1">
+                    {/* <h4 className="text-lg font-semibold mb-3">Answer:</h4>
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: selectedQuestion.answer,
+                      }}
+                    /> */}
+                  </div>
+                  <div className="flex-shrink-0 flex flex-col gap-2">
+                    <Tooltip
+                      content={
+                        <div className="p-2">
+                          <div className="font-semibold mb-1">
+                            Correct Answer:
+                          </div>
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: selectedQuestion.answer,
+                            }}
+                          />
+                        </div>
+                      }
+                      placement="left"
+                      showArrow
+                    >
+                      <Button
+                        variant="solid"
+                        color="success"
+                        size="sm"
+                        className="font-medium"
+                      >
+                        Correct Answer
+                      </Button>
+                    </Tooltip>
+                    {selectedQuestion.explanation && (
+                      <Button
+                        variant="solid"
+                        color="primary"
+                        size="sm"
+                        className="font-medium"
+                        onPress={() =>
+                          setShowExplanationSection(!showExplanationSection)
+                        }
+                      >
+                        {showExplanationSection ? "Hide" : "View"} Explanation
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 
