@@ -411,7 +411,7 @@ export default function PYQManager({
       setNewTopic({
         name: "",
         description: "",
-        icon_url: ""
+        icon_url: "",
       });
       setIsAddingTopic(false);
       await fetchTopics();
@@ -731,8 +731,27 @@ export default function PYQManager({
           <></>
         ) : questions.length === 0 ? (
           <Card shadow="none">
-            <CardBody className="flex flex-col items-center justify-center h-64">
-              <p className="text-gray-500 mb-4">
+            <CardBody className="flex flex-col items-center justify-center">
+              <div className="w-full">
+                <div className="flex items-center gap-2 mb-2 text-primary">
+                  <ArrowLeft
+                    className="cursor-pointer hover:text-secondary"
+                    onClick={() => {
+                      setFilterValue(null);
+                      setSelectedQuestion(null);
+                    }}
+                  />
+                  <h2 className="text-md text-left font-medium">
+                    Showing results for :{" "}
+                    <span className="capitalize">
+                      {viewBy === "topic"
+                        ? topics.find((t) => t.id === filterValue)?.name || ""
+                        : filterValue}
+                    </span>
+                  </h2>
+                </div>
+              </div>
+              <p className="text-gray-500 mb-4 text-center">
                 No questions found for this {viewBy}.
               </p>
               {isAdmin && (
@@ -989,13 +1008,23 @@ export default function PYQManager({
         ) : (
           // Question List View
           <div className="grid gap-3">
-            <h2 className="text-md text-left font-medium text-primary">
-              Showing results for :{" "}
-              <span className="capitalize">
-                {viewBy == "year" ? viewBy : ""}
-              </span>{" "}
-              {viewBy == "year" ? filterValue : topics[filterValue]?.name}
-            </h2>
+            <div className="flex items-center gap-2">
+              <ArrowLeft
+                className="cursor-pointer text-primary hover:text-secondary"
+                onClick={() => {
+                  setFilterValue(null);
+                  setSelectedQuestion(null);
+                }}
+              />
+              <h2 className="text-md text-left font-medium text-primary">
+                Showing results for :{" "}
+                <span className="capitalize">
+                  {viewBy === "topic"
+                    ? topics.find((t) => t.id === filterValue)?.name || ""
+                    : filterValue}
+                </span>
+              </h2>
+            </div>
             {questions.map((question) => (
               <Card
                 key={question.id}
