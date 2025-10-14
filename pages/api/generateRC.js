@@ -203,9 +203,6 @@ Context: ${randomContext}
 `,
             },
           ],
-          temperature: 1.0,
-          presence_penalty: 0.8,
-          frequency_penalty: 0.8,
         }),
       }
     );
