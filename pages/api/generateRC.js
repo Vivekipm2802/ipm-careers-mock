@@ -67,6 +67,121 @@ export default async function handler(req, res) {
   }
 
   try {
+    const topics = [
+      "ancient civilizations and archaeological discoveries",
+      "modern scientific breakthroughs and innovations",
+      "environmental conservation and climate change",
+      "space exploration and astronomy",
+      "artificial intelligence and technology ethics",
+      "historical events and their global impact",
+      "cultural traditions and anthropology",
+      "economic theories and global markets",
+      "medical advances and public health",
+      "literature and philosophical movements",
+      "marine biology and ocean ecosystems",
+      "renewable energy and sustainability",
+      "psychology and human behavior",
+      "art history and creative movements",
+      "political systems and governance",
+      "wildlife conservation and biodiversity",
+      "urban planning and architecture",
+      "genetics and biotechnology",
+      "social movements and civil rights",
+      "education systems and pedagogy",
+      "sports science and athletic performance",
+      "nutrition and food science",
+      "linguistics and language evolution",
+      "entrepreneurship and business innovation",
+      "music theory and cultural influence",
+      "neuroscience and brain research",
+      "agricultural technology and food security",
+      "cybersecurity and digital privacy",
+      "mythology and folklore studies",
+      "quantum physics and theoretical science",
+      "volcanic activity and geological formations",
+      "deep sea exploration and marine technology",
+      "indigenous knowledge systems and traditional medicine",
+      "cryptocurrency and blockchain technology",
+      "virtual reality and immersive experiences",
+      "forensic science and criminal investigation",
+      "meteorology and weather prediction systems",
+      "robotics and automation in industry",
+      "paleontology and dinosaur discoveries",
+      "nanotechnology and molecular engineering",
+      "behavioral economics and decision making",
+      "coral reef ecosystems and conservation",
+      "medieval history and feudal societies",
+      "photosynthesis and plant biology",
+      "aviation history and aerospace engineering",
+      "microbiome research and gut health",
+      "game theory and strategic thinking",
+      "textile manufacturing and fashion history",
+      "cartography and map making evolution",
+      "sleep science and circadian rhythms",
+      "volcanic soil fertility and agriculture",
+      "bioluminescence in marine organisms",
+      "ancient trade routes and commerce",
+      "particle physics and subatomic research",
+      "desert ecosystems and adaptation strategies",
+      "memory formation and cognitive neuroscience",
+      "renewable materials and sustainable design",
+      "epidemiology and disease tracking",
+      "tectonic plate movements and earthquakes",
+      "fermentation processes and food preservation",
+      "biomimicry and nature-inspired engineering",
+    ];
+
+    const styles = [
+      "an informative article",
+      "a narrative essay",
+      "an analytical piece",
+      "a descriptive passage",
+      "an argumentative text",
+      "a biographical sketch",
+      "a scientific report",
+      "a historical account",
+      "a comparative analysis",
+      "an investigative piece",
+      "an expository essay",
+      "a case study analysis",
+      "a research summary",
+      "a critical review",
+      "a documentary-style narrative",
+    ];
+
+    const contexts = [
+      "focusing on recent discoveries from the last 5 years",
+      "exploring lesser-known facts and surprising details",
+      "examining controversial debates and different perspectives",
+      "highlighting real-world applications and practical implications",
+      "discussing future trends and emerging developments",
+      "analyzing historical evolution and key milestones",
+      "comparing different approaches and methodologies",
+      "investigating common misconceptions and myths",
+      "exploring interdisciplinary connections",
+      "examining case studies and specific examples",
+    ];
+
+    const today = new Date();
+    const dateString = today.toISOString().split("T")[0];
+    const randomSeed = `${dateString}-${Date.now()}-${Math.random()}`;
+
+    let hash = 0;
+    for (let i = 0; i < randomSeed.length; i++) {
+      hash = (hash << 5) - hash + randomSeed.charCodeAt(i);
+      hash = hash & hash;
+    }
+
+    const topicIndex = Math.abs(hash) % topics.length;
+    const styleIndex = Math.abs(hash >> 8) % styles.length;
+    const contextIndex = Math.abs(hash >> 16) % contexts.length;
+
+    const randomTopic = topics[topicIndex];
+    const randomStyle = styles[styleIndex];
+    const randomContext = contexts[contextIndex];
+    const timestamp = Date.now();
+    const uniqueId = crypto.randomUUID();
+
     // Generate a Reading Comprehension (RC) using OpenAI
     const openaiRes = await fetch(
       "https://api.openai.com/v1/chat/completions",
@@ -77,19 +192,41 @@ export default async function handler(req, res) {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "gpt-4.1-mini",
+          model: "gpt-4o-mini",
           messages: [
             {
               role: "system",
               content:
-                'You are a helpful assistant that generates a Reading Comprehension (RC) quiz for students. Respond in JSON with the following structure: {"passage": "...", "questions": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..."}]}. The passage should be a minimum of 300 words (at least 300 words), and there should be 3-5 questions. Each question must have 4 options, one correct answer, and a brief explanation.',
+                'You are a helpful assistant that generates unique and diverse Reading Comprehension (RC) quizzes for students. Each quiz must be completely original and unrelated to any previous content. Respond in JSON with the following structure: {"passage": "...", "questions": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..."}]}. The passage should be a minimum of 300 words (at least 300 words), and there should be 3-5 questions. Each question must have 4 options, one correct answer, and a brief explanation. IMPORTANT: Generate completely fresh, unique content every time - avoid repetitive themes, topics, or writing patterns. Use specific examples, concrete details, and varied vocabulary.',
             },
             {
               role: "user",
-              content:
-                'Generate a Reading Comprehension (RC) quiz with a passage of at least 300 words. Respond in JSON: {"passage": "...", "questions": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..."}]}',
+              content: `Generate a completely unique and original Reading Comprehension (RC) quiz about "${randomTopic}" written as ${randomStyle}, ${randomContext}. 
+
+CRITICAL REQUIREMENTS:
+- The passage MUST be at least 300 words
+- Cover SPECIFIC, CONCRETE examples and details (not generic information)
+- Include UNIQUE angles that are rarely discussed
+- Use VARIED vocabulary and sentence structures
+- Make it ENGAGING with interesting facts or stories
+- Ensure questions test COMPREHENSION, not just recall
+- DO NOT repeat common knowledge - find unusual perspectives
+
+Topic: ${randomTopic}
+Style: ${randomStyle}
+Context: ${randomContext}
+Unique ID: ${uniqueId}
+Date: ${dateString}
+Timestamp: ${timestamp}
+
+Respond in JSON: {"passage": "...", "questions": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..."}]}`,
             },
           ],
+          temperature: 1.0,
+          presence_penalty: 0.8,
+          frequency_penalty: 0.8,
+          top_p: 0.95,
+          seed: Math.abs(hash),
         }),
       }
     );
