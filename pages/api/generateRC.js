@@ -162,25 +162,9 @@ export default async function handler(req, res) {
       "examining case studies and specific examples",
     ];
 
-    const today = new Date();
-    const dateString = today.toISOString().split("T")[0];
-    const randomSeed = `${dateString}-${Date.now()}-${Math.random()}`;
-
-    let hash = 0;
-    for (let i = 0; i < randomSeed.length; i++) {
-      hash = (hash << 5) - hash + randomSeed.charCodeAt(i);
-      hash = hash & hash;
-    }
-
-    const topicIndex = Math.abs(hash) % topics.length;
-    const styleIndex = Math.abs(hash >> 8) % styles.length;
-    const contextIndex = Math.abs(hash >> 16) % contexts.length;
-
-    const randomTopic = topics[topicIndex];
-    const randomStyle = styles[styleIndex];
-    const randomContext = contexts[contextIndex];
-    const timestamp = Date.now();
-    const uniqueId = crypto.randomUUID();
+    const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+    const randomContext = contexts[Math.floor(Math.random() * contexts.length)];
 
     // Generate a Reading Comprehension (RC) using OpenAI
     const openaiRes = await fetch(
@@ -192,12 +176,12 @@ export default async function handler(req, res) {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "gpt-4.1-mini",
           messages: [
             {
               role: "system",
               content:
-                'You are a helpful assistant that generates unique and diverse Reading Comprehension (RC) quizzes for students. Each quiz must be completely original and unrelated to any previous content. Respond in JSON with the following structure: {"passage": "...", "questions": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..."}]}. The passage should be a minimum of 300 words (at least 300 words), and there should be 3-5 questions. Each question must have 4 options, one correct answer, and a brief explanation. IMPORTANT: Generate completely fresh, unique content every time - avoid repetitive themes, topics, or writing patterns. Use specific examples, concrete details, and varied vocabulary.',
+                'You are a helpful assistant that generates unique and diverse Reading Comprehension (RC) quiz for students. Respond in JSON with the following structure: {"passage": "...", "questions": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..."}]}. The passage should be a minimum of 300 words (at least 300 words), and there should be 3-5 questions. Each question must have 4 options, one correct answer, and a brief explanation.',
             },
             {
               role: "user",
@@ -215,18 +199,13 @@ CRITICAL REQUIREMENTS:
 Topic: ${randomTopic}
 Style: ${randomStyle}
 Context: ${randomContext}
-Unique ID: ${uniqueId}
-Date: ${dateString}
-Timestamp: ${timestamp}
 
-Respond in JSON: {"passage": "...", "questions": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..."}]}`,
+`,
             },
           ],
           temperature: 1.0,
           presence_penalty: 0.8,
           frequency_penalty: 0.8,
-          top_p: 0.95,
-          seed: Math.abs(hash),
         }),
       }
     );
