@@ -397,7 +397,7 @@ export default function PYQManager({
     }
   };
 
-  // Add a new topic
+  // Add or update a topic
   const handleAddTopic = async () => {
     if (!newTopic.name) {
       alert("Please enter a topic name");
@@ -405,8 +405,22 @@ export default function PYQManager({
     }
 
     try {
-      const { error } = await supabase.from("pyq_topics").insert([newTopic]);
-      if (error) throw error;
+      if (newTopic.id) {
+        // Update existing topic
+        const { error } = await supabase
+          .from("pyq_topics")
+          .update({
+            name: newTopic.name,
+            description: newTopic.description,
+            icon_url: newTopic.icon_url,
+          })
+          .eq("id", newTopic.id);
+        if (error) throw error;
+      } else {
+        // Insert new topic
+        const { error } = await supabase.from("pyq_topics").insert([newTopic]);
+        if (error) throw error;
+      }
 
       setNewTopic({
         name: "",
@@ -416,7 +430,7 @@ export default function PYQManager({
       setIsAddingTopic(false);
       await fetchTopics();
     } catch (error) {
-      console.error("Error adding topic:", error);
+      console.error("Error saving topic:", error);
     }
   };
 
