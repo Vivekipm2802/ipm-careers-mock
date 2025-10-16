@@ -2839,7 +2839,7 @@ export default function Concept({ role, group, onBack }) {
                             ></div>
                           </div>
                         </div>
-                        <div className="w-full rounded-xl text-left bg-white shadow-sm p-4 mb-4">
+                        <div className="rounded-xl text-left bg-white shadow-sm p-4 mb-4 mt-2 ml-4">
                           <h2 className="text-2xl font-bold text-primary mb-2">
                             🏆 Top Rankers This Week
                           </h2>
