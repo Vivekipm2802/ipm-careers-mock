@@ -111,16 +111,24 @@ export default function Concept({ role, group, onBack }) {
 
   const { userDetails } = useNMNContext();
   async function getLeaderBoard(a) {
+    const startOfWeek = new Date();
+    const currentDay = startOfWeek.getDay();
+    const distance = currentDay === 0 ? 6 : currentDay - 1;
+    startOfWeek.setDate(startOfWeek.getDate() - distance);
+    startOfWeek.setHours(0, 0, 0, 0);
+
     const { data, error } = await supabase
       .from("plays")
       .select("*")
       .eq("test_uuid", a)
+      .gte("created_at", startOfWeek.toISOString())
       .order("score", { ascending: false })
       .limit(10);
-    if (data) {
+
+    if (!error && data) {
       setLeaderBoardData(data);
-    }
-    if (error) {
+    } else if (error) {
+      console.error("Leaderboard fetch error:", error);
     }
   }
   async function updateCategoryTitle(a, b) {
@@ -2831,9 +2839,14 @@ export default function Concept({ role, group, onBack }) {
                             ></div>
                           </div>
                         </div>
-                        <Leaderboard
-                          scores={leaderboardData ?? []}
-                        ></Leaderboard>
+                        <div className="w-full rounded-xl text-left bg-white shadow-sm p-4 mb-4">
+                          <h2 className="text-2xl font-bold text-primary mb-2">
+                            🏆 Top Rankers This Week
+                          </h2>
+                          <Leaderboard
+                            scores={leaderboardData ?? []}
+                          ></Leaderboard>
+                        </div>
                       </div>
                     </>
                   ) : (

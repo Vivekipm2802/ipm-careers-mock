@@ -1,39 +1,48 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
-
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 :root {
   --max-width: 1100px;
   --border-radius: 12px;
-  --font-mono: ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
+  --font-mono: ui-monospace, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono",
+    "Roboto Mono", "Oxygen Mono", "Ubuntu Monospace", "Source Code Pro",
+    "Fira Mono", "Droid Sans Mono", "Courier New", monospace;
   --font-main: Poppins;
   --brand-col1: #833589;
   --brand-col2: #e79800;
-  --brand-accent: #234E6B;
+  --brand-accent: #234e6b;
   --brand-grey: #666666;
   --brand-col-trans: #0276ff33;
   --brand-col-trans2: #02b4ff33;
-  --grad: linear-gradient(119deg, rgba(2, 180, 255, 1) 0%, rgba(2, 118, 255, 1) 100%);
+  --grad: linear-gradient(
+    119deg,
+    rgba(2, 180, 255, 1) 0%,
+    rgba(2, 118, 255, 1) 100%
+  );
 }
-.qcontent ul{
-list-style-type: none !important;
+.qcontent ul {
+  list-style-type: none !important;
 }
-.qcontent ol{
-  list-style-type:none !important;
+.qcontent ol {
+  list-style-type: none !important;
 }
-.qcontent li{
+.qcontent li {
   margin-left: 15px;
   position: relative;
 }
-.gradtext{
-  background: rgb(106,30,112);
-background: linear-gradient(94deg, rgba(106,30,112,1) 0%, rgba(166,54,175,1) 100%);
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
+.gradtext {
+  background: rgb(106, 30, 112);
+  background: linear-gradient(
+    94deg,
+    rgba(106, 30, 112, 1) 0%,
+    rgba(166, 54, 175, 1) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
-.qcontent li::before{
-  content: '';
+.qcontent li::before {
+  content: "";
   width: 7px;
   height: 7px;
   background-color: var(--brand-col2);
@@ -42,11 +51,11 @@ background: linear-gradient(94deg, rgba(106,30,112,1) 0%, rgba(166,54,175,1) 100
   border-radius: 200px;
   left: -12px;
 }
-.sf{
+.sf {
   font-family: SF Pro Display;
 }
 /* width */
-.mdl{
+.mdl {
   z-index: 99999999999999;
 }
 .swiper-wrapper {
@@ -90,7 +99,6 @@ background: linear-gradient(94deg, rgba(106,30,112,1) 0%, rgba(166,54,175,1) 100
   height: 100%;
 }
 
-
 /* Track */
 
 .swiper-pagination-bullet-active {
@@ -101,28 +109,25 @@ background: linear-gradient(94deg, rgba(106,30,112,1) 0%, rgba(166,54,175,1) 100
   background: #f1f1f1;
 }
 
-
 /* Handle */
 
 ::-webkit-scrollbar-thumb {
   border-radius: 200px;
   background: var(--brand-col2);
-  transition: all .4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-
 
 /* Handle on hover */
 
 ::-webkit-scrollbar-thumb:hover {
-  transition: all .4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   background: var(--brand-col1);
 }
-.allwhite text{
+.allwhite text {
   fill: white;
 }
-.allwhite line{
+.allwhite line {
   stroke: white;
-  
 }
 /* * {
 box-sizing: border-box;
@@ -130,26 +135,22 @@ padding: 0;
 margin: 0;
 } */
 
-
 /* html,
 body {
 max-width: 100vw;
 overflow-x: hidden;
 } */
 
-
 /* body {
 color: rgb(var(--foreground-rgb));
 background: linear-gradient( to bottom, transparent, rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
 } */
-
 
 /* a {
 color: inherit;
 text-decoration: none;
 }
 */
-
 
 /* @media (prefers-color-scheme: dark) {
 html {
@@ -166,7 +167,8 @@ body {
   color-scheme: only light;
   padding: 0;
   margin: 0;
-  font-family: Poppins, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  font-family: Poppins, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
+    Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
 }
 
 body {
@@ -197,21 +199,21 @@ textarea {
 
 @media (prefers-color-scheme: light) {
   html {
-      color-scheme: light;
+    color-scheme: light;
   }
   body {
-      color: black;
-      background: white;
+    color: black;
+    background: white;
   }
 }
 
 @media (prefers-color-scheme: dark) {
   html {
-      color-scheme: light;
+    color-scheme: light;
   }
   body {
-      color: black;
-      background: white;
+    color: black;
+    background: white;
   }
 }
 
@@ -219,62 +221,74 @@ textarea {
   font-family: SF Pro Display;
   font-style: normal;
   font-weight: 400;
-  src: local('SF Pro Display'), url("/SFPRODISPLAYREGULAR.woff") format('woff')
+  src: local("SF Pro Display"), url("/SFPRODISPLAYREGULAR.woff") format("woff");
 }
 
 @font-face {
   font-family: SF Pro Display;
   font-style: italic;
   font-weight: 100;
-  src: local('SF Pro Display'), url("/SFPRODISPLAYULTRALIGHTITALIC.woff") format('woff')
+  src: local("SF Pro Display"),
+    url("/SFPRODISPLAYULTRALIGHTITALIC.woff") format("woff");
 }
 
 @font-face {
   font-family: SF Pro Display;
   font-style: italic;
   font-weight: 200;
-  src: local('SF Pro Display'), url("/SFPRODISPLAYTHINITALIC.woff") format('woff')
+  src: local("SF Pro Display"),
+    url("/SFPRODISPLAYTHINITALIC.woff") format("woff");
 }
 
 @font-face {
   font-family: SF Pro Display;
   font-style: italic;
   font-weight: 300;
-  src: local('SF Pro Display'), url("/SFPRODISPLAYLIGHTITALIC.woff") format('woff')
+  src: local("SF Pro Display"),
+    url("/SFPRODISPLAYLIGHTITALIC.woff") format("woff");
 }
 
 @font-face {
   font-family: SF Pro Display;
   font-style: normal;
   font-weight: 500;
-  src: local('SF Pro Display'), url("/SFPRODISPLAYMEDIUM.woff") format('woff')
+  src: local("SF Pro Display"), url("/SFPRODISPLAYMEDIUM.woff") format("woff");
 }
 
 @font-face {
   font-family: sf pro display;
   font-style: italic;
   font-weight: 600;
-  src: local('SF Pro Display'), url("/SFPRODISPLAYSEMIBOLDITALIC.woff") format('woff')
+  src: local("SF Pro Display"),
+    url("/SFPRODISPLAYSEMIBOLDITALIC.woff") format("woff");
 }
 
 @font-face {
   font-family: sf pro display;
   font-style: normal;
   font-weight: 700;
-  src: local('SF Pro Display'), url("/SFPRODISPLAYBOLD.woff") format('woff')
+  src: local("SF Pro Display"), url("/SFPRODISPLAYBOLD.woff") format("woff");
 }
 
 @font-face {
   font-family: sf pro display;
   font-style: italic;
   font-weight: 800;
-  src: local('SF Pro Display'), url("/SFPRODISPLAYHEAVYITALIC.woff") format('woff')
+  src: local("SF Pro Display"),
+    url("/SFPRODISPLAYHEAVYITALIC.woff") format("woff");
 }
 
 @font-face {
   font-family: sf pro display;
   font-style: italic;
   font-weight: 900;
-  src: local('SF Pro Display'), url("/SFPRODISPLAYBLACKITALIC.woff") format('woff')
+  src: local("SF Pro Display"),
+    url("/SFPRODISPLAYBLACKITALIC.woff") format("woff");
 }
 
+.explanation-content iframe {
+  width: 100%;
+  max-width: 800px;
+  height: 450px;
+  display: block;
+}

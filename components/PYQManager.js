@@ -420,6 +420,37 @@ export default function PYQManager({
     }
   };
 
+  // Delete a topic
+  const handleDeleteTopic = async (topicId) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this topic? This action cannot be undone."
+      )
+    )
+      return;
+
+    try {
+      // Delete related question-topic associations first
+      await supabase
+        .from("pyq_question_topics")
+        .delete()
+        .eq("topic_id", topicId);
+
+      // Delete the topic itself
+      const { error } = await supabase
+        .from("pyq_topics")
+        .delete()
+        .eq("id", topicId);
+      if (error) throw error;
+
+      // Refresh topics
+      await fetchTopics();
+    } catch (error) {
+      console.error("Error deleting topic:", error);
+      alert("Failed to delete topic.");
+    }
+  };
+
   // Helper functions
   const startEditingQuestion = (question) => {
     const editQuestion = {
@@ -610,17 +641,29 @@ export default function PYQManager({
               </div>
             </div>
             {isAdmin && (
-              <Button
-                color="primary"
-                onPress={() => setIsAddingQuestion(true)}
-                startContent={<Plus className="h-4 flex-shrink-0 w-4" />}
-              >
-                Add Question
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button
+                  color="secondary"
+                  onPress={() => {
+                    setNewTopic({ name: "", description: "", icon_url: "" });
+                    setIsAddingTopic(true);
+                  }}
+                  startContent={<Plus className="h-4 flex-shrink-0 w-4" />}
+                >
+                  Add Topic
+                </Button>
+                <Button
+                  color="primary"
+                  onPress={() => setIsAddingQuestion(true)}
+                  startContent={<Plus className="h-4 flex-shrink-0 w-4" />}
+                >
+                  Add Question
+                </Button>
+              </div>
             )}
           </div>
           <div className="max-h-[calc(100vh-12rem)] overflow-y-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pe-2">
               {topics.map((topic) => (
                 <Card
                   key={topic.id}
@@ -675,6 +718,31 @@ export default function PYQManager({
                           </div>
                         </div>
                       )}
+                    </div>
+                    <div className="flex justify-end pt-2">
+                      <Tooltip content="Edit Topic" placement="left">
+                        <Button
+                          isIconOnly
+                          variant="light"
+                          size="sm"
+                          onPress={() => {
+                            setNewTopic(topic);
+                            setIsAddingTopic(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4 text-default-500" />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip content="Delete Topic" placement="left">
+                        <Button
+                          isIconOnly
+                          variant="light"
+                          size="sm"
+                          onPress={() => handleDeleteTopic(topic.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-danger" />
+                        </Button>
+                      </Tooltip>
                     </div>
                   </CardBody>
                 </Card>
@@ -1003,7 +1071,7 @@ export default function PYQManager({
                     </h4>
                   </div>
                   <div
-                    className="prose prose-sm max-w-none"
+                    className="prose prose-sm max-w-none explanation-content"
                     dangerouslySetInnerHTML={{
                       __html: selectedQuestion.explanation,
                     }}
@@ -1486,7 +1554,9 @@ export default function PYQManager({
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>Add New Topic</ModalHeader>
+              <ModalHeader>
+                {newTopic && newTopic.id ? "Edit Topic" : "Add New Topic"}
+              </ModalHeader>
               <ModalBody>
                 <div className="grid gap-4">
                   <div>
