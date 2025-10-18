@@ -37,20 +37,17 @@ import {
   Plus,
   Text,
   Trash2,
-  Wand,
   XCircle,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { AnimatePresence, motion } from "framer-motion";
 import Loader from "./Loader";
 import FileUploader from "./FileUploader";
-import Link from "next/link";
 
 // Dynamically import QuillWrapper to avoid SSR issues
 const QuillWrapper = dynamic(() => import("./QuillSSRWrapper"), { ssr: false });
 
 export default function DailyLearn({ role }) {
-  const [addNewCurrent, setAddNewCurrent] = useState();
   const [mediaTypes, setMediaTypes] = useState();
   const [loading, setLoading] = useState(true);
   const [editData, setEditData] = useState();
@@ -62,7 +59,9 @@ export default function DailyLearn({ role }) {
   const [editItemData, setEditItemData] = useState();
   const [submissions, setSubmissions] = useState();
   const [selectedOption, setSelectedOption] = useState();
-  const slug = ctxSlug;
+  const [allQuizQuestions, setAllQuizQuestions] = useState([]);
+  const [currentViewQuestionIndex, setCurrentViewQuestionIndex] = useState(0);
+  const [quizQuestions, setQuizQuestions] = useState([]);
 
   // New state for adding new items
   const [newItem, setNewItem] = useState({
@@ -89,9 +88,25 @@ export default function DailyLearn({ role }) {
     }
 
     if (data) {
-      setMediaCollection(data);
+      const parentItems = data.filter(item => item.parent_id === null);
+      setMediaCollection(parentItems);
       return;
     }
+  }
+
+  async function getQuizQuestions(quizId) {
+    const { data, error } = await supabase
+      .from("ca")
+      .select("*")
+      .or(`id.eq.${quizId},parent_id.eq.${quizId}`)
+      .order("question_order", { ascending: true });
+    
+    if (error) {
+      toast.error("Unable to load quiz questions");
+      return [];
+    }
+    
+    return data || [];
   }
 
   async function deleteItem(a) {
@@ -135,10 +150,20 @@ export default function DailyLearn({ role }) {
   }
 
   useEffect(() => {
-    if (selectedMedia != undefined) {
-      getSubmissions(selectedMedia?.id);
+    async function loadQuizData() {
+      if (selectedMedia != undefined) {
+        const questions = await getQuizQuestions(selectedMedia.id);
+        setAllQuizQuestions(questions);
+        setCurrentViewQuestionIndex(0);
+        
+        if (questions.length > 0) {
+          getSubmissions(questions[0].id);
+        }
+      }
+      setSelectedOption(null);
     }
-    setSelectedOption(null);
+    
+    loadQuizData();
   }, [selectedMedia?.id]);
 
   async function submitAnswer(option, id) {
@@ -274,7 +299,133 @@ export default function DailyLearn({ role }) {
     }
   }
 
-  // Function to add a new item to the database
+  // Function to add current question to the quiz questions array
+  function addQuestionToQuiz() {
+    const currentType = mediaTypes.find(
+      (item) => item.identifier === activeMedia
+    )?.type;
+
+    if (currentType !== "quiz") return;
+
+    // Validate current question
+    if (!newItem.title || newItem.options.some((opt) => !opt.text)) {
+      toast.error("Please fill in all question fields");
+      return;
+    }
+
+    // Keep the title after first question
+    const titleToKeep = quizQuestions.length === 0 ? newItem.title : "";
+
+    // Deep copy the current question to avoid reference issues
+    const questionToAdd = {
+      ...newItem,
+      options: newItem.options.map(opt => ({ ...opt })),
+    };
+
+    // Add current question to the array
+    setQuizQuestions([...quizQuestions, questionToAdd]);
+    
+    // Create a completely fresh state object with new array reference
+    const freshState = {
+      title: titleToKeep,
+      description: "",
+      type: "",
+      image: null,
+      url: "",
+      options: [{ text: "" }],
+      correct: 0,
+      solution: "",
+    };
+    
+    // Reset form for next question
+    setNewItem(freshState);
+    
+    toast.success(`Question ${quizQuestions.length + 1} added`);
+  }
+
+  // Function to save all quiz questions to database
+  async function saveQuizWithQuestions() {
+    if (quizQuestions.length === 0) {
+      toast.error("Please add at least one question");
+      return;
+    }
+
+    try {
+      // Insert first question as the quiz container (parent)
+      const firstQuestion = {
+        title: quizQuestions[0].title,
+        description: quizQuestions[0].description || "",
+        type: activeMedia,
+        correct: quizQuestions[0].correct,
+        options: quizQuestions[0].options,
+        solution: quizQuestions[0].solution || null,
+        url: quizQuestions[0].url || null,
+        image: quizQuestions[0].image || null,
+        parent_id: null,
+        question_order: 1,
+        created_at: new Date().toISOString(),
+      };
+
+      const { data: parentData, error: parentError } = await supabase
+        .from("ca")
+        .insert(firstQuestion)
+        .select();
+
+      if (parentError) {
+        toast.error("Unable to create quiz");
+        return;
+      }
+
+      const parentId = parentData[0].id;
+
+      // Insert remaining questions as children
+      if (quizQuestions.length > 1) {
+        const childQuestions = quizQuestions.slice(1).map((question, index) => ({
+          title: question.title,
+          description: question.description || "",
+          type: activeMedia,
+          correct: question.correct,
+          options: question.options,
+          solution: question.solution || null,
+          url: question.url || null,
+          image: question.image || null,
+          parent_id: parentId,
+          question_order: index + 2,
+          created_at: new Date().toISOString(),
+        }));
+
+        const { error: childError } = await supabase
+          .from("ca")
+          .insert(childQuestions);
+
+        if (childError) {
+          toast.error("Error adding some questions");
+          return;
+        }
+      }
+
+      toast.success(`Quiz created with ${quizQuestions.length} question(s)`);
+      getMedia(activeMedia);
+      
+      // Reset state
+      setQuizQuestions([]);
+      setNewItem({
+        title: "",
+        description: "",
+        type: "",
+        image: null,
+        url: "",
+        options: [{ text: "" }],
+        correct: 0,
+        solution: "",
+      });
+    } catch (error) {
+      toast.error("Error creating quiz");
+      console.error(error);
+    }
+  }
+
+  // Function to add a new item to the database (for non-quiz items or single questions)
   async function addNewItem() {
     // Get the current media type
     const currentType = mediaTypes.find(
@@ -288,8 +439,12 @@ export default function DailyLearn({ role }) {
       type: activeMedia,
       correct: newItem?.correct,
       created_at: new Date().toISOString(),
-
-      ...(currentType === "quiz" && { options: newItem.options }),
+      parent_id: null,
+      question_order: 1,
+      ...(currentType === "quiz" && {
+        options: newItem.options,
+        solution: newItem.solution || null
+      }),
       url: newItem.url,
       image: newItem.image,
     };
@@ -306,6 +461,7 @@ export default function DailyLearn({ role }) {
         url: "",
         options: [{ text: "" }],
         correct: 0,
+        solution: "",
       });
       return;
     }
@@ -317,23 +473,27 @@ export default function DailyLearn({ role }) {
 
   // Function to add a new option for quiz type
   function addOption() {
-    setNewItem({
-      ...newItem,
-      options: [...newItem.options, { text: "" }],
-    });
+    setNewItem((prev) => ({
+      ...prev,
+      options: [...prev.options, { text: "" }],
+    }));
   }
 
   // Function to update an option
   function updateOption(index, field, value) {
-    const updatedOptions = [...newItem.options];
-    updatedOptions[index] = { ...updatedOptions[index], [field]: value };
-    setNewItem({ ...newItem, options: updatedOptions });
+    setNewItem((prev) => {
+      const updatedOptions = [...prev.options];
+      updatedOptions[index] = { ...updatedOptions[index], [field]: value };
+      return { ...prev, options: updatedOptions };
+    });
   }
 
   // Function to remove an option
   function removeOption(index) {
-    const updatedOptions = newItem.options.filter((_, i) => i !== index);
-    setNewItem({ ...newItem, options: updatedOptions });
+    setNewItem((prev) => {
+      const updatedOptions = prev.options.filter((_, i) => i !== index);
+      return { ...prev, options: updatedOptions };
+    });
   }
 
   // Function to handle image upload
@@ -342,7 +502,33 @@ export default function DailyLearn({ role }) {
       setEditItemData((res) => ({ ...res, image: url }));
       return;
     }
-    setNewItem({ ...newItem, image: url });
+    setNewItem((prev) => ({ ...prev, image: url }));
+  }
+
+  // Navigation functions for viewing quiz questions
+  function goToNextQuestion() {
+    if (currentViewQuestionIndex < allQuizQuestions.length - 1) {
+      const nextIndex = currentViewQuestionIndex + 1;
+      setCurrentViewQuestionIndex(nextIndex);
+      getSubmissions(allQuizQuestions[nextIndex].id);
+      setSelectedOption(null);
+    }
+  }
+
+  function goToPreviousQuestion() {
+    if (currentViewQuestionIndex > 0) {
+      const prevIndex = currentViewQuestionIndex - 1;
+      setCurrentViewQuestionIndex(prevIndex);
+      getSubmissions(allQuizQuestions[prevIndex].id);
+      setSelectedOption(null);
+    }
+  }
+
+  // Function to remove a question from the quiz being created
+  function removeQuestionFromQuiz(index) {
+    const updatedQuestions = quizQuestions.filter((_, i) => i !== index);
+    setQuizQuestions(updatedQuestions);
+    toast.success("Question removed");
   }
 
   const mediaVariants = {
@@ -388,13 +574,18 @@ export default function DailyLearn({ role }) {
     document.body.removeChild(link);
   };
 
+  // Get the current question ID (for multi-question quizzes or single items)
+  const currentQuestionId = allQuizQuestions.length > 0
+    ? allQuizQuestions[currentViewQuestionIndex]?.id
+    : selectedMedia?.id;
+    
   const currentMediaOptionExist = submissions?.some(
     (item) =>
-      item.user_id == userDetails?.email && item.ca_id == selectedMedia?.id
+      item.user_id == userDetails?.email && item.ca_id == currentQuestionId
   );
   const currentMediaOption = submissions?.find(
     (item) =>
-      item.user_id == userDetails?.email && item.ca_id == selectedMedia?.id
+      item.user_id == userDetails?.email && item.ca_id == currentQuestionId
   );
   return (
     <div className=" w-full h-full  overflow-hidden">
@@ -612,32 +803,61 @@ export default function DailyLearn({ role }) {
                   className="media-container px-4 py-4 flex flex-col md:flex-row items-start justify-between"
                 >
                   <div className="flex w-full md:w-auto flex-col flex-1">
-                    {(selectedMedia?.image ?? selectedMedia?.url) && (
+                    {/* Question navigation for multi-question quizzes */}
+                    {currentMediaType === "quiz" && allQuizQuestions.length > 1 && (
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex items-center justify-between">
+                        <Button
+                          size="sm"
+                          isIconOnly
+                          variant="flat"
+                          onClick={goToPreviousQuestion}
+                          isDisabled={currentViewQuestionIndex === 0}
+                        >
+                          <ChevronLeft size={16} />
+                        </Button>
+                        <span className="text-sm font-medium text-blue-800">
+                          Question {currentViewQuestionIndex + 1} of {allQuizQuestions.length}
+                        </span>
+                        <Button
+                          size="sm"
+                          isIconOnly
+                          variant="flat"
+                          onClick={goToNextQuestion}
+                          isDisabled={currentViewQuestionIndex === allQuizQuestions.length - 1}
+                        >
+                          <ChevronRight size={16} />
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {((allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.image ??
+                      (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.url) && (
                       <Image
-                        src={selectedMedia?.image ?? selectedMedia?.url}
+                        src={(allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.image ??
+                             (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.url}
                         className="max-w-md"
                         alt="Selected Media"
                       />
                     )}
                     <Spacer y={4}></Spacer>
                     <h2 className="text-left text-md font-semibold">
-                      {selectedMedia?.title}
+                      {(allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.title}
                     </h2>
                     <div
                       className="text-left text-sm"
                       dangerouslySetInnerHTML={{
-                        __html: selectedMedia?.description,
+                        __html: (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.description,
                       }}
                     ></div>
                   </div>
                   <Spacer x={2}></Spacer>
                   {currentMediaType == "quiz" &&
-                    selectedMedia?.options?.length > 0 && (
+                    (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.options?.length > 0 && (
                       <div className="flex bg-white w-full md:w-auto rounded-xl shadow-md p-4 flex-col flex-1">
                         {currentMediaOptionExist && (
                           <>
                             {currentMediaOption?.selected ==
-                              selectedMedia?.correct && (
+                              (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.correct && (
                               <motion.div
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
@@ -650,7 +870,7 @@ export default function DailyLearn({ role }) {
                             )}
 
                             {currentMediaOption?.selected !=
-                              selectedMedia?.correct && (
+                              (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.correct && (
                               <motion.div
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
@@ -670,7 +890,7 @@ export default function DailyLearn({ role }) {
                           <h2 className="text-left w-full">
                             You have selected :{" "}
                             {
-                              selectedMedia?.options[
+                              (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.options[
                                 currentMediaOption.selected
                               ]?.text
                             }
@@ -692,10 +912,10 @@ export default function DailyLearn({ role }) {
                             setSelectedOption(e);
                           }}
                         >
-                          {selectedMedia?.options &&
+                          {(allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.options &&
                             currentMediaType == "quiz" &&
-                            selectedMedia?.options?.length > 0 &&
-                            selectedMedia?.options?.map((option, index) => {
+                            (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.options?.length > 0 &&
+                            (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.options?.map((option, index) => {
                               return (
                                 <Radio value={index} key={index}>
                                   {option.text}
@@ -705,19 +925,20 @@ export default function DailyLearn({ role }) {
                         </RadioGroup>
                         <Spacer y={4}></Spacer>
                         {currentMediaOptionExist ? (
-                          <div className="text-left flex flex-row items-center justify-start bg-green-50 p-2 text-green-700">
-                            <Check
-                              size={16}
-                              className="text-green-700 mr-2"
-                            ></Check>
-                            Already Answered
-                          </div>
+                            <div className="text-left flex flex-row items-center justify-start bg-green-50 p-2 text-green-700">
+                              <Check
+                                size={16}
+                                className="text-green-700 mr-2"
+                              ></Check>
+                              Already Answered
+                            </div>
                         ) : (
                           <Button
                             size="sm"
                             endContent={<ChevronRight size={16}></ChevronRight>}
                             onPress={() => {
-                              submitAnswer(selectedOption, selectedMedia?.id);
+                              const currentQuestion = allQuizQuestions[currentViewQuestionIndex] || selectedMedia;
+                              submitAnswer(selectedOption, currentQuestion?.id);
                             }}
                             color="primary"
                             className="w-auto mr-auto"
@@ -725,11 +946,11 @@ export default function DailyLearn({ role }) {
                             Submit Answer
                           </Button>
                         )}
-                        {currentMediaOptionExist && selectedMedia?.solution && (
+                        {currentMediaOptionExist && (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.solution && (
                           <div
                             className="my-2 p-4 bg-green-50 rounded-xl border-1 border-green-600 text-left text-green-800"
                             dangerouslySetInnerHTML={{
-                              __html: selectedMedia?.solution,
+                              __html: (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.solution,
                             }}
                           ></div>
                         )}
@@ -769,19 +990,15 @@ export default function DailyLearn({ role }) {
                           }
                         </h3>
 
-                        <p className="text-sm text-left w-full font-medium mb-2">
-                          Upload Media
-                        </p>
-                        <ImageUploader onUploadComplete={handleImageUpload} />
-                        <Spacer y={2} />
                         <Input
-                          label="Title"
+                          label={currentMediaType === "quiz" && quizQuestions.length > 0 ? "Quiz Title (Locked)" : "Title"}
                           placeholder="Enter title"
                           value={newItem.title}
                           onChange={(e) =>
-                            setNewItem({ ...newItem, title: e.target.value })
+                            setNewItem((prev) => ({ ...prev, title: e.target.value }))
                           }
                           className="mb-4"
+                          isDisabled={currentMediaType === "quiz" && quizQuestions.length > 0}
                         />
 
                         <div className="knowledge-content">
@@ -789,7 +1006,7 @@ export default function DailyLearn({ role }) {
                           <QuillWrapper
                             value={newItem.description}
                             onChange={(content) =>
-                              setNewItem({ ...newItem, description: content })
+                              setNewItem((prev) => ({ ...prev, description: content }))
                             }
                           />
                         </div>
@@ -861,7 +1078,7 @@ export default function DailyLearn({ role }) {
                               placeholder="Enter URL"
                               data={{ file: newItem.url }}
                               onUploadComplete={(e) =>
-                                setNewItem({ ...newItem, url: e })
+                                setNewItem((prev) => ({ ...prev, url: e }))
                               }
                             />
                           </div>
@@ -883,23 +1100,75 @@ export default function DailyLearn({ role }) {
                         )}
 
                         <Spacer y={4} />
-                        <Button
-                          color="primary"
-                          onClick={addNewItem}
-                          className="w-full"
-                          disabled={
-                            !newItem.title ||
-                            (currentMediaType === "quiz" &&
-                              newItem?.options?.some((opt) => !opt.text))
-                          }
-                        >
-                          Add{" "}
-                          {
-                            mediaTypes.find(
-                              (item) => item.identifier == activeMedia
-                            )?.title
-                          }
-                        </Button>
+                        
+                        {/* Show added questions count for quiz */}
+                        {currentMediaType === "quiz" && quizQuestions.length > 0 && (
+                          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <p className="text-sm font-medium text-blue-800">
+                              {quizQuestions.length} question(s) added to quiz
+                            </p>
+                            <div className="mt-2 space-y-1">
+                              {quizQuestions.map((q, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs text-blue-700">
+                                  <span className="truncate flex-1">Q{idx + 1}: {q.title}</span>
+                                  <Button
+                                    isIconOnly
+                                    size="sm"
+                                    variant="light"
+                                    color="danger"
+                                    onClick={() => removeQuestionFromQuiz(idx)}
+                                  >
+                                    <Trash2 size={14} />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Buttons for quiz */}
+                        {currentMediaType === "quiz" ? (
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              color="primary"
+                              variant="flat"
+                              onClick={addQuestionToQuiz}
+                              className="w-full"
+                              startContent={<Plus size={16} />}
+                              disabled={
+                                !newItem.title ||
+                                newItem?.options?.some((opt) => !opt.text)
+                              }
+                            >
+                              Add Question to Quiz
+                            </Button>
+                            
+                            {quizQuestions.length > 0 && (
+                              <Button
+                                color="success"
+                                onClick={saveQuizWithQuestions}
+                                className="w-full"
+                                startContent={<Check size={16} />}
+                              >
+                                Save Quiz ({quizQuestions.length} question{quizQuestions.length !== 1 ? 's' : ''})
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          <Button
+                            color="primary"
+                            onClick={addNewItem}
+                            className="w-full"
+                            disabled={!newItem.title}
+                          >
+                            Add{" "}
+                            {
+                              mediaTypes.find(
+                                (item) => item.identifier == activeMedia
+                              )?.title
+                            }
+                          </Button>
+                        )}
                       </PopoverContent>
                     </Popover>
                   )}
@@ -960,6 +1229,7 @@ export default function DailyLearn({ role }) {
                                   size="sm"
                                   startContent={<Edit2 size={16}></Edit2>}
                                   color="warning"
+                                  style={{pointerEvents: "none",  opacity: 0.5}}
                                 >
                                   Edit
                                 </Button>
