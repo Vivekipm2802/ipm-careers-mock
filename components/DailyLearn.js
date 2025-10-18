@@ -314,7 +314,7 @@ export default function DailyLearn({ role }) {
     }
 
     // Keep the title after first question
-    const titleToKeep = quizQuestions.length === 0 ? newItem.title : "";
+    const titleToKeep = quizQuestions.length === 0 ? newItem.title : quizQuestions[0].title;
 
     // Deep copy the current question to avoid reference issues
     const questionToAdd = {
@@ -1135,10 +1135,6 @@ export default function DailyLearn({ role }) {
                               onClick={addQuestionToQuiz}
                               className="w-full"
                               startContent={<Plus size={16} />}
-                              disabled={
-                                !newItem.title ||
-                                newItem?.options?.some((opt) => !opt.text)
-                              }
                             >
                               Add Question to Quiz
                             </Button>
