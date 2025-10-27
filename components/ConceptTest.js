@@ -91,6 +91,8 @@ export default function Concept({ role, group, onBack }) {
   const [activeResult, setActiveResult] = useState(undefined);
   const [view, setView] = useState(0);
   const [latex, setLatex] = useState("\\frac{1}{\\sqrt{2}}\\cdot 2");
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+
   const router = useRouter();
   const EditableMathField = dynamic(() => import("react-mathquill"), {
     ssr: false,
@@ -109,7 +111,7 @@ export default function Concept({ role, group, onBack }) {
     });
   }, []);
 
-  const { userDetails } = useNMNContext();
+  const { userDetails, setSideBar, setSideBarContent } = useNMNContext();
   async function getLeaderBoard(a) {
     const startOfWeek = new Date();
     const currentDay = startOfWeek.getDay();
@@ -219,6 +221,84 @@ export default function Concept({ role, group, onBack }) {
     } else {
       handler2({ errortext: "Unable to Fetch", errormsg: error });
     }
+  }
+
+  // Fetch all submissions for a specific concept test level (by uuid) and show in side panel
+  async function fetchLevelSubmissions(levelUuid) {
+    setSubmissionsLoading(true);
+    const { data, error } = await supabase
+      .from("plays")
+      .select("*")
+      .eq("test_uuid", levelUuid)
+      .order("created_at", { ascending: false });
+
+    setSubmissionsLoading(false);
+
+    const content = (
+      <div className="flex p-4 flex-col items-start justify-start">
+        <h2 className="mb-4 text-lg font-semibold">
+          Total Submissions : {data?.length || 0}
+        </h2>
+        <div className="flex flex-col overflow-auto w-full max-h-[80vh] pr-4">
+          {data && data?.length > 0 ? (
+            data?.map((i, d) => {
+              return (
+                <div
+                  className="flex border-1 p-2 rounded-lg mb-2 w-full text-sm flex-row items-center justify-between"
+                  key={i.uid || i.id}
+                >
+                  <div className="mr-2 bg-primary-200 rounded-xl p-2 text-primary-800">
+                    {CtoLocal(i.created_at)?.time}{" "}
+                    {CtoLocal(i.created_at)?.amPm}
+                  </div>
+                  <div className="mr-2 bg-gray-200 rounded-xl p-2 text-gray-600">
+                    {CtoLocal(i.created_at)?.date}{" "}
+                    {CtoLocal(i.created_at)?.monthName}{" "}
+                    {CtoLocal(i.created_at)?.year}
+                  </div>
+                  <div className="flex flex-col items-start justify-start">
+                    <h2>{i?.name || i?.user_name || "Unknown"}</h2>
+                    <p className="text-xs text-gray-500">{i?.user}</p>
+                  </div>
+                  <div className="flex-1 flex flex-row items-center justify-end">
+                    <p className="h-8 w-auto p-4 bg-lime-200 border-lime-500 rounded-lg flex flex-col items-center justify-center font-bold text-center text-lime-800">
+                      Score : {i?.score ?? 0}
+                    </p>
+                    <Spacer x={2}></Spacer>
+                    <Button
+                      as={Link}
+                      href={`/test/result/${i?.uid}`}
+                      target="_blank"
+                      size="sm"
+                      color="success"
+                    >
+                      Result
+                    </Button>
+                    <Spacer x={2}></Spacer>
+                    <Button
+                      as={Link}
+                      href={`/test/analytics/${i?.uid}`}
+                      target="_blank"
+                      size="sm"
+                      className="bg-gradient-purple text-white"
+                    >
+                      Analytics
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              No submissions found for this test.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+
+    setSideBar(true);
+    setSideBarContent(content);
   }
 
   async function getPlays(a) {
@@ -2770,6 +2850,19 @@ export default function Concept({ role, group, onBack }) {
                                   >
                                     Results & Analytics
                                   </Button>
+                                  {role === "admin" && (
+                                    <Button
+                                      onPress={() =>
+                                        fetchLevelSubmissions(activeLevel?.uuid)
+                                      }
+                                      size="lg"
+                                      color="primary"
+                                      className="ml-2 bg-gradient-to-r from-purple-500 to-primary text-white shadow-md border-1 relative rounded-full"
+                                    >
+                                      <Eye size={24} />
+                                      View Submissions
+                                    </Button>
+                                  )}
                                 </div>
                               )}
                           </div>
@@ -2827,7 +2920,6 @@ export default function Concept({ role, group, onBack }) {
                             ></div>
                           </div>
                           <Spacer y={2}></Spacer>
-
                           <div className="w-full rounded-xl text-left bg-white shadow-sm p-4">
                             <h2 className="text-2xl font-semibold text-primary">
                               Level Objective
