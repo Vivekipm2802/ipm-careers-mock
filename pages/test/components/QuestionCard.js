@@ -119,7 +119,7 @@ export default function QuestionCard({
                     value={inputValue}
                     onChange={(e) => {
                       setInputValue(e.target.value);
-                      const answerData = { id, value: e.target.value };
+                      const answerData = { ...question, value: e.target.value };
                       setAnsweredData(answerData);
                       // Immediately notify parent for icon update
                       if (onTempAnswer) {

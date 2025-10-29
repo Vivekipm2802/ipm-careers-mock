@@ -204,11 +204,19 @@ const Game = () => {
       delete newTemp[answerData.id];
       return newTemp;
     });
-    const { selectedOption, options, id, type } = answerData;
-    const currentOption = options[selectedOption - 1];
-    const isCorrect = currentOption?.isCorrect;
-    const answer =
-      type == "options" ? currentOption?.title : currentOption?.title;
+    const { selectedOption, options, id, type, value } = answerData;
+    let isCorrect = false;
+    let answer = "";
+
+    if (type === "options") {
+      const currentOption = options?.[selectedOption - 1];
+      isCorrect = currentOption?.isCorrect;
+      answer = currentOption?.title;
+    } else if (type === "input") {
+      // Handle input type questions
+      isCorrect = value === options?.answer; // Assuming 'answer' is the correct value
+      answer = value;
+    }
 
     const existingReport = report.find((item) => item.id == id);
     let status = "answered";
