@@ -705,7 +705,7 @@ function MockTestEditor({ userData, role }) {
         image: a?.image || null,
         category: b,
         config: controls.reduce((acc, control) => {
-          acc[control.key] = a[control.key] ?? control.default;
+          acc[control.key] = a.hasOwnProperty(control.key) ? a[control.key] : control.default;
           return acc;
         }, {}),
       })
@@ -753,7 +753,9 @@ function MockTestEditor({ userData, role }) {
         start_time: a?.start_time,
         end_time: a?.end_time,
         config: controls.reduce((acc, control) => {
-          acc[control.key] = a?.config[control.key] ?? control.default;
+          acc[control.key] = a?.config?.hasOwnProperty(control.key)
+            ? a.config[control.key]
+            : control.default;
           return acc;
         }, {}),
       })

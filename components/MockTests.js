@@ -124,7 +124,7 @@ export default function MockTests() {
     const { data, error } = await supabase
       .from("mock_test")
       .select(
-        "id, title, description, category, course, seq, start_time, end_time, uid"
+        "id, title, description, category, course, seq, start_time, end_time, uid, config"
       )
       .order("seq", { ascending: true });
 
@@ -138,7 +138,7 @@ export default function MockTests() {
     const { data, error } = await supabase
       .from("mock_test_view")
       .select(
-        "id, title, description, category, course, seq, start_time, end_time"
+        "id, title, description, category, course, seq, start_time, end_time, config"
       )
       .order("seq", { ascending: true });
 
@@ -395,7 +395,7 @@ export default function MockTests() {
                                 openResult={() => {
                                   setActiveResult(i?.id);
                                 }}
-                                demo={true}
+                                demo={i?.config?.public_access !== true}
                                 i={i}
                               ></ListCard>
                             );
