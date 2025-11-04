@@ -1,15 +1,12 @@
 import { supabase } from "@/utils/supabaseClient";
 import {
   Button,
-  ButtonGroup,
-  Chip,
   Divider,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  ScrollShadow,
   Spacer,
 } from "@nextui-org/react";
 import { AnimatePresence } from "framer-motion";
@@ -26,23 +23,15 @@ import {
   addDays,
   parseISO,
   format,
-  startOfDay,
   endOfDay,
-  isYesterday,
 } from "date-fns";
 import { ChartBarIncreasing, ChartSplineIcon, Lock } from "lucide-react";
-import { result } from "lodash";
-export default function MockTests() {
-  const { isDemo } = useNMNContext();
 
-  const [activeCourse, setActiveCourse] = useState();
+export default function MockTests({ enrolled = [] }) {
+  const { isDemo } = useNMNContext();
   const [type, setType] = useState(0);
   const [tests, setTests] = useState();
-
   const [courses, setCourses] = useState();
-
-  const [selectedsubjects, setSelectedSubjects] = useState();
-
   const [categories, setCategories] = useState();
   const [allCategories, setAllCategories] = useState();
   const [activeCategory, setActiveCategory] = useState(0);
@@ -366,7 +355,6 @@ export default function MockTests() {
                             return (
                               <ListCard
                                 key={i.id}
-                                results={results}
                                 hasResult={testIdsWithResults.has(i?.id)}
                                 openResult={() => {
                                   setActiveResult(i?.id);
@@ -390,12 +378,17 @@ export default function MockTests() {
                             return (
                               <ListCard
                                 key={i.id}
-                                results={results}
                                 hasResult={testIdsWithResults.has(i?.id)}
                                 openResult={() => {
                                   setActiveResult(i?.id);
                                 }}
-                                demo={i?.config?.public_access !== true}
+                                demo={
+                                  i?.config?.public_access !== true &&
+                                  !enrolled?.some(
+                                    (enrollment) =>
+                                      enrollment?.course?.id === i?.course
+                                  )
+                                }
                                 i={i}
                               ></ListCard>
                             );
@@ -440,7 +433,6 @@ export default function MockTests() {
                                 return (
                                   <ListCard
                                     key={z.id}
-                                    results={results}
                                     hasResult={testIdsWithResults.has(z?.id)}
                                     openResult={() => {
                                       setActiveResult(z?.id);
@@ -466,7 +458,7 @@ export default function MockTests() {
   );
 }
 
-const ListCard = ({ i, demo, results, hasResult, openResult }) => {
+const ListCard = ({ i, demo, hasResult, openResult }) => {
   return (
     <div className="w-full bg-white rounded-md border-1 border-gray-100 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1">
       <div className="w-[70px] flex flex-col items-center justify-center aspect-square rounded-lg bg-gray-50">
