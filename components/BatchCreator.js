@@ -199,20 +199,6 @@ export default function BatchCreator() {
     }
   }
 
-  function getDaysComponent(a) {
-    return (
-      <Tooltip
-        size="sm"
-        color="secondary"
-        content={dayMap.find((item) => item.index == a)?.title ?? "unknown"}
-      >
-        <div className="w-4 h-4 mr-1 hover:bg-secondary hover:text-white !hover:border-secondary cursor-pointer hover:scale-125 transition-all text-primary rounded-full border-1 border-primary bg-primary-50 flex flex-col items-center justify-center">
-          {dayMap.find((item) => item.index == a)?.short ?? "Error"}
-        </div>
-      </Tooltip>
-    );
-  }
-
   function filterUser(usrs) {
     let filteredUsers = usrs;
 
@@ -643,7 +629,7 @@ export default function BatchCreator() {
                   Back to Batches
                 </Button>
 
-                <div className="flex flex-col w-full justify-start items-start bg-gray-50 rounded-xl p-4">
+                <div className="flex flex-col w-full justify-start items-start rounded-xl p-4">
                   {classes &&
                     classes.map((i, d) => {
                       return (
