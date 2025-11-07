@@ -129,16 +129,22 @@ export default function AddBatchModal({
                     size="sm"
                     label={l.label}
                     placeholder={l.placeholder}
-                    value={newBatchData?.[l.key] || null}
+                    value={
+                      newBatchData?.[l.key]
+                        ? parseAbsoluteToLocal(newBatchData[l.key])
+                        : null
+                    }
                     onChange={(e) => {
+                      const jsDate = e?.toDate?.();
+                      const isoString = jsDate ? jsDate.toISOString() : null;
                       setNewBatchData((res) => ({
                         ...res,
-                        [l.key]: e, // store DateValue object
+                        [l.key]: isoString,
                       }));
                     }}
                   />
                 );
-              }
+              }              
               if (l.type == "image") {
                 return (
                   <div key={t}>

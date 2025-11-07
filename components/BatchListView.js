@@ -119,7 +119,10 @@ export default function BatchListView({
                 className="max-w-xs"
                 size="sm"
                 color="primary"
-                onPress={() => setIsCreateModalOpen(true)}
+                onPress={() => {
+                  setNewBatchData({});
+                  setIsCreateModalOpen(true)
+                }}
               >
                 Create New Batch
               </Button>
