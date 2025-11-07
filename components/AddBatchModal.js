@@ -124,31 +124,19 @@ export default function AddBatchModal({
                 return (
                   <DatePicker
                     key={t}
-                    granularity="minute"
+                    granularity="day"
                     className="mb-2"
                     size="sm"
                     label={l.label}
                     placeholder={l.placeholder}
-                    value={(() => {
-                      try {
-                        if (newBatchData?.[l.key]) {
-                          return parseAbsoluteToLocal(newBatchData[l.key]);
-                        }
-                        return null;
-                      } catch {
-                        return null;
-                      }
-                    })()}
+                    value={newBatchData?.[l.key] || null}
                     onChange={(e) => {
                       setNewBatchData((res) => ({
                         ...res,
-                        [l.key]:
-                          typeof e.toAbsoluteString === "function"
-                            ? e.toAbsoluteString()
-                            : e.toString(),
+                        [l.key]: e, // store DateValue object
                       }));
                     }}
-                  ></DatePicker>
+                  />
                 );
               }
               if (l.type == "image") {
