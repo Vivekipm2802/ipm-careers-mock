@@ -26,9 +26,13 @@ export default function AddBatchModal({
   addBatch,
   isEditMode = false,
 }) {
-  const handleCreate = () => {
-    addBatch(newBatchData);
-    onClose();
+  const handleCreate = async () => {
+    try {
+      await addBatch(newBatchData);
+      onClose();
+    } catch (error) {
+      console.error("Error during add/edit operation:", error);
+    }
   };
 
   return (
@@ -124,31 +128,25 @@ export default function AddBatchModal({
                 return (
                   <DatePicker
                     key={t}
-                    granularity="minute"
+                    granularity="day"
                     className="mb-2"
                     size="sm"
                     label={l.label}
                     placeholder={l.placeholder}
-                    value={(() => {
-                      try {
-                        if (newBatchData?.[l.key]) {
-                          return parseAbsoluteToLocal(newBatchData[l.key]);
-                        }
-                        return null;
-                      } catch {
-                        return null;
-                      }
-                    })()}
+                    value={
+                      newBatchData?.[l.key]
+                        ? parseAbsoluteToLocal(newBatchData[l.key])
+                        : null
+                    }
                     onChange={(e) => {
+                      const jsDate = e?.toDate?.();
+                      const isoString = jsDate ? jsDate.toISOString() : null;
                       setNewBatchData((res) => ({
                         ...res,
-                        [l.key]:
-                          typeof e.toAbsoluteString === "function"
-                            ? e.toAbsoluteString()
-                            : e.toString(),
+                        [l.key]: isoString,
                       }));
                     }}
-                  ></DatePicker>
+                  />
                 );
               }
               if (l.type == "image") {

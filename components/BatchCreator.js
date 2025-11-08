@@ -55,16 +55,16 @@ export default function BatchCreator() {
   async function getBatches() {
     const { data, error } = await supabase
       .from("batches")
-      .select("*, centres(id, title)")
-      .select("*, courses(title), centres(title)");
-    if (error || data?.length == 0) {
-      toast.error("Unable to Load Batches");
+      .select("*, courses(title)")
+      .eq("is_deleted", false);
+
+    if (error || !data || data.length === 0) {
+      setBatches([]);
       return null;
     }
-    if (data) {
-      setBatches(data);
-      return null;
-    }
+
+    setBatches(data);
+    return null;
   }
 
   async function getCentres() {
@@ -312,6 +312,15 @@ export default function BatchCreator() {
       return keys;
     }, []);
 
+    const filteredData = requiredKeys.reduce((obj, key) => {
+      if (a.hasOwnProperty(key)) {
+        obj[key] = a[key];
+      }
+      return obj;
+    }, {});
+
+    filteredData.id = a.id;
+
     const missingKeys = requiredKeys.filter((key) => !a.hasOwnProperty(key));
 
     if (missingKeys.length > 0) {
@@ -319,19 +328,15 @@ export default function BatchCreator() {
       return;
     }
 
-    if (missingKeys.length > 0) {
-      toast.error(`Missing keys: ${missingKeys.join(", ")}`);
-      return;
-    }
     const { data, error } = await supabase
       .from("batches")
-      .update(a)
+      .update(filteredData)
       .eq("id", a.id)
       .select();
+
     if (error) {
-      toast.error("Unable to Add");
-    }
-    if (data) {
+      toast.error("Unable to Update Batch");
+    } else if (data) {
       getBatches();
       toast.success("Updated Successfully");
     }
@@ -477,19 +482,6 @@ export default function BatchCreator() {
       type: "text",
       key: "description",
     },
-    // {
-    //   label: "Batch Image",
-    //   placeholder: "Upload Batch Image...",
-    //   type: "image",
-    //   key: "image",
-    // },
-    {
-      label: "Centre",
-      placeholder: "Select Centre",
-      type: "select",
-      key: "centre",
-      items: centres,
-    },
     {
       label: "Course",
       placeholder: "Select Course",
@@ -504,20 +496,6 @@ export default function BatchCreator() {
       key: "start_date",
     },
     {
-      label: "Days of Week",
-      placeholder: "Select Days of Week",
-      type: "checkbox",
-      key: "days",
-      items: dayMap,
-    },
-
-    {
-      label: "Batch Time (everyday)",
-      placeholder: "Select Batch Time",
-      type: "time",
-      key: "time",
-    },
-    {
       label: "End Date",
       placeholder: "Select End Date",
       type: "date",
@@ -529,19 +507,6 @@ export default function BatchCreator() {
       type: "select",
       key: "status",
       items: statuses,
-    },
-    {
-      label: "Batch Host",
-      placeholder: "Select Host of the batch",
-      type: "select",
-      key: "host_id",
-      items: hosts,
-    },
-    {
-      label: "Duration",
-      placeholder: "Enter Duration in minutes",
-      type: "text",
-      key: "duration",
     },
     {
       label: "Show in Demo",
