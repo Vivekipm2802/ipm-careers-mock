@@ -180,13 +180,14 @@ export default function BatchCard({
 
         <Button
           size="sm"
-          color="primary"
+          color="secondary"
           variant="flat"
           startContent={<Edit size={16} />}
           onPress={(e) => {
             e?.stopPropagation?.();
             onEditBatch?.(batch);
           }}
+          className="mr-2"
         >
           Edit Batch
         </Button>
@@ -203,8 +204,8 @@ export default function BatchCard({
               Edit Schedule
             </Button> */}
         {/* </div> */}
-        {/* <div className="flex flex-row gap-2">
-            <Button
+        <div className="flex flex-row gap-2">
+          {/* <Button
               size="sm"
               color="secondary"
               onPress={(e) => {
@@ -216,21 +217,23 @@ export default function BatchCard({
               className="flex-1"
             >
               Assign Students
-            </Button>
-            <Button
-              size="sm"
-              color="primary"
-              onPress={(e) => {
-                e?.stopPropagation?.();
-                setCurrentBatch(batch.id);
-                setView(1);
-                getClasses(batch.id);
-              }}
-              className="flex-1"
-            >
-              Manage Classes
-            </Button>
-          </div> */}
+            </Button> */}
+          <Button
+            size="sm"
+            color="primary"
+            variant="flat"
+            startContent={<BookOpen size={16} />}
+            onPress={(e) => {
+              e?.stopPropagation?.();
+              setCurrentBatch(batch.id);
+              setView(1);
+              getClasses(batch.id);
+            }}
+            className="flex-1"
+          >
+            Manage Classes
+          </Button>
+        </div>
       </div>
     </div>
   );
