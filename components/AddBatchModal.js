@@ -26,9 +26,13 @@ export default function AddBatchModal({
   addBatch,
   isEditMode = false,
 }) {
-  const handleCreate = () => {
-    addBatch(newBatchData);
-    onClose();
+  const handleCreate = async () => {
+    try {
+      await addBatch(newBatchData);
+      onClose();
+    } catch (error) {
+      console.error("Error during add/edit operation:", error);
+    }
   };
 
   return (
@@ -144,7 +148,7 @@ export default function AddBatchModal({
                     }}
                   />
                 );
-              }              
+              }
               if (l.type == "image") {
                 return (
                   <div key={t}>

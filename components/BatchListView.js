@@ -2,6 +2,7 @@ import { Button, Select, SelectItem } from "@nextui-org/react";
 import AddBatchModal from "./AddBatchModal";
 import BatchCard from "./BatchCard";
 import { useState } from "react";
+import { Plus } from "lucide-react";
 
 export default function BatchListView({
   batches,
@@ -22,7 +23,6 @@ export default function BatchListView({
   const [editBatchData, setEditBatchData] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedCourse, setSelectedCourse] = useState("all");
-  const [selectedCenter, setSelectedCenter] = useState("all");
 
   const handleEditBatch = (batch) => {
     setEditBatchData(batch);
@@ -43,30 +43,20 @@ export default function BatchListView({
     )
   );
 
-  const uniqueCenters = Array.from(
-    new Set(
-      batches
-        ?.map((b) => b?.centres?.title)
-        .filter((title) => title && title.trim() !== "")
-    )
-  );
-
   const filteredBatches =
     batches?.filter(
       (b) =>
-        (selectedStatus === "all" || b.status?.toLowerCase() === selectedStatus) &&
-        (selectedCourse === "all" || b?.courses?.title === selectedCourse) &&
-        (selectedCenter === "all" || b?.centres?.title === selectedCenter)
+        (selectedStatus === "all" ||
+          b.status?.toLowerCase() === selectedStatus) &&
+        (selectedCourse === "all" || b?.courses?.title === selectedCourse)
     ) || [];
 
   return (
     <div className="w-full h-full overflow-y-auto">
-      <div className="w-full font-sans flex flex-col items-start overflow-y-auto flex-1 justify-start p-4 rounded-xl bg-gray-50">
-
+      <div className="w-full font-sans flex flex-col items-start overflow-y-auto flex-1 justify-start p-4 rounded-xl">
         {/* Filters + Create Button */}
         <div className="w-full flex-wrap items-center justify-between gap-3 mb-4">
-
-          <div className="flex gap-3 align-items-center items-center">
+          <div className="flex gap-3 align-items-center items-center justify-end">
             {/* Status Filter */}
             <Select
               size="sm"
@@ -99,36 +89,21 @@ export default function BatchListView({
               ))}
             </Select>
 
-            {/* Center Filter */}
-            <Select
-              size="sm"
-              label="Filter by Center"
-              placeholder="Select center"
-              className="max-w-xs"
-              onChange={(e) => setSelectedCenter(e.target.value)}
-              selectedKeys={selectedCenter ? [selectedCenter] : []}
-            >
-              <SelectItem key="all">All</SelectItem>
-              {uniqueCenters.map((center) => (
-                <SelectItem key={center}>{center}</SelectItem>
-              ))}
-            </Select>
-
             <div>
-                <Button
-                className="max-w-xs"
-                size="sm"
+              <Button
+                className="max-w-xs py-6"
+                size="md"
                 color="primary"
                 onPress={() => {
                   setNewBatchData({});
-                  setIsCreateModalOpen(true)
+                  setIsCreateModalOpen(true);
                 }}
               >
+                <Plus className="inline-block w-5 h-5" />
                 Create New Batch
               </Button>
             </div>
           </div>
-         
         </div>
         {/* Create/Edit Modals */}
         <AddBatchModal
@@ -152,8 +127,8 @@ export default function BatchListView({
 
         {/* Batch Cards Grid */}
         {filteredBatches.length > 0 ? (
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-fr">
-          {filteredBatches
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-fr">
+            {filteredBatches
               .sort((a, b) => b.id - a.id)
               .map((batch) => (
                 <BatchCard
@@ -169,7 +144,7 @@ export default function BatchListView({
                   onEditBatch={() => handleEditBatch(batch)}
                 />
               ))}
-        </div>
+          </div>
         ) : (
           <div className="w-full flex justify-center items-center h-40">
             <p className="text-gray-500 text-md font-bold">

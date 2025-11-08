@@ -15,7 +15,7 @@ export default function BatchCard({
   setView,
   getClasses,
   onEditBatch,
-  onDeleteBatch
+  onDeleteBatch,
 }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const getStatusColor = (status) => {
@@ -37,17 +37,18 @@ export default function BatchCard({
 
   const handleDelete = async (e) => {
     e.stopPropagation(); // ✅ works fine now
-    if (!confirm(`Are you sure you want to delete batch "${batch.title}"?`)) return;
-  
+    if (!confirm(`Are you sure you want to delete batch "${batch.title}"?`))
+      return;
+
     try {
       setIsDeleting(true);
       const { error } = await supabase
         .from("batches")
-        .delete()
+        .update({ is_deleted: true })
         .eq("id", batch.id);
-  
+
       if (error) throw error;
-  
+
       alert("Batch deleted successfully!");
       if (onDeleteBatch) onDeleteBatch(batch.id);
     } catch (err) {
@@ -57,14 +58,11 @@ export default function BatchCard({
       setIsDeleting(false);
     }
   };
-  
-  
 
   return (
     <div
       className={
-        "rounded-lg bg-white shadow-sm border border-gray-200 p-6 flex flex-col justify-between hover:shadow-md transition-all duration-200 h-full " +
-        (batch.status == "draft" ? " opacity-70 grayscale" : "")
+        "rounded-lg bg-white shadow-sm border border-gray-200 p-6 flex flex-col justify-between hover:shadow-md transition-all duration-200 h-full"
       }
     >
       {/* Header: Title and Status */}
@@ -86,8 +84,6 @@ export default function BatchCard({
 
       {/* Content Section */}
       <div className="flex flex-col gap-3 flex-1 mb-5">
-        
-
         {/* Description */}
         {batch?.description && (
           <p className="text-sm text-gray-600 leading-relaxed mt-1 text-left">
@@ -105,79 +101,82 @@ export default function BatchCard({
             </div>
           </div>
         )}
-{/* Date + Course/Location in 2 columns */}
-<div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-100">
+        {/* Date + Course/Location in 2 columns */}
+        <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-100">
+          {/* Left column - Dates */}
+          {(batch?.start_date || batch?.end_date) && (
+            <div className="flex flex-col gap-2">
+              {batch?.start_date && (
+                <div className="flex items-center gap-2.5">
+                  <Calendar size={16} className="text-gray-400 flex-shrink-0" />
+                  <div className="flex items-baseline gap-2 text-sm">
+                    <span className="text-gray-500 font-medium">Start:</span>
+                    <span className="text-gray-900">
+                      {(() => {
+                        const dateInfo = CtoLocal(batch.start_date);
+                        return `${dateInfo.date} ${dateInfo.monthName} ${dateInfo.year}`;
+                      })()}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {batch?.end_date && (
+                <div className="flex items-center gap-2.5">
+                  <Calendar size={16} className="text-gray-400 flex-shrink-0" />
+                  <div className="flex items-baseline gap-2 text-sm">
+                    <span className="text-gray-500 font-medium">End:</span>
+                    <span className="text-gray-900">
+                      {(() => {
+                        const dateInfo = CtoLocal(batch.end_date);
+                        return `${dateInfo.date} ${dateInfo.monthName} ${dateInfo.year}`;
+                      })()}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-  {/* Left column - Dates */}
-  {(batch?.start_date || batch?.end_date) && (
-  <div className="flex flex-col gap-2">
-    {batch?.start_date && (
-      <div className="flex items-center gap-2.5">
-        <Calendar size={16} className="text-gray-400 flex-shrink-0" />
-        <div className="flex items-baseline gap-2 text-sm">
-          <span className="text-gray-500 font-medium">Start:</span>
-          <span className="text-gray-900">
-            {(() => {
-              const dateInfo = CtoLocal(batch.start_date);
-              return `${dateInfo.date} ${dateInfo.monthName} ${dateInfo.year}`;
-            })()}
-          </span>
+          {/* Right column - Course & Location */}
+          <div className="flex flex-col gap-2 text-sm">
+            {/* Course */}
+            {batch?.courses?.title && (
+              <div className="flex items-start gap-2.5">
+                <BookOpen
+                  size={18}
+                  className="text-gray-400 mt-0.5 flex-shrink-0"
+                />
+                <span className="text-gray-700">{batch.courses.title}</span>
+              </div>
+            )}
+
+            {/* Location */}
+            {batch?.centres?.title && (
+              <div className="flex items-start gap-2.5">
+                <MapPin
+                  size={18}
+                  className="text-gray-400 mt-0.5 flex-shrink-0"
+                />
+                <span className="text-gray-700">{batch.centres.title}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    )}
-    {batch?.end_date && (
-      <div className="flex items-center gap-2.5">
-        <Calendar size={16} className="text-gray-400 flex-shrink-0" />
-        <div className="flex items-baseline gap-2 text-sm">
-          <span className="text-gray-500 font-medium">End:</span>
-          <span className="text-gray-900">
-            {(() => {
-              const dateInfo = CtoLocal(batch.end_date);
-              return `${dateInfo.date} ${dateInfo.monthName} ${dateInfo.year}`;
-            })()}
-          </span>
-        </div>
-      </div>
-    )}
-  </div>
-  )}
-
-  {/* Right column - Course & Location */}
-  <div className="flex flex-col gap-2 text-sm">
-
-    {/* Course */}
-    {batch?.courses?.title && (
-      <div className="flex items-start gap-2.5">
-        <BookOpen size={18} className="text-gray-400 mt-0.5 flex-shrink-0" />
-        <span className="text-gray-700">{batch.courses.title}</span>
-      </div>
-    )}
-
-    {/* Location */}
-    {batch?.centres?.title && (
-      <div className="flex items-start gap-2.5">
-        <MapPin size={18} className="text-gray-400 mt-0.5 flex-shrink-0" />
-        <span className="text-gray-700">{batch.centres.title}</span>
-      </div>
-    )}
-
-  </div>
-  </div>
-</div>
-
 
       {/* Action Button */}
       <div className="pt-4 border-t border-gray-100 flex justify-end">
-      {/* <Button
-        size="sm"
-        color="danger"
-        variant="flat"
-        onClick={(e) => handleDelete(e)} // use onClick instead of onPress
-        disabled={isDeleting}
-      >
-        {isDeleting ? "Deleting..." : "Delete Batch"}
-      </Button> */}
-
+        <Button
+          size="sm"
+          color="danger"
+          variant="flat"
+          startContent={<Trash2 size={16} />}
+          onClick={(e) => handleDelete(e)} // use onClick instead of onPress
+          disabled={isDeleting}
+          className="mr-2"
+        >
+          {isDeleting ? "Deleting..." : "Delete Batch"}
+        </Button>
 
         <Button
           size="sm"
