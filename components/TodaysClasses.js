@@ -1,10 +1,7 @@
 import { Button, ScrollShadow } from "@nextui-org/react";
-import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useNMNContext } from "./NMNContext";
 
 const ClassDashboard = ({ classes }) => {
-  const { setCTXSlug, setSK } = useNMNContext();
   const getClassStatus = (startTime, endTime) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -33,26 +30,7 @@ const ClassDashboard = ({ classes }) => {
     if (now > end) return "expired";
     return "ongoing";
   };
-  const timeUntilClass = (startTime) => {
-    const now = new Date();
-    const start = new Date(startTime);
 
-    if (now >= start) {
-      return "Class has started";
-    }
-
-    const diff = start - now; // Difference in milliseconds
-    const minutes = Math.floor(diff / (1000 * 60)) % 60;
-    const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    const timeParts = [];
-    if (days > 0) timeParts.push(`${days} day${days > 1 ? "s" : ""}`);
-    if (hours > 0) timeParts.push(`${hours} hr${hours > 1 ? "s" : ""}`);
-    if (minutes > 0) timeParts.push(`${minutes} min${minutes > 1 ? "s" : ""}`);
-
-    return timeParts.join(", ") + " to go";
-  };
   const formatTime = (timeString) => {
     try {
       const [hours, minutes] = timeString.split(":");
