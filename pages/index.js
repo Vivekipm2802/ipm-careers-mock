@@ -2246,7 +2246,7 @@ export default function Home(props) {
                 </DropdownMenu>
               </Dropdown>
 
-              <div className=" sf h-full w-full bg-white rounded-xl relative p-2 md:p-0">
+              <div className=" sf h-full w-full bg-white rounded-xl relative p-2 md:p-5">
                 {slug == "configurator" && <ConfigManager></ConfigManager>}
                 {slug == "mindmap" || slug == "mindmap2" ? (
                   <div className="h-full w-full overflow-y-auto overflow-x-hidden flex flex-col-reverse md:flex-row">
@@ -2867,11 +2867,11 @@ export default function Home(props) {
                 {slug == "batch-creator" ? <BatchCreator></BatchCreator> : ""}
                 {slug == "batch-wise" ? (
                   <>
-                    {props?.type === "admin" ? (
-                      <Classes></Classes>
-                    ) : (
+                    {/* {props?.type === "admin" ? ( */}
+                    <Classes></Classes>
+                    {/* ) : (
                       <ComingSoon message="Classes (Online Classes) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
-                    )}
+                    )} */}
                   </>
                 ) : (
                   ""

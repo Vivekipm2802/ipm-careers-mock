@@ -1,7 +1,7 @@
 import { CtoLocal } from "@/utils/DateUtil";
 import { Button, Chip } from "@nextui-org/react";
 import DayBadge from "./DayBadge";
-import { MapPin, BookOpen, Calendar, Edit, Trash2 } from "lucide-react";
+import { MapPin, BookOpen, Calendar, Edit, Trash2, Users } from "lucide-react";
 import { supabase } from "@/utils/supabaseClient"; // ✅ Import your Supabase client
 import { useState } from "react";
 
@@ -67,19 +67,61 @@ export default function BatchCard({
     >
       {/* Header: Title and Status */}
       <div className="flex items-start justify-between gap-3 mb-4">
-        <h3 className="font-semibold text-lg text-gray-900 leading-snug">
-          {batch.title}
-        </h3>
-        {batch?.status && (
-          <Chip
-            size="sm"
-            variant="flat"
-            color={getStatusColor(batch.status)}
-            className="capitalize"
-          >
-            {batch.status}
-          </Chip>
-        )}
+        <div>
+          <h3 className="font-semibold text-lg text-gray-900 leading-snug">
+            {batch.title}
+          </h3>
+        </div>
+        <div className="flex items-center gap-2">
+          {batch?.status && (
+            <Chip
+              size="sm"
+              variant="flat"
+              color={getStatusColor(batch.status)}
+              className="capitalize"
+            >
+              {batch.status}
+            </Chip>
+          )}
+          <div className="relative">
+            <details className="group">
+              <summary className="list-none cursor-pointer p-1.5 rounded-full hover:bg-gray-100">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-gray-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"
+                  />
+                </svg>
+              </summary>
+              <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-md shadow-md z-10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditBatch?.(batch);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <Edit size={14} /> Edit
+                </button>
+                <button
+                  onClick={(e) => handleDelete(e)}
+                  disabled={isDeleting}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
+              </div>
+            </details>
+          </div>
+        </div>
       </div>
 
       {/* Content Section */}
@@ -166,58 +208,22 @@ export default function BatchCard({
 
       {/* Action Button */}
       <div className="pt-4 border-t border-gray-100 flex justify-end">
-        <Button
-          size="sm"
-          color="danger"
-          variant="flat"
-          startContent={<Trash2 size={16} />}
-          onClick={(e) => handleDelete(e)} // use onClick instead of onPress
-          disabled={isDeleting}
-          className="mr-2"
-        >
-          {isDeleting ? "Deleting..." : "Delete Batch"}
-        </Button>
-
-        <Button
-          size="sm"
-          color="secondary"
-          variant="flat"
-          startContent={<Edit size={16} />}
-          onPress={(e) => {
-            e?.stopPropagation?.();
-            onEditBatch?.(batch);
-          }}
-          className="mr-2"
-        >
-          Edit Batch
-        </Button>
-        {/* <Button
-              size="sm"
-              color="primary"
-              startContent={<Calendar size={16} />}
-              onPress={(e) => {
-                e?.stopPropagation?.();
-                setScheduleData(batch);
-              }}
-              className="flex-1"
-            >
-              Edit Schedule
-            </Button> */}
-        {/* </div> */}
         <div className="flex flex-row gap-2">
-          {/* <Button
-              size="sm"
-              color="secondary"
-              onPress={(e) => {
-                e?.stopPropagation?.();
-                setAssignModal(true);
-                getStudents(batch.id);
-                setCurrentBatch(batch.id);
-              }}
-              className="flex-1"
-            >
-              Assign Students
-            </Button> */}
+          <Button
+            size="sm"
+            color="secondary"
+            variant="flat"
+            startContent={<Users size={16} />}
+            onPress={(e) => {
+              e?.stopPropagation?.();
+              setAssignModal(true);
+              getStudents(batch.id);
+              setCurrentBatch(batch.id);
+            }}
+            className="flex-1"
+          >
+            Assign Students
+          </Button>
           <Button
             size="sm"
             color="primary"

@@ -1,5 +1,6 @@
 import { CtoLocal } from "@/utils/DateUtil";
 import { supabase } from "@/utils/supabaseClient";
+import axios from "axios";
 import {
   Button,
   Checkbox,
@@ -32,6 +33,7 @@ import { isToday } from "date-fns";
 import BatchScheduleEditor from "./BatchScheduleEditor";
 import BatchListView from "./BatchListView";
 import ManageClasses from "./ManageClasses";
+import AssignStudentsModal from "./AssignStudentsModal";
 
 export default function BatchCreator() {
   const [batches, setBatches] = useState();
@@ -413,10 +415,10 @@ export default function BatchCreator() {
       title: "Set Batch Live",
       value: "live",
     },
-    {
-      title: "Set Batch as Expired",
-      value: "expired",
-    },
+    // {
+    //   title: "Set Batch as Expired",
+    //   value: "expired",
+    // },
   ];
 
   const classStatus = [
@@ -461,13 +463,13 @@ export default function BatchCreator() {
       key: "url",
       optional: true,
     },
-    {
-      label: "Status",
-      placeholder: "Select Class Status",
-      type: "select",
-      key: "status",
-      items: classStatus,
-    },
+    // {
+    //   label: "Status",
+    //   placeholder: "Select Class Status",
+    //   type: "select",
+    //   key: "status",
+    //   items: classStatus,
+    // },
   ];
 
   const controls = [
@@ -591,124 +593,29 @@ export default function BatchCreator() {
         </AnimatePresence>
       </div>
 
-      <Modal
+      <AssignStudentsModal
         isOpen={assignModal}
         onClose={() => {
-          setAssignModal(false),
-            setCurrentBatch(),
-            setCentreFilters(),
-            setStudents(),
-            setCurrentStudents();
+          setAssignModal(false);
+          setCurrentBatch();
+          setCentreFilters();
+          setStudents();
+          setCurrentStudents();
         }}
-      >
-        <ModalContent className="w-full max-w-[1200px]">
-          <ModalHeader>Assign Students to this batch</ModalHeader>
-          <ModalBody>
-            <p>Filter by Centres</p>
-
-            <div className="w-full flex flex-row items-center justify-start flex-wrap">
-              {centres &&
-                centres.map((i, d) => {
-                  return (
-                    <div
-                      className=" cursor-pointer"
-                      onClick={() => {
-                        setCentreFilters((res) => {
-                          const currentFilters = res || [];
-                          if (_.includes(currentFilters, i.value)) {
-                            return _.without(currentFilters, i.value);
-                          } else {
-                            return _.concat(currentFilters, i.value);
-                          }
-                        });
-                      }}
-                    >
-                      <Chip
-                        color={
-                          centreFilters?.some((item) => item == i.value)
-                            ? "primary"
-                            : "default"
-                        }
-                        className="mb-1 mr-1 hover:bg-primary-200 hover:text-black"
-                        size="sm"
-                      >
-                        {i.title}
-                      </Chip>
-                    </div>
-                  );
-                })}
-            </div>
-            <Input
-              className="max-w-[300px]"
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-              }}
-              placeholder="Search Here..."
-              label="Search"
-              size="sm"
-              type="search"
-            ></Input>
-            <CheckboxGroup
-              label="Select Students to Assign"
-              value={students}
-              onValueChange={(e) => {
-                setStudents(e);
-              }}
-              size="sm"
-              className="max-h-[50vh] overflow-y-auto text-xs"
-            >
-              {allUsers &&
-                filterUser(allUsers).map((i, d) => {
-                  return (
-                    <Checkbox value={i.email}>
-                      {i.email}{" "}
-                      {currentStudents?.some(
-                        (item) => item.student_id == i.email
-                      ) ? (
-                        <span
-                          onClick={() => {
-                            removeFromBatch(
-                              currentStudents.find(
-                                (item) => item.student_id == i.email
-                              )?.id
-                            );
-                          }}
-                        >
-                          <Chip size="sm" className="!text-xs" color="danger">
-                            Remove
-                          </Chip>
-                        </span>
-                      ) : (
-                        ""
-                      )}
-                    </Checkbox>
-                  );
-                })}
-            </CheckboxGroup>
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              onPress={() => {
-                setAssignModal(false);
-              }}
-              size="sm"
-              color="danger"
-              variant="ghost"
-            >
-              Cancel
-            </Button>
-            <Button
-              color="primary"
-              size="sm"
-              onPress={() => {
-                assignStudents(students, currentBatch);
-              }}
-            >
-              Assign
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+        centres={centres}
+        centreFilters={centreFilters}
+        setCentreFilters={setCentreFilters}
+        allUsers={allUsers}
+        currentStudents={currentStudents}
+        students={students}
+        setStudents={setStudents}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        filterUser={filterUser}
+        assignStudents={assignStudents}
+        removeFromBatch={removeFromBatch}
+        currentBatch={currentBatch}
+      />
     </div>
   );
 }

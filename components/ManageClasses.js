@@ -474,13 +474,13 @@ export default function ManageClasses({
               </div>
             </>
           ))}
-
-        {(!classes || classes.length === 0) && (
-          <div className="border-1 my-16 border-gray-100 bg-gray-100 rounded-xl text-gray-500 w-full px-2 py-8">
-            No Classes scheduled for today
-          </div>
-        )}
       </div>
+
+      {(!classes || classes.length === 0) && (
+        <div className="border-1 my-16 border-gray-100 bg-gray-100 rounded-xl text-gray-500 w-full px-2 py-8">
+          No Classes scheduled for today
+        </div>
+      )}
     </div>
   );
 }
