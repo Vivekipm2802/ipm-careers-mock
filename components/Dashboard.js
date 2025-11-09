@@ -22,9 +22,21 @@ export default function Dashboard({ userData }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   async function getClasses() {
+    // Get the course IDs the student is enrolled in
+    const enrolledCourseIds =
+      userCourses?.map((enrollment) => enrollment.course?.id).filter(Boolean) ||
+      [];
+
+    if (enrolledCourseIds.length === 0) {
+      // If no enrolled courses, set empty classes array
+      setClasses([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("classes")
-      .select("*")
+      .select("*, batches!inner(course_id)")
+      .in("batches.course_id", enrolledCourseIds)
       .order("created_at", { ascending: true })
       .limit(10);
 
@@ -123,11 +135,17 @@ export default function Dashboard({ userData }) {
 
   useEffect(() => {
     getResults();
-    getClasses();
     if (userData?.email) {
       checkAdminStatus();
     }
   }, [userData?.email]);
+
+  useEffect(() => {
+    // Fetch classes when userCourses is available
+    if (userCourses && userCourses.length > 0) {
+      getClasses();
+    }
+  }, [userCourses]);
 
   const t1 = `Hi ${userData?.user_metadata?.full_name || "Unknown User"},`;
   const t2 = "Welcome to IPM Careers Study Panel";
@@ -289,7 +307,7 @@ export default function Dashboard({ userData }) {
         </div>
       </div>
       <Spacer y={2}></Spacer>
-      {isAdmin && <ClassDashboard classes={classes ?? []}></ClassDashboard>}
+      <ClassDashboard classes={classes ?? []}></ClassDashboard>
       {/* <div className="p-4 border-1 border-gray-200 my-2 rounded-xl flex flex-col justify-start items-start">
     <h2 className="font-sans w-full text-left text-primary p-1 text-2xl font-bold">Assigned Tests</h2>
     <div className="flex relative flex-row items-center justify-start w-full flex-wrap">
