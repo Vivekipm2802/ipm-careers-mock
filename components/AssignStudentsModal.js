@@ -57,13 +57,33 @@ export default function AssignStudentsModal({
     async function fetchStudents() {
       setLoading(true);
       try {
-        const res = await fetch("/api/listUsers?page=0&pageSize=1000");
-        if (res.ok) {
-          const data = await res.json();
-          setFetchedStudents(data);
-        } else {
-          console.error("Failed to fetch students list");
+        let allStudents = [];
+        let page = 0;
+        let keepFetching = true;
+        const pageSize = 1000;
+
+        while (keepFetching) {
+          const res = await fetch(`/api/listUsers?page=${page}&pageSize=${pageSize}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.length > 0) {
+              allStudents = allStudents.concat(data);
+              // If we received fewer records than pageSize, we've reached the end
+              if (data.length < pageSize) {
+                keepFetching = false;
+              } else {
+                page += 1;
+              }
+            } else {
+              keepFetching = false;
+            }
+          } else {
+            console.error("Failed to fetch students list");
+            keepFetching = false;
+          }
         }
+
+        setFetchedStudents(allStudents);
       } catch (err) {
         console.error("Error fetching students:", err);
       }
