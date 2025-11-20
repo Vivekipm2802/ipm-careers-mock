@@ -160,3 +160,30 @@ dateObj.getFullYear() === currentDate.getFullYear()
   
     return formattedDate;
   }
+  
+  // Utility to convert a "HH:MM" 24-hour time string to "hh:mm AM/PM"
+  export function formatHHMMTo12Hour(timeString) {
+    try {
+      if (!timeString || typeof timeString !== 'string') {
+        return timeString;
+      }
+  
+      const [hours, minutes] = timeString.split(':');
+      if (hours === undefined || minutes === undefined) {
+        return timeString;
+      }
+  
+      const date = new Date();
+      date.setHours(parseInt(hours, 10));
+      date.setMinutes(parseInt(minutes, 10));
+      date.setSeconds(0);
+  
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return timeString;
+    }
+  }

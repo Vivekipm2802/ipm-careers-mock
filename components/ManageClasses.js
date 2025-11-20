@@ -315,7 +315,7 @@ export default function ManageClasses({
                             size={18}
                             className="text-gray-400 mt-0.5 flex-shrink-0"
                           />
-                          <span className="text-gray-700">{i.url}</span>
+                          <span className="text-gray-700 text-left">{i.url}</span>
                         </div>
                       )}
                     </div>

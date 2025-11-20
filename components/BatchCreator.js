@@ -562,6 +562,7 @@ export default function BatchCreator() {
                 setView={setView}
                 getClasses={getClasses}
                 addBatch={addBatch}
+                getBatches={getBatches}
               />
             ) : (
               ""

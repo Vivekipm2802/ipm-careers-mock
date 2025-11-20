@@ -2866,13 +2866,7 @@ export default function Home(props) {
                 )}
                 {slug == "batch-creator" ? <BatchCreator></BatchCreator> : ""}
                 {slug == "batch-wise" ? (
-                  <>
-                    {props?.type === "admin" ? (
-                      <Classes></Classes>
-                    ) : (
-                      <ComingSoon message="Classes (Online Classes) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
-                    )}
-                  </>
+                  <Classes></Classes>
                 ) : (
                   ""
                 )}

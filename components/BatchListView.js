@@ -16,6 +16,7 @@ export default function BatchListView({
   setView,
   getClasses,
   addBatch,
+  getBatches,
 }) {
   const [newBatchData, setNewBatchData] = useState();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -32,6 +33,13 @@ export default function BatchListView({
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setEditBatchData(null);
+  };
+
+  const handleDeleteBatch = (batchId) => {
+    // Refresh the batch list after deletion
+    if (getBatches) {
+      getBatches();
+    }
   };
 
   // Extract unique course titles and centers dynamically
@@ -142,6 +150,7 @@ export default function BatchListView({
                   setView={setView}
                   getClasses={getClasses}
                   onEditBatch={() => handleEditBatch(batch)}
+                  onDeleteBatch={handleDeleteBatch}
                 />
               ))}
           </div>
