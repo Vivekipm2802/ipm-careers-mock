@@ -3,7 +3,7 @@ import { Button, Chip } from "@nextui-org/react";
 import DayBadge from "./DayBadge";
 import { MapPin, BookOpen, Calendar, Edit, Trash2, Users } from "lucide-react";
 import { supabase } from "@/utils/supabaseClient"; // ✅ Import your Supabase client
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 export default function BatchCard({
   batch,
@@ -34,6 +34,7 @@ export default function BatchCard({
         return "default";
     }
   };
+  const menuRef = useRef(null);
 
   const handleDelete = async (e) => {
     e.stopPropagation(); // ✅ works fine now
@@ -84,7 +85,7 @@ export default function BatchCard({
             </Chip>
           )}
           <div className="relative">
-            <details className="group">
+            <details ref={menuRef} className="group">
               <summary className="list-none cursor-pointer p-1.5 rounded-full hover:bg-gray-100">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -105,6 +106,7 @@ export default function BatchCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (menuRef.current) menuRef.current.open = false;
                     onEditBatch?.(batch);
                   }}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
@@ -112,7 +114,11 @@ export default function BatchCard({
                   <Edit size={14} /> Edit
                 </button>
                 <button
-                  onClick={(e) => handleDelete(e)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (menuRef.current) menuRef.current.open = false;
+                    handleDelete(e);
+                  }}
                   disabled={isDeleting}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 text-red-600 flex items-center gap-2"
                 >

@@ -115,7 +115,14 @@ export default function AssignStudentsModal({
         : typeof item.email === "string"
         ? item.email
         : ""
-    );
+    )
+    .sort((a, b) => {
+    const aSelected = students.includes(a);
+    const bSelected = students.includes(b);
+    if (aSelected && !bSelected) return -1;
+    if (!aSelected && bSelected) return 1;
+    return a.localeCompare(b);
+  });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
