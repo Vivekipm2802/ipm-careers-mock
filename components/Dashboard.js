@@ -2,9 +2,7 @@ import { supabase } from "@/utils/supabaseClient";
 import { Button, Spacer } from "@nextui-org/react";
 import { useEffect, useState } from "react";
 import { useNMNContext } from "./NMNContext";
-import Attendance from "./Attendance";
 import StudentAttendance from "./StudentAttendance";
-import Assigned from "./AssignedTests";
 import DemoComponent from "./DemoComponent";
 import { motion } from "framer-motion";
 import ClassDashboard from "./TodaysClasses";
@@ -17,7 +15,6 @@ import axios from "axios";
 export default function Dashboard({ userData }) {
   const [isNull, setIsNull] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState();
   const [classes, setClasses] = useState();
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -27,27 +24,52 @@ export default function Dashboard({ userData }) {
       userCourses?.map((enrollment) => enrollment.course?.id).filter(Boolean) ||
       [];
 
-    if (enrolledCourseIds.length === 0) {
-      // If no enrolled courses, set empty classes array
-      setClasses([]);
-      return;
+    let enrolledClasses = [];
+    let demoClasses = [];
+
+    // Fetch classes for enrolled courses (existing behavior)
+    if (enrolledCourseIds.length > 0) {
+      const { data, error } = await supabase
+        .from("classes")
+        .select("*, batches!inner(course_id,demo)")
+        .in("batches.course_id", enrolledCourseIds)
+        .order("created_at", { ascending: true })
+        .limit(10);
+
+      if (error) {
+        toast.error("Error Loading Classes");
+        return;
+      }
+
+      enrolledClasses = data ?? [];
     }
 
-    const { data, error } = await supabase
+    // Append ALL classes whose batches have demo=true
+    const { data: demoData, error: demoError } = await supabase
       .from("classes")
-      .select("*, batches!inner(course_id)")
-      .in("batches.course_id", enrolledCourseIds)
-      .order("created_at", { ascending: true })
-      .limit(10);
+      .select("*, batches!inner(course_id,demo)")
+      .eq("batches.demo", true)
+      .order("created_at", { ascending: true });
 
-    if (error) {
-      toast.error("Error Loading Classes");
+    if (demoError) {
+      toast.error("Error Loading Demo Classes");
       return;
     }
-    if (data) {
-      setClasses(data);
-      return;
-    }
+
+    demoClasses = demoData ?? [];
+
+    // Merge + de-dup (in case an enrolled class is also from a demo batch)
+    const merged = [...enrolledClasses, ...demoClasses].filter(Boolean);
+    const deduped = Array.from(new Map(merged.map((c) => [c?.id, c])).values());
+
+    // Keep consistent ordering
+    deduped.sort((a, b) => {
+      const aTime = a?.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b?.created_at ? new Date(b.created_at).getTime() : 0;
+      return aTime - bTime;
+    });
+
+    setClasses(deduped);
   }
 
   const { setCTXSlug, sk, setSK, userCourses } = useNMNContext();
@@ -141,11 +163,9 @@ export default function Dashboard({ userData }) {
   }, [userData?.email]);
 
   useEffect(() => {
-    // Fetch classes when userCourses is available
-    if (userCourses && userCourses.length > 0) {
+    // Fetch classes
       getClasses();
-    }
-  }, [userCourses]);
+  }, []);
 
   const t1 = `Hi ${userData?.user_metadata?.full_name || "Unknown User"},`;
   const t2 = "Welcome to IPM Careers Study Panel";
