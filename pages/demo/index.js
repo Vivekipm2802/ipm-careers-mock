@@ -43,6 +43,7 @@ import { logoutUser } from "@/supabase/userUtility";
 import ImageUploader from "@/components/ImageUploader";
 import GameCard from "@/components/GameCard";
 import Webinars from "@/components/Webinars";
+import PYQManager from "@/components/PYQManager";
 
 import BookBySubject from "@/components/BookBySubject";
 
@@ -3371,6 +3372,24 @@ export default function Home(props) {
               )}
               {slug == "currentaffairs" ? (
                 <DailyLearn role={props?.type}></DailyLearn>
+              ) : (
+                ""
+              )}
+
+              {slug == "pyqconcept" ? (
+                <PYQManager
+                  viewBy="topic"
+                  isAdmin={props?.type == "admin"}
+                ></PYQManager>
+              ) : (
+                ""
+              )}
+
+              {slug == "pyqyear" ? (
+                <PYQManager
+                  viewBy="year"
+                  isAdmin={props?.type == "admin"}
+                ></PYQManager>
               ) : (
                 ""
               )}

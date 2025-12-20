@@ -17,6 +17,7 @@ export default function Dashboard({ userData }) {
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [results, setResults] = useState([]);
 
   async function getClasses() {
     // Get the course IDs the student is enrolled in
@@ -92,6 +93,15 @@ export default function Dashboard({ userData }) {
       .from("results")
       .select("*,test(course(title,id),id)")
       .match({ email: userData?.email, status: "finished" });
+
+    if (error) {
+      console.error("Error loading results:", error);
+      toast.error("Error loading results");
+      setIsNull(true);
+      setLoading(false);
+      return;
+    }
+
     if (data && data?.length > 0) {
       setResults(data);
       setIsNull(false);
