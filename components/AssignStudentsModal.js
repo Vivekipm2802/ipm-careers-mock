@@ -52,11 +52,14 @@ export default function AssignStudentsModal({
   const PAGE_SIZE = 50;
 
   const [fetchedStudents, setFetchedStudents] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
   const [loadingMore, setLoadingMore] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(true);
   const [page, setPage] = React.useState(0);
   const abortRef = React.useRef(null);
+  // Guards against stale `.finally()` from an aborted/older request turning loading off
+  // while a newer request is still in-flight.
+  const fetchSeqRef = React.useRef(0);
 
   // Keep selection locally controlled to avoid parent prop/state race conditions
   // (e.g. uncheck + immediately click Assign).
@@ -105,6 +108,9 @@ export default function AssignStudentsModal({
   // otherwise parent updates can re-check items unexpectedly while the modal is open.
   React.useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
+      // Show loading immediately on open.
+      setIsLoading(true);
+
       // Reset search state on every open.
       if (typeof setSearchTerm === "function") setSearchTerm("");
       setDebouncedSearch("");
@@ -117,6 +123,14 @@ export default function AssignStudentsModal({
       // Ensure the user sees "Selected" at the top on open.
       if (listContainerRef.current) listContainerRef.current.scrollTop = 0;
     }
+
+    if (!isOpen) {
+      // Ensure we don't leave the modal in a "loading" state after close.
+      setIsLoading(false);
+      setLoadingMore(false);
+      if (abortRef.current) abortRef.current.abort();
+    }
+
     wasOpenRef.current = isOpen;
   }, [isOpen, getInitialSelected, setSearchTerm]);
 
@@ -193,11 +207,13 @@ export default function AssignStudentsModal({
 
     // When opening the modal or changing the debounced search term:
     // reset to first page + fetch only a small chunk.
-    setLoading(true);
+    setIsLoading(true);
     setLoadingMore(false);
     setHasMore(true);
     setFetchedStudents([]);
     setPage(0);
+
+    const seq = ++fetchSeqRef.current;
 
     fetchPage({ pageToFetch: 0, append: false })
       .catch((err) => {
@@ -205,7 +221,10 @@ export default function AssignStudentsModal({
           console.error("Error fetching students:", err);
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        // Only the latest request is allowed to turn loading off.
+        if (fetchSeqRef.current === seq) setIsLoading(false);
+      });
 
     return () => {
       if (abortRef.current) abortRef.current.abort();
@@ -214,7 +233,7 @@ export default function AssignStudentsModal({
 
   const loadMore = React.useCallback(() => {
     if (!isOpen) return;
-    if (loading || loadingMore || !hasMore) return;
+    if (isLoading || loadingMore || !hasMore) return;
 
     const nextPage = page + 1;
     setLoadingMore(true);
@@ -226,7 +245,7 @@ export default function AssignStudentsModal({
         }
       })
       .finally(() => setLoadingMore(false));
-  }, [fetchPage, hasMore, isOpen, loading, loadingMore, page]);
+  }, [fetchPage, hasMore, isOpen, isLoading, loadingMore, page]);
 
   const listContainerRef = React.useRef(null);
   const handleScroll = React.useCallback(
@@ -277,7 +296,7 @@ export default function AssignStudentsModal({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          {loading && fetchedStudents.length === 0 ? (
+          {isLoading && fetchedStudents.length === 0 ? (
             <div className="flex justify-center items-center py-10">
               <span>Loading...</span>
             </div>
@@ -360,7 +379,7 @@ export default function AssignStudentsModal({
               </CheckboxGroup>
 
               <div className="py-2 flex justify-center">
-                {loading || loadingMore ? <span>Loading...</span> : null}
+                {isLoading || loadingMore ? <span>Loading...</span> : null}
               </div>
             </div>
           )}
