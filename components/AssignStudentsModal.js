@@ -360,13 +360,7 @@ export default function AssignStudentsModal({
               </CheckboxGroup>
 
               <div className="py-2 flex justify-center">
-                {loadingMore ? (
-                  <span>Loading more...</span>
-                ) : hasMore ? (
-                  <Button size="sm" variant="flat" onPress={loadMore}>
-                    Load more
-                  </Button>
-                ) : null}
+                {loading || loadingMore ? <span>Loading...</span> : null}
               </div>
             </div>
           )}
