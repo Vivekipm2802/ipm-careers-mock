@@ -1,6 +1,10 @@
 {
   "extends": "next/core-web-vitals",
   "rules": {
-    "react/no-unescaped-entities": "off"
+    "react/no-unescaped-entities": "off",
+    "react/jsx-key": "warn",
+    "react-hooks/rules-of-hooks": "warn",
+    "react/jsx-no-undef": "warn",
+    "import/no-anonymous-default-export": "warn"
   }
 }

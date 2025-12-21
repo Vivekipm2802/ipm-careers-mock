@@ -22,17 +22,16 @@ export default function QuestionCard({
   onNext,
   onClearResponse,
 }) {
-  if (!question) {
-    return <div>Question Undefined</div>;
-  }
   const [answeredData, setAnsweredData] = useState();
   const [inputValue, setInputValue] = useState("");
-  const { id, title, type, questionimage, options, label } = question;
+
+  const { id, title, type, questionimage, options, label } = question || {};
 
   const isDevelopment = process.env.NODE_ENV === "development";
 
   // Reset input value when question changes or when response is cleared
   useEffect(() => {
+    if (!question) return;
     const existingReport = report?.find((item) => item.id === question.id);
     if (!existingReport) {
       setInputValue("");
@@ -40,7 +39,11 @@ export default function QuestionCard({
     } else if (existingReport && type === "input" && existingReport.value) {
       setInputValue(existingReport.value || "");
     }
-  }, [question.id, report, type]);
+  }, [question?.id, report, type]);
+
+  if (!question) {
+    return <div>Question Undefined</div>;
+  }
 
   return (
     <div className="font-sans w-full flex-1 flex flex-col text-left overflow-hidden">
