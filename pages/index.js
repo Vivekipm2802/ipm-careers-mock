@@ -2865,11 +2865,7 @@ export default function Home(props) {
                   ""
                 )}
                 {slug == "batch-creator" ? <BatchCreator></BatchCreator> : ""}
-                {slug == "batch-wise" ? (
-                  <Classes></Classes>
-                ) : (
-                  ""
-                )}
+                {slug == "batch-wise" ? <Classes></Classes> : ""}
                 {slug == "teacher-manager" ? (
                   <TeacherManager></TeacherManager>
                 ) : (
@@ -3623,30 +3619,18 @@ Vocab by MindMaps will be available soon</h2>
                 )}
 
                 {slug == "pyqconcept" ? (
-                  <>
-                    {props?.type === "admin" ? (
-                      <PYQManager
-                        viewBy="topic"
-                        isAdmin={props?.type == "admin"}
-                      ></PYQManager>
-                    ) : (
-                      <ComingSoon message="Previous Year Papers (Concept Based) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
-                    )}
-                  </>
+                  <PYQManager
+                    viewBy="topic"
+                    isAdmin={props?.type == "admin"}
+                  ></PYQManager>
                 ) : (
                   ""
                 )}
                 {slug == "pyqyear" ? (
-                  <>
-                    {props?.type === "admin" ? (
-                      <PYQManager
-                        viewBy="year"
-                        isAdmin={props?.type == "admin"}
-                      ></PYQManager>
-                    ) : (
-                      <ComingSoon message="Previous Year Papers (By Years) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
-                    )}
-                  </>
+                  <PYQManager
+                    viewBy="year"
+                    isAdmin={props?.type == "admin"}
+                  ></PYQManager>
                 ) : (
                   ""
                 )}
