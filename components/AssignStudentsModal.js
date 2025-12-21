@@ -10,7 +10,6 @@ import {
   CheckboxGroup,
   Button,
 } from "@nextui-org/react";
-import _ from "lodash";
 import React from "react";
 
 /**
@@ -41,7 +40,7 @@ export default function AssignStudentsModal({
   setCentreFilters,
   allUsers,
   currentStudents,
-  students,
+  students = [],
   setStudents,
   searchTerm,
   setSearchTerm,
@@ -50,79 +49,218 @@ export default function AssignStudentsModal({
   removeFromBatch,
   currentBatch,
 }) {
+  const PAGE_SIZE = 50;
+
   const [fetchedStudents, setFetchedStudents] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
+  const [loadingMore, setLoadingMore] = React.useState(false);
+  const [hasMore, setHasMore] = React.useState(true);
+  const [page, setPage] = React.useState(0);
+  const abortRef = React.useRef(null);
 
+  // Keep selection locally controlled to avoid parent prop/state race conditions
+  // (e.g. uncheck + immediately click Assign).
+  const getInitialSelected = React.useCallback(() => {
+    const fromStudents = Array.isArray(students) ? students : [];
+    const fromAssigned = Array.isArray(currentStudents)
+      ? currentStudents.map((s) => s?.student_id).filter(Boolean)
+      : [];
+    return Array.from(new Set([...fromStudents, ...fromAssigned]));
+  }, [students, currentStudents]);
+
+  const [localSelected, setLocalSelected] = React.useState(() =>
+    getInitialSelected()
+  );
+  const localSelectedRef = React.useRef(getInitialSelected());
+  const wasOpenRef = React.useRef(false);
+  const selectionDirtyRef = React.useRef(false);
+
+  // Derived from the previous open state (ref) + current prop.
+  // This lets us detect the very first render of an open session.
+  const openingThisRender = isOpen && !wasOpenRef.current;
+
+  // Debounce search term to avoid firing a request on every keystroke.
+  // NOTE: Must be declared before any effects that call setDebouncedSearch.
+  const [debouncedSearch, setDebouncedSearch] = React.useState(
+    searchTerm || ""
+  );
   React.useEffect(() => {
-    async function fetchStudents() {
-      setLoading(true);
-      try {
-        let allStudents = [];
-        let page = 0;
-        let keepFetching = true;
-        const pageSize = 1000;
+    // On open we explicitly reset searchTerm/debouncedSearch in the open-transition effect.
+    // Skip scheduling any stale "previous searchTerm" debounce timer on that render.
+    if (openingThisRender) return;
 
-        while (keepFetching) {
-          const res = await fetch(`/api/listUsers?page=${page}&pageSize=${pageSize}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.length > 0) {
-              allStudents = allStudents.concat(data);
-              // If we received fewer records than pageSize, we've reached the end
-              if (data.length < pageSize) {
-                keepFetching = false;
-              } else {
-                page += 1;
-              }
-            } else {
-              keepFetching = false;
-            }
-          } else {
-            console.error("Failed to fetch students list");
-            keepFetching = false;
-          }
-        }
+    const next = searchTerm || "";
 
-        setFetchedStudents(allStudents);
-      } catch (err) {
-        console.error("Error fetching students:", err);
-      }
-      setLoading(false);
+    // If cleared, reflect immediately (no debounce).
+    if (next.trim().length === 0) {
+      setDebouncedSearch("");
+      return;
     }
 
-    if (isOpen) fetchStudents();
-  }, [isOpen]);
+    const t = setTimeout(() => setDebouncedSearch(next), 300);
+    return () => clearTimeout(t);
+  }, [searchTerm, openingThisRender]);
 
-  const filtered = fetchedStudents
-    .filter((item) => {
-      // Support array of objects or strings safely
-      if (!item) return false;
-      const email =
-        typeof item === "string"
-          ? item
-          : typeof item.email === "string"
-          ? item.email
+  // Sync local selection only on the open transition (do NOT mirror props while open),
+  // otherwise parent updates can re-check items unexpectedly while the modal is open.
+  React.useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      // Reset search state on every open.
+      if (typeof setSearchTerm === "function") setSearchTerm("");
+      setDebouncedSearch("");
+
+      selectionDirtyRef.current = false;
+      const init = getInitialSelected();
+      setLocalSelected(init);
+      localSelectedRef.current = init;
+
+      // Ensure the user sees "Selected" at the top on open.
+      if (listContainerRef.current) listContainerRef.current.scrollTop = 0;
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen, getInitialSelected, setSearchTerm]);
+
+  // While the modal is open, keep selection in sync with incoming props
+  // UNTIL the user changes selection (then we stop syncing to avoid re-checking).
+  React.useEffect(() => {
+    if (!isOpen) return;
+    if (selectionDirtyRef.current) return;
+
+    const init = getInitialSelected();
+    setLocalSelected((prev) => {
+      const prevArr = Array.isArray(prev) ? prev : [];
+      if (prevArr.length !== init.length) return init;
+      const prevSet = new Set(prevArr);
+      for (const x of init) if (!prevSet.has(x)) return init;
+      return prevArr;
+    });
+    localSelectedRef.current = init;
+  }, [isOpen, getInitialSelected]);
+
+  const normalizeApiResponse = React.useCallback((data) => {
+    // v=2 returns: { emails: string[], hasMore: boolean }
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      const emails = Array.isArray(data.emails) ? data.emails : [];
+      const nextHasMore = Boolean(data.hasMore);
+      return { emails, hasMore: nextHasMore };
+    }
+
+    // legacy response is: string[]
+    if (Array.isArray(data)) return { emails: data, hasMore: false };
+
+    return { emails: [], hasMore: false };
+  }, []);
+
+  const fetchPage = React.useCallback(
+    async ({ pageToFetch, append }) => {
+      const search =
+        typeof debouncedSearch === "string" &&
+        debouncedSearch.trim().length >= 2
+          ? debouncedSearch.trim()
           : "";
-      if (!email || !searchTerm) return true;
-      return email
-        ?.toString()
-        ?.toLowerCase()
-        ?.includes(searchTerm?.toString()?.toLowerCase());
-    })
-    .map((item) =>
-      typeof item === "string"
-        ? item
-        : typeof item.email === "string"
-        ? item.email
-        : ""
-    )
-    .sort((a, b) => {
-    const aSelected = students.includes(a);
-    const bSelected = students.includes(b);
-    if (aSelected && !bSelected) return -1;
-    if (!aSelected && bSelected) return 1;
-    return a.localeCompare(b);
-  });
+
+      if (abortRef.current) abortRef.current.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const url =
+        `/api/listUsers?v=2&page=${pageToFetch}&pageSize=${PAGE_SIZE}` +
+        (search ? `&search=${encodeURIComponent(search)}` : "");
+
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) throw new Error("Failed to fetch students list");
+      const data = await res.json();
+
+      const { emails, hasMore: nextHasMore } = normalizeApiResponse(data);
+
+      setHasMore(Boolean(nextHasMore));
+      setPage(pageToFetch);
+
+      setFetchedStudents((prev) => {
+        const next = append ? prev.concat(emails) : emails;
+        return Array.from(new Set(next.filter(Boolean)));
+      });
+    },
+    [PAGE_SIZE, debouncedSearch, normalizeApiResponse]
+  );
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    // If we just opened and a stale searchTerm is still present, wait for the
+    // open-transition effect to reset searchTerm/debouncedSearch before fetching.
+    if (openingThisRender && (searchTerm || "").trim().length > 0) return;
+
+    // When opening the modal or changing the debounced search term:
+    // reset to first page + fetch only a small chunk.
+    setLoading(true);
+    setLoadingMore(false);
+    setHasMore(true);
+    setFetchedStudents([]);
+    setPage(0);
+
+    fetchPage({ pageToFetch: 0, append: false })
+      .catch((err) => {
+        if (err?.name !== "AbortError") {
+          console.error("Error fetching students:", err);
+        }
+      })
+      .finally(() => setLoading(false));
+
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, [isOpen, debouncedSearch, fetchPage, openingThisRender, searchTerm]);
+
+  const loadMore = React.useCallback(() => {
+    if (!isOpen) return;
+    if (loading || loadingMore || !hasMore) return;
+
+    const nextPage = page + 1;
+    setLoadingMore(true);
+
+    fetchPage({ pageToFetch: nextPage, append: true })
+      .catch((err) => {
+        if (err?.name !== "AbortError") {
+          console.error("Error fetching more students:", err);
+        }
+      })
+      .finally(() => setLoadingMore(false));
+  }, [fetchPage, hasMore, isOpen, loading, loadingMore, page]);
+
+  const listContainerRef = React.useRef(null);
+  const handleScroll = React.useCallback(
+    (e) => {
+      const el = e.currentTarget;
+      if (!el) return;
+
+      // Load next page when user scrolls close to the bottom.
+      const distanceFromBottom =
+        el.scrollHeight - (el.scrollTop + el.clientHeight);
+      if (distanceFromBottom < 120) loadMore();
+    },
+    [loadMore]
+  );
+
+  // Keep a pinned "Selected" section at the top of the scroll area, then show the rest.
+  const selectedStudentsSorted = React.useMemo(() => {
+    const list = Array.isArray(localSelected)
+      ? localSelected.filter(Boolean)
+      : [];
+    return list.slice().sort((a, b) => a.localeCompare(b));
+  }, [localSelected]);
+
+  const unselectedStudentsSorted = React.useMemo(() => {
+    const selectedSet = new Set(selectedStudentsSorted);
+    const combined = []
+      .concat(fetchedStudents || [])
+      .filter(Boolean)
+      .filter((s) => !selectedSet.has(s));
+
+    const unique = Array.from(new Set(combined));
+    unique.sort((a, b) => a.localeCompare(b));
+    return unique;
+  }, [fetchedStudents, selectedStudentsSorted]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -144,36 +282,93 @@ export default function AssignStudentsModal({
               <span>Loading...</span>
             </div>
           ) : (
-            <CheckboxGroup
-              value={students}
-              onValueChange={setStudents}
+            <div
+              ref={listContainerRef}
+              onScroll={handleScroll}
               className="text-sm max-h-[50vh] overflow-y-auto"
             >
-              {filtered.map((s, idx) => {
-                const alreadyAssigned = currentStudents?.some(
-                  (item) => item.student_id === s
-                );
-                return (
-                  <Checkbox value={s} key={idx}>
-                    {s}{" "}
-                    {alreadyAssigned && (
-                      <Chip
-                        size="sm"
-                        color="danger"
-                        onClick={() => {
-                          const found = currentStudents.find(
-                            (item) => item.student_id == s
-                          );
-                          if (found) removeFromBatch(found.id);
-                        }}
-                      >
-                        Remove
-                      </Chip>
-                    )}
-                  </Checkbox>
-                );
-              })}
-            </CheckboxGroup>
+              <CheckboxGroup
+                value={localSelected}
+                onValueChange={(next) => {
+                  // User interaction: stop auto-syncing from props during this open session.
+                  selectionDirtyRef.current = true;
+
+                  // NextUI provides the full selected array.
+                  setLocalSelected(next);
+                  localSelectedRef.current = next;
+
+                  // Keep parent in sync (best-effort) without making it the source-of-truth.
+                  if (typeof setStudents === "function") setStudents(next);
+                }}
+              >
+                {selectedStudentsSorted.length > 0 && (
+                  <div className="sticky top-0 z-10 bg-white pb-2 border-b">
+                    <div className="text-xs font-semibold text-gray-500 py-1">
+                      Selected
+                    </div>
+                    {selectedStudentsSorted.map((s) => {
+                      const alreadyAssigned = currentStudents?.some(
+                        (item) => item.student_id === s
+                      );
+                      return (
+                        <Checkbox value={s} key={s}>
+                          {s}{" "}
+                          {alreadyAssigned && localSelected.includes(s) && (
+                            <Chip
+                              size="sm"
+                              color="danger"
+                              onClick={() => {
+                                const found = currentStudents?.find(
+                                  (item) => item.student_id == s
+                                );
+                                if (found) removeFromBatch(found.id);
+                              }}
+                            >
+                              Remove
+                            </Chip>
+                          )}
+                        </Checkbox>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {unselectedStudentsSorted.map((s) => {
+                  const alreadyAssigned = currentStudents?.some(
+                    (item) => item.student_id === s
+                  );
+                  return (
+                    <Checkbox value={s} key={s}>
+                      {s}{" "}
+                      {alreadyAssigned && localSelected.includes(s) && (
+                        <Chip
+                          size="sm"
+                          color="danger"
+                          onClick={() => {
+                            const found = currentStudents?.find(
+                              (item) => item.student_id == s
+                            );
+                            if (found) removeFromBatch(found.id);
+                          }}
+                        >
+                          Remove
+                        </Chip>
+                      )}
+                    </Checkbox>
+                  );
+                })}
+              </CheckboxGroup>
+
+              <div className="py-2 flex justify-center">
+                {loadingMore ? (
+                  <span>Loading more...</span>
+                ) : hasMore ? (
+                  <Button size="sm" variant="flat" onPress={loadMore}>
+                    Load more
+                  </Button>
+                ) : null}
+              </div>
+            </div>
           )}
         </ModalBody>
         <ModalFooter>
@@ -182,7 +377,40 @@ export default function AssignStudentsModal({
           </Button>
           <Button
             color="primary"
-            onPress={() => assignStudents(students, currentBatch)}
+            onPress={async () => {
+              const latest = Array.isArray(localSelectedRef.current)
+                ? localSelectedRef.current
+                : [];
+
+              // Ensure parent state is aligned before triggering assignment logic.
+              if (typeof setStudents === "function") setStudents(latest);
+
+              // If a student was already in the batch but is now unchecked, remove them.
+              const assigned = Array.isArray(currentStudents)
+                ? currentStudents
+                : [];
+              const toRemove = assigned.filter(
+                (cs) => cs?.student_id && !latest.includes(cs.student_id)
+              );
+
+              try {
+                if (
+                  typeof removeFromBatch === "function" &&
+                  toRemove.length > 0
+                ) {
+                  await Promise.all(
+                    toRemove
+                      .map((cs) => cs?.id)
+                      .filter(Boolean)
+                      .map((id) => Promise.resolve(removeFromBatch(id)))
+                  );
+                }
+
+                await Promise.resolve(assignStudents(latest, currentBatch));
+              } finally {
+                if (typeof onClose === "function") onClose();
+              }
+            }}
           >
             Assign
           </Button>
