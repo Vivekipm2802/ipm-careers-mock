@@ -733,6 +733,7 @@ export default function PYQManager({
                         </div>
                       )}
                     </div>
+                    {isAdmin && (
                     <div className="flex justify-end pt-2">
                       <Tooltip content="Edit Topic" placement="left">
                         <Button
@@ -758,6 +759,7 @@ export default function PYQManager({
                         </Button>
                       </Tooltip>
                     </div>
+                    )}
                   </CardBody>
                 </Card>
               ))}
