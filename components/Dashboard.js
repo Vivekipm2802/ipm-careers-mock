@@ -34,6 +34,7 @@ export default function Dashboard({ userData }) {
         .from("classes")
         .select("*, batches!inner(course_id,demo)")
         .in("batches.course_id", enrolledCourseIds)
+        .eq("batches.is_deleted", false)
         .order("created_at", { ascending: true })
         .limit(10);
 
@@ -50,6 +51,7 @@ export default function Dashboard({ userData }) {
       .from("classes")
       .select("*, batches!inner(course_id,demo)")
       .eq("batches.demo", true)
+      .eq("batches.is_deleted", false)
       .order("created_at", { ascending: true });
 
     if (demoError) {
@@ -174,7 +176,7 @@ export default function Dashboard({ userData }) {
 
   useEffect(() => {
     // Fetch classes
-      getClasses();
+    getClasses();
   }, []);
 
   const t1 = `Hi ${userData?.user_metadata?.full_name || "Unknown User"},`;
