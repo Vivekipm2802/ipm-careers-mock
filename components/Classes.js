@@ -1,5 +1,6 @@
 import { CtoLocal, formatHHMMTo12Hour } from "@/utils/DateUtil";
 import { supabase } from "@/utils/supabaseClient";
+import axios from "axios";
 import {
   Button,
   Chip,
@@ -28,6 +29,25 @@ export default function Classes() {
   const [history, setHistory] = useState();
   const [attendance, setAttendance] = useState();
   const [pin, setPIN] = useState();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  async function checkAdmin() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      try {
+        const res = await axios.post("/api/isAdmin", {
+          email: user.email,
+        });
+        if (res.data?.success) {
+          setIsAdmin(true);
+        }
+      } catch (e) {
+        console.log(e);
+      }
+    }
+  }
 
   async function getBatches() {
     // Get the current user
@@ -131,6 +151,7 @@ export default function Classes() {
     }
   }
   useEffect(() => {
+    checkAdmin();
     getBatches();
   }, []);
 
@@ -253,33 +274,35 @@ export default function Classes() {
                               ) : (
                                 ""
                               )}
-                              <div className="flex flex-row items-center justify-start my-1">
-                                {i.start_date ? (
-                                  <div className="flex flex-row items-center justify-start text-sm">
-                                    <p className="font-bold">Start Date:</p>{" "}
-                                    <p>
-                                      {CtoLocal(i.start_date)?.date}{" "}
-                                      {CtoLocal(i.start_date)?.monthName}{" "}
-                                      {CtoLocal(i.start_date)?.year}
-                                    </p>{" "}
-                                  </div>
-                                ) : (
-                                  ""
-                                )}
-                                <Spacer x={2} y={2}></Spacer>
-                                {i.end_date ? (
-                                  <div className="flex flex-row items-center justify-start text-sm">
-                                    <p className="font-bold">End Date:</p>{" "}
-                                    <p>
-                                      {CtoLocal(i.end_date)?.date}{" "}
-                                      {CtoLocal(i.end_date)?.monthName}{" "}
-                                      {CtoLocal(i.end_date)?.year}
-                                    </p>{" "}
-                                  </div>
-                                ) : (
-                                  ""
-                                )}
-                              </div>
+                              {isAdmin && (
+                                <div className="flex flex-row items-center justify-start my-1">
+                                  {i.start_date ? (
+                                    <div className="flex flex-row items-center justify-start text-sm">
+                                      <p className="font-bold">Start Date:</p>{" "}
+                                      <p>
+                                        {CtoLocal(i.start_date)?.date}{" "}
+                                        {CtoLocal(i.start_date)?.monthName}{" "}
+                                        {CtoLocal(i.start_date)?.year}
+                                      </p>{" "}
+                                    </div>
+                                  ) : (
+                                    ""
+                                  )}
+                                  <Spacer x={2} y={2}></Spacer>
+                                  {i.end_date ? (
+                                    <div className="flex flex-row items-center justify-start text-sm">
+                                      <p className="font-bold">End Date:</p>{" "}
+                                      <p>
+                                        {CtoLocal(i.end_date)?.date}{" "}
+                                        {CtoLocal(i.end_date)?.monthName}{" "}
+                                        {CtoLocal(i.end_date)?.year}
+                                      </p>{" "}
+                                    </div>
+                                  ) : (
+                                    ""
+                                  )}
+                                </div>
+                              )}
                               {/* <div className="flex flex-row items-center justify-start text-xs">
                                 Schedules: <Spacer x={1}></Spacer>
                                 {i?.days &&
@@ -396,9 +419,7 @@ export default function Classes() {
                                 {i.start_time ? (
                                   <div className="flex flex-row items-center justify-start text-sm">
                                     <p className="font-bold"></p>{" "}
-                                    <p>
-                                      {formatHHMMTo12Hour(i.start_time)}
-                                    </p>{" "}
+                                    <p>{formatHHMMTo12Hour(i.start_time)}</p>{" "}
                                   </div>
                                 ) : (
                                   ""
@@ -408,9 +429,7 @@ export default function Classes() {
                                 {i.end_time ? (
                                   <div className="flex flex-row items-center justify-start text-sm">
                                     <p className="font-bold"></p>{" "}
-                                    <p>
-                                      {formatHHMMTo12Hour(i.end_time)}
-                                    </p>{" "}
+                                    <p>{formatHHMMTo12Hour(i.end_time)}</p>{" "}
                                   </div>
                                 ) : (
                                   ""
