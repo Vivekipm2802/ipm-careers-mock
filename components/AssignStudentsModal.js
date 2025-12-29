@@ -9,6 +9,8 @@ import {
   Checkbox,
   CheckboxGroup,
   Button,
+  Tabs,
+  Tab,
 } from "@nextui-org/react";
 import React from "react";
 
@@ -288,44 +290,36 @@ export default function AssignStudentsModal({
           Select one or more students to assign to this batch
         </ModalHeader>
         <ModalBody>
-          <Input
-            type="search"
-            className="sticky top-0 z-10 bg-white mb-2"
-            size="sm"
-            placeholder="Search Here..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {isLoading && fetchedStudents.length === 0 ? (
-            <div className="flex justify-center items-center py-10">
-              <span>Loading...</span>
-            </div>
-          ) : (
-            <div
-              ref={listContainerRef}
-              onScroll={handleScroll}
-              className="text-sm max-h-[50vh] overflow-y-auto"
-            >
-              <CheckboxGroup
-                value={localSelected}
-                onValueChange={(next) => {
-                  // User interaction: stop auto-syncing from props during this open session.
-                  selectionDirtyRef.current = true;
-
-                  // NextUI provides the full selected array.
-                  setLocalSelected(next);
-                  localSelectedRef.current = next;
-
-                  // Keep parent in sync (best-effort) without making it the source-of-truth.
-                  if (typeof setStudents === "function") setStudents(next);
-                }}
-              >
-                {selectedStudentsSorted.length > 0 && (
-                  <div className="sticky top-0 z-10 bg-white pb-2 border-b">
-                    <div className="text-xs font-semibold text-gray-500 py-1">
-                      Selected
-                    </div>
-                    {selectedStudentsSorted.map((s) => {
+          <Tabs aria-label="Student Selection">
+            <Tab key="available" title="Available">
+              <Input
+                type="search"
+                className="sticky top-0 z-10 bg-white mb-2"
+                size="sm"
+                placeholder="Search Here..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {isLoading && fetchedStudents.length === 0 ? (
+                <div className="flex justify-center items-center py-10">
+                  <span>Loading...</span>
+                </div>
+              ) : (
+                <div
+                  ref={listContainerRef}
+                  onScroll={handleScroll}
+                  className="text-sm max-h-[50vh] overflow-y-auto"
+                >
+                  <CheckboxGroup
+                    value={localSelected}
+                    onValueChange={(next) => {
+                      selectionDirtyRef.current = true;
+                      setLocalSelected(next);
+                      localSelectedRef.current = next;
+                      if (typeof setStudents === "function") setStudents(next);
+                    }}
+                  >
+                    {unselectedStudentsSorted.map((s) => {
                       const alreadyAssigned = currentStudents?.some(
                         (item) => item.student_id === s
                       );
@@ -349,40 +343,53 @@ export default function AssignStudentsModal({
                         </Checkbox>
                       );
                     })}
+                  </CheckboxGroup>
+
+                  <div className="py-2 flex justify-center">
+                    {isLoading || loadingMore ? <span>Loading...</span> : null}
                   </div>
-                )}
-
-                {unselectedStudentsSorted.map((s) => {
-                  const alreadyAssigned = currentStudents?.some(
-                    (item) => item.student_id === s
-                  );
-                  return (
-                    <Checkbox value={s} key={s}>
-                      {s}{" "}
-                      {alreadyAssigned && localSelected.includes(s) && (
-                        <Chip
-                          size="sm"
-                          color="danger"
-                          onClick={() => {
-                            const found = currentStudents?.find(
-                              (item) => item.student_id == s
-                            );
-                            if (found) removeFromBatch(found.id);
-                          }}
-                        >
-                          Remove
-                        </Chip>
-                      )}
-                    </Checkbox>
-                  );
-                })}
-              </CheckboxGroup>
-
-              <div className="py-2 flex justify-center">
-                {isLoading || loadingMore ? <span>Loading...</span> : null}
+                </div>
+              )}
+            </Tab>
+            <Tab key="selected" title={`Selected (${localSelected.length})`}>
+              <div className="text-sm max-h-[50vh] overflow-y-auto">
+                <CheckboxGroup
+                  value={localSelected}
+                  onValueChange={(next) => {
+                    selectionDirtyRef.current = true;
+                    setLocalSelected(next);
+                    localSelectedRef.current = next;
+                    if (typeof setStudents === "function") setStudents(next);
+                  }}
+                >
+                  {selectedStudentsSorted.map((s) => {
+                    const alreadyAssigned = currentStudents?.some(
+                      (item) => item.student_id === s
+                    );
+                    return (
+                      <Checkbox value={s} key={s}>
+                        {s}{" "}
+                        {alreadyAssigned && localSelected.includes(s) && (
+                          <Chip
+                            size="sm"
+                            color="danger"
+                            onClick={() => {
+                              const found = currentStudents?.find(
+                                (item) => item.student_id == s
+                              );
+                              if (found) removeFromBatch(found.id);
+                            }}
+                          >
+                            Remove
+                          </Chip>
+                        )}
+                      </Checkbox>
+                    );
+                  })}
+                </CheckboxGroup>
               </div>
-            </div>
-          )}
+            </Tab>
+          </Tabs>
         </ModalBody>
         <ModalFooter>
           <Button color="danger" onPress={onClose}>
