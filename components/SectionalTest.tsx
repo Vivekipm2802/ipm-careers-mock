@@ -17,7 +17,7 @@ const SectionalTest = () => {
 
   return (
     <div className="w-full h-full flex flex-col justify-start items-start p-6">
-      <h1 className="text-3xl font-bold text-black mb-4">Coming soon...</h1>
+      <h1 className="text-3xl font-bold text-black mb-4">Coming soon....</h1>
       <button onClick={handleOpenSidebar}></button>
     </div>
   );
