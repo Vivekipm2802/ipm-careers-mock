@@ -1,5 +1,5 @@
-// pages/api/checkEmail.js
-const storedEmails = ['officialnmn@gmail.com', 'ipmcareeronline@gmail.com'];
+
+const storedEmails = ['rishabhsingh0363@gmail.com', 'ipmcareeronline@gmail.com'];
 
 export default (req, res) => {
   if (req.method === 'POST') {

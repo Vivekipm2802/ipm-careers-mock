@@ -65,6 +65,7 @@ import MockTests from "@/components/MockTests";
 import Concept from "@/components/ConceptTest";
 import MockTestEditor from "@/components/MockTestEditor";
 import PerformanceUser from "@/components/PerformanceUser";
+import SectionalTest from "@/components/SectionalTest";
 import DailyLearn from "@/components/DailyLearn";
 import Link from "next/link";
 import BatchCreator from "@/components/BatchCreator";
@@ -232,9 +233,9 @@ export default function Home(props) {
 
     // Format the components into the desired string
     const formattedDate = `${String(hours).padStart(2, "0")}:${String(
-      minutes
+      minutes,
     ).padStart(2, "0")} - ${String(day).padStart(2, "0")}/${String(
-      month
+      month,
     ).padStart(2, "0")}/${year}`;
 
     return formattedDate;
@@ -497,7 +498,7 @@ export default function Home(props) {
     // Perform the action based on the item's "action" property
     switch (action) {
       case "discussion":
-        getDiscussions(), getReplies();
+        (getDiscussions(), getReplies());
         break;
       case "dashboard":
         getHistory(userData?.email);
@@ -1032,7 +1033,7 @@ export default function Home(props) {
   }
   function getTextFromKey(data, keyToMatch, arrayToSearch, propertyToRetrieve) {
     const matchedObject = arrayToSearch.find(
-      (item) => item[keyToMatch] === data
+      (item) => item[keyToMatch] === data,
     );
 
     if (matchedObject) {
@@ -1083,7 +1084,8 @@ export default function Home(props) {
 
   useEffect(() => {
     setActiveMap(
-      mindmaps != undefined && mindmaps.filter((res) => res.id == activeMind)[0]
+      mindmaps != undefined &&
+        mindmaps.filter((res) => res.id == activeMind)[0],
     );
   }, [activeMind]);
   async function getData(table, select, key, value, handler, handler2) {
@@ -1890,7 +1892,7 @@ export default function Home(props) {
                           <p className="flex-1 text-xs">{i.course.title}</p>
                           <p className="flex-1 text-xs">
                             {payments.filter(
-                              (item) => item.value == i.paidby
+                              (item) => item.value == i.paidby,
                             )[0].title || "undefined"}
                           </p>
                           <p className="flex-1 text-xs">
@@ -2352,7 +2354,7 @@ export default function Home(props) {
                                     mindMapData?.parent,
                                     "id",
                                     mindMapCategories,
-                                    "title"
+                                    "title",
                                   ) || "Click to Select Category"}
                                 </div>
                               </DropdownTrigger>
@@ -2365,7 +2367,7 @@ export default function Home(props) {
                                         (res.category === 1 &&
                                           slug === "mindmap") ||
                                         (res.category === 2 &&
-                                          slug === "mindmap2")
+                                          slug === "mindmap2"),
                                     )
                                     .map((i, d) => {
                                       return (
@@ -2444,7 +2446,7 @@ export default function Home(props) {
                               mindMapCategories?.filter(
                                 (res) =>
                                   (res.category === 1 && slug === "mindmap") ||
-                                  (res.category === 2 && slug === "mindmap2")
+                                  (res.category === 2 && slug === "mindmap2"),
                               ).length
                             }
                             )
@@ -2457,13 +2459,13 @@ export default function Home(props) {
                             mindMapCategories,
                             joinAndKeepUniqueByKey(
                               coursesEnrolled,
-                              "mcategory"
-                            ) || []
+                              "mcategory",
+                            ) || [],
                           )
                             .filter(
                               (res) =>
                                 (res.category === 1 && slug === "mindmap") ||
-                                (res.category === 2 && slug === "mindmap2")
+                                (res.category === 2 && slug === "mindmap2"),
                             )
                             .map((i, d) => {
                               return (
@@ -2505,7 +2507,7 @@ export default function Home(props) {
                                               onPress={() => {
                                                 updateMCategory(
                                                   updateMapData?.cattitle,
-                                                  i.id
+                                                  i.id,
                                                 );
                                               }}
                                             >
@@ -2527,8 +2529,8 @@ export default function Home(props) {
                                         mindmaps,
                                         joinAndKeepUniqueByKey(
                                           coursesEnrolled,
-                                          "mindmaps"
-                                        ) || []
+                                          "mindmaps",
+                                        ) || [],
                                       )
                                         .filter((res) => res.parent === i.id)
                                         .map((z, v) => (
@@ -2541,10 +2543,10 @@ export default function Home(props) {
                                                 : "")
                                             }
                                             onClick={() => {
-                                              setActiveMind(z.id),
+                                              (setActiveMind(z.id),
                                                 props?.type != "admin"
                                                   ? setToggleMaps(false)
-                                                  : "";
+                                                  : "");
                                             }}
                                             key={v}
                                           >
@@ -2558,7 +2560,7 @@ export default function Home(props) {
                                                           (res) => ({
                                                             ...res,
                                                             title: z.title,
-                                                          })
+                                                          }),
                                                         )
                                                       : "";
                                                   }}
@@ -2580,7 +2582,7 @@ export default function Home(props) {
                                                             ...res,
                                                             title:
                                                               e.target.value,
-                                                          })
+                                                          }),
                                                         );
                                                       }}
                                                       title="Enter Title"
@@ -2591,7 +2593,7 @@ export default function Home(props) {
                                                       onPress={() => {
                                                         UpdateMapTitle(
                                                           updateMapData?.title,
-                                                          z.id
+                                                          z.id,
                                                         );
                                                       }}
                                                     >
@@ -2606,7 +2608,7 @@ export default function Home(props) {
                                                           (res) => ({
                                                             ...res,
                                                             url: z.url,
-                                                          })
+                                                          }),
                                                         )
                                                       : "";
                                                   }}
@@ -2625,7 +2627,7 @@ export default function Home(props) {
                                                           (res) => ({
                                                             ...res,
                                                             url: e.target.value,
-                                                          })
+                                                          }),
                                                         );
                                                       }}
                                                       title="Enter Title"
@@ -2636,7 +2638,7 @@ export default function Home(props) {
                                                       onPress={() => {
                                                         UpdateMapURL(
                                                           updateMapData?.url,
-                                                          z.id
+                                                          z.id,
                                                         );
                                                       }}
                                                     >
@@ -2826,6 +2828,13 @@ export default function Home(props) {
                 ) : (
                   ""
                 )}
+                {slug == "sectional-tests" ? (
+                  <div className="flex flex-col w-full h-full">
+                    <SectionalTest />
+                  </div>
+                ) : (
+                  ""
+                )}
                 {slug == "play" ? (
                   <ConceptGroups
                     title="Select Concept Test Collection"
@@ -2993,7 +3002,7 @@ export default function Home(props) {
                                             onPress={() => {
                                               updateTutorialCategory(
                                                 tutorialData,
-                                                i.id
+                                                i.id,
                                               );
                                             }}
                                           >
@@ -3056,7 +3065,7 @@ export default function Home(props) {
                                                               vdescription:
                                                                 z?.description,
                                                               vvideo: z?.video,
-                                                            })
+                                                            }),
                                                           )
                                                         : "";
                                                     }}
@@ -3085,7 +3094,7 @@ export default function Home(props) {
                                                               ...res,
                                                               vvideo:
                                                                 e.target.value,
-                                                            })
+                                                            }),
                                                           );
                                                         }}
                                                       ></Input>
@@ -3129,7 +3138,7 @@ export default function Home(props) {
                                                               ...res,
                                                               vtitle:
                                                                 e.target.value,
-                                                            })
+                                                            }),
                                                           );
                                                         }}
                                                       ></Input>
@@ -3146,7 +3155,7 @@ export default function Home(props) {
                                                               ...res,
                                                               vdescription:
                                                                 e.target.value,
-                                                            })
+                                                            }),
                                                           );
                                                         }}
                                                       ></Textarea>
@@ -3158,7 +3167,7 @@ export default function Home(props) {
                                                         onPress={() => {
                                                           updateTutorials(
                                                             tutorialData,
-                                                            z.id
+                                                            z.id,
                                                           );
                                                         }}
                                                       >
@@ -3472,7 +3481,7 @@ Vocab by MindMaps will be available soon</h2>
                                           Replies:{" "}
                                           {countObjectsWithReplyTo(
                                             replies,
-                                            discussion.id
+                                            discussion.id,
                                           )}
                                         </strong>
                                       </p>
@@ -3490,7 +3499,7 @@ Vocab by MindMaps will be available soon</h2>
                                 </DropdownItem>
                                 {countObjectsWithReplyTo(
                                   replies,
-                                  discussion.id
+                                  discussion.id,
                                 ) > 0 ? (
                                   <DropdownItem
                                     onPress={() => {
@@ -3506,7 +3515,7 @@ Vocab by MindMaps will be available soon</h2>
                                   onPress={() => {
                                     DeleteQuestion(
                                       discussion.id,
-                                      discussion.user
+                                      discussion.user,
                                     );
                                   }}
                                   className="text-red-500 hover:bg-red-500 "
@@ -3555,7 +3564,7 @@ Vocab by MindMaps will be available soon</h2>
                                 </svg>
                                 {countObjectsWithReplyTo(
                                   replies,
-                                  discussion.id
+                                  discussion.id,
                                 )}{" "}
                                 Replies/Comments
                                 <p className="ml-2 text-sm text-gray-400">
@@ -3564,7 +3573,7 @@ Vocab by MindMaps will be available soon</h2>
                                 <p></p>
                               </div>
                             </li>
-                          )
+                          ),
                         )}
                     </ul>
                   </div>

@@ -133,7 +133,7 @@ function MockTestEditor({ userData, role }) {
       .select("*,module(*)")
       .in(
         "parent_sub",
-        sections.map((i) => i.id)
+        sections.map((i) => i.id),
       );
     if (!modules) {
       toast.error("Unable to load modules");
@@ -145,7 +145,7 @@ function MockTestEditor({ userData, role }) {
       .select("*")
       .in(
         "parent",
-        modules.map((i) => i.module.id)
+        modules.map((i) => i.module.id),
       )
       .order("seq", { ascending: true });
     if (!questions) {
@@ -166,8 +166,8 @@ function MockTestEditor({ userData, role }) {
         const section = sections.find((sec) =>
           modules.some(
             (mod) =>
-              mod.parent_sub === sec.id && mod.module.id === question.parent
-          )
+              mod.parent_sub === sec.id && mod.module.id === question.parent,
+          ),
         );
         if (!section) return;
         const reportValue = reportItem.value - 1;
@@ -199,7 +199,7 @@ function MockTestEditor({ userData, role }) {
         } else {
           scoreMap[i.uid] = 0;
         }
-      })
+      }),
     );
 
     const content = (
@@ -562,26 +562,55 @@ function MockTestEditor({ userData, role }) {
     }
   }
 
-  async function addCategory(a) {
-    if (a == null || a?.length < 2) {
-      toast.error("Undefined or Short category title");
-      return null;
-    }
-    const r = toast.loading("adding category....");
-    const { data, error } = await supabase
-      .from("mock_categories")
-      .insert({
-        title: a,
-      })
-      .select();
+async function addCategory(a) {
+  if (a == null || a?.length < 2) {
+    toast.error("Undefined or Short category title");
+    return null;
+  }
+  const r = toast.loading("adding category....");
+  const { data, error } = await supabase
+    .from("mock_categories")
+    .insert({ title: a })
+    .select();
 
-    if (data) {
-      getCategories();
+  if (data) {
+    getCategories();
+    toast.remove(r);
+    toast.success("Added Category");
+  } else {
+    toast.remove(r);
+    // ADD THIS ↓ to see the real error
+    toast.error(`Failed: ${error?.message || error?.code || JSON.stringify(error)}`);
+    console.error("Category insert error:", error);
+  }
+}
+
+  async function deleteCategory(categoryId) {
+    const r = toast.loading("Deleting category...");
+
+    // First delete all tests in this category
+    const testsInCategory = tests?.filter(
+      (item) => item.category == categoryId,
+    );
+
+    for (const test of testsInCategory || []) {
+      await supabase.from("mock_test").delete().eq("id", test.id);
+    }
+
+    // Then delete the category
+    const { error } = await supabase
+      .from("mock_categories")
+      .delete()
+      .eq("id", categoryId);
+
+    if (!error) {
       toast.remove(r);
-      toast.success("Added Category");
+      toast.success("Category and its tests deleted");
+      getTests();
+      getCategories();
     } else {
       toast.remove(r);
-      toast.error("Failed to Add Category");
+      toast.error("Error deleting category");
     }
   }
   async function addModule(a, b, c) {
@@ -637,7 +666,7 @@ function MockTestEditor({ userData, role }) {
       toast.remove(r);
       getModules(
         subjects[activeSubject]?.id,
-        courses[getSubjectIndex(activeCourse)]?.id
+        courses[getSubjectIndex(activeCourse)]?.id,
       );
       toast.success("Successfully Deleted");
     } else {
@@ -705,7 +734,9 @@ function MockTestEditor({ userData, role }) {
         image: a?.image || null,
         category: b,
         config: controls.reduce((acc, control) => {
-          acc[control.key] = a.hasOwnProperty(control.key) ? a[control.key] : control.default;
+          acc[control.key] = a.hasOwnProperty(control.key)
+            ? a[control.key]
+            : control.default;
           return acc;
         }, {}),
       })
@@ -721,7 +752,7 @@ function MockTestEditor({ userData, role }) {
           error && error?.code == 23505
             ? "You cannot add more than 1 test to a course"
             : ""
-        }`
+        }`,
       );
       toast.remove(r);
     }
@@ -939,7 +970,8 @@ function MockTestEditor({ userData, role }) {
     if (selectedModules != undefined && selectedModules?.length > 0) {
       // Filter out modules that have matching IDs in selectedModules
       return a.filter(
-        (itemA) => !selectedModules.some((module) => module.module === itemA.id)
+        (itemA) =>
+          !selectedModules.some((module) => module.module === itemA.id),
       );
     }
   }
@@ -952,7 +984,7 @@ function MockTestEditor({ userData, role }) {
       // Filter out modules that have matching IDs in selectedModules
       return a.filter(
         (itemA) =>
-          !selectedsubjects.some((subject) => subject.subject === itemA.id)
+          !selectedsubjects.some((subject) => subject.subject === itemA.id),
       );
     }
   }
@@ -1027,7 +1059,56 @@ function MockTestEditor({ userData, role }) {
             categories?.map((z, v) => {
               return (
                 <>
-                  <div className="font-sans font-medium">{z.title}</div>
+                  <div className="flex flex-row items-center justify-between my-1">
+                    <div className="font-sans font-medium">{z.title}</div>
+                    <Popover>
+                      <PopoverTrigger>
+                        <Button
+                          size="sm"
+                          color="danger"
+                          isIconOnly
+                          className="p-1"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              d="M21.5 6a1 1 0 0 1-.883.993L20.5 7h-.845l-1.231 12.52A2.75 2.75 0 0 1 15.687 22H8.313a2.75 2.75 0 0 1-2.737-2.48L4.345 7H3.5a1 1 0 0 1 0-2h5a3.5 3.5 0 1 1 7 0h5a1 1 0 0 1 1 1Zm-7.25 3.25a.75.75 0 0 0-.743.648L13.5 10v7l.007.102a.75.75 0 0 0 1.486 0L15 17v-7l-.007-.102a.75.75 0 0 0-.743-.648Zm-4.5 0a.75.75 0 0 0-.743.648L9 10v7l.007.102a.75.75 0 0 0 1.486 0L10.5 17v-7l-.007-.102a.75.75 0 0 0-.743-.648ZM12 3.5A1.5 1.5 0 0 0 10.5 5h3A1.5 1.5 0 0 0 12 3.5Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <div className="p-2 text-sm text-center">
+                          <p className="mb-2 font-medium">
+                            Delete "
+                            <span className="text-danger">{z.title}</span>"?
+                          </p>
+                          <p className="text-xs text-gray-500 mb-2">
+                            This will also delete all{" "}
+                            {tests?.filter((t) => t.category == z.id).length}{" "}
+                            test(s) inside.
+                          </p>
+                          <div className="flex flex-row gap-2">
+                            <Button size="sm" color="success">
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              color="danger"
+                              onPress={() => deleteCategory(z.id)}
+                            >
+                              Delete All
+                            </Button>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>{" "}
                   <Divider className="my-1"></Divider>
                   {tests == undefined ||
                   tests?.filter((item) => item.category == z.id) == 0 ? (
@@ -1234,8 +1315,8 @@ function MockTestEditor({ userData, role }) {
                                                 _.set(
                                                   { ...prevState },
                                                   `config.${i.key}`,
-                                                  e
-                                                )
+                                                  e,
+                                                ),
                                               );
                                             }}
                                           >
@@ -1258,8 +1339,8 @@ function MockTestEditor({ userData, role }) {
                                                 _.set(
                                                   { ...prevState },
                                                   `config.${i.key}`,
-                                                  e
-                                                )
+                                                  e,
+                                                ),
                                               );
                                             }}
                                             minValue={0}
@@ -1282,8 +1363,8 @@ function MockTestEditor({ userData, role }) {
                                                 _.set(
                                                   { ...prevState },
                                                   `config.${i.key}`,
-                                                  e.target.value
-                                                )
+                                                  e.target.value,
+                                                ),
                                               );
                                             }}
                                             size="sm"
@@ -1309,8 +1390,8 @@ function MockTestEditor({ userData, role }) {
                                                   _.set(
                                                     { ...prevState },
                                                     `config.${i.key}`,
-                                                    e
-                                                  )
+                                                    e,
+                                                  ),
                                                 );
                                               }}
                                             ></CustomEditor>
@@ -1335,9 +1416,9 @@ function MockTestEditor({ userData, role }) {
                                 className="ml-2 text-white"
                                 color="primary"
                                 onPress={() => {
-                                  setViews(1),
+                                  (setViews(1),
                                     setActiveCourse(i.id),
-                                    getSelectedSubjects(i.id);
+                                    getSelectedSubjects(i.id));
                                 }}
                               >
                                 Manage Test Content
@@ -1397,7 +1478,7 @@ function MockTestEditor({ userData, role }) {
                           courses
                             ? ""
                             : toast.error(
-                                "Courses are not loaded , please try refresing"
+                                "Courses are not loaded , please try refresing",
                               );
                         }}
                       >
@@ -1573,7 +1654,11 @@ function MockTestEditor({ userData, role }) {
                           value={i?.seq ?? ""}
                           onChange={(e) => {
                             setSelectedSubjects((prevData) =>
-                              _.set([...prevData], `[${d}].seq`, e.target.value)
+                              _.set(
+                                [...prevData],
+                                `[${d}].seq`,
+                                e.target.value,
+                              ),
                             );
                           }}
                           endContent={
@@ -1629,8 +1714,8 @@ function MockTestEditor({ userData, role }) {
                               _.set(
                                 [...prevData],
                                 `[${d}].time`,
-                                e.target.value
-                              )
+                                e.target.value,
+                              ),
                             );
                           }}
                           endContent={
@@ -1806,18 +1891,18 @@ function MockTestEditor({ userData, role }) {
                         color="primary"
                         size="sm"
                         onPress={() => {
-                          setViews(2),
+                          (setViews(2),
                             setActiveSubject(
                               subjects.findIndex(
-                                (item) => item.id === i.subject
-                              )
+                                (item) => item.id === i.subject,
+                              ),
                             ),
                             setActiveSelectedSub(i.id),
                             getSelectedModules(i?.id),
                             getModules(
                               i?.subject,
-                              courses[getSubjectIndex(activeCourse)]?.id
-                            );
+                              courses[getSubjectIndex(activeCourse)]?.id,
+                            ));
                         }}
                       >
                         Manage Modules
@@ -1861,7 +1946,7 @@ function MockTestEditor({ userData, role }) {
                       onClick={() => {
                         addToTest(
                           i?.id,
-                          tests[getSubjectIndex(activeCourse)]?.id
+                          tests[getSubjectIndex(activeCourse)]?.id,
                         );
                       }}
                     >
@@ -1914,7 +1999,7 @@ function MockTestEditor({ userData, role }) {
                 onPress={() => {
                   addSubject(
                     subjectData,
-                    tests[getSubjectIndex(activeCourse)].title
+                    tests[getSubjectIndex(activeCourse)].title,
                   );
                 }}
               >
@@ -1944,11 +2029,11 @@ function MockTestEditor({ userData, role }) {
                         color="primary"
                         className="ml-1 text-white"
                         onClick={() => {
-                          getQuestions(i?.module),
+                          (getQuestions(i?.module),
                             setViews(3),
                             setActiveModule(
-                              modules.findIndex((item) => item.id === i.module)
-                            );
+                              modules.findIndex((item) => item.id === i.module),
+                            ));
                         }}
                       >
                         Manage Questions
@@ -2005,12 +2090,12 @@ function MockTestEditor({ userData, role }) {
                       color="primary"
                       className="ml-1 text-white"
                       onClick={() => {
-                        getQuestions(i?.id),
+                        (getQuestions(i?.id),
                           console.log(i),
                           setViews(3),
                           setActiveModule(
-                            modules.findIndex((item) => item.id === i.id)
-                          );
+                            modules.findIndex((item) => item.id === i.id),
+                          ));
                       }}
                     >
                       Manage Questions
@@ -2123,7 +2208,7 @@ function MockTestEditor({ userData, role }) {
                   addModule(
                     moduleData,
                     subjects[activeSubject].id,
-                    tests[getSubjectIndex(activeCourse)]?.course
+                    tests[getSubjectIndex(activeCourse)]?.course,
                   );
                 }}
               >
@@ -2152,7 +2237,7 @@ function MockTestEditor({ userData, role }) {
                       value={i?.seq ?? ""}
                       onChange={(e) => {
                         setQuestions((prevData) =>
-                          _.set([...prevData], `[${d}].seq`, e.target.value)
+                          _.set([...prevData], `[${d}].seq`, e.target.value),
                         );
                       }}
                       endContent={
@@ -2203,11 +2288,11 @@ function MockTestEditor({ userData, role }) {
                         color="success"
                         size="sm"
                         onPress={() => {
-                          setQuestionModal(true),
+                          (setQuestionModal(true),
                             setEditMode(true),
                             getData("mock_questions", "*", "id", i.id, (e) => {
                               setEditQuestionData(e[0]);
-                            });
+                            }));
                         }}
                       >
                         Edit Question
@@ -2255,7 +2340,7 @@ function MockTestEditor({ userData, role }) {
         size="3xl"
         className="flex mdl flex-col gap-1 text-center items-center"
         onClose={() => {
-          setQuestionModal(false), setEditMode(), setEditQuestionData();
+          (setQuestionModal(false), setEditMode(), setEditQuestionData());
         }}
         placement="bottom-center"
         isOpen={questionModal}
@@ -2272,7 +2357,7 @@ function MockTestEditor({ userData, role }) {
                           className="mr-auto text-white"
                           color="primary"
                           onPress={() => {
-                            setEditMode(false), setEditQuestionData();
+                            (setEditMode(false), setEditQuestionData());
                           }}
                         >
                           Back to Questions
@@ -2295,7 +2380,7 @@ function MockTestEditor({ userData, role }) {
                             </h2>{" "}
                             <p
                               onClick={() => {
-                                setEditMode(true),
+                                (setEditMode(true),
                                   getData(
                                     "mock_questions",
                                     "*",
@@ -2303,8 +2388,8 @@ function MockTestEditor({ userData, role }) {
                                     i.id,
                                     (e) => {
                                       setEditQuestionData(e[0]);
-                                    }
-                                  );
+                                    },
+                                  ));
                               }}
                               className="rounded-full bg-blue-300 font-medium text-xs mx-1 ml-3 cursor-pointer px-2 py-0.5"
                             >
@@ -2439,7 +2524,7 @@ function MockTestEditor({ userData, role }) {
                                       updateOrAddOption2(
                                         d,
                                         e.target.value,
-                                        "title"
+                                        "title",
                                       );
                                     }}
                                   ></Input>
@@ -2480,7 +2565,7 @@ function MockTestEditor({ userData, role }) {
                                                   updateOrAddOption2(
                                                     d,
                                                     v.popupimage,
-                                                    "popupimage"
+                                                    "popupimage",
                                                   );
                                                 }}
                                               >
@@ -2515,7 +2600,7 @@ function MockTestEditor({ userData, role }) {
                             setEditQuestionData((res) => ({
                               ...res,
                               options: Array(
-                                editQuestionData?.options?.length + 1
+                                editQuestionData?.options?.length + 1,
                               )
                                 .fill()
                                 .map((i, d) => ({ isCorrect: false })),
@@ -2670,21 +2755,21 @@ function MockTestEditor({ userData, role }) {
                           },
                           editQuestionData?.id,
                           () => {
-                            setEditMode(false),
+                            (setEditMode(false),
                               getData(
                                 "mock_questions",
                                 "*",
                                 "parent",
                                 editQuestionData?.parent,
                                 (e) => {
-                                  setQuestions(e), setQuestionModal(false);
+                                  (setQuestions(e), setQuestionModal(false));
                                 },
                                 ({ errortext }) => {
                                   console.log(errortext);
-                                }
-                              );
+                                },
+                              ));
                           },
-                          () => {}
+                          () => {},
                         );
                       }}
                       className="text-left w-auto mr-auto mt-2 text-white"
@@ -2828,7 +2913,7 @@ function MockTestEditor({ userData, role }) {
                                       updateOrAddOption(
                                         d,
                                         e.target.value,
-                                        "title"
+                                        "title",
                                       );
                                     }}
                                   ></Input>
@@ -2868,7 +2953,7 @@ function MockTestEditor({ userData, role }) {
                                                   updateOrAddOption(
                                                     d,
                                                     v.popupimage,
-                                                    "popupimage"
+                                                    "popupimage",
                                                   );
                                                 }}
                                               >
@@ -2905,7 +2990,7 @@ function MockTestEditor({ userData, role }) {
                             setAddNewQuestion((res) => ({
                               ...res,
                               options: Array(
-                                addNewQuestion?.options?.length + 1
+                                addNewQuestion?.options?.length + 1,
                               )
                                 .fill()
                                 .map((i, d) => ({ isCorrect: false })),

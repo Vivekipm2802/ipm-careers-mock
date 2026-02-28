@@ -209,7 +209,7 @@ const QuestionCard = ({
                         option.text,
                         option.text,
                         question,
-                        option.popupimage
+                        option.popupimage,
                       )
                     }
                     key={index}
@@ -239,7 +239,7 @@ const QuestionCard = ({
                       ? question.options.wintext
                       : question.options.losetext,
                     question.options.text,
-                    question
+                    question,
                   );
                 }}
               >
@@ -390,7 +390,7 @@ const Game = ({ test_id, isContinue, course }) => {
       toast.remove(r);
     } else {
       toast.error(
-        "This test already exists in attempted test , continue the test from dashboard or contact admin."
+        "This test already exists in attempted test , continue the test from dashboard or contact admin.",
       );
       toast.remove(r);
 
@@ -662,7 +662,7 @@ else{
     congratstext,
     headertext,
     cQ,
-    popup
+    popup,
   ) => {
     if (isCorrect) {
       setTimestamp((res) => [...res, `${hours}:${minutes}:${seconds}`]);
@@ -1041,7 +1041,7 @@ const setToPlayed = setPlayerd(); */
                               testData &&
                               testData?.filter(
                                 (item) =>
-                                  item.parent_id == questions[level].parent
+                                  item.parent_id == questions[level].parent,
                               ).length > 0
                                 ? true
                                 : false
@@ -1075,7 +1075,7 @@ const setToPlayed = setPlayerd(); */
                     <p>
                       Question Module:{" "}
                       {testData.filter(
-                        (item) => item.parent_id == questions[level]?.parent
+                        (item) => item.parent_id == questions[level]?.parent,
                       )[0]?.parent_title || "Not Found"}
                     </p>
                     <p>Question: {level + 1}</p>
@@ -1115,7 +1115,7 @@ const setToPlayed = setPlayerd(); */
                     key={1}
                     time={parentData?.parent?.time}
                     handleSubmitAnswer={(e, f, g, h) => {
-                      console.log(e, f, g, h), handleSubmitAnswer(e, f, g, h);
+                      (console.log(e, f, g, h), handleSubmitAnswer(e, f, g, h));
                     }}
                     question={questions[level]}
                     handleOptionClick={handleOptionClick}
