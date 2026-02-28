@@ -82,7 +82,7 @@ function Icon() {
 }
 const canvasStyles = {
   position: "fixed",
-  pointerEvents: "none",
+  pointerEvents: "none", 
   width: "100%",
   height: "100%",
   top: 0,

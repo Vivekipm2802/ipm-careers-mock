@@ -6,6 +6,6 @@ function Admin() {
       <Home type="admin"></Home>
     </div>
   );
-}
+} 
 
 export default Admin;

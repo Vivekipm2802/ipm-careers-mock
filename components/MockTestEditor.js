@@ -586,7 +586,7 @@ async function addCategory(a) {
 }
 
   async function deleteCategory(categoryId) {
-    const r = toast.loading("Deleting category...");
+    const r = toast.loading("Deleting category..");
 
     // First delete all tests in this category
     const testsInCategory = tests?.filter(

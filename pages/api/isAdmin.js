@@ -18,4 +18,5 @@ export default (req, res) => {
   } else {
     res.status(405).json({ success: false, message: 'Method not allowed' });
   }
-};
+}; 
+ 

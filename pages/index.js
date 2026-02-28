@@ -233,7 +233,7 @@ export default function Home(props) {
 
     // Format the components into the desired string
     const formattedDate = `${String(hours).padStart(2, "0")}:${String(
-      minutes,
+      minutes, 
     ).padStart(2, "0")} - ${String(day).padStart(2, "0")}/${String(
       month,
     ).padStart(2, "0")}/${year}`;
