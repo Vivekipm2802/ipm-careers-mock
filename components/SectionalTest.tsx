@@ -9,7 +9,7 @@ const SectionalTest = () => {
     setSideBarContent(
       <div className="p-4">
         <h2 className="text-xl font-bold mb-4">Sectional Test Info</h2>
-        <p>Your sectional test content here...</p>
+        <p>Your sectional test content here..</p>
       </div>,
     );
     setSideBar(true);
