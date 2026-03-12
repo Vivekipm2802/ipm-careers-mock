@@ -562,28 +562,30 @@ function MockTestEditor({ userData, role }) {
     }
   }
 
-async function addCategory(a) {
-  if (a == null || a?.length < 2) {
-    toast.error("Undefined or Short category title");
-    return null;
-  }
-  const r = toast.loading("adding category....");
-  const { data, error } = await supabase
-    .from("mock_categories")
-    .insert({ title: a })
-    .select();
+  async function addCategory(a) {
+    if (a == null || a?.length < 2) {
+      toast.error("Undefined or Short category title");
+      return null;
+    }
+    const r = toast.loading("adding category....");
+    const { data, error } = await supabase
+      .from("mock_categories")
+      .insert({ title: a })
+      .select();
 
-  if (data) {
-    getCategories();
-    toast.remove(r);
-    toast.success("Added Category");
-  } else {
-    toast.remove(r);
-    // ADD THIS ↓ to see the real error
-    toast.error(`Failed: ${error?.message || error?.code || JSON.stringify(error)}`);
-    console.error("Category insert error:", error);
+    if (data) {
+      getCategories();
+      toast.remove(r);
+      toast.success("Added Category");
+    } else {
+      toast.remove(r);
+      // ADD THIS ↓ to see the real error
+      toast.error(
+        `Failed: ${error?.message || error?.code || JSON.stringify(error)}`,
+      );
+      console.error("Category insert error:", error);
+    }
   }
-}
 
   async function deleteCategory(categoryId) {
     const r = toast.loading("Deleting category..");
@@ -2672,8 +2674,22 @@ async function addCategory(a) {
 
                     {/* <h2>Explanation Image (if any)</h2>
     <ImageUploader size="small" onUploadComplete={(e)=>{setAddNewQuestion(res=>({...res,answerimage:e}))}}></ImageUploader> */}
+
                     <Divider className="my-5"></Divider>
                     <h2>Explanation</h2>
+                    <QuillWarapper
+                      value={
+                        editQuestionData?.explanation ||
+                        "<strong>Write your Explanation Here...</strong>"
+                      }
+                      onChange={(e) => {
+                        setEditQuestionData((res) => ({
+                          ...res,
+                          explanation: e,
+                        }));
+                      }}
+                    >  
+                    </QuillWarapper>
 
                     <h2>Explanation Image</h2>
                     <ImageUploader
