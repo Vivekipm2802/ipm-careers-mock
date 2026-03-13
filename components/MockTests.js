@@ -113,7 +113,7 @@ export default function MockTests({ enrolled = [] }) {
     const { data, error } = await supabase
       .from("mock_test")
       .select(
-        "id, title, description, category, course, seq, start_time, end_time, uid, config"
+        "id, title, description, category, course, seq, start_time, end_time, uid, config",
       )
       .order("seq", { ascending: true });
 
@@ -127,7 +127,7 @@ export default function MockTests({ enrolled = [] }) {
     const { data, error } = await supabase
       .from("mock_test_view")
       .select(
-        "id, title, description, category, course, seq, start_time, end_time, config"
+        "id, title, description, category, course, seq, start_time, end_time, uid, config",
       )
       .order("seq", { ascending: true });
 
@@ -310,7 +310,7 @@ export default function MockTests({ enrolled = [] }) {
                         allCategories
                           ?.filter(
                             (item) =>
-                              !categories?.some((cat) => cat.id == item.id)
+                              !categories?.some((cat) => cat.id == item.id),
                           )
                           ?.map((z, v) => {
                             return (
@@ -349,7 +349,7 @@ export default function MockTests({ enrolled = [] }) {
                         tests
                           ?.filter(
                             (item) =>
-                              item?.category == categories[activeCategory]?.id
+                              item?.category == categories[activeCategory]?.id,
                           )
                           ?.map((i, d) => {
                             return (
@@ -372,7 +372,7 @@ export default function MockTests({ enrolled = [] }) {
                             (item) =>
                               item?.category ==
                                 categories[activeCategory]?.id &&
-                              !tests?.some((test) => test.id == item.id)
+                              !tests?.some((test) => test.id == item.id),
                           )
                           ?.map((i, d) => {
                             return (
@@ -386,7 +386,7 @@ export default function MockTests({ enrolled = [] }) {
                                   i?.config?.public_access !== true &&
                                   !enrolled?.some(
                                     (enrollment) =>
-                                      enrollment?.course?.id === i?.course
+                                      enrollment?.course?.id === i?.course,
                                   )
                                 }
                                 i={i}
