@@ -1,27 +1,14 @@
 import { PINtemplate } from '@/templates/pintemplate';
-
-// Import the nodemailer library
-const nodemailer = require('nodemailer');
-
-// Define your email configuration
-const transporter = nodemailer.createTransport({
-  host: 'smtp.zeptomail.in',
-  port: 465,
-  secure: true,
-  auth: {
-    user: 'emailapikey',
-    pass: 'PHtE6r1fS7y93mYmoRFVt6S9F5GtMd98r74yeFNG4oxKA/BRG00A+YsskGO1okwrVqERHKKTzt884rjNt7rQdD25Yz0eWGqyqK3sx/VYSPOZsbq6x00ct14ZdULaV4fndd5u3Sffvt/cNA==',
-  },
-  });
+import { getTransporter, getFromAddress } from '@/lib/emailTransporter';
 
 // Define the function to send the email
 const sendEmail = async ({ email, token }) => {
   try {
-
+    const transporter = getTransporter();
     const htmlTemplate = PINtemplate({email:email,token:token});
     // Create the email message
     const mailOptions = {
-      from: '"IPM Careers" <info@ipmcareer.in>',
+      from: getFromAddress(),
       to: email,
       subject: `Please set up your PIN for IPM Careers Study Account :  ${email}`,
       html: htmlTemplate,
@@ -40,26 +27,32 @@ const sendEmail = async ({ email, token }) => {
 
 // Define your Next.js API route
 export default async (req, res) => {
- 
-  if (req.method === 'POST') {
-    const data = req?.body;
- const { email, token } = data?.record;
-    // Check if all required fields are present
-    if (!email || !token) {
-        
-      return res.status(400).json({ success: false, message: 'Mising required fields',data:req.body });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
+  }
+
+  try {
+    const record = req?.body?.record;
+
+    if (!record) {
+      return res.status(400).json({ success: false, message: 'Missing request body or record' });
     }
 
-    // Send the email
+    const { email, token } = record;
+
+    if (!email || !token) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
     const result = await sendEmail({ email, token });
 
-    // Respond based on the result of sending the email
     if (result.success) {
       return res.status(200).json(result);
     } else {
       return res.status(500).json(result);
     }
-  } else {
-    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
+  } catch (error) {
+    console.error('Error in sendPIN:', error);
+    return res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };

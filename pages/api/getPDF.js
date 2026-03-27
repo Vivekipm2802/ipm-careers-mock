@@ -1,34 +1,30 @@
 import axios from 'axios';
 
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
+  }
 
-export default async function handler(req,res) {
   try {
-    const { method, url } = req;
+    const queryParams = new URLSearchParams(req.url.split('?')[1]);
+    const pdfUrl = queryParams.get('pdf');
 
-    if (method === 'GET') {
-      const queryParams = new URLSearchParams(url.split('?')[1]); // Extract query parameters
-      const pdfUrl = queryParams.get('pdf');
-      function extractFilename(url) {
-        var filename = url.split('/').pop().replace('.pdf','');
-        return filename;
+    if (!pdfUrl) {
+      return res.status(400).json({ success: false, message: 'PDF URL not provided' });
     }
-      if (pdfUrl) {
-        // Stream PDF content directly to the response
-        const pdfResponse = await axios.get(pdfUrl, { responseType: 'stream' });
-        const fileName = `${extractFilename(pdfUrl)}.pdf`; // Set filename here
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-        pdfResponse.data.pipe(res);
-      } else {
-        res.statusCode = 400;
-        res.end('PDF URL not provided');
-      }
-    } else {
-      res.statusCode = 405; // Method Not Allowed
-      res.end('Method Not Allowed');
+
+    function extractFilename(url) {
+      return url.split('/').pop().replace('.pdf', '') || 'document';
     }
+
+    const pdfResponse = await axios.get(pdfUrl, { responseType: 'stream' });
+    const fileName = `${extractFilename(pdfUrl)}.pdf`;
+
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Type', 'application/pdf');
+    pdfResponse.data.pipe(res);
   } catch (error) {
     console.error('Error fetching PDF:', error);
-    res.statusCode = 500;
-    res.end('Internal Server Error');
+    return res.status(500).json({ success: false, message: 'Failed to fetch PDF' });
   }
 }

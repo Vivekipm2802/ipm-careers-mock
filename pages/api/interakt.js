@@ -1,3 +1,19 @@
+/**
+ * INTERAKT INTEGRATION — CURRENTLY DISABLED
+ *
+ * This endpoint handled WhatsApp push notifications via Interakt.ai.
+ * Commented out because Interakt is no longer in use.
+ * To re-enable, uncomment the code below and set NEXT_INTERAKT_KEY in your env.
+ */
+
+export default async function LoginHandler(req, res) {
+  return res.status(410).json({
+    success: false,
+    message: 'Interakt integration is currently disabled.',
+  });
+}
+
+/*
 import { CtoLocal } from "@/utils/DateUtil";
 
 const axios = require("axios");
@@ -14,7 +30,6 @@ export default async function LoginHandler(req, res) {
           countryCode: "+91",
           traits: {
             name: a.student_name,
-
             email: a.email,
           },
           tags: ['Push'],
@@ -24,7 +39,7 @@ export default async function LoginHandler(req, res) {
             Accept: "application/json",
             "Content-Type": "application/json",
             Authorization:
-              `Basic ${proces.env.NEXT_INTERAKT_KEY}`,
+              `Basic ${process.env.NEXT_INTERAKT_KEY}`,
             "Access-Control-Allow-Origin": "*",
           },
         }
@@ -67,7 +82,7 @@ export default async function LoginHandler(req, res) {
               Accept: "application/json",
               "Content-Type": "application/json",
               Authorization:
-                "Basic Y0MzaUJmSlF0bU1ib05SaEw0bS0yTlphYi15TnRfSEcwcll0TFZqXzlNODo=",
+                `Basic ${process.env.NEXT_INTERAKT_KEY}`,
             },
           }
         )
@@ -87,3 +102,4 @@ export default async function LoginHandler(req, res) {
   } else {
   }
 }
+*/

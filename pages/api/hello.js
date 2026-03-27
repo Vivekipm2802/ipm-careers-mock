@@ -1,5 +1,5 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 
 export default function handler(req, res) {
-  res.status(200).json({ name: process.env.NEXT_INTERAKT_KEY })
+  res.status(200).json({ name: 'Hello from IPM Careers API' })
 }
