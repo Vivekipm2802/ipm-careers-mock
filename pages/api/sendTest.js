@@ -42,7 +42,7 @@ export default async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
-    const link = `https://study.ipmcareer.com/mock/result/${uid}`;
+    const link = `https://study.ipmcareer.in/mock/result/${uid}`;
     const result = await sendEmail(name, test, link, email);
 
     if (result.success) {
