@@ -17,7 +17,6 @@ export default async function api(req, res) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.status(200).send(html);
   } catch (error) {
-    console.error('Error in getCalculator:', error);
     res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 }

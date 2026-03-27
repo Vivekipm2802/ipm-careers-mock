@@ -17,7 +17,6 @@ export default async function handler(req, res) {
     });
 
     if (error) {
-      console.error('Supabase RPC error:', error);
       return res.status(500).json({ success: false, message: error.message });
     }
 
@@ -28,7 +27,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json(emailCheckResults);
   } catch (error) {
-    console.error('Error in cme:', error);
     return res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 }

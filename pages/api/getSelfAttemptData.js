@@ -34,7 +34,6 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ questions: data[0]?.questions || [], parent });
     } catch (error) {
-        console.error('Error in getSelfAttemptData:', error);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }

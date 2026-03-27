@@ -67,7 +67,6 @@ export default async function handler(req, res) {
           errorMessage = `Email ${email} already exists.`;
         }
 
-        console.error(`Error creating user: ${email} - ${errorMessage}`);
         errors.push({ email, error: errorMessage });
       } else {
         responses.push(data);
@@ -88,7 +87,6 @@ export default async function handler(req, res) {
 
     res.status(200).json({ message: 'Users created successfully', responses });
   } catch (error) {
-    console.error('Internal server error:', error.message);
     res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 }

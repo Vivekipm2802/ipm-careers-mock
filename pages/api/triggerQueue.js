@@ -36,14 +36,12 @@ export default async (req, res) => {
           // Process each row
           await processRow(row);
         } catch (error) {
-          // Handle the error (e.g., log it) and continue to the next row
-          console.error(`Error processing row: ${row.id}`, error);
+          // silently ignore
         }
       }
 
     res.status(200).json({ message: 'All rows processed' });
   } catch (error) {
-    console.error('Error processing rows:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -81,7 +79,6 @@ async function processRow(row) {
       
        
       if (!account_id || !key || !secret) {
-        console.log('Unable to destructure credentials: Missing required fields')
         throw new Error("Unable to destructure credentials: Missing required fields");
       }
   
@@ -91,9 +88,8 @@ async function processRow(row) {
       .select('student_id') // Assuming participant_email is the column name
       .eq('batch_id', row.batch_id.id);
 
-      
+
     if (participantsError) {
-      console.log(row.title+ ': '+participantsError.message)
       throw new Error(participantsError.message);
     }
       const startTime = schedule?.time ?? row.start_time; // Assuming start_time is in a compatible format
@@ -123,7 +119,6 @@ async function processRow(row) {
   
       return data;
     } catch (error) {
-      console.error('Error processing row:', error);
       throw error;
     }
   }
@@ -148,7 +143,6 @@ async function getToken(a,b) {
         
         return accessToken;
     } catch (error) {
-        console.error('Error fetching access token:', error.response ? error.response.data : error.message);
         throw error;
     }
 }

@@ -37,7 +37,6 @@ export default async function handler(req, res) {
 
     if (error) {
       // Don't reveal whether the email exists or not (security best practice)
-      console.error('generateLink error:', error.message);
       return res.status(200).json({
         success: true,
         message: 'If this email is registered, a reset link has been sent.',
@@ -51,7 +50,6 @@ export default async function handler(req, res) {
       data?.properties?.hashed_token;
 
     if (!resetLink) {
-      console.error('No action_link returned from generateLink');
       return res.status(200).json({
         success: true,
         message: 'If this email is registered, a reset link has been sent.',
@@ -77,7 +75,6 @@ export default async function handler(req, res) {
       message: 'If this email is registered, a reset link has been sent.',
     });
   } catch (error) {
-    console.error('Error in resetPassword:', error);
     // Still return success to avoid revealing email existence
     return res.status(200).json({
       success: true,

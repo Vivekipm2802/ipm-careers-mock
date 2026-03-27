@@ -20,7 +20,6 @@ const axios = require("axios");
 export default async function LoginHandler(req, res) {
   if (req.method === "POST") {
     const a = req.body.record;
-    console.log(a);
 
     axios
       .post(

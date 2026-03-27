@@ -146,7 +146,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, word: insertData[0] });
   } catch (error) {
-    console.error("Error generating word:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",

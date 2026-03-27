@@ -28,7 +28,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: false, message: 'Email not found in the array' });
     }
   } catch (error) {
-    console.error('Error in isAdmin:', error);
     return res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 }

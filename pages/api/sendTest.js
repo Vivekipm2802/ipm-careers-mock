@@ -17,10 +17,8 @@ const sendEmail = async (name,test,link,email) => {
     // Send the email
     const info = await transporter.sendMail(mailOptions);
 
-    console.log('Email sent: ', info.response);
     return { success: true, message: 'Email sent successfully' };
   } catch (error) {
-    console.error('Error sending email: ', error);
     return { success: false, message: 'Error sending email' };
   }
 };
@@ -53,7 +51,6 @@ export default async (req, res) => {
       return res.status(500).json(result);
     }
   } catch (error) {
-    console.error('Error in sendTest:', error);
     return res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
