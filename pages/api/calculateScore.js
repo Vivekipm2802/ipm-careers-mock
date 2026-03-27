@@ -1,4 +1,5 @@
 import { serversupabase } from "@/utils/supabaseClient";
+import { getAuthUser } from "@/lib/apiAuth";
 
 // Optimized data fetching with parallel requests
 async function fetchTestData(testId) {
@@ -102,9 +103,20 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Auth: accept logged-in user OR webhook secret
+  const webhookSecret = process.env.WEBHOOK_SECRET;
+  const headerSecret = req.headers['x-webhook-secret'];
+  const isWebhook = webhookSecret && headerSecret === webhookSecret;
+
+  if (!isWebhook) {
+    const user = await getAuthUser(req);
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  }
+
   try {
     const { record } = req.body;
-    console.log(record)
     if (!record?.test_id) {
       return res.status(400).json({ error: 'Invalid request body: missing test_id' });
     }
@@ -135,10 +147,6 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message 
-    });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
