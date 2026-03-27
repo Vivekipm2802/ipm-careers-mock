@@ -1,5 +1,6 @@
 import { CtoLocal } from "@/utils/DateUtil";
 import { supabase } from "@/utils/supabaseClient";
+import { getAuthHeaders } from "@/utils/authHeaders";
 import axios from "axios";
 import {
   Button,
@@ -304,9 +305,8 @@ export default function BatchCreator() {
   }
 
   async function callWebhook() {
-    axios.get("/api/triggerQueue", () => {
-      return "";
-    });
+    const headers = await getAuthHeaders();
+    axios.get("/api/triggerQueue", { headers });
   }
 
   async function updateBatch(a) {

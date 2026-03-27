@@ -2,6 +2,7 @@
 import generateZoomMeeting from '@/lib/zoom';
 import { CtoLocal } from '@/utils/DateUtil';
 import { serversupabase } from '@/utils/supabaseClient';
+import { requireAdmin } from '@/lib/apiAuth';
 import axios from 'axios';
 import qs from 'querystring'
 
@@ -10,6 +11,11 @@ export default async (req, res) => {
   if (req.method !== 'GET') {
     res.status(405).json({ message: 'Only GET requests are allowed' });
     return;
+  }
+
+  const admin = await requireAdmin(req);
+  if (!admin) {
+    return res.status(401).json({ message: 'Unauthorized – admin access required' });
   }
 
   try {
