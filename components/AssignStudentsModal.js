@@ -13,6 +13,7 @@ import {
   Tab,
 } from "@nextui-org/react";
 import React from "react";
+import { getAuthHeaders } from "@/utils/authHeaders";
 
 /**
  * AssignStudentsModal component extracted from BatchCreator.
@@ -183,7 +184,8 @@ export default function AssignStudentsModal({
         `/api/listUsers?v=2&page=${pageToFetch}&pageSize=${PAGE_SIZE}` +
         (search ? `&search=${encodeURIComponent(search)}` : "");
 
-      const res = await fetch(url, { signal: controller.signal });
+      const headers = await getAuthHeaders();
+      const res = await fetch(url, { signal: controller.signal, headers });
       if (!res.ok) throw new Error("Failed to fetch students list");
       const data = await res.json();
 

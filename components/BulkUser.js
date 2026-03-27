@@ -4,6 +4,7 @@ import { CheckCircle, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import XLStoJSON from "./XLStoJSON";
+import { getAuthHeaders } from "@/utils/authHeaders";
 
 export default function BulkUser() {
   const [users, setUsers] = useState([]);
@@ -105,7 +106,8 @@ export default function BulkUser() {
 
     setLoading(true);
     try {
-      const { data: response } = await axios.post("/api/bulkCreateUser", dataUser);
+      const headers = await getAuthHeaders();
+      const { data: response } = await axios.post("/api/bulkCreateUser", dataUser, { headers });
 
       if (response.errors && response.errors.length > 0) {
         response.errors.forEach((err) => toast.error(`Failed to create ${err.email}: ${err.error}`));

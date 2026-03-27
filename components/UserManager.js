@@ -1,5 +1,6 @@
 import { CtoLocal } from "@/utils/DateUtil";
 import { supabase } from "@/utils/supabaseClient";
+import { getAuthHeaders } from "@/utils/authHeaders";
 import {
   Button,
   ButtonGroup,
@@ -70,10 +71,12 @@ export default function UserManager(props) {
     let error = null;
 
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(
         `/api/listUsers?page=${page}&pageSize=${pageSize}&search=${encodeURIComponent(
           search
-        )}`
+        )}`,
+        { headers }
       );
       if (res.ok) {
         data = await res.json();
