@@ -3,17 +3,23 @@ import { useAuth } from './useAuth';
 import { useEffect } from 'react';
 
 const RequireAuth = ({ children }) => {
-  const user = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
-      /* router.push('/login');  */// Redirect to the login page
+    // Only redirect once loading is done and we know there's no user
+    if (!loading && !user) {
+      router.push('/login');
     }
-  }, [user, router]);
+  }, [user, loading, router]);
 
+  // Show nothing while checking auth status
+  if (loading) {
+    return null;
+  }
+
+  // Not logged in — redirect is in progress
   if (!user) {
-    // You can show a loading indicator or some other UI while checking the user's session.
     return null;
   }
 

@@ -1,61 +1,42 @@
 import { supabase } from "@/utils/supabaseClient";
 import axios from "axios";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
+function IsAdminCheck(props) {
+  const router = useRouter();
+  const [verified, setVerified] = useState(false);
 
+  useEffect(() => {
+    async function verify() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
+        if (!user) {
+          router.push("/login");
+          return;
+        }
 
-function IsAdminCheck(props){
+        const res = await axios.post("/api/isAdmin", { email: user.email });
 
-async function checkUser(){
-    const { data: { user } } = await supabase.auth.getUser();
-
-
-    isAdmin(user.email)
-
-    
-if(user != undefined ){
-    return true
-}else {
-    return false
-}
-
-
-
-}
-
-async function isAdmin(a){
-
-    
-   await axios.post('/api/isAdmin',{
-        
-        email:a
-    }).then(res=>{
-      if(res.data.success){
+        if (res.data.success) {
+          setVerified(true);
+        } else {
+          router.push("/");
+        }
+      } catch {
+        router.push("/login");
       }
-      else{
-        
-router.push('/')
-      }
-    })
-}
-
-const router = useRouter();
-   useEffect(()=>{
-
-   
-    if(checkUser()){
-       
     }
 
-    else {
-        router.push('/login')
-    }
+    verify();
+  }, [router]);
 
-   },[])
+  if (!verified) return null;
 
-    return props.children
+  return props.children;
 }
 
 export default IsAdminCheck;

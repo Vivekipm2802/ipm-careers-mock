@@ -1,8 +1,15 @@
 import { serversupabase } from "@/utils/supabaseClient";
+import { requireAdmin } from "@/lib/apiAuth";
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
+  }
+
+  // Admin-only endpoint
+  const admin = await requireAdmin(req);
+  if (!admin) {
+    return res.status(401).json({ message: 'Unauthorized – admin access required' });
   }
 
   const { userdata } = req.body;
