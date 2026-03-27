@@ -1,15 +1,13 @@
+import { isAdminEmail } from '@/lib/apiAuth';
 
 /**
- * Admin emails are read from the ADMIN_EMAILS environment variable.
- * Set it as a comma-separated list, e.g.:
- *   ADMIN_EMAILS=rishabhsingh0363@gmail.com,ipmcareeronline@gmail.com
+ * POST /api/isAdmin
+ * Body: { email: "user@example.com" }
+ *
+ * Checks whether the given email is an admin.
+ * Strategy: DB (user_roles table) first → ADMIN_EMAILS env var fallback.
  */
-function getAdminEmails() {
-  const raw = process.env.ADMIN_EMAILS || '';
-  return raw.split(',').map((e) => e.trim()).filter(Boolean);
-}
-
-export default (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
@@ -21,9 +19,10 @@ export default (req, res) => {
       return res.status(400).json({ success: false, message: 'Email is required' });
     }
 
-    const storedEmails = getAdminEmails();
+    // isAdminEmail is now async — checks DB first, falls back to env var
+    const admin = await isAdminEmail(email);
 
-    if (storedEmails.includes(email)) {
+    if (admin) {
       return res.status(200).json({ success: true, message: 'Email found in the array' });
     } else {
       return res.status(200).json({ success: false, message: 'Email not found in the array' });
@@ -32,5 +31,4 @@ export default (req, res) => {
     console.error('Error in isAdmin:', error);
     return res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
-}; 
- 
+}
