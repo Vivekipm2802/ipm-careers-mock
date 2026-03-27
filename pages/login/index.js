@@ -222,15 +222,19 @@ function Login() {
       toast.error("Email Empty or Invalid");
       return null;
     }
-    const { data, error } = await supabase.auth.resetPasswordForEmail(a, {
-      redirectTo: "https://study.ipmcareer.in/login",
-    });
-
-    if (data) {
-      toast.success("Sent Reset Link to your Email");
-      setFPModal(false);
-    } else {
-      toast.error("Unable to send reset link");
+    const r = toast.loading("Sending reset link...");
+    try {
+      const res = await axios.post("/api/resetPassword", { email: a });
+      toast.remove(r);
+      if (res.data.success) {
+        toast.success("Reset link sent to your email. Check your inbox.");
+        setFPModal(false);
+      } else {
+        toast.error(res.data.message || "Unable to send reset link");
+      }
+    } catch (err) {
+      toast.remove(r);
+      toast.error("Unable to send reset link. Please try again.");
     }
   }
 

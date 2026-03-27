@@ -209,16 +209,17 @@ async function forgotPassword(a){
     setNotification('Email Empty or Invalid')
     return null
   }
-  const { data, error } = await supabase.auth.resetPasswordForEmail(a,{redirectTo:'https://study.ipmcareer.com/teacher-login'})
-
-if(data){
-  setNotification('Sent Reset Link to your Email')
-  setFPModal(false)
-}
-else{
-  setNotification('Unable to send reset link')
-}
-
+  try {
+    const res = await axios.post("/api/resetPassword", { email: a });
+    if (res.data.success) {
+      setNotification('Reset link sent to your email. Check your inbox.')
+      setFPModal(false)
+    } else {
+      setNotification(res.data.message || 'Unable to send reset link')
+    }
+  } catch (err) {
+    setNotification('Unable to send reset link. Please try again.')
+  }
 }
 
 useEffect(() => {
