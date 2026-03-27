@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       });
 
       if (error) {
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: "Failed to fetch users" });
       }
 
       const users = data?.users || [];
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
       });
 
       if (error) {
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: "Failed to fetch users" });
       }
 
       const pageUsers = data?.users || [];
@@ -115,6 +115,6 @@ export default async function handler(req, res) {
 
     return respond(collected.slice(0, pageSize), hasMore);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: "Internal server error" });
   }
 }
