@@ -1,4 +1,5 @@
 import { serversupabase } from "@/utils/supabaseClient";
+import { requireAdmin } from "@/lib/apiAuth";
 
 /**
  * Maps an answer like "A"/"B"/"C"/"D" or "1"/"2"/"3"/"4" to zero-based index.
@@ -59,11 +60,16 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: "Method Not Allowed" });
   }
 
+  const admin = await requireAdmin(req);
+  if (!admin) {
+    return res.status(401).json({ success: false, message: "Unauthorized – admin access required" });
+  }
+
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   if (!OPENAI_API_KEY) {
     return res
       .status(500)
-      .json({ success: false, message: "OpenAI API key not configured" });
+      .json({ success: false, message: "Server configuration error" });
   }
 
   try {
@@ -208,11 +214,9 @@ Context: ${randomContext}
     );
 
     if (!openaiRes.ok) {
-      const errorText = await openaiRes.text();
       return res.status(500).json({
         success: false,
-        message: "OpenAI API error",
-        error: errorText,
+        message: "Failed to generate RC — AI service error",
       });
     }
 
@@ -225,8 +229,7 @@ Context: ${randomContext}
     } catch (e) {
       return res.status(500).json({
         success: false,
-        message: "Failed to parse OpenAI response",
-        raw: content,
+        message: "Failed to parse AI response",
       });
     }
 
@@ -239,8 +242,7 @@ Context: ${randomContext}
     ) {
       return res.status(500).json({
         success: false,
-        message: "OpenAI response missing passage or questions",
-        raw: content,
+        message: "AI response missing passage or questions",
       });
     }
 
@@ -277,7 +279,6 @@ Context: ${randomContext}
       return res.status(500).json({
         success: false,
         message: "Failed to create answer key",
-        error: keyErr.message,
       });
     }
 
@@ -301,11 +302,9 @@ Context: ${randomContext}
       .select();
 
     if (error) {
-      console.error("Error inserting RC:", error);
       return res.status(500).json({
         success: false,
         message: "Failed to save RC to database",
-        error: error.message,
       });
     }
 
@@ -315,11 +314,9 @@ Context: ${randomContext}
       rc: data?.[0],
     });
   } catch (error) {
-    console.error("Error generating RC:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message,
     });
   }
 }

@@ -23,6 +23,7 @@ import {
   Switch,
 } from "@nextui-org/react";
 import { supabase } from "@/utils/supabaseClient";
+import { getAuthHeaders } from "@/utils/authHeaders";
 import { CtoLocal } from "@/utils/DateUtil";
 import { Plus, Sparkle, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -194,8 +195,10 @@ export default function RCManager() {
     const r = toast.loading("Generating RC....");
     setGenerating(true);
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch("/api/generateRC", {
         method: "POST",
+        headers,
       });
       const result = await response.json();
 
