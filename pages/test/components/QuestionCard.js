@@ -85,10 +85,8 @@ export default function QuestionCard({
                   onValueChange={(e) => {
                     const answerData = { selectedOption: e, ...question };
                     setAnsweredData(answerData);
-                    // Immediately notify parent for icon update
-                    if (onTempAnswer) {
-                      onTempAnswer(answerData);
-                    }
+                    // Auto-save answer immediately
+                    onSelect(answerData);
                   }}
                 >
                   {options.map((option, index) => (
@@ -124,9 +122,11 @@ export default function QuestionCard({
                       setInputValue(e.target.value);
                       const answerData = { ...question, value: e.target.value };
                       setAnsweredData(answerData);
-                      // Immediately notify parent for icon update
-                      if (onTempAnswer) {
-                        onTempAnswer(answerData);
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value) {
+                        const answerData = { ...question, value: e.target.value };
+                        onSelect(answerData);
                       }
                     }}
                     placeholder="Enter your Answer Here"
@@ -177,26 +177,13 @@ export default function QuestionCard({
               className="text-white ml-2"
               size="sm"
               onPress={() => {
-                if (answeredData) {
-                  // If there's unsaved answer data, save it
-                  onSelect(answeredData);
-                  setAnsweredData(undefined);
-                } else {
-                  // If already answered or marked for review, navigate to next question
-                  setAnsweredData(undefined);
-                  if (
-                    onNext &&
-                    report?.find((item) => item.id == question.id)
-                  ) {
-                    onNext();
-                  }
+                setAnsweredData(undefined);
+                if (onNext) {
+                  onNext();
                 }
               }}
-              isDisabled={
-                !answeredData && !report?.find((item) => item.id == question.id)
-              }
             >
-              {answeredData ? "Save & Next" : "Next"}
+              Next
               <svg
                 width="14"
                 height="14"

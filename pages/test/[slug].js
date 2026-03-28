@@ -282,16 +282,20 @@ const Game = () => {
       answer: answer,
     });
 
+    // Adjust score: undo previous score if re-answering, then apply new score
+    if (existingReport && existingReport.isCorrect !== undefined) {
+      // Undo previous score
+      if (existingReport.isCorrect) {
+        setScore((s) => s - config.increment);
+      } else {
+        setScore((s) => s + config.decrement);
+      }
+    }
+    // Apply new score
     if (isCorrect) {
-      setScore(score + config.increment);
-      if (level < questions?.length - 1) {
-        incrementLevel();
-      }
+      setScore((s) => s + config.increment);
     } else {
-      if (level < questions?.length - 1) {
-        incrementLevel();
-      }
-      setScore(score - config.decrement);
+      setScore((s) => s - config.decrement);
     }
   };
 
