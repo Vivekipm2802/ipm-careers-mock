@@ -37,6 +37,8 @@ import Link from "next/link";
 import { useMediaQuery } from "react-responsive";
 import { useTimer } from "react-timer-hook";
 import { CtoLocal } from "@/utils/DateUtil";
+import { getAuthHeaders } from "@/utils/authHeaders";
+import axios from "axios";
 
 function Icon() {
   return (
@@ -377,22 +379,30 @@ const MockTest = ({ config, is_allowed, data }) => {
     const r = toast.loading("Submitting Test");
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from("mock_plays")
-      .insert({
-        test_id: config?.id,
-        status: "completed",
-        report: a || [],
-        data: b || [],
-      })
-      .select();
-    if (data && data.length != 0) {
-      toast.success("Test Submitted Successfully");
-      setLoading(false);
-      setGameState(2);
-      router.push(`/mock/result/${data[0].uid}`);
-      toast.remove(r);
-    } else {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await axios.post(
+        "/api/submitMock",
+        {
+          test_id: config?.id,
+          report: a || [],
+          data: b || [],
+        },
+        { headers }
+      );
+      if (res.data?.data) {
+        toast.success("Test Submitted Successfully");
+        setLoading(false);
+        setGameState(2);
+        router.push(`/mock/result/${res.data.data.uid}`);
+        toast.remove(r);
+      } else {
+        toast.error("Unable to Submit Test. Please try again.");
+        setLoading(false);
+        setGameState(1);
+        toast.remove(r);
+      }
+    } catch (err) {
       toast.error("Unable to Submit Test. Please try again.");
       setLoading(false);
       setGameState(1);
