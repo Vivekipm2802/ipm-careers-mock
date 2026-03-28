@@ -50,7 +50,8 @@ const router = useRouter()
 </DropdownMenu>
 </Dropdown>}
     <Spacer x={4} y={4}></Spacer>
-    <Dropdown> 
+    {state == 1 ? (
+    <Dropdown>
         <DropdownTrigger>
     <Button color="primary" size="sm" className="z-0">
       <p className="hidden md:block">Back to Dashboard</p>
@@ -71,6 +72,12 @@ const router = useRouter()
             </DropdownItem>
     </DropdownMenu>
     </Dropdown>
+    ) : (
+    <Button color="primary" size="sm" className="z-0" onPress={()=>{router.push('/')}}>
+      <p className="hidden md:block">Back to Dashboard</p>
+      <p className="block md:hidden">Exit</p>
+    </Button>
+    )}
     <Spacer x={4}></Spacer>
     <div className="w-auto md:flex flex-row items-center justify-end hidden">
         <div className="flex flex-row items-center">

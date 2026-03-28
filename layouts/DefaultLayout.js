@@ -1,7 +1,7 @@
 import Navbar from '@/components/Navbar';
 import styles from './DefaultLayout.module.css'
 import { useNMNContext } from '@/components/NMNContext';
-import { Button, Chip, Modal, ModalBody, ModalContent, ModalHeader } from '@nextui-org/react';
+import { Button, Modal, ModalBody, ModalContent, ModalHeader } from '@nextui-org/react';
 import ReportIssueForm from '@/components/ReportAnIssue';
 import Link from 'next/link';
 
@@ -44,7 +44,6 @@ You cannot access demo mode.
     {sideBarContent}
 </div>
         <div className={styles.left +" " + styles.gamecontainer + " bg-white shadow-xl px-2"}>
-        <Chip size='sm' className='top-3 absolute left-1/2 -translate-x-1/2 ' color='success' classNames={{content:'text-[10px]'}} variant="flat">Beta Version : 0.9.0</Chip>
         <img className={styles.logo + " px-6"} width={300} src='/newlog.svg'/>
         
        
