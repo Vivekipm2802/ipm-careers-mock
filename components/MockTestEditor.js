@@ -96,7 +96,6 @@ function MockTestEditor({ userData, role }) {
     if (a == null) {
       return null;
     }
-    console.log(a);
     const d = new Date(a).toISOString();
     return parseAbsoluteToLocal(d);
   }
@@ -145,7 +144,7 @@ function MockTestEditor({ userData, role }) {
       .select("*")
       .in(
         "parent",
-        modules.map((i) => i.module.id),
+        modules.filter((i) => i.module).map((i) => i.module.id),
       )
       .order("seq", { ascending: true });
     if (!questions) {
@@ -394,7 +393,6 @@ function MockTestEditor({ userData, role }) {
     }
   }
   async function getModules(a, b) {
-    console.log(arguments);
     if (a == undefined) {
       toast.error("No Subject Selected for Modules");
       return null;
@@ -2093,7 +2091,6 @@ function MockTestEditor({ userData, role }) {
                       className="ml-1 text-white"
                       onClick={() => {
                         (getQuestions(i?.id),
-                          console.log(i),
                           setViews(3),
                           setActiveModule(
                             modules.findIndex((item) => item.id === i.id),
@@ -2780,9 +2777,7 @@ function MockTestEditor({ userData, role }) {
                                 (e) => {
                                   (setQuestions(e), setQuestionModal(false));
                                 },
-                                ({ errortext }) => {
-                                  console.log(errortext);
-                                },
+                                () => {},
                               ));
                           },
                           () => {},

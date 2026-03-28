@@ -1,19 +1,12 @@
 import { Button, ButtonGroup, Checkbox, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Popover, PopoverContent, PopoverTrigger, Spacer, Spinner } from '@nextui-org/react';
-import { createClient } from '@supabase/supabase-js'
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { getAuthHeaders } from '@/utils/authHeaders';
 export default function PrintManager(){
 
     const router = useRouter()
-    
-    const supabaseUrl = "https://gbicgyfhacrwukeszfax.supabase.co"
-  
-    const supabaseServiceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiaWNneWZoYWNyd3VrZXN6ZmF4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwOTY2OTI2OCwiZXhwIjoyMDI1MjQ1MjY4fQ.9S-bkpn_fN02g-TRymhsqA97iUcp2qbrLwdkaRF8WgU"
-    
-    
-    const supabase2 = createClient(supabaseUrl, supabaseServiceKey);
 const [loading,setLoading] = useState(false)
 const [requests,setRequests] = useState()
 const [selectedVa,setSelected]= useState([])
@@ -32,15 +25,16 @@ if(!a?.tracking){
     return null
 }
     setLoading(true)
-    const {data,error} = await supabase2.from('print_requests').update({
-        tracking:a?.tracking
-    }).eq('id',b).select()
-    if(data){
+    try {
+        const headers = await getAuthHeaders();
+        const res = await axios.post('/api/printRequests', { action: 'updateTracking', tracking: a?.tracking, id: b }, { headers });
+        if(res.data?.data){
+            setLoading(false)
+            toast.success('Updated Tracking Code')
+        }
+    } catch(err) {
         setLoading(false)
-        toast.success('Updated Tracking Code')
-    }
-    if(error){
-        setLoading(false)
+        toast.error('Error updating tracking')
     }
 }
 
@@ -70,7 +64,6 @@ const labelsMap = [
   ]
   
 function updateSelection(bo,i){
-    console.log(bo,i)
 if(bo == true){
 setSelected(res=>([...res,i]))}
 if(bo == false){
@@ -93,13 +86,13 @@ async function getDownload(a){
 }
 
 async function getRequests(){
-
-
-    const {data,error} = await supabase2.from('print_requests').select('*,uid(*)').order('created_at',{ascending:false})
-    if(data){
-        setRequests(data)
-    }
-    if(error){
+    try {
+        const headers = await getAuthHeaders();
+        const res = await axios.post('/api/printRequests', { action: 'getRequests' }, { headers });
+        if(res.data?.data){
+            setRequests(res.data.data)
+        }
+    } catch(err) {
         toast.error('Error Loading Requests')
     }
 }
@@ -109,14 +102,14 @@ async function updateSingle(a,b){
         toast.error('Request ID Missing')
         return null
     }
-    const {data,error} = await supabase2.from('print_requests').update({status:b.currentKey}).in('id',[a]).select()
-
-    if(data){
-        getRequests()
-        toast.success('Updated Successfully')
-        
-    }
-    if(error){
+    try {
+        const headers = await getAuthHeaders();
+        const res = await axios.post('/api/printRequests', { action: 'updateSingle', ids: [a], status: b.currentKey }, { headers });
+        if(res.data?.data){
+            getRequests()
+            toast.success('Updated Successfully')
+        }
+    } catch(err) {
         toast.error('Error Updating Request')
     }
 }
@@ -126,14 +119,14 @@ async function updateBulk(a,b){
         toast.error('Request ID Missing')
         return null
     }
-    const {data,error} = await supabase2.from('print_requests').update({status:b.currentKey}).eq('id',a).select()
-
-    if(data){
-        getRequests()
-        toast.success('Updated Successfully')
-        
-    }
-    if(error){
+    try {
+        const headers = await getAuthHeaders();
+        const res = await axios.post('/api/printRequests', { action: 'updateBulk', id: a, status: b.currentKey }, { headers });
+        if(res.data?.data){
+            getRequests()
+            toast.success('Updated Successfully')
+        }
+    } catch(err) {
         toast.error('Error Updating Request')
     }
 }

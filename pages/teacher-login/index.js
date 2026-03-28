@@ -33,11 +33,10 @@ function setNotification(de){
 async function getRole(a){
     const {data,error} = await supabase.rpc('get_user_role_by_email',{email_address:a})
     if(data){
-        console.log(data);
         return data
     }
     else{
-        console.log(error)
+        return null
     }
 }
 
@@ -107,7 +106,6 @@ async function getUser(){
     const {data} = await supabase.auth.getUser();
    
     if(data && data?.user != undefined){
-        console.log(data?.user)
         const role = await getRole(data?.user?.email);
        if(role == "teacher"){
         router.push('/teacher')
@@ -125,14 +123,12 @@ return null
    
 }
 async function getRole(a){
-    console.log(a)
     const {data,error} = await supabase.rpc('get_user_role_by_email',{email_address:a})
     if(data){
-        console.log(data);
         return data
     }
     else{
-        console.log(error)
+        return null
     }
   }
 useEffect(()=>{
@@ -170,8 +166,7 @@ async function handleSignIn(){
       )
   
     if(data && data.user && data.session){
-    
-        console.log(router)
+
 if(router.query.redirect_to != undefined){
 
     router.push(router.query.redirect_to)

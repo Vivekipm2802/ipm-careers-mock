@@ -106,24 +106,9 @@ function ExamScanner() {
       ]);
     }
   }
-  /*     
-useEffect(()=>{
+  useEffect(()=>{
     getTabs()
-},[]) */
-
-  return (
-    <div className="w-full h-full flex flex-col items-center justify-center">
-      <Chip
-        color="primary"
-        size="lg"
-        startContent={<Clock3 className="mr-2" size={24}></Clock3>}
-      >
-        Will be available soon
-      </Chip>
-      <Spacer y={2}></Spacer>
-      <p>We are preparing magical content for you , check back soon :)</p>
-    </div>
-  );
+  },[])
 
   return (
     <div className="w-full h-full bg-gray-100 rounded-md flex flex-col justify-start p-4 items-start overflow-hidden">

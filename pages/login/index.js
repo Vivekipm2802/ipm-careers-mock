@@ -134,23 +134,21 @@ function Login() {
   async function getUser() {
     const user = await supabase.auth.getUser();
 
-    if (user || user.data == undefined) {
+    if (!user || !user.data?.user) {
       return null;
     }
-    if (user != undefined) {
-      axios
-        .post("/api/isAdmin", {
-          email: user.data.user.email,
-        })
-        .then((res) => {
-          if (res.data.success == true) {
-            router.push("/admin");
-          } else {
-            router.push("/");
-          }
-        })
-        .catch((res) => {});
-    }
+    axios
+      .post("/api/isAdmin", {
+        email: user.data.user.email,
+      })
+      .then((res) => {
+        if (res.data.success == true) {
+          router.push("/admin");
+        } else {
+          router.push("/");
+        }
+      })
+      .catch(() => {});
   }
 
   useEffect(() => {
@@ -162,10 +160,9 @@ function Login() {
       email_address: a,
     });
     if (data) {
-      console.log(data);
       return data;
     } else {
-      console.log(error);
+      return null;
     }
   }
   async function handleSignIn() {
