@@ -113,24 +113,15 @@ export default function Concept({ role, group, onBack }) {
 
   const { userDetails, setSideBar, setSideBarContent } = useNMNContext();
   async function getLeaderBoard(a) {
-    const startOfWeek = new Date();
-    const currentDay = startOfWeek.getDay();
-    const distance = currentDay === 0 ? 6 : currentDay - 1;
-    startOfWeek.setDate(startOfWeek.getDate() - distance);
-    startOfWeek.setHours(0, 0, 0, 0);
-
     const { data, error } = await supabase
       .from("plays")
-      .select("*")
+      .select("id,created_at,score,user,name,isPassed,test_uuid")
       .eq("test_uuid", a)
-      .gte("created_at", startOfWeek.toISOString())
       .order("score", { ascending: false })
       .limit(10);
 
     if (!error && data) {
       setLeaderBoardData(data);
-    } else if (error) {
-      console.error("Leaderboard fetch error:", error);
     }
   }
   async function updateCategoryTitle(a, b) {
@@ -313,9 +304,7 @@ export default function Concept({ role, group, onBack }) {
       )
       .match({ user: userDetails?.email });
     if (data) {
-      console.log(data);
       setPlays(data);
-    } else {
     }
   }
   async function addNewGameCategory(a) {
@@ -1996,7 +1985,7 @@ export default function Concept({ role, group, onBack }) {
                                                         </Button>
                                                       </PopoverTrigger>
 
-                                                      <PopoverContent className="max-w-[500px] max-h-[500px] sf overflow-y-auto flex flex-col justify-start items-start align-middle">
+                                                      <PopoverContent className="max-w-[500px] max-h-[70vh] sf overflow-y-auto flex flex-col justify-start items-start align-middle">
                                                         <Input
                                                           className="my-2"
                                                           autoFocus
@@ -2025,11 +2014,20 @@ export default function Concept({ role, group, onBack }) {
                                                             setEditable(
                                                               (res) => ({
                                                                 ...res,
-                                                                lv: convertToYouTubeEmbed(
-                                                                  e.target.value
-                                                                ),
+                                                                lv: e.target.value,
                                                               })
                                                             );
+                                                          }}
+                                                          onBlur={(e) => {
+                                                            const converted = convertToYouTubeEmbed(e.target.value);
+                                                            if (converted !== e.target.value) {
+                                                              setEditable(
+                                                                (res) => ({
+                                                                  ...res,
+                                                                  lv: converted,
+                                                                })
+                                                              );
+                                                            }
                                                           }}
                                                         ></Input>
                                                         <Popover>
@@ -2392,7 +2390,7 @@ export default function Concept({ role, group, onBack }) {
                                         );
                                       })}
                                     {role == "admin" ? (
-                                      <Popover className="flex flex-col items-start align-middle justify-start overflow-hidden">
+                                      <Popover className="flex flex-col items-start align-middle justify-start">
                                         <PopoverTrigger autoFocus={false}>
                                           <div className="w-full my-2 flex flex-row items-center justify-center align-middle p-2 border-1 border-gray-300 rounded-xl px-5 shadow-sm bg-white cursor-pointer hover:bg-gray-200 transition-all mx-auto">
                                             <svg
@@ -2415,7 +2413,7 @@ export default function Concept({ role, group, onBack }) {
                                             <Spacer y={5}></Spacer>
                                           </div>
                                         </PopoverTrigger>
-                                        <PopoverContent className="sf flex flex-col justify-start items-start overflow-y-auto max-w-[500px] max-h-[500px]">
+                                        <PopoverContent className="sf flex flex-col justify-start items-start overflow-y-auto max-w-[500px] max-h-[70vh]">
                                           <Input
                                             className="my-2"
                                             autoFocus
@@ -2476,10 +2474,17 @@ export default function Concept({ role, group, onBack }) {
                                             onChange={(e) => {
                                               setNewLevelData((res) => ({
                                                 ...res,
-                                                video: convertToYouTubeEmbed(
-                                                  e.target.value
-                                                ),
+                                                video: e.target.value,
                                               }));
+                                            }}
+                                            onBlur={(e) => {
+                                              const converted = convertToYouTubeEmbed(e.target.value);
+                                              if (converted !== e.target.value) {
+                                                setNewLevelData((res) => ({
+                                                  ...res,
+                                                  video: converted,
+                                                }));
+                                              }
                                             }}
                                           ></Input>
                                           <Popover>
@@ -2820,11 +2825,10 @@ export default function Concept({ role, group, onBack }) {
                             ) ? (
                               <Button
                                 as={Link}
-                                target="_blank"
                                 href={`/test/${activeLevel?.uuid}`}
                                 size="lg"
                                 startContent={
-                                  <div className="w-3 h-3 rounded-full  animate-ping bg-secondary -z-[1]"></div>
+                                  <div className="w-3 h-3 rounded-full animate-pulse bg-secondary"></div>
                                 }
                                 endContent={<ArrowRight></ArrowRight>}
                                 className="bg-white shadow-md border-1 relative rounded-full text-black "
@@ -2933,7 +2937,7 @@ export default function Concept({ role, group, onBack }) {
                         </div>
                         <div className="rounded-xl text-left bg-white shadow-sm p-4 mb-4 mt-2 ml-4">
                           <h2 className="text-2xl font-bold text-primary mb-2">
-                            🏆 Top Rankers This Week
+                            🏆 Top Rankers
                           </h2>
                           <Leaderboard
                             scores={leaderboardData ?? []}

@@ -10,7 +10,7 @@ import {
 } from "@nextui-org/react";
 
 export default function Leaderboard({ scores }) {
-  const sortedData = scores.sort((a, b) => b.score - a.score);
+  const sortedData = [...scores].sort((a, b) => b.score - a.score);
 
   return (
     <div className="max-w-[unset] flex-grow-0 w-full 2xl:w-auto mx-auto px-0 2xl:px-4">
