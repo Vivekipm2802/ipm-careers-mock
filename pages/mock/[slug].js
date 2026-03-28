@@ -90,8 +90,8 @@ const QuestionCard = ({ answered, question, onSelect, index }) => {
     return <div>Question Undefined </div>;
   }
   return (
-    <div className="font-sans w-full  flex-1 justify-start align-middle items-start flex flex-col text-left ">
-      <div className=" rounded-xl w-full p-4 lg:p-8 relative">
+    <div className="font-sans w-full flex-1 justify-start align-middle items-start flex flex-col text-left">
+      <div className="w-full p-4 lg:p-8 relative">
         <h2 className="font-medium text-md text-primary">Question {index}</h2>
         <Divider className="my-2"></Divider>
         <h2 className="font-bold text-2xl text-primary">
@@ -105,7 +105,7 @@ const QuestionCard = ({ answered, question, onSelect, index }) => {
         <Spacer y={4}></Spacer>
         <div className="w-full flex flex-col">
           <ScrollShadow
-            className="font-medium text-sm  qcontent overflow-y-auto max-h-[40vh] lg:max-h-[40vh]"
+            className="font-medium text-sm qcontent overflow-y-auto max-h-[30vh] lg:max-h-[35vh]"
             dangerouslySetInnerHTML={{ __html: question.question }}
           ></ScrollShadow>
           <Spacer y={4}></Spacer>
@@ -132,7 +132,7 @@ const QuestionCard = ({ answered, question, onSelect, index }) => {
                   {question.options.map((option, index) => (
                     <Radio
                       className="flex flex-row items-center justify-start"
-                      value={index + 1}
+                      value={String(index + 1)}
                       key={index}
                     >
                       {option?.image != undefined ? (
@@ -346,8 +346,7 @@ const MockTest = ({ config, is_allowed, data }) => {
       currentSection === sections.length - 1 ||
       config?.config?.switch_section == true
     ) {
-      setGameState(2);
-      submitScore(answered, miscData);
+      submitScore(answered || [], miscData || []);
     } else {
       setCurrentSection((prevSection) => prevSection + 1);
 
@@ -375,11 +374,6 @@ const MockTest = ({ config, is_allowed, data }) => {
     }
   }
   async function submitScore(a, b) {
-    if (a == undefined || b == undefined) {
-      toast.error("Please attemp the test before submit");
-      return null;
-    }
-
     const r = toast.loading("Submitting Test");
 
     setLoading(true);
@@ -388,18 +382,20 @@ const MockTest = ({ config, is_allowed, data }) => {
       .insert({
         test_id: config?.id,
         status: "completed",
-        report: a,
+        report: a || [],
+        data: b || [],
       })
       .select();
     if (data && data.length != 0) {
-      toast.success("Submitted Answered");
+      toast.success("Test Submitted Successfully");
       setLoading(false);
       setGameState(2);
       router.push(`/mock/result/${data[0].uid}`);
       toast.remove(r);
     } else {
-      toast.success("Unable to Submit");
+      toast.error("Unable to Submit Test. Please try again.");
       setLoading(false);
+      setGameState(1);
       toast.remove(r);
     }
   }
@@ -704,7 +700,7 @@ const MockTest = ({ config, is_allowed, data }) => {
       </div>
     );
   }
-  if (questions == undefined && questions?.length < 1) {
+  if (questions == undefined || questions?.length < 1) {
     return (
       <div className="flex flex-col relative  justify-center align-middle items-center text-center font-sans h-screen w-full">
         Loading...
@@ -785,7 +781,8 @@ const MockTest = ({ config, is_allowed, data }) => {
               color="default"
               className="from-primary border-1 border-white shadow-md shadow-primary-400 to-primary-600 bg-gradient-to-r text-white"
               onPress={() => {
-                submitScore(answered, miscData), setSubmitModal(false);
+                submitScore(answered || [], miscData || []);
+                setSubmitModal(false);
               }}
             >
               Confirm
@@ -823,7 +820,7 @@ const MockTest = ({ config, is_allowed, data }) => {
           title={config?.title}
           timeOut={config?.config?.timeout || 1800}
         ></HeaderMock>
-        <div className="flex-1 p-0 flex flex-row justify-start items-start flex-nowrap overflow-hidden">
+        <div className="flex-1 p-0 flex flex-row justify-start items-stretch flex-nowrap overflow-hidden">
           <div className="flex flex-col items-start justify-start h-full flex-1 relative overflow-hidden">
             {gamestate === 1 ? (
               <div className=" flex-col w-full px-6 py-2 hidden md:flex">
@@ -893,7 +890,7 @@ const MockTest = ({ config, is_allowed, data }) => {
               ""
             )}
 
-            <div className="flex flex-col flex-1 overflow-hidden w-full md:pb-0 pb-12">
+            <div className="flex flex-col flex-1 overflow-hidden w-full md:pb-0 pb-24">
               {gamestate == 0 ? (
                 <div className="p-6">
                   {insindex == 0 ? (
@@ -1017,11 +1014,7 @@ const MockTest = ({ config, is_allowed, data }) => {
                   clearResponse(questions[currentQ].id);
                 }}
                 onSubmit={() => {
-                  answered?.length > 0
-                    ? setSubmitModal(true)
-                    : toast.error(
-                        "Please attempt at least 1 question to submit the test"
-                      );
+                  setSubmitModal(true);
                 }}
                 onSaveNext={() => {}}
               ></FooterMock>
@@ -1221,14 +1214,29 @@ export default MockTest;
 
 export async function getServerSideProps(context) {
   const p = context?.query?.private == "true";
-  const { data, error } = await serversupabase
+
+  // Try service role client first, fall back to anon client
+  let data, error;
+  ({ data, error } = await serversupabase
     .from("mock_test")
     .select("*")
-    .eq("uid", context.query.slug);
-  if (error || data?.length == 0) {
-    return { notFound: true };
+    .eq("uid", context.query.slug));
+
+  // If service role client fails, try anon client as fallback
+  if (error || !data || data.length === 0) {
+    const { supabase: anonClient } = require("@/utils/supabaseClient");
+    const result = await anonClient
+      .from("mock_test")
+      .select("*")
+      .eq("uid", context.query.slug);
+    if (result.data && result.data.length > 0) {
+      data = result.data;
+      error = null;
+    }
   }
-  if (data) {
+
+  if (error || !data || data.length === 0) {
+    return { notFound: true };
   }
 
   function getStatus(givenStartTime, givenEndTime) {
