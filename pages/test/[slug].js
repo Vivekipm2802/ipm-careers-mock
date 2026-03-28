@@ -197,6 +197,45 @@ const Game = () => {
     });
   };
 
+  const saveTempAnswers = () => {
+    if (!tempAnswers || Object.keys(tempAnswers).length === 0) return;
+    Object.values(tempAnswers).forEach((answerData) => {
+      const { selectedOption, options, id, type, value } = answerData;
+      let isCorrect = false;
+      let answer = "";
+
+      if (type === "options") {
+        const currentOption = options?.[selectedOption - 1];
+        isCorrect = currentOption?.isCorrect;
+        answer = currentOption?.title;
+      } else if (type === "input") {
+        isCorrect = value === options?.answer;
+        answer = value;
+      }
+
+      const existingReport = report.find((item) => item.id == id);
+      let status = "answered";
+      if (existingReport) {
+        if (
+          existingReport.status === "review" ||
+          existingReport.status === "markedForReview"
+        ) {
+          status = "markedForReview";
+        }
+      }
+
+      addToReport({
+        id: id,
+        status: status,
+        selectedOption: selectedOption,
+        timestamp: timeDuration - totalSeconds,
+        isCorrect: isCorrect,
+        answer: answer,
+      });
+    });
+    setTempAnswers({});
+  };
+
   const handleSubmit = (answerData) => {
     // Clear temp answer when actually submitting
     setTempAnswers((prev) => {
@@ -527,7 +566,16 @@ const Game = () => {
                     item?.id == questions[level]?.id && item?.status == "review"
                 )}
                 onFinish={() => {
-                  if (!report || report.length === 0) {
+                  const hasTempAnswers =
+                    tempAnswers &&
+                    Object.keys(tempAnswers).length > 0;
+                  if (hasTempAnswers) {
+                    saveTempAnswers();
+                  }
+                  if (
+                    (!report || report.length === 0) &&
+                    !hasTempAnswers
+                  ) {
                     toast.error(
                       "Please attempt at least 1 question to submit the test"
                     );

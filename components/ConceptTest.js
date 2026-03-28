@@ -304,7 +304,16 @@ export default function Concept({ role, group, onBack }) {
       )
       .match({ user: userDetails?.email });
     if (data) {
-      setPlays(data);
+      setPlays((prev) => {
+        const prevPlays = prev || [];
+        const newUuids = new Set(a.map((i) => i.uuid));
+        const kept = prevPlays.filter((p) => {
+          const pUuid =
+            typeof p.test_uuid === "object" ? p.test_uuid.uuid : p.test_uuid;
+          return !newUuids.has(pUuid);
+        });
+        return [...kept, ...data];
+      });
     }
   }
   async function addNewGameCategory(a) {
