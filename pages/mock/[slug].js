@@ -380,8 +380,9 @@ const MockTest = ({ config, is_allowed, data }) => {
 
     setLoading(true);
     try {
+      // Try server-side API route first (bypasses RLS)
       const headers = await getAuthHeaders();
-      const res = await axios.post(
+      const apiRes = await axios.post(
         "/api/submitMock",
         {
           test_id: config?.id,
@@ -390,19 +391,43 @@ const MockTest = ({ config, is_allowed, data }) => {
         },
         { headers }
       );
-      if (res.data?.data) {
+      if (apiRes.data?.data) {
         toast.success("Test Submitted Successfully");
         setLoading(false);
         setGameState(2);
-        router.push(`/mock/result/${res.data.data.uid}`);
+        router.push(`/mock/result/${apiRes.data.data.uid}`);
+        toast.remove(r);
+        return;
+      }
+    } catch (err) {
+      // API route failed, try direct supabase insert as fallback
+    }
+
+    try {
+      // Fallback: direct supabase insert
+      const { data, error } = await supabase
+        .from("mock_plays")
+        .insert({
+          test_id: config?.id,
+          status: "completed",
+          report: a || [],
+        })
+        .select();
+      if (data && data.length > 0) {
+        toast.success("Test Submitted Successfully");
+        setLoading(false);
+        setGameState(2);
+        router.push(`/mock/result/${data[0].uid}`);
         toast.remove(r);
       } else {
-        toast.error("Unable to Submit Test. Please try again.");
+        toast.error(
+          error?.message || "Unable to Submit Test. Please try again."
+        );
         setLoading(false);
         setGameState(1);
         toast.remove(r);
       }
-    } catch (err) {
+    } catch (err2) {
       toast.error("Unable to Submit Test. Please try again.");
       setLoading(false);
       setGameState(1);

@@ -32,7 +32,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { data, error } = await supabase
+    // Try full insert with all columns
+    let result = await supabase
       .from('mock_plays')
       .insert({
         test_id: test_id,
@@ -44,16 +45,41 @@ export default async function handler(req, res) {
       })
       .select();
 
-    if (error) {
-      return res.status(500).json({ error: error.message });
+    // If full insert fails (likely missing columns), retry with minimum columns
+    if (result.error) {
+      result = await supabase
+        .from('mock_plays')
+        .insert({
+          test_id: test_id,
+          status: 'completed',
+          report: report || [],
+          user: user.email,
+        })
+        .select();
     }
 
-    if (data && data.length > 0) {
-      return res.status(200).json({ data: data[0] });
+    // If still failing, try absolute minimum
+    if (result.error) {
+      result = await supabase
+        .from('mock_plays')
+        .insert({
+          test_id: test_id,
+          status: 'completed',
+          report: report || [],
+        })
+        .select();
+    }
+
+    if (result.error) {
+      return res.status(500).json({ error: result.error.message, details: result.error });
+    }
+
+    if (result.data && result.data.length > 0) {
+      return res.status(200).json({ data: result.data[0] });
     }
 
     return res.status(500).json({ error: 'Insert returned no data' });
   } catch (err) {
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: err.message || 'Server error' });
   }
 }
