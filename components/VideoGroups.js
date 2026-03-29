@@ -81,16 +81,27 @@ async function addGroup(a){
         toast.error('Data Empty')
         return;
     }
-    if(a?.title == undefined|| a?.description == undefined|| a?.image == undefined){
+    if(!a?.title || !a?.description || !a?.image){
         toast.error('Please fill all the fields')
         return;
     }
-    const {data,error} = await supabase.from('video_groups').insert({...a,type:type}).select()
+    const insertData = {
+        title: a.title,
+        description: a.description,
+        image: a.image,
+        type: type,
+    };
+    if(a.course_id) insertData.course_id = a.course_id;
+    if(a.batch_id) insertData.batch_id = a.batch_id;
+
+    const {data,error} = await supabase.from('video_groups').insert(insertData).select()
     if(data){
+        toast.success('Collection Added Successfully')
+        setGroupData(undefined)
         getGroups()
     }
     if(error){
-        toast.error('Unable to Add')
+        toast.error('Unable to Add: ' + (error?.message || ''))
     }
 }
 async function getCourses(){
@@ -121,14 +132,21 @@ async function toggleDemo(a,b){
 }
 
 async function updateGroup(a){
+    if(!a?.id) return;
+    const updateData = {};
+    if(a.title !== undefined) updateData.title = a.title;
+    if(a.description !== undefined) updateData.description = a.description;
+    if(a.image !== undefined) updateData.image = a.image;
+    if(a.course_id !== undefined) updateData.course_id = a.course_id;
+    if(a.batch_id !== undefined) updateData.batch_id = a.batch_id;
 
-    const{data,error} = await supabase.from('video_groups').update(a).eq('id',a?.id).select()
+    const{data,error} = await supabase.from('video_groups').update(updateData).eq('id',a.id).select()
     if(data){
         getGroups()
         toast.success('Successfully Updated')
     }
     if(error){
-        toast.error('Unable to Update')
+        toast.error('Unable to Update: ' + (error?.message || ''))
     }
 }
 useEffect(()=>{
@@ -182,7 +200,7 @@ if(loading){
                         <PopoverTrigger >
                       <Button size="sm" color="success" fullWidth className="my-2" endContent={<EditIcon></EditIcon>}>Edit</Button>
                         </PopoverTrigger>
-                        <PopoverContent>
+                        <PopoverContent className="max-h-[70vh] overflow-y-auto">
                         <ImageUploader data={{image:editGroupdata?.image}} onUploadComplete={(e)=>{setEditGroupData(res=>({...res,image:e}))}}></ImageUploader>
                 <Input className="my-2" value={editGroupdata?.title} size="sm" label="Title" placeholder="Enter Title" onChange={(e)=>{setEditGroupData(res=>({...res,title:e.target.value}))}}></Input>
                 <Input className="my-2" value={editGroupdata?.description} size="sm" label="Description" placeholder="Enter Description" onChange={(e)=>{setEditGroupData(res=>({...res,description:e.target.value}))}}></Input>
@@ -213,7 +231,7 @@ if(loading){
                 <p>Add New Collection</p>
             </div>
             </PopoverTrigger>
-            <PopoverContent className="w-[400px]">
+            <PopoverContent className="w-[400px] max-h-[70vh] overflow-y-auto">
                 <ImageUploader data={{image:groupData?.image}} onUploadComplete={(e)=>{setGroupData(res=>({...res,image:e}))}}></ImageUploader>
                 <Input className="my-2" value={groupData?.title} size="sm" label="Title" placeholder="Enter Title" onChange={(e)=>{setGroupData(res=>({...res,title:e.target.value}))}}></Input>
                 <Input className="my-2" value={groupData?.description} size="sm" label="Description" placeholder="Enter Description" onChange={(e)=>{setGroupData(res=>({...res,description:e.target.value}))}}></Input>
