@@ -4,10 +4,20 @@
 import { serversupabase } from "../../utils/supabaseClient";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
-
-  // Simple auth token to prevent random hits
   if (req.query.token !== "fix15mock3") return res.status(403).json({ error: "bad token" });
+
+  // GET = diagnostic: return raw question data for given IDs
+  if (req.method === "GET") {
+    const ids = (req.query.ids || "").split(",").map(Number).filter(Boolean);
+    if (!ids.length) return res.status(400).json({ error: "pass ?ids=7437,7447,..." });
+    const { data, error } = await serversupabase
+      .from("mock_questions")
+      .select("id,question,options")
+      .in("id", ids);
+    return res.status(200).json({ data, error });
+  }
+
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   const results = [];
 
