@@ -1,6 +1,5 @@
-// TEMPORARY — apply 15 question fixes to Hash IPMAT Mock 3 (2026)
-// Delete this file after running once.
-
+// TEMPORARY — apply question fixes to Hash IPMAT Mock 3 (2026)
+// v3: smarter matching that handles HTML entities and tags
 import { serversupabase } from "../../utils/supabaseClient";
 
 export default async function handler(req, res) {
@@ -14,149 +13,118 @@ export default async function handler(req, res) {
       .from("mock_questions")
       .select("id,question,options")
       .in("id", ids);
+    // Strip base64 images from response to keep it small
+    if (data) {
+      data.forEach(d => {
+        d.question = d.question.replace(/data:image\/[^"']*/g, '[BASE64_IMG]');
+      });
+    }
     return res.status(200).json({ data, error });
   }
 
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  // PUT = smart fix with regex
+  if (req.method === "PUT") {
+    const results = [];
 
-  const results = [];
+    // Generic regex fix function
+    async function regexFix(id, regex, replacement, label) {
+      const { data, error: fetchErr } = await serversupabase
+        .from("mock_questions")
+        .select("question")
+        .eq("id", id)
+        .single();
+      if (fetchErr) { results.push({ id, label, status: "FETCH_ERROR", error: fetchErr.message }); return; }
 
-  // Helper: update question HTML text (find/replace in the `question` field)
-  async function fixQuestion(id, searchStr, replaceStr, label) {
-    const { data, error: fetchErr } = await serversupabase
-      .from("mock_questions")
-      .select("question")
-      .eq("id", id)
-      .single();
-    if (fetchErr) { results.push({ id, label, status: "FETCH_ERROR", error: fetchErr.message }); return; }
-    if (!data.question.includes(searchStr)) {
-      results.push({ id, label, status: "NOT_FOUND", searchStr });
-      return;
+      const original = data.question;
+      const updated = original.replace(regex, replacement);
+
+      if (original === updated) {
+        // Show a snippet around where we expected to find it
+        const plainText = original.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+        results.push({ id, label, status: "NO_CHANGE", snippet: plainText.substring(0, 200) });
+        return;
+      }
+
+      const { error: upErr } = await serversupabase
+        .from("mock_questions")
+        .update({ question: updated })
+        .eq("id", id);
+      results.push({ id, label, status: upErr ? "UPDATE_ERROR" : "OK", error: upErr?.message });
     }
-    const updated = data.question.replace(searchStr, replaceStr);
-    const { error: upErr } = await serversupabase
-      .from("mock_questions")
-      .update({ question: updated })
-      .eq("id", id);
-    results.push({ id, label, status: upErr ? "UPDATE_ERROR" : "OK", error: upErr?.message });
+
+    // Fix options
+    async function fixOpts(id, fixFn, label) {
+      const { data, error: fetchErr } = await serversupabase
+        .from("mock_questions")
+        .select("options")
+        .eq("id", id)
+        .single();
+      if (fetchErr) { results.push({ id, label, status: "FETCH_ERROR", error: fetchErr.message }); return; }
+      const newOpts = fixFn(data.options);
+      if (JSON.stringify(newOpts) === JSON.stringify(data.options)) {
+        results.push({ id, label, status: "NO_CHANGE", currentOpts: data.options.map(o=>o.title) });
+        return;
+      }
+      const { error: upErr } = await serversupabase
+        .from("mock_questions")
+        .update({ options: newOpts })
+        .eq("id", id);
+      results.push({ id, label, status: upErr ? "UPDATE_ERROR" : "OK", error: upErr?.message });
+    }
+
+    // ── SA Q4 (7437): IMAGE-BASED — "exceeding x" → "exceeding m" ──
+    // Question is a base64 image. Try anyway in case there's alt text or hidden text.
+    await regexFix(7437, /exceeding\s+x/gi, "exceeding m", "SA Q4: x→m (may be image)");
+
+    // ── SA Q14 (7447): "she sells" → "he sells" ──
+    // Text shows "Rohit...he sells" — check for "she" anywhere
+    await regexFix(7447, /\bshe\b/gi, "he", "SA Q14: she→he");
+
+    // ── MCQ Q12 (7460): Check/fix duplicate options ──
+    await fixOpts(7460, (opts) => {
+      // Check if any two options have the same title
+      const titles = opts.map(o => o.title.trim());
+      const hasDup = titles.length !== new Set(titles).size;
+      if (!hasDup) return opts; // No duplicates, already fine
+      return opts; // Return as-is if we don't know correct value
+    }, "MCQ Q12: dup check");
+
+    // ── MCQ Q21 (7469): typos in text ──
+    // "and th subtract" → "and then subtract"
+    // "results a found" → "results and found"
+    // The text has &nbsp; and HTML tags — use flexible regex
+    await regexFix(7469, /and\s+th\s+subtract/gi, "and then subtract", "MCQ Q21: th→then");
+    await regexFix(7469, /results\s+a\s+found/gi, "results and found", "MCQ Q21: a→and");
+    // Try also: "and th<" pattern (th might be followed by HTML tag)
+    await regexFix(7469, /and(\s|&nbsp;)+th(\s|&nbsp;)+/gi, "and then ", "MCQ Q21: th→then v2");
+    // Try "result a " pattern
+    await regexFix(7469, /result\s+a\s+/gi, "result and ", "MCQ Q21: result a→result and");
+
+    // ── MCQ Q26 (7474): IMAGE-BASED — "odd" → "even" ──
+    await regexFix(7474, /successive\s+odd\s+natural/gi, "successive even natural", "MCQ Q26: odd→even (may be image)");
+
+    // ── VA Q31 (7510): "different equation" → "differential equation" ──
+    await regexFix(7510, /different\s+equation/gi, "differential equation", "VA Q31: different→differential");
+    // Also try with &nbsp;
+    await regexFix(7510, /different(&nbsp;|\s)+equation/gi, "differential equation", "VA Q31: v2");
+
+    // ── VA Q42 (7521): "standards electroweak" → "standard electroweak" ──
+    await regexFix(7521, /standards\s+electroweak/gi, "standard electroweak", "VA Q42: standards→standard");
+    await regexFix(7521, /standards(&nbsp;|\s)+electroweak/gi, "standard electroweak", "VA Q42: v2");
+
+    // ── VA Q43 (7522): "five pairs of words" → "four pairs of words" ──
+    await regexFix(7522, /five\s+pairs\s+of\s+words/gi, "four pairs of words", "VA Q43: five→four");
+    await regexFix(7522, /five(&nbsp;|\s)+pairs/gi, "four pairs", "VA Q43: v2");
+    // Try "Five" specifically
+    await regexFix(7522, /Five\s+pairs/g, "Four pairs", "VA Q43: Five→Four");
+
+    // ── VA Q44 (7523): "five pairs of words" → "four pairs of words" ──
+    await regexFix(7523, /five\s+pairs\s+of\s+words/gi, "four pairs of words", "VA Q44: five→four");
+    await regexFix(7523, /five(&nbsp;|\s)+pairs/gi, "four pairs", "VA Q44: v2");
+    await regexFix(7523, /Five\s+pairs/g, "Four pairs", "VA Q44: Five→Four");
+
+    return res.status(200).json({ message: "v3 fix run complete", results });
   }
 
-  // Helper: fix options JSON
-  async function fixOptions(id, fixFn, label) {
-    const { data, error: fetchErr } = await serversupabase
-      .from("mock_questions")
-      .select("options")
-      .eq("id", id)
-      .single();
-    if (fetchErr) { results.push({ id, label, status: "FETCH_ERROR", error: fetchErr.message }); return; }
-    const newOptions = fixFn(data.options);
-    const { error: upErr } = await serversupabase
-      .from("mock_questions")
-      .update({ options: newOptions })
-      .eq("id", id);
-    results.push({ id, label, status: upErr ? "UPDATE_ERROR" : "OK", error: upErr?.message });
-  }
-
-  // ── SA SECTION ──
-  // SA Q4 (id:7437): "exceeding x" → "exceeding m"
-  await fixQuestion(7437, "exceeding x", "exceeding m", "SA Q4: x→m");
-
-  // SA Q6 (id:7439): "a2y" → "a2b"  (could be a²y or a2y in HTML)
-  // Try both variants
-  const { data: q7439 } = await serversupabase.from("mock_questions").select("question").eq("id", 7439).single();
-  if (q7439) {
-    let txt = q7439.question;
-    // Replace all variants: a²y, a2y, a<sup>2</sup>y
-    txt = txt.replace(/a²y/g, "a²b");
-    txt = txt.replace(/a2y/g, "a2b");
-    txt = txt.replace(/a<sup>2<\/sup>y/g, "a<sup>2</sup>b");
-    const { error } = await serversupabase.from("mock_questions").update({ question: txt }).eq("id", 7439);
-    results.push({ id: 7439, label: "SA Q6: a2y→a2b", status: error ? "UPDATE_ERROR" : "OK", error: error?.message });
-  }
-
-  // SA Q14 (id:7447): "she sells" → "he sells"  (case-insensitive first match)
-  await fixQuestion(7447, "she sells", "he sells", "SA Q14: she→he");
-  // Also try "She sells" variant
-  await fixQuestion(7447, "She sells", "He sells", "SA Q14: She→He");
-
-  // ── MCQ SECTION ──
-  // MCQ Q10 (id:7458): "Shyam" → "Aradhya"
-  const { data: q7458 } = await serversupabase.from("mock_questions").select("question").eq("id", 7458).single();
-  if (q7458) {
-    const txt = q7458.question.replace(/Shyam/g, "Aradhya");
-    const { error } = await serversupabase.from("mock_questions").update({ question: txt }).eq("id", 7458);
-    results.push({ id: 7458, label: "MCQ Q10: Shyam→Aradhya", status: error ? "UPDATE_ERROR" : "OK", error: error?.message });
-  }
-
-  // MCQ Q12 (id:7460): Duplicate options B and C both "24" — need to see current options to fix
-  await fixOptions(7460, (opts) => {
-    // Log current state and fix duplicate — B and C both show "24"
-    // We need to know what C should actually be. Based on the audit, one of them is wrong.
-    // For now, let's just flag it and return the options as-is if we can't determine the fix
-    // Actually from the audit context, this is about duplicate options where B=24 and C=24
-    // We need the correct value for one of them. Let's check and report.
-    return opts; // Will handle separately after seeing the data
-  }, "MCQ Q12: check duplicates");
-
-  // MCQ Q13 (id:7461): "+6" → "-6" in the function expression
-  const { data: q7461 } = await serversupabase.from("mock_questions").select("question").eq("id", 7461).single();
-  if (q7461) {
-    let txt = q7461.question;
-    // Try common patterns: "+ 6", "+6", "  6" at end of polynomial
-    txt = txt.replace(/\+\s*6(?!\d)/, "- 6");
-    const { error } = await serversupabase.from("mock_questions").update({ question: txt }).eq("id", 7461);
-    results.push({ id: 7461, label: "MCQ Q13: +6→-6", status: error ? "UPDATE_ERROR" : "OK", error: error?.message });
-  }
-
-  // MCQ Q21 (id:7469): "and th subtract" → "and then subtract"; "results a found" → "results and found"
-  await fixQuestion(7469, "and th subtract", "and then subtract", "MCQ Q21: th→then");
-  await fixQuestion(7469, "results a found", "results and found", "MCQ Q21: a→and");
-  // Also try without space variations
-  await fixQuestion(7469, "and th ", "and then ", "MCQ Q21: th→then v2");
-
-  // MCQ Q22 (id:7470): "mixture Q" → "mixture N"
-  const { data: q7470 } = await serversupabase.from("mock_questions").select("question").eq("id", 7470).single();
-  if (q7470) {
-    const txt = q7470.question.replace(/mixture Q/g, "mixture N");
-    const { error } = await serversupabase.from("mock_questions").update({ question: txt }).eq("id", 7470);
-    results.push({ id: 7470, label: "MCQ Q22: Q→N", status: error ? "UPDATE_ERROR" : "OK", error: error?.message });
-  }
-
-  // MCQ Q24 (id:7472): "a + b" → "m + n"
-  const { data: q7472 } = await serversupabase.from("mock_questions").select("question").eq("id", 7472).single();
-  if (q7472) {
-    let txt = q7472.question;
-    // Replace "a + b" with "m + n" — try common HTML patterns
-    txt = txt.replace(/a\s*\+\s*b/g, "m + n");
-    const { error } = await serversupabase.from("mock_questions").update({ question: txt }).eq("id", 7472);
-    results.push({ id: 7472, label: "MCQ Q24: a+b→m+n", status: error ? "UPDATE_ERROR" : "OK", error: error?.message });
-  }
-
-  // MCQ Q26 (id:7474): "successive odd natural numbers" → "successive even natural numbers"
-  await fixQuestion(7474, "successive odd natural numbers", "successive even natural numbers", "MCQ Q26: odd→even");
-
-  // ── VA SECTION ──
-  // VA Q31 (id:7510): "different equation" → "differential equation"
-  await fixQuestion(7510, "different equation", "differential equation", "VA Q31: different→differential");
-
-  // VA Q32 (id:7511): "sustained belie" → "sustained belief"
-  await fixQuestion(7511, "sustained belie", "sustained belief", "VA Q32: belie→belief");
-
-  // VA Q42 (id:7521): "standards electroweak" → "standard electroweak"
-  await fixQuestion(7521, "standards electroweak", "standard electroweak", "VA Q42: standards→standard");
-
-  // VA Q43 (id:7522): "five pairs of words" → "four pairs of words"
-  await fixQuestion(7522, "five pairs of words", "four pairs of words", "VA Q43: five→four");
-
-  // VA Q44 (id:7523): "five pairs of words" → "four pairs of words"
-  await fixQuestion(7523, "five pairs of words", "four pairs of words", "VA Q44: five→four");
-
-  // Also fetch MCQ Q12 options to see the duplicate issue
-  const { data: q7460data } = await serversupabase.from("mock_questions").select("options").eq("id", 7460).single();
-
-  res.status(200).json({
-    message: "Fix run complete",
-    results,
-    mcqQ12Options: q7460data?.options, // So we can see what needs fixing
-  });
+  return res.status(405).json({ error: "Use PUT for v3 fixes, GET for diagnostics" });
 }
