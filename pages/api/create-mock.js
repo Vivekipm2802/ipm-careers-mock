@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   // GET = diagnostic: show existing structure
   if (req.method === "GET") {
     const { data: cats } = await serversupabase.from("mock_categories").select("*").order("id");
-    const { data: tests } = await serversupabase.from("mock_tests").select("id,uid,title,category,course,config").order("id",{ascending:false}).limit(5);
+    const { data: tests } = await serversupabase.from("mock_test").select("id,uid,title,category,course,config").order("id",{ascending:false}).limit(5);
     const { data: subjects } = await serversupabase.from("mock_subjects").select("*").order("id");
 
     // Get groups for the most recent test to understand structure
