@@ -40,6 +40,7 @@ export default async function handler(req, res) {
           title: "IPMAT Indore Full-Length Mock 1",
           description: "Full-length IPMAT Indore mock test with 90 questions across 3 sections. Duration: 120 minutes.",
           category: 39, // IPMAT Indore 2026
+          course: 1, // IPMAT
           config: {
             switch_section: true,
             switch_questions: true,
@@ -60,100 +61,71 @@ export default async function handler(req, res) {
       log.push({ step: "test_created", id: testData.id });
       const testId = testData.id;
 
-      // Step 2: Get or find existing subjects
-      const { data: allSubjects } = await serversupabase.from("mock_subjects").select("*");
+      // Step 2: Create 3 subjects (following naming convention of other mocks)
+      const mockLabel = "IPMAT Indore Full-Length Mock 1";
 
-      // Find matching subjects or we'll use existing ones
-      let saSubjectId, mcqSubjectId, vaSubjectId;
+      const { data: subj1 } = await serversupabase.from("mock_subjects").insert({
+        title: "SA (IPMAT Indore FL Mock 1) 2026",
+        label: mockLabel,
+      }).select().single();
 
-      // Check if QA and VA subjects exist
-      const qaSubject = allSubjects?.find(s => s.title?.toLowerCase().includes("quantitative"));
-      const vaSubject = allSubjects?.find(s => s.title?.toLowerCase().includes("verbal"));
+      const { data: subj2 } = await serversupabase.from("mock_subjects").insert({
+        title: "MCQ (IPMAT Indore FL Mock 1) 2026",
+        label: mockLabel,
+      }).select().single();
 
-      if (!qaSubject || !vaSubject) {
-        // Create subjects if needed
-        if (!qaSubject) {
-          const { data: s } = await serversupabase.from("mock_subjects").insert({ title: "Quantitative Aptitude", label: "QA" }).select().single();
-          saSubjectId = s.id;
-          mcqSubjectId = s.id;
-        } else {
-          saSubjectId = qaSubject.id;
-          mcqSubjectId = qaSubject.id;
-        }
-        if (!vaSubject) {
-          const { data: s } = await serversupabase.from("mock_subjects").insert({ title: "Verbal Ability", label: "VA" }).select().single();
-          vaSubjectId = s.id;
-        } else {
-          vaSubjectId = vaSubject.id;
-        }
-      } else {
-        saSubjectId = qaSubject.id;
-        mcqSubjectId = qaSubject.id;
-        vaSubjectId = vaSubject.id;
-      }
-      log.push({ step: "subjects", saSubjectId, mcqSubjectId, vaSubjectId });
+      const { data: subj3 } = await serversupabase.from("mock_subjects").insert({
+        title: "VA (IPMAT Indore FL Mock 1) 2026",
+        label: mockLabel,
+      }).select().single();
+
+      log.push({ step: "subjects", sa: subj1?.id, mcq: subj2?.id, va: subj3?.id });
 
       // Step 3: Create 3 modules in the `mock` table
       const { data: mod1 } = await serversupabase.from("mock").insert({
         title: "QA Short Answer",
         type: "module",
-        subject: saSubjectId,
+        subject: subj1.id,
+        course: 1,
       }).select().single();
 
       const { data: mod2 } = await serversupabase.from("mock").insert({
         title: "QA MCQ",
         type: "module",
-        subject: mcqSubjectId,
+        subject: subj2.id,
+        course: 1,
       }).select().single();
 
       const { data: mod3 } = await serversupabase.from("mock").insert({
         title: "VA MCQ",
         type: "module",
-        subject: vaSubjectId,
+        subject: subj3.id,
+        course: 1,
       }).select().single();
 
       log.push({ step: "modules", mod1: mod1?.id, mod2: mod2?.id, mod3: mod3?.id });
 
-      // Step 4: Create mock_groups - first subjects, then modules
-      // Subject group for SA section
+      // Step 4: Create mock_groups
+      // Subject groups (sections visible in test)
       const { data: sg1 } = await serversupabase.from("mock_groups").insert({
         test: testId,
-        subject: saSubjectId,
+        subject: subj1.id,
         type: "subject",
         seq: 1,
-        pos: 4,
-        neg: 0,
       }).select().single();
-
-      // Subject group for MCQ section (same QA subject but separate section)
-      // Actually looking at the existing structure, each "section" in the test is a subject group
-      // For IPMAT we need 3 separate sections. Let me check if we need separate subjects.
-      // Looking at Hash Mock 3: it had 3 sections with parent IDs 235, 236, 237 for SA, MCQ, VA
-      // Each was a subject-type group, then modules under them
-
-      // Let me create a second QA subject for MCQ to keep sections separate
-      const { data: qaSubject2 } = await serversupabase.from("mock_subjects").insert({
-        title: "Quantitative Aptitude (MCQ)",
-        label: "QA MCQ"
-      }).select().single();
-      mcqSubjectId = qaSubject2?.id || mcqSubjectId;
 
       const { data: sg2 } = await serversupabase.from("mock_groups").insert({
         test: testId,
-        subject: mcqSubjectId,
+        subject: subj2.id,
         type: "subject",
         seq: 2,
-        pos: 4,
-        neg: 1,
       }).select().single();
 
       const { data: sg3 } = await serversupabase.from("mock_groups").insert({
         test: testId,
-        subject: vaSubjectId,
+        subject: subj3.id,
         type: "subject",
         seq: 3,
-        pos: 4,
-        neg: 1,
       }).select().single();
 
       log.push({ step: "subject_groups", sg1: sg1?.id, sg2: sg2?.id, sg3: sg3?.id });
