@@ -136,64 +136,83 @@ Return the JSON array now:`;
 }
 
 async function callGeminiWithRetry(apiKey, prompt, maxRetries) {
-  let lastError = null;
+  // Try multiple model names in case one is deprecated or unavailable
+  const models = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-001",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-latest",
+  ];
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    if (attempt > 0) {
-      // Exponential backoff: 2s, 4s, 8s
-      const waitMs = Math.pow(2, attempt) * 1000;
-      console.log(`Retry attempt ${attempt}, waiting ${waitMs}ms...`);
-      await new Promise((resolve) => setTimeout(resolve, waitMs));
-    }
+  for (const model of models) {
+    let lastError = null;
 
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 16384,
-              responseMimeType: "application/json",
-            },
-          }),
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (attempt > 0) {
+        const waitMs = Math.pow(2, attempt) * 1000;
+        console.log(`Retry attempt ${attempt} for ${model}, waiting ${waitMs}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+      }
+
+      try {
+        console.log(`Trying model: ${model}, attempt ${attempt + 1}`);
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 16384,
+                responseMimeType: "application/json",
+              },
+            }),
+          }
+        );
+
+        if (response.status === 429) {
+          lastError = `Rate limited (429) on ${model}`;
+          console.log(lastError);
+          continue; // Retry same model
         }
-      );
 
-      if (response.status === 429) {
-        const errorText = await response.text();
-        lastError = `Rate limited (429). Attempt ${attempt + 1}/${maxRetries + 1}`;
-        console.log(lastError);
-        continue; // Retry
+        if (response.status === 404) {
+          console.log(`Model ${model} not found (404), trying next model...`);
+          break; // Try next model
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          lastError = `${model} returned ${response.status}: ${errorText}`;
+          console.log(lastError);
+          break; // Try next model for non-retryable errors
+        }
+
+        const data = await response.json();
+
+        if (!data.candidates || data.candidates.length === 0) {
+          lastError = `No candidates from ${model}`;
+          break; // Try next model
+        }
+
+        const text = data.candidates[0].content?.parts?.[0]?.text;
+        if (!text) {
+          lastError = `Empty response from ${model}`;
+          break; // Try next model
+        }
+
+        console.log(`Success with model: ${model}`);
+        return { text };
+      } catch (err) {
+        lastError = `Fetch error on ${model}: ${err.message}`;
+        if (attempt < maxRetries) continue;
       }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        return { error: `Gemini API returned ${response.status}: ${errorText}` };
-      }
-
-      const data = await response.json();
-
-      if (!data.candidates || data.candidates.length === 0) {
-        return { error: "No response candidates from Gemini" };
-      }
-
-      const text = data.candidates[0].content?.parts?.[0]?.text;
-      if (!text) {
-        return { error: "Empty text in Gemini response" };
-      }
-
-      return { text };
-    } catch (err) {
-      lastError = `Fetch error: ${err.message}`;
-      if (attempt < maxRetries) continue;
     }
   }
 
-  return { error: `All ${maxRetries + 1} attempts failed. Last error: ${lastError}` };
+  return { error: "All models and retries failed. Please check your Gemini API key and billing." };
 }
 
 function parseGeminiResponse(text) {
