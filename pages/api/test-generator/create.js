@@ -36,12 +36,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "sections must be a non-empty array" });
     }
 
-    // Merge courses into config for multi-course support
+    // Merge courses and section details into config for multi-course support
     const testConfig = {
       ...(config || {}),
       courses: courses || [primaryCourse],
       generatorType,
       difficulty,
+      sectionDetails: sections.map((s) => ({
+        subjectTitle: s.subjectTitle,
+        time: s.time || 0,
+        markingScheme: s.markingScheme || {},
+      })),
     };
 
     // Step 1: Create mock_test record

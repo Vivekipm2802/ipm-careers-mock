@@ -112,7 +112,29 @@ function CustomTestGenerator({ userData, role }) {
     loadCourses();
   }, []);
 
+  // Category names that map to test types
+  const TYPE_CATEGORY_NAMES = {
+    concept: "Concept Tests",
+    sectional: "Sectional Tests",
+    fullmock: "Full Length Mocks",
+  };
+
   async function loadCategories() {
+    try {
+      // Call server-side API to ensure test-type categories exist (bypasses RLS)
+      const res = await fetch("/api/test-generator/ensure-categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const result = await res.json();
+      if (result.success && result.categories) {
+        setCategories(result.categories);
+        return;
+      }
+    } catch (e) {
+      console.error("ensure-categories failed, falling back:", e);
+    }
+    // Fallback: just load categories normally
     const { data } = await supabase
       .from("mock_categories")
       .select("*")
@@ -125,25 +147,16 @@ function CustomTestGenerator({ userData, role }) {
     if (data) setCourses(data);
   }
 
-  // Auto-map test type to category
-  const CATEGORY_MAP = {
-    concept: ["concept"],
-    sectional: ["sectional"],
-    fullmock: ["full length", "full mock", "fullmock", "full-length"],
-  };
-
   useEffect(() => {
     const type = TEST_TYPES.find((t) => t.key === testType);
     if (type) {
       setTimeLimit(type.defaultTime);
       setConfig((c) => ({ ...c, timeout: type.defaultTime }));
     }
-    // Auto-select matching category
+    // Auto-select matching category based on test type
     if (categories.length > 0) {
-      const keywords = CATEGORY_MAP[testType] || [];
-      const match = categories.find((c) =>
-        keywords.some((kw) => c.title.toLowerCase().includes(kw))
-      );
+      const catName = TYPE_CATEGORY_NAMES[testType];
+      const match = categories.find((c) => c.title === catName);
       if (match) setSelectedCategory(match.id);
     }
   }, [testType, categories]);
@@ -167,9 +180,60 @@ function CustomTestGenerator({ userData, role }) {
         mcqNeg: 1,
         saPos: 4,
         saNeg: 0,
-        time: 0,
+        time: testType === "fullmock" ? 2400 : 0,
       },
     ]);
+  }
+
+  // Pre-create all IPMAT sections for full-length mock
+  function createFullMockTemplate() {
+    const template = [
+      {
+        subjectTitle: "Quantitative Ability",
+        topics: [
+          { topicName: "Algebra", mcqCount: 5, saCount: 3 },
+          { topicName: "Arithmetic", mcqCount: 5, saCount: 3 },
+          { topicName: "Geometry", mcqCount: 3, saCount: 2 },
+          { topicName: "Number System", mcqCount: 3, saCount: 2 },
+        ],
+        mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+        time: 2400,
+      },
+      {
+        subjectTitle: "Verbal Ability",
+        topics: [
+          { topicName: "Reading Comprehension", mcqCount: 8, saCount: 0 },
+          { topicName: "Vocabulary", mcqCount: 5, saCount: 0 },
+          { topicName: "Grammar", mcqCount: 5, saCount: 0 },
+          { topicName: "Para Jumbles", mcqCount: 4, saCount: 0 },
+        ],
+        mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+        time: 2400,
+      },
+      {
+        subjectTitle: "Data Interpretation",
+        topics: [
+          { topicName: "Tables", mcqCount: 4, saCount: 2 },
+          { topicName: "Bar Graphs", mcqCount: 3, saCount: 2 },
+          { topicName: "Pie Charts", mcqCount: 3, saCount: 1 },
+        ],
+        mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+        time: 1200,
+      },
+      {
+        subjectTitle: "Logical Reasoning",
+        topics: [
+          { topicName: "Arrangements", mcqCount: 4, saCount: 0 },
+          { topicName: "Puzzles", mcqCount: 4, saCount: 0 },
+          { topicName: "Syllogisms", mcqCount: 3, saCount: 0 },
+          { topicName: "Blood Relations", mcqCount: 3, saCount: 0 },
+        ],
+        mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+        time: 1200,
+      },
+    ];
+    setSections(template);
+    toast.success("Full mock template loaded with 4 sections!");
   }
 
   function removeSection(idx) {
@@ -516,9 +580,28 @@ function CustomTestGenerator({ userData, role }) {
           Add subjects and topics. AI will generate questions for each topic.
         </p>
 
+        {/* Full Mock Template button */}
+        {testType === "fullmock" && sections.length === 0 && (
+          <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
+            <p className="font-semibold text-purple-800 mb-2">Full-Length Mock Template</p>
+            <p className="text-sm text-gray-600 mb-3">
+              Load a pre-configured IPMAT mock template with all 4 sections (QA, VA, DI, LR),
+              pre-set topics, question counts, and sectional timing.
+            </p>
+            <Button
+              color="secondary"
+              onClick={createFullMockTemplate}
+            >
+              Load IPMAT Full Mock Template
+            </Button>
+          </div>
+        )}
+
         {/* Quick add subject buttons */}
         <div>
-          <p className="text-sm font-semibold mb-2 text-gray-700">Quick Add Subject</p>
+          <p className="text-sm font-semibold mb-2 text-gray-700">
+            {testType === "fullmock" ? "Add / Edit Sections" : "Quick Add Subject"}
+          </p>
           <div className="flex gap-2 flex-wrap">
             {SUBJECT_PRESETS.map((s) => (
               <Button
@@ -696,6 +779,54 @@ function CustomTestGenerator({ userData, role }) {
                       description="Usually 0 for SA"
                     />
                   </div>
+
+                  {/* Sectional Timing */}
+                  <div className="mt-3">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">
+                      Section Time Limit
+                      {testType === "fullmock" && (
+                        <span className="text-xs font-normal text-purple-600 ml-2">
+                          (Required for full-length mocks)
+                        </span>
+                      )}
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <Input
+                        type="number"
+                        label="Minutes"
+                        size="sm"
+                        className="w-32"
+                        value={String(Math.floor((section.time || 0) / 60))}
+                        min={0}
+                        onChange={(e) => {
+                          const mins = parseInt(e.target.value) || 0;
+                          const currentSecs = (section.time || 0) % 60;
+                          updateSection(sIdx, "time", mins * 60 + currentSecs);
+                        }}
+                        variant="bordered"
+                      />
+                      <Input
+                        type="number"
+                        label="Seconds"
+                        size="sm"
+                        className="w-32"
+                        value={String((section.time || 0) % 60)}
+                        min={0}
+                        max={59}
+                        onChange={(e) => {
+                          const secs = Math.min(59, parseInt(e.target.value) || 0);
+                          const currentMins = Math.floor((section.time || 0) / 60);
+                          updateSection(sIdx, "time", currentMins * 60 + secs);
+                        }}
+                        variant="bordered"
+                      />
+                      <p className="text-sm text-gray-500">
+                        {section.time > 0
+                          ? `${Math.floor(section.time / 60)}m ${section.time % 60}s`
+                          : "No section limit (uses total time)"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </CardBody>
             </Card>
@@ -703,13 +834,27 @@ function CustomTestGenerator({ userData, role }) {
         )}
 
         {sections.length > 0 && (
-          <div className="flex justify-between items-center p-3 bg-purple-50 rounded-xl">
-            <p className="font-semibold text-purple-800">
-              Total Questions to Generate: {totalQuestions}
-            </p>
-            <p className="text-sm text-gray-600">
-              Sections: {sections.length} | Time: {Math.floor(timeLimit / 60)} min
-            </p>
+          <div className="flex flex-col gap-2 p-3 bg-purple-50 rounded-xl">
+            <div className="flex justify-between items-center">
+              <p className="font-semibold text-purple-800">
+                Total Questions to Generate: {totalQuestions}
+              </p>
+              <p className="text-sm text-gray-600">
+                Sections: {sections.length} | Total Time: {Math.floor(timeLimit / 60)} min
+              </p>
+            </div>
+            {testType === "fullmock" && (
+              <div className="flex gap-2 flex-wrap">
+                {sections.map((s, idx) => (
+                  <Chip key={idx} size="sm" variant="flat" color={s.time > 0 ? "success" : "warning"}>
+                    {s.subjectTitle}: {s.time > 0 ? `${Math.floor(s.time / 60)}m` : "No limit"}
+                  </Chip>
+                ))}
+                <Chip size="sm" variant="flat" color="secondary">
+                  Sum: {Math.floor(sections.reduce((a, s) => a + (s.time || 0), 0) / 60)}m
+                </Chip>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -947,6 +1092,7 @@ function CustomTestGenerator({ userData, role }) {
                 <p className="text-sm text-gray-500">
                   {generatedQuestions.filter((q) => q.sectionTitle === s.subjectTitle).length}{" "}
                   questions | MCQ: +{s.mcqPos}/-{s.mcqNeg} | SA: +{s.saPos}/-{s.saNeg}
+                  {s.time > 0 && ` | Time: ${Math.floor(s.time / 60)}m ${s.time % 60 > 0 ? `${s.time % 60}s` : ""}`}
                 </p>
                 <div className="flex gap-1 mt-1 flex-wrap">
                   {s.topics
