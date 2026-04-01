@@ -64,6 +64,7 @@ import Dashboard from "@/components/Dashboard";
 import MockTests from "@/components/MockTests";
 import Concept from "@/components/ConceptTest";
 import MockTestEditor from "@/components/MockTestEditor";
+import CustomTestGenerator from "@/components/CustomTestGenerator";
 import PerformanceUser from "@/components/PerformanceUser";
 import SectionalTest from "@/components/SectionalTest";
 import DailyLearn from "@/components/DailyLearn";
@@ -2817,6 +2818,17 @@ export default function Home(props) {
                       userData={userData}
                       role={props?.type || "user"}
                     ></MockTestEditor>
+                  </div>
+                ) : (
+                  ""
+                )}
+
+                {slug == "test-generator" ? (
+                  <div className="flex flex-col w-full h-full">
+                    <CustomTestGenerator
+                      userData={userData}
+                      role={props?.type || "user"}
+                    />
                   </div>
                 ) : (
                   ""
