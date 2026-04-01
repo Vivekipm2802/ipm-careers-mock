@@ -11,6 +11,7 @@ export default async function handler(req, res) {
       description,
       category,
       course,
+      courses,
       generatorType,
       difficulty,
       timeLimit,
@@ -20,7 +21,8 @@ export default async function handler(req, res) {
     } = req.body;
 
     // Validate required fields
-    if (!title || !category || !course || !sections) {
+    const primaryCourse = course || (courses && courses[0]) || null;
+    if (!title || !category || !primaryCourse || !sections) {
       return res.status(400).json({
         error: "Missing required fields: title, category, course, sections",
       });
@@ -34,6 +36,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "sections must be a non-empty array" });
     }
 
+    // Merge courses into config for multi-course support
+    const testConfig = {
+      ...(config || {}),
+      courses: courses || [primaryCourse],
+      generatorType,
+      difficulty,
+    };
+
     // Step 1: Create mock_test record
     const { data: newTest, error: testError } = await serversupabase
       .from("mock_test")
@@ -41,8 +51,8 @@ export default async function handler(req, res) {
         {
           title,
           category,
-          course,
-          config: config || {},
+          course: primaryCourse,
+          config: testConfig,
           description: description || `Generated ${generatorType} test via AI`,
         },
       ])
@@ -60,7 +70,7 @@ export default async function handler(req, res) {
     // Step 2: For each section, create the full hierarchy
     for (let sIdx = 0; sIdx < sections.length; sIdx++) {
       const section = sections[sIdx];
-      const { subjectTitle, topics, markingScheme, questionType } = section;
+      const { subjectTitle, topics, markingScheme } = section;
 
       // Find or create subject
       let subjectId = null;
@@ -87,7 +97,7 @@ export default async function handler(req, res) {
         subjectId = newSubject.id;
       }
 
-      // Create subject-level group
+      // Create subject-level group (using MCQ marking as primary)
       const { data: subjectGroup, error: subjectGroupError } = await serversupabase
         .from("mock_groups")
         .insert([
@@ -96,8 +106,8 @@ export default async function handler(req, res) {
             type: "subject",
             subject: subjectId,
             seq: sIdx,
-            pos: markingScheme?.pos || 4,
-            neg: markingScheme?.neg || 1,
+            pos: markingScheme?.mcqPos || markingScheme?.pos || 4,
+            neg: markingScheme?.mcqNeg || markingScheme?.neg || 1,
             time: section.time || 0,
           },
         ])
@@ -122,7 +132,7 @@ export default async function handler(req, res) {
               title: topicName,
               type: "module",
               subject: subjectId,
-              course,
+              course: primaryCourse,
               description: `AI-generated module for ${topicName}`,
             },
           ])

@@ -386,7 +386,8 @@ export default function MockTests({ enrolled = [] }) {
                                   i?.config?.public_access !== true &&
                                   !enrolled?.some(
                                     (enrollment) =>
-                                      enrollment?.course?.id === i?.course,
+                                      enrollment?.course?.id === i?.course ||
+                                      i?.config?.courses?.includes(enrollment?.course?.id),
                                   )
                                 }
                                 i={i}
@@ -419,7 +420,7 @@ export default function MockTests({ enrolled = [] }) {
                           <Divider className="my-1"></Divider>
 
                           {tests == undefined ||
-                          tests?.filter((item) => item.course == i.id) == 0 ? (
+                          tests?.filter((item) => item.course == i.id || item.config?.courses?.includes(i.id)) == 0 ? (
                             <div className="rounded-xl border-gray-300 border-1 border-dashed text-gray-600 my-2 p-2 text-center ">
                               No Test Found in this Category
                             </div>
@@ -428,7 +429,7 @@ export default function MockTests({ enrolled = [] }) {
                           )}
                           {tests &&
                             tests
-                              ?.filter((item) => item.course == i.id)
+                              ?.filter((item) => item.course == i.id || item.config?.courses?.includes(i.id))
                               ?.map((z, d) => {
                                 return (
                                   <ListCard

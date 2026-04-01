@@ -84,7 +84,7 @@ function CustomTestGenerator({ userData, role }) {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedCourses, setSelectedCourses] = useState([]);
   const [config, setConfig] = useState({
     switch_section: true,
     switch_questions: true,
@@ -96,7 +96,7 @@ function CustomTestGenerator({ userData, role }) {
 
   // Step 1: Define sections & topics
   const [sections, setSections] = useState([]);
-  // Each section: { subjectTitle, topics: [{ topicName, mcqCount, saCount }], pos, neg, time }
+  // Each section: { subjectTitle, topics: [{ topicName, mcqCount, saCount }], mcqPos, mcqNeg, saPos, saNeg, time }
 
   // Step 2: Generated questions
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
@@ -125,13 +125,28 @@ function CustomTestGenerator({ userData, role }) {
     if (data) setCourses(data);
   }
 
+  // Auto-map test type to category
+  const CATEGORY_MAP = {
+    concept: ["concept"],
+    sectional: ["sectional"],
+    fullmock: ["full length", "full mock", "fullmock", "full-length"],
+  };
+
   useEffect(() => {
     const type = TEST_TYPES.find((t) => t.key === testType);
     if (type) {
       setTimeLimit(type.defaultTime);
       setConfig((c) => ({ ...c, timeout: type.defaultTime }));
     }
-  }, [testType]);
+    // Auto-select matching category
+    if (categories.length > 0) {
+      const keywords = CATEGORY_MAP[testType] || [];
+      const match = categories.find((c) =>
+        keywords.some((kw) => c.title.toLowerCase().includes(kw))
+      );
+      if (match) setSelectedCategory(match.id);
+    }
+  }, [testType, categories]);
 
   // --- Section management ---
   function addSection(subjectTitle) {
@@ -148,8 +163,10 @@ function CustomTestGenerator({ userData, role }) {
         topics: presetTopics.length > 0
           ? [{ topicName: presetTopics[0], mcqCount: 5, saCount: 0 }]
           : [{ topicName: "", mcqCount: 5, saCount: 0 }],
-        pos: 4,
-        neg: 1,
+        mcqPos: 4,
+        mcqNeg: 1,
+        saPos: 4,
+        saNeg: 0,
         time: 0,
       },
     ]);
@@ -264,7 +281,8 @@ function CustomTestGenerator({ userData, role }) {
         title: testTitle,
         description: testDesc,
         category: selectedCategory,
-        course: selectedCourse,
+        course: selectedCourses[0] || null,
+        courses: selectedCourses,
         generatorType: testType,
         difficulty,
         timeLimit,
@@ -277,11 +295,11 @@ function CustomTestGenerator({ userData, role }) {
               mcqCount: parseInt(t.mcqCount) || 0,
               saCount: parseInt(t.saCount) || 0,
             })),
-          markingScheme: { pos: s.pos, neg: s.neg },
+          markingScheme: { mcqPos: s.mcqPos, mcqNeg: s.mcqNeg, saPos: s.saPos, saNeg: s.saNeg },
           time: s.time,
         })),
         generatedQuestions,
-        config: { ...config, timeout: timeLimit },
+        config: { ...config, timeout: timeLimit, courses: selectedCourses },
       };
 
       const res = await fetch("/api/test-generator/create", {
@@ -312,7 +330,7 @@ function CustomTestGenerator({ userData, role }) {
   function canProceed() {
     switch (step) {
       case 0:
-        return testTitle.trim() && selectedCategory && selectedCourse;
+        return testTitle.trim() && selectedCategory && selectedCourses.length > 0;
       case 1:
         return totalQuestions > 0 && sections.every((s) =>
           s.topics.some((t) => t.topicName && ((parseInt(t.mcqCount) || 0) + (parseInt(t.saCount) || 0)) > 0)
@@ -391,13 +409,14 @@ function CustomTestGenerator({ userData, role }) {
           </Select>
 
           <Select
-            label="Course"
-            placeholder="Select course"
+            label="Course(s)"
+            placeholder="Select one or more courses"
             variant="bordered"
-            selectedKeys={selectedCourse ? [String(selectedCourse)] : []}
+            selectionMode="multiple"
+            selectedKeys={new Set(selectedCourses.map(String))}
             onSelectionChange={(keys) => {
-              const val = Array.from(keys)[0];
-              setSelectedCourse(val ? Number(val) : null);
+              const vals = Array.from(keys).map(Number).filter(Boolean);
+              setSelectedCourses(vals);
             }}
           >
             {courses.map((c) => (
@@ -546,34 +565,14 @@ function CustomTestGenerator({ userData, role }) {
                     questions total
                   </p>
                 </div>
-                <div className="flex gap-3 items-center">
-                  <Input
-                    type="number"
-                    label="+Marks"
-                    size="sm"
-                    className="w-20"
-                    value={String(section.pos)}
-                    onChange={(e) => updateSection(sIdx, "pos", Number(e.target.value))}
-                    variant="bordered"
-                  />
-                  <Input
-                    type="number"
-                    label="-Marks"
-                    size="sm"
-                    className="w-20"
-                    value={String(section.neg)}
-                    onChange={(e) => updateSection(sIdx, "neg", Number(e.target.value))}
-                    variant="bordered"
-                  />
-                  <Button
-                    color="danger"
-                    variant="light"
-                    size="sm"
-                    onClick={() => removeSection(sIdx)}
-                  >
-                    Remove
-                  </Button>
-                </div>
+                <Button
+                  color="danger"
+                  variant="light"
+                  size="sm"
+                  onClick={() => removeSection(sIdx)}
+                >
+                  Remove
+                </Button>
               </CardHeader>
               <CardBody>
                 <div className="flex flex-col gap-3">
@@ -658,6 +657,45 @@ function CustomTestGenerator({ userData, role }) {
                   >
                     + Add Topic
                   </Button>
+
+                  <Divider className="my-3" />
+
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Marking Scheme</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Input
+                      type="number"
+                      label="MCQ +Marks"
+                      size="sm"
+                      value={String(section.mcqPos)}
+                      onChange={(e) => updateSection(sIdx, "mcqPos", Number(e.target.value))}
+                      variant="bordered"
+                    />
+                    <Input
+                      type="number"
+                      label="MCQ -Marks"
+                      size="sm"
+                      value={String(section.mcqNeg)}
+                      onChange={(e) => updateSection(sIdx, "mcqNeg", Number(e.target.value))}
+                      variant="bordered"
+                    />
+                    <Input
+                      type="number"
+                      label="SA +Marks"
+                      size="sm"
+                      value={String(section.saPos)}
+                      onChange={(e) => updateSection(sIdx, "saPos", Number(e.target.value))}
+                      variant="bordered"
+                    />
+                    <Input
+                      type="number"
+                      label="SA -Marks"
+                      size="sm"
+                      value={String(section.saNeg)}
+                      onChange={(e) => updateSection(sIdx, "saNeg", Number(e.target.value))}
+                      variant="bordered"
+                      description="Usually 0 for SA"
+                    />
+                  </div>
                 </div>
               </CardBody>
             </Card>
@@ -839,6 +877,7 @@ function CustomTestGenerator({ userData, role }) {
               setGeneratedQuestions([]);
               setPublishResult(null);
               setGenerationError(null);
+              setSelectedCourses([]);
             }}
           >
             Create Another Test
@@ -865,10 +904,20 @@ function CustomTestGenerator({ userData, role }) {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Category</p>
+                <p className="text-sm text-gray-500">Category (Tab)</p>
                 <p className="font-semibold">
                   {categories.find((c) => c.id === selectedCategory)?.title || "N/A"}
                 </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Course(s)</p>
+                <div className="flex gap-1 flex-wrap">
+                  {selectedCourses.map((cId) => (
+                    <Chip key={cId} size="sm" variant="flat" color="primary">
+                      {courses.find((c) => c.id === cId)?.title || cId}
+                    </Chip>
+                  ))}
+                </div>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Difficulty</p>
@@ -897,7 +946,7 @@ function CustomTestGenerator({ userData, role }) {
                 <p className="font-medium">{s.subjectTitle}</p>
                 <p className="text-sm text-gray-500">
                   {generatedQuestions.filter((q) => q.sectionTitle === s.subjectTitle).length}{" "}
-                  questions | +{s.pos}/-{s.neg} marks
+                  questions | MCQ: +{s.mcqPos}/-{s.mcqNeg} | SA: +{s.saPos}/-{s.saNeg}
                 </p>
                 <div className="flex gap-1 mt-1 flex-wrap">
                   {s.topics
