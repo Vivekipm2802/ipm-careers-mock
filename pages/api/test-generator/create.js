@@ -13,22 +13,21 @@ export default async function handler(req, res) {
       course,
       generatorType,
       difficulty,
-      totalQuestions,
       timeLimit,
       sections,
-      selectedQuestionIds,
+      generatedQuestions,
       config,
     } = req.body;
 
     // Validate required fields
-    if (!title || !category || !course || !sections || !selectedQuestionIds) {
+    if (!title || !category || !course || !sections) {
       return res.status(400).json({
-        error: "Missing required fields: title, category, course, sections, selectedQuestionIds",
+        error: "Missing required fields: title, category, course, sections",
       });
     }
 
-    if (!Array.isArray(selectedQuestionIds) || selectedQuestionIds.length === 0) {
-      return res.status(400).json({ error: "selectedQuestionIds must be a non-empty array" });
+    if (!Array.isArray(generatedQuestions) || generatedQuestions.length === 0) {
+      return res.status(400).json({ error: "generatedQuestions must be a non-empty array" });
     }
 
     if (!Array.isArray(sections) || sections.length === 0) {
@@ -44,7 +43,7 @@ export default async function handler(req, res) {
           category,
           course,
           config: config || {},
-          description: description || `Generated ${generatorType} test`,
+          description: description || `Generated ${generatorType} test via AI`,
         },
       ])
       .select("id")
@@ -56,14 +55,39 @@ export default async function handler(req, res) {
     }
 
     const testId = newTest.id;
+    let totalQuestionsInserted = 0;
 
-    // Step 2: Create subject-level groups (mock_groups with type='subject')
-    const subjectGroupsData = [];
-    const subjectGroupMap = {}; // Map subjectId to group ID for later use
+    // Step 2: For each section, create the full hierarchy
+    for (let sIdx = 0; sIdx < sections.length; sIdx++) {
+      const section = sections[sIdx];
+      const { subjectTitle, topics, markingScheme, questionType } = section;
 
-    for (const section of sections) {
-      const { subjectId, subjectTitle, markingScheme } = section;
+      // Find or create subject
+      let subjectId = null;
+      const { data: existingSubject } = await serversupabase
+        .from("mock_subjects")
+        .select("id")
+        .ilike("title", subjectTitle)
+        .single();
 
+      if (existingSubject) {
+        subjectId = existingSubject.id;
+      } else {
+        // Create new subject
+        const { data: newSubject, error: subjectError } = await serversupabase
+          .from("mock_subjects")
+          .insert([{ title: subjectTitle }])
+          .select("id")
+          .single();
+
+        if (subjectError || !newSubject) {
+          console.error("Error creating subject:", subjectError);
+          return res.status(500).json({ error: "Failed to create subject: " + subjectTitle });
+        }
+        subjectId = newSubject.id;
+      }
+
+      // Create subject-level group
       const { data: subjectGroup, error: subjectGroupError } = await serversupabase
         .from("mock_groups")
         .insert([
@@ -71,7 +95,7 @@ export default async function handler(req, res) {
             test: testId,
             type: "subject",
             subject: subjectId,
-            seq: sections.indexOf(section),
+            seq: sIdx,
             pos: markingScheme?.pos || 4,
             neg: markingScheme?.neg || 1,
             time: section.time || 0,
@@ -85,172 +109,93 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: "Failed to create subject group" });
       }
 
-      subjectGroupMap[subjectId] = subjectGroup.id;
-    }
+      // Step 3: For each topic in the section, create module + questions
+      for (let tIdx = 0; tIdx < (topics || []).length; tIdx++) {
+        const topic = topics[tIdx];
+        const { topicName } = topic;
 
-    // Step 3: Create mock (module) records and module-level groups
-    const moduleGroupMap = {}; // Map moduleId to group ID
-
-    for (const section of sections) {
-      const { subjectId, modules } = section;
-      const parentSubGroupId = subjectGroupMap[subjectId];
-
-      for (const moduleInfo of modules || []) {
-        const { moduleId, title: moduleTitle, questionCount } = moduleInfo;
-
-        // Create a new mock (module) record
-        const { data: newModule, error: moduleError } = await serversupabase
+        // Create mock (module) record
+        const { data: newMod, error: modError } = await serversupabase
           .from("mock")
           .insert([
             {
-              title: moduleTitle,
+              title: topicName,
               type: "module",
               subject: subjectId,
               course,
-              description: `Module for generated test`,
+              description: `AI-generated module for ${topicName}`,
             },
           ])
           .select("id")
           .single();
 
-        if (moduleError || !newModule) {
-          console.error("Error creating module:", moduleError);
-          return res.status(500).json({ error: "Failed to create module" });
+        if (modError || !newMod) {
+          console.error("Error creating module:", modError);
+          return res.status(500).json({ error: "Failed to create module: " + topicName });
         }
 
-        const newModuleId = newModule.id;
-
         // Create module-level group
-        const { data: moduleGroup, error: moduleGroupError } = await serversupabase
+        const { data: modGroup, error: modGroupError } = await serversupabase
           .from("mock_groups")
           .insert([
             {
               test: testId,
               type: "module",
-              module: newModuleId,
-              parent_sub: parentSubGroupId,
-              seq: modules.indexOf(moduleInfo),
+              module: newMod.id,
+              parent_sub: subjectGroup.id,
+              seq: tIdx,
             },
           ])
           .select("id")
           .single();
 
-        if (moduleGroupError || !moduleGroup) {
-          console.error("Error creating module group:", moduleGroupError);
+        if (modGroupError || !modGroup) {
+          console.error("Error creating module group:", modGroupError);
           return res.status(500).json({ error: "Failed to create module group" });
         }
 
-        moduleGroupMap[moduleId] = newModuleId;
-      }
-    }
-
-    // Step 4: Copy selected questions to new modules
-    const { data: sourceQuestions, error: sourceError } = await serversupabase
-      .from("mock_questions")
-      .select("id, question, type, options, explanation, hint, video, seq")
-      .in("id", selectedQuestionIds);
-
-    if (sourceError || !sourceQuestions) {
-      console.error("Error fetching source questions:", sourceError);
-      return res.status(500).json({ error: "Failed to fetch source questions" });
-    }
-
-    // Determine which new module each question should go to
-    // For simplicity, distribute questions to modules based on sections
-    const questionsByModule = {};
-    let questionIndex = 0;
-
-    for (const section of sections) {
-      for (const moduleInfo of section.modules || []) {
-        questionsByModule[moduleInfo.moduleId] = [];
-      }
-    }
-
-    // Distribute questions among modules
-    for (const section of sections) {
-      for (const moduleInfo of section.modules || []) {
-        const questionsForModule = Math.ceil(
-          (sourceQuestions.length / (totalQuestions || selectedQuestionIds.length)) *
-            (moduleInfo.questionCount || 5)
+        // Get questions for this section+topic
+        const topicQuestions = generatedQuestions.filter(
+          (q) => q.sectionTitle === subjectTitle && q.topicName === topicName
         );
 
-        for (let i = 0; i < questionsForModule && questionIndex < sourceQuestions.length; i++) {
-          const sourceQ = sourceQuestions[questionIndex];
-          const newModuleId = moduleGroupMap[moduleInfo.moduleId];
+        // Insert questions
+        for (let qIdx = 0; qIdx < topicQuestions.length; qIdx++) {
+          const q = topicQuestions[qIdx];
 
-          const { data: newQuestion, error: questionError } = await serversupabase
+          const { error: qError } = await serversupabase
             .from("mock_questions")
             .insert([
               {
-                parent: newModuleId,
-                question: sourceQ.question,
-                type: sourceQ.type,
-                options: sourceQ.options,
-                explanation: sourceQ.explanation || null,
-                hint: sourceQ.hint || null,
-                video: sourceQ.video || null,
-                seq: i + 1,
+                parent: newMod.id,
+                question: q.question,
+                type: q.type,
+                options: q.options,
+                explanation: q.explanation || null,
+                seq: qIdx + 1,
                 isActive: true,
               },
-            ])
-            .select("id")
-            .single();
+            ]);
 
-          if (questionError) {
-            console.error("Error copying question:", questionError);
-            // Continue with next question instead of failing entirely
-          } else if (newQuestion) {
-            // Track question usage if tracking table exists
-            try {
-              await serversupabase.from("question_usage_tracking").insert([
-                {
-                  question_id: sourceQ.id,
-                  test_id: testId,
-                },
-              ]);
-            } catch (trackingError) {
-              // Silently fail if tracking table doesn't exist
-              console.log("Question usage tracking not available, continuing");
-            }
+          if (qError) {
+            console.error("Error inserting question:", qError);
+            // Continue with next question
+          } else {
+            totalQuestionsInserted++;
           }
-
-          questionIndex++;
         }
       }
-    }
-
-    // Step 5: Create test_generators record to store metadata (if table exists)
-    try {
-      await serversupabase.from("test_generators").insert([
-        {
-          test_id: testId,
-          generator_type: generatorType || "custom",
-          difficulty_level: difficulty || "mixed",
-          total_questions: totalQuestions || selectedQuestionIds.length,
-          time_limit_seconds: timeLimit || 0,
-          marking_scheme: sections[0]?.markingScheme || { pos: 4, neg: 1 },
-          generation_status: "draft",
-          source: "custom_generator",
-          metadata: {
-            selectedQuestionIds,
-            sectionCount: sections.length,
-          },
-        },
-      ]);
-    } catch (generatorError) {
-      // Silently fail if test_generators table doesn't exist
-      console.log("Test generators table not available, continuing");
     }
 
     return res.status(201).json({
       success: true,
       testId,
-      totalQuestions: questionIndex,
+      totalQuestions: totalQuestionsInserted,
       sectionsCreated: sections.length,
-      message: "Test created successfully",
+      message: "Test created successfully with AI-generated questions",
     });
   } catch (error) {
     console.error("Unexpected error in create:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error: " + error.message });
   }
 }

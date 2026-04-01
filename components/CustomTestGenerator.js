@@ -8,7 +8,6 @@ import {
   SelectItem,
   Slider,
   Switch,
-  Checkbox,
   Card,
   CardBody,
   CardHeader,
@@ -23,21 +22,18 @@ const TEST_TYPES = [
     label: "Concept Test",
     desc: "Focused on 1-2 topics, 10-20 questions",
     defaultTime: 1200,
-    defaultQuestions: 15,
   },
   {
     key: "sectional",
     label: "Sectional Test",
     desc: "One full section (QA/VA/DI), 25-45 questions",
     defaultTime: 2400,
-    defaultQuestions: 30,
   },
   {
     key: "fullmock",
     label: "Full-Length Mock",
     desc: "All sections, 60-90 questions, full exam simulation",
     defaultTime: 7200,
-    defaultQuestions: 90,
   },
 ];
 
@@ -48,11 +44,38 @@ const DIFFICULTY_LEVELS = [
   { key: "mixed", label: "Mixed", color: "primary" },
 ];
 
+const SUBJECT_PRESETS = [
+  "Quantitative Ability",
+  "Verbal Ability",
+  "Data Interpretation",
+  "Logical Reasoning",
+];
+
+const TOPIC_PRESETS = {
+  "Quantitative Ability": [
+    "Algebra", "Arithmetic", "Geometry", "Number System", "Mensuration",
+    "Trigonometry", "Permutation & Combination", "Probability", "Percentages",
+    "Profit & Loss", "Time & Work", "Speed Distance Time", "Averages", "Ratio & Proportion",
+  ],
+  "Verbal Ability": [
+    "Reading Comprehension", "Vocabulary", "Grammar", "Para Jumbles",
+    "Sentence Correction", "Fill in the Blanks", "Synonyms & Antonyms",
+    "Idioms & Phrases", "Critical Reasoning", "Analogies",
+  ],
+  "Data Interpretation": [
+    "Tables", "Bar Graphs", "Pie Charts", "Line Graphs", "Caselets",
+    "Mixed DI Sets", "Data Sufficiency",
+  ],
+  "Logical Reasoning": [
+    "Arrangements", "Syllogisms", "Blood Relations", "Coding-Decoding",
+    "Direction Sense", "Puzzles", "Series", "Venn Diagrams", "Clocks & Calendars",
+  ],
+};
+
 function CustomTestGenerator({ userData, role }) {
-  // Wizard step
   const [step, setStep] = useState(0);
 
-  // Step 0: Test Type & Basic Config
+  // Step 0: Config
   const [testType, setTestType] = useState("concept");
   const [testTitle, setTestTitle] = useState("");
   const [testDesc, setTestDesc] = useState("");
@@ -62,36 +85,28 @@ function CustomTestGenerator({ userData, role }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
-
-  // Step 1: Topic Selection & Question Distribution
-  const [topics, setTopics] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [sections, setSections] = useState([]);
-  // Each section: { subjectId, subjectTitle, modules: [{ moduleId, title, questionCount, availableCount, selectedCount }], pos, neg, time, questionType }
-
-  // Step 2: Question Preview & Selection
-  const [questions, setQuestions] = useState([]);
-  const [selectedQuestions, setSelectedQuestions] = useState([]);
-  const [loadingQuestions, setLoadingQuestions] = useState(false);
-  const [previewSection, setPreviewSection] = useState(0);
-
-  // Step 3: Review & Publish
-  const [publishing, setPublishing] = useState(false);
-  const [publishResult, setPublishResult] = useState(null);
-
-  // Config toggles
   const [config, setConfig] = useState({
     switch_section: true,
     switch_questions: true,
     calculator_allowed: false,
     allow_retests: false,
-    is_scientific: false,
     public_access: false,
     timeout: 1200,
   });
 
-  // Load categories & courses on mount
+  // Step 1: Define sections & topics
+  const [sections, setSections] = useState([]);
+  // Each section: { subjectTitle, topics: [{ topicName, mcqCount, saCount }], pos, neg, time }
+
+  // Step 2: Generated questions
+  const [generatedQuestions, setGeneratedQuestions] = useState([]);
+  const [generating, setGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState(null);
+
+  // Step 3: Publish
+  const [publishing, setPublishing] = useState(false);
+  const [publishResult, setPublishResult] = useState(null);
+
   useEffect(() => {
     loadCategories();
     loadCourses();
@@ -110,53 +125,32 @@ function CustomTestGenerator({ userData, role }) {
     if (data) setCourses(data);
   }
 
-  async function loadTopics() {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `/api/test-generator/get-topics${selectedCourse ? `?course=${selectedCourse}` : ""}`
-      );
-      const data = await res.json();
-      if (data.topics) {
-        setTopics(data.topics);
-        setSubjects(data.subjects);
-      }
-    } catch (e) {
-      toast.error("Failed to load topics");
-    }
-    setLoading(false);
-  }
-
-  // When moving to step 1, load topics
   useEffect(() => {
-    if (step === 1) loadTopics();
-  }, [step]);
+    const type = TEST_TYPES.find((t) => t.key === testType);
+    if (type) {
+      setTimeLimit(type.defaultTime);
+      setConfig((c) => ({ ...c, timeout: type.defaultTime }));
+    }
+  }, [testType]);
 
-  // Initialize sections from selected subjects/topics
-  function addSection(subjectId, subjectTitle) {
-    const existing = sections.find((s) => s.subjectId === subjectId);
-    if (existing) {
+  // --- Section management ---
+  function addSection(subjectTitle) {
+    if (!subjectTitle) return;
+    if (sections.find((s) => s.subjectTitle === subjectTitle)) {
       toast.error("Section already added");
       return;
     }
-    const subjectTopics = topics.filter(
-      (t) => t.subjectId === subjectId
-    );
+    const presetTopics = TOPIC_PRESETS[subjectTitle] || [];
     setSections([
       ...sections,
       {
-        subjectId,
         subjectTitle,
-        modules: subjectTopics.map((t) => ({
-          moduleId: t.moduleId,
-          title: t.title,
-          availableCount: t.questionCount,
-          selectedCount: 0,
-        })),
+        topics: presetTopics.length > 0
+          ? [{ topicName: presetTopics[0], mcqCount: 5, saCount: 0 }]
+          : [{ topicName: "", mcqCount: 5, saCount: 0 }],
         pos: 4,
         neg: 1,
         time: 0,
-        questionType: "options",
       },
     ]);
   }
@@ -165,77 +159,105 @@ function CustomTestGenerator({ userData, role }) {
     setSections(sections.filter((_, i) => i !== idx));
   }
 
-  function updateSectionModule(sectionIdx, moduleIdx, count) {
+  function addTopic(sIdx) {
     const updated = [...sections];
-    updated[sectionIdx].modules[moduleIdx].selectedCount = Math.min(
-      count,
-      updated[sectionIdx].modules[moduleIdx].availableCount
-    );
+    updated[sIdx].topics.push({ topicName: "", mcqCount: 3, saCount: 0 });
     setSections(updated);
   }
 
-  function updateSectionMarking(sectionIdx, field, value) {
+  function removeTopic(sIdx, tIdx) {
     const updated = [...sections];
-    updated[sectionIdx][field] = value;
+    updated[sIdx].topics = updated[sIdx].topics.filter((_, i) => i !== tIdx);
     setSections(updated);
   }
 
-  const totalSelectedQuestions = useMemo(() => {
+  function updateTopic(sIdx, tIdx, field, value) {
+    const updated = [...sections];
+    updated[sIdx].topics[tIdx][field] = value;
+    setSections(updated);
+  }
+
+  function updateSection(sIdx, field, value) {
+    const updated = [...sections];
+    updated[sIdx][field] = value;
+    setSections(updated);
+  }
+
+  const totalQuestions = useMemo(() => {
     return sections.reduce(
       (acc, s) =>
-        acc + s.modules.reduce((a, m) => a + (m.selectedCount || 0), 0),
+        acc +
+        s.topics.reduce(
+          (a, t) => a + (parseInt(t.mcqCount) || 0) + (parseInt(t.saCount) || 0),
+          0
+        ),
       0
     );
   }, [sections]);
 
-  // Load questions for preview
-  async function loadQuestions() {
-    setLoadingQuestions(true);
-    const allQuestions = [];
+  // --- Generate questions via Gemini ---
+  async function generateQuestions() {
+    setGenerating(true);
+    setGenerationError(null);
+    const loadingToast = toast.loading("Generating questions with AI...");
 
-    for (const section of sections) {
-      for (const mod of section.modules) {
-        if (mod.selectedCount <= 0) continue;
-        try {
-          const res = await fetch(
-            `/api/test-generator/get-questions?moduleIds=${mod.moduleId}&limit=${mod.selectedCount}`
-          );
-          const data = await res.json();
-          if (data.questions) {
-            allQuestions.push(
-              ...data.questions.map((q) => ({
-                ...q,
-                sectionTitle: section.subjectTitle,
-                moduleName: mod.title,
-                selected: true,
-              }))
-            );
-          }
-        } catch (e) {
-          console.error("Failed to load questions for module", mod.title);
-        }
+    try {
+      const payload = {
+        sections: sections.map((s) => ({
+          subjectTitle: s.subjectTitle,
+          topics: s.topics
+            .filter((t) => t.topicName && ((parseInt(t.mcqCount) || 0) + (parseInt(t.saCount) || 0)) > 0)
+            .map((t) => ({
+              topicName: t.topicName,
+              mcqCount: parseInt(t.mcqCount) || 0,
+              saCount: parseInt(t.saCount) || 0,
+            })),
+        })),
+        difficulty,
+        testType,
+      };
+
+      const res = await fetch("/api/test-generator/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (data.success && data.questions) {
+        setGeneratedQuestions(data.questions);
+        toast.success(`Generated ${data.questions.length} questions!`);
+        toast.dismiss(loadingToast);
+      } else {
+        setGenerationError(data.error || "Failed to generate questions");
+        toast.error(data.error || "Failed to generate questions");
+        toast.dismiss(loadingToast);
       }
+    } catch (e) {
+      setGenerationError("Network error: " + e.message);
+      toast.error("Error: " + e.message);
+      toast.dismiss(loadingToast);
     }
-
-    setQuestions(allQuestions);
-    setSelectedQuestions(allQuestions.map((q) => q.id));
-    setLoadingQuestions(false);
+    setGenerating(false);
   }
 
+  // Auto-generate when entering step 2
   useEffect(() => {
-    if (step === 2) loadQuestions();
+    if (step === 2 && generatedQuestions.length === 0 && !generating) {
+      generateQuestions();
+    }
   }, [step]);
 
-  function toggleQuestion(qId) {
-    setSelectedQuestions((prev) =>
-      prev.includes(qId) ? prev.filter((id) => id !== qId) : [...prev, qId]
-    );
+  // Remove a generated question
+  function removeQuestion(tempId) {
+    setGeneratedQuestions((prev) => prev.filter((q) => q.tempId !== tempId));
   }
 
-  // Publish test
+  // --- Publish ---
   async function publishTest() {
     setPublishing(true);
-    const r = toast.loading("Creating test...");
+    const loadingToast = toast.loading("Publishing test...");
 
     try {
       const payload = {
@@ -245,25 +267,20 @@ function CustomTestGenerator({ userData, role }) {
         course: selectedCourse,
         generatorType: testType,
         difficulty,
-        totalQuestions: selectedQuestions.length,
         timeLimit,
-        sections: sections
-          .filter((s) => s.modules.some((m) => m.selectedCount > 0))
-          .map((s) => ({
-            subjectTitle: s.subjectTitle,
-            subjectId: s.subjectId,
-            modules: s.modules
-              .filter((m) => m.selectedCount > 0)
-              .map((m) => ({
-                moduleId: m.moduleId,
-                title: m.title,
-                questionCount: m.selectedCount,
-              })),
-            markingScheme: { pos: s.pos, neg: s.neg },
-            questionType: s.questionType,
-            time: s.time,
-          })),
-        selectedQuestionIds: selectedQuestions,
+        sections: sections.map((s) => ({
+          subjectTitle: s.subjectTitle,
+          topics: s.topics
+            .filter((t) => t.topicName && ((parseInt(t.mcqCount) || 0) + (parseInt(t.saCount) || 0)) > 0)
+            .map((t) => ({
+              topicName: t.topicName,
+              mcqCount: parseInt(t.mcqCount) || 0,
+              saCount: parseInt(t.saCount) || 0,
+            })),
+          markingScheme: { pos: s.pos, neg: s.neg },
+          time: s.time,
+        })),
+        generatedQuestions,
         config: { ...config, timeout: timeLimit },
       };
 
@@ -275,44 +292,48 @@ function CustomTestGenerator({ userData, role }) {
 
       const result = await res.json();
 
-      if (result.testId) {
-        toast.success("Test created successfully!");
-        toast.remove(r);
+      if (result.success) {
+        toast.success("Test published successfully!");
+        toast.dismiss(loadingToast);
         setPublishResult(result);
         setStep(3);
       } else {
-        toast.error(result.error || "Failed to create test");
-        toast.remove(r);
+        toast.error(result.error || "Failed to publish");
+        toast.dismiss(loadingToast);
       }
     } catch (e) {
-      toast.error("Error creating test: " + e.message);
-      toast.remove(r);
+      toast.error("Error: " + e.message);
+      toast.dismiss(loadingToast);
     }
     setPublishing(false);
   }
 
-  // Update time when test type changes
-  useEffect(() => {
-    const type = TEST_TYPES.find((t) => t.key === testType);
-    if (type) {
-      setTimeLimit(type.defaultTime);
-      setConfig((c) => ({ ...c, timeout: type.defaultTime }));
+  // --- Validation ---
+  function canProceed() {
+    switch (step) {
+      case 0:
+        return testTitle.trim() && selectedCategory && selectedCourse;
+      case 1:
+        return totalQuestions > 0 && sections.every((s) =>
+          s.topics.some((t) => t.topicName && ((parseInt(t.mcqCount) || 0) + (parseInt(t.saCount) || 0)) > 0)
+        );
+      case 2:
+        return generatedQuestions.length > 0 && !generating;
+      default:
+        return true;
     }
-  }, [testType]);
+  }
 
-  // Step renderers
+  // =================== RENDERERS ===================
+
   function renderStep0() {
     return (
       <div className="flex flex-col gap-6 p-4">
-        <h2 className="text-2xl font-bold text-purple-800">
-          Step 1: Test Configuration
-        </h2>
+        <h2 className="text-2xl font-bold text-purple-800">Step 1: Test Configuration</h2>
 
-        {/* Test Type Selection */}
+        {/* Test Type */}
         <div>
-          <p className="text-sm font-semibold mb-3 text-gray-700">
-            Select Test Type
-          </p>
+          <p className="text-sm font-semibold mb-3 text-gray-700">Select Test Type</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {TEST_TYPES.map((type) => (
               <div
@@ -333,7 +354,6 @@ function CustomTestGenerator({ userData, role }) {
 
         <Divider />
 
-        {/* Basic Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Test Title"
@@ -388,12 +408,9 @@ function CustomTestGenerator({ userData, role }) {
           </Select>
         </div>
 
-        {/* Difficulty & Time */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p className="text-sm font-semibold mb-2 text-gray-700">
-              Difficulty Level
-            </p>
+            <p className="text-sm font-semibold mb-2 text-gray-700">Difficulty Level</p>
             <div className="flex gap-2 flex-wrap">
               {DIFFICULTY_LEVELS.map((d) => (
                 <Chip
@@ -408,7 +425,6 @@ function CustomTestGenerator({ userData, role }) {
               ))}
             </div>
           </div>
-
           <div>
             <p className="text-sm font-semibold mb-2 text-gray-700">
               Time Limit: {Math.floor(timeLimit / 60)} min {timeLimit % 60}s
@@ -427,53 +443,40 @@ function CustomTestGenerator({ userData, role }) {
 
         <Divider />
 
-        {/* Test Config Toggles */}
         <div>
-          <p className="text-sm font-semibold mb-3 text-gray-700">
-            Test Settings
-          </p>
+          <p className="text-sm font-semibold mb-3 text-gray-700">Test Settings</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Switch
               isSelected={config.switch_section}
-              onValueChange={(v) =>
-                setConfig({ ...config, switch_section: v })
-              }
+              onValueChange={(v) => setConfig({ ...config, switch_section: v })}
               size="sm"
             >
               Allow Section Jumping
             </Switch>
             <Switch
               isSelected={config.switch_questions}
-              onValueChange={(v) =>
-                setConfig({ ...config, switch_questions: v })
-              }
+              onValueChange={(v) => setConfig({ ...config, switch_questions: v })}
               size="sm"
             >
               Allow Question Jumping
             </Switch>
             <Switch
               isSelected={config.calculator_allowed}
-              onValueChange={(v) =>
-                setConfig({ ...config, calculator_allowed: v })
-              }
+              onValueChange={(v) => setConfig({ ...config, calculator_allowed: v })}
               size="sm"
             >
               Allow Calculator
             </Switch>
             <Switch
               isSelected={config.allow_retests}
-              onValueChange={(v) =>
-                setConfig({ ...config, allow_retests: v })
-              }
+              onValueChange={(v) => setConfig({ ...config, allow_retests: v })}
               size="sm"
             >
               Allow Multiple Attempts
             </Switch>
             <Switch
               isSelected={config.public_access}
-              onValueChange={(v) =>
-                setConfig({ ...config, public_access: v })
-              }
+              onValueChange={(v) => setConfig({ ...config, public_access: v })}
               size="sm"
             >
               Public Access (No Enrollment)
@@ -488,174 +491,188 @@ function CustomTestGenerator({ userData, role }) {
     return (
       <div className="flex flex-col gap-6 p-4">
         <h2 className="text-2xl font-bold text-purple-800">
-          Step 2: Select Topics & Question Distribution
+          Step 2: Define Sections & Topics
         </h2>
+        <p className="text-sm text-gray-500">
+          Add subjects and topics. AI will generate questions for each topic.
+        </p>
 
-        {loading ? (
-          <div className="flex justify-center p-12">
-            <Spinner size="lg" color="secondary" />
+        {/* Quick add subject buttons */}
+        <div>
+          <p className="text-sm font-semibold mb-2 text-gray-700">Quick Add Subject</p>
+          <div className="flex gap-2 flex-wrap">
+            {SUBJECT_PRESETS.map((s) => (
+              <Button
+                key={s}
+                color={sections.find((sec) => sec.subjectTitle === s) ? "secondary" : "default"}
+                variant={sections.find((sec) => sec.subjectTitle === s) ? "solid" : "bordered"}
+                size="sm"
+                onClick={() => addSection(s)}
+              >
+                {s}
+              </Button>
+            ))}
+            <Button
+              size="sm"
+              variant="bordered"
+              color="primary"
+              onClick={() => {
+                const name = prompt("Enter custom subject name:");
+                if (name) addSection(name.trim());
+              }}
+            >
+              + Custom Subject
+            </Button>
           </div>
+        </div>
+
+        <Divider />
+
+        {sections.length === 0 ? (
+          <p className="text-gray-400 text-center py-8">
+            Click a subject above to add it as a test section
+          </p>
         ) : (
-          <>
-            {/* Subject buttons */}
-            <div>
-              <p className="text-sm font-semibold mb-2 text-gray-700">
-                Available Subjects (click to add section)
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                {subjects.map((s) => (
-                  <Button
-                    key={s.id}
-                    color={
-                      sections.find((sec) => sec.subjectId === s.id)
-                        ? "secondary"
-                        : "default"
-                    }
-                    variant={
-                      sections.find((sec) => sec.subjectId === s.id)
-                        ? "solid"
-                        : "bordered"
-                    }
+          sections.map((section, sIdx) => (
+            <Card key={sIdx} className="p-2">
+              <CardHeader className="flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-lg">{section.subjectTitle}</p>
+                  <p className="text-sm text-gray-500">
+                    {section.topics.reduce(
+                      (a, t) => a + (parseInt(t.mcqCount) || 0) + (parseInt(t.saCount) || 0),
+                      0
+                    )}{" "}
+                    questions total
+                  </p>
+                </div>
+                <div className="flex gap-3 items-center">
+                  <Input
+                    type="number"
+                    label="+Marks"
                     size="sm"
-                    onClick={() => addSection(s.id, s.title)}
+                    className="w-20"
+                    value={String(section.pos)}
+                    onChange={(e) => updateSection(sIdx, "pos", Number(e.target.value))}
+                    variant="bordered"
+                  />
+                  <Input
+                    type="number"
+                    label="-Marks"
+                    size="sm"
+                    className="w-20"
+                    value={String(section.neg)}
+                    onChange={(e) => updateSection(sIdx, "neg", Number(e.target.value))}
+                    variant="bordered"
+                  />
+                  <Button
+                    color="danger"
+                    variant="light"
+                    size="sm"
+                    onClick={() => removeSection(sIdx)}
                   >
-                    {s.title} ({s.totalQuestions} Qs)
+                    Remove
                   </Button>
-                ))}
-              </div>
-            </div>
-
-            <Divider />
-
-            {/* Sections config */}
-            {sections.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">
-                Click a subject above to add it as a test section
-              </p>
-            ) : (
-              sections.map((section, sIdx) => (
-                <Card key={sIdx} className="p-2">
-                  <CardHeader className="flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-lg">
-                        {section.subjectTitle}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {section.modules.reduce(
-                          (a, m) => a + (m.selectedCount || 0),
-                          0
-                        )}{" "}
-                        questions selected
-                      </p>
-                    </div>
-                    <div className="flex gap-3 items-center">
+                </div>
+              </CardHeader>
+              <CardBody>
+                <div className="flex flex-col gap-3">
+                  {section.topics.map((topic, tIdx) => (
+                    <div
+                      key={tIdx}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50"
+                    >
+                      {/* Topic name - select from presets or type custom */}
+                      <div className="flex-1">
+                        {TOPIC_PRESETS[section.subjectTitle] ? (
+                          <Select
+                            label="Topic"
+                            size="sm"
+                            variant="bordered"
+                            selectedKeys={topic.topicName ? [topic.topicName] : []}
+                            onSelectionChange={(keys) => {
+                              const val = Array.from(keys)[0];
+                              if (val) updateTopic(sIdx, tIdx, "topicName", val);
+                            }}
+                          >
+                            {TOPIC_PRESETS[section.subjectTitle].map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {t}
+                              </SelectItem>
+                            ))}
+                          </Select>
+                        ) : (
+                          <Input
+                            label="Topic Name"
+                            size="sm"
+                            variant="bordered"
+                            value={topic.topicName}
+                            onChange={(e) =>
+                              updateTopic(sIdx, tIdx, "topicName", e.target.value)
+                            }
+                          />
+                        )}
+                      </div>
                       <Input
                         type="number"
-                        label="+Marks"
+                        label="MCQ"
                         size="sm"
                         className="w-20"
-                        value={String(section.pos)}
+                        value={String(topic.mcqCount || 0)}
+                        min={0}
                         onChange={(e) =>
-                          updateSectionMarking(
-                            sIdx,
-                            "pos",
-                            Number(e.target.value)
-                          )
+                          updateTopic(sIdx, tIdx, "mcqCount", e.target.value)
                         }
                         variant="bordered"
                       />
                       <Input
                         type="number"
-                        label="-Marks"
+                        label="SA"
                         size="sm"
                         className="w-20"
-                        value={String(section.neg)}
+                        value={String(topic.saCount || 0)}
+                        min={0}
                         onChange={(e) =>
-                          updateSectionMarking(
-                            sIdx,
-                            "neg",
-                            Number(e.target.value)
-                          )
+                          updateTopic(sIdx, tIdx, "saCount", e.target.value)
                         }
                         variant="bordered"
                       />
-                      <Select
-                        label="Type"
-                        size="sm"
-                        className="w-32"
-                        selectedKeys={[section.questionType]}
-                        onSelectionChange={(keys) =>
-                          updateSectionMarking(
-                            sIdx,
-                            "questionType",
-                            Array.from(keys)[0]
-                          )
-                        }
-                        variant="bordered"
-                      >
-                        <SelectItem key="options">MCQ</SelectItem>
-                        <SelectItem key="input">Short Answer</SelectItem>
-                      </Select>
                       <Button
+                        isIconOnly
                         color="danger"
                         variant="light"
                         size="sm"
-                        onClick={() => removeSection(sIdx)}
+                        onClick={() => removeTopic(sIdx, tIdx)}
+                        isDisabled={section.topics.length <= 1}
                       >
-                        Remove
+                        ✕
                       </Button>
                     </div>
-                  </CardHeader>
-                  <CardBody>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {section.modules.map((mod, mIdx) => (
-                        <div
-                          key={mIdx}
-                          className="flex items-center gap-2 p-2 rounded-lg border border-gray-200"
-                        >
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{mod.title}</p>
-                            <p className="text-xs text-gray-400">
-                              {mod.availableCount} available
-                            </p>
-                          </div>
-                          <Input
-                            type="number"
-                            size="sm"
-                            className="w-20"
-                            value={String(mod.selectedCount || 0)}
-                            min={0}
-                            max={mod.availableCount}
-                            onChange={(e) =>
-                              updateSectionModule(
-                                sIdx,
-                                mIdx,
-                                Number(e.target.value) || 0
-                              )
-                            }
-                            variant="bordered"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </CardBody>
-                </Card>
-              ))
-            )}
+                  ))}
+                  <Button
+                    size="sm"
+                    variant="bordered"
+                    color="secondary"
+                    onClick={() => addTopic(sIdx)}
+                    className="self-start"
+                  >
+                    + Add Topic
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          ))
+        )}
 
-            {/* Summary bar */}
-            {sections.length > 0 && (
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-xl">
-                <p className="font-semibold text-purple-800">
-                  Total Questions: {totalSelectedQuestions}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Sections: {sections.length} | Time:{" "}
-                  {Math.floor(timeLimit / 60)} min
-                </p>
-              </div>
-            )}
-          </>
+        {sections.length > 0 && (
+          <div className="flex justify-between items-center p-3 bg-purple-50 rounded-xl">
+            <p className="font-semibold text-purple-800">
+              Total Questions to Generate: {totalQuestions}
+            </p>
+            <p className="text-sm text-gray-600">
+              Sections: {sections.length} | Time: {Math.floor(timeLimit / 60)} min
+            </p>
+          </div>
         )}
       </div>
     );
@@ -665,149 +682,129 @@ function CustomTestGenerator({ userData, role }) {
     return (
       <div className="flex flex-col gap-6 p-4">
         <h2 className="text-2xl font-bold text-purple-800">
-          Step 3: Review Questions
+          Step 3: AI-Generated Questions
         </h2>
 
-        {loadingQuestions ? (
+        {generating ? (
           <div className="flex flex-col items-center gap-4 p-12">
             <Spinner size="lg" color="secondary" />
-            <p className="text-gray-500">Loading questions from database...</p>
+            <p className="text-gray-500">Generating questions with Gemini AI...</p>
+            <p className="text-sm text-gray-400">This may take 20-60 seconds depending on the number of questions</p>
+          </div>
+        ) : generationError ? (
+          <div className="flex flex-col items-center gap-4 p-8">
+            <div className="text-4xl">&#9888;</div>
+            <p className="text-red-600 font-semibold">{generationError}</p>
+            <Button color="secondary" onClick={generateQuestions}>
+              Retry Generation
+            </Button>
           </div>
         ) : (
           <>
-            {/* Section tabs */}
-            <div className="flex gap-2 flex-wrap">
-              {[
-                ...new Set(questions.map((q) => q.sectionTitle)),
-              ].map((title, idx) => (
-                <Chip
-                  key={idx}
-                  color={previewSection === idx ? "secondary" : "default"}
-                  variant={previewSection === idx ? "solid" : "bordered"}
-                  className="cursor-pointer"
-                  onClick={() => setPreviewSection(idx)}
-                >
-                  {title} (
-                  {
-                    questions.filter(
-                      (q) =>
-                        q.sectionTitle === title &&
-                        selectedQuestions.includes(q.id)
-                    ).length
-                  }
-                  )
-                </Chip>
-              ))}
-            </div>
-
             <div className="flex justify-between items-center">
               <p className="text-sm text-gray-600">
-                {selectedQuestions.length} of {questions.length} questions
-                selected
+                {generatedQuestions.length} questions generated
               </p>
               <div className="flex gap-2">
                 <Button
                   size="sm"
                   variant="bordered"
-                  onClick={() =>
-                    setSelectedQuestions(questions.map((q) => q.id))
-                  }
+                  color="warning"
+                  onClick={() => {
+                    setGeneratedQuestions([]);
+                    generateQuestions();
+                  }}
                 >
-                  Select All
-                </Button>
-                <Button
-                  size="sm"
-                  variant="bordered"
-                  onClick={() => setSelectedQuestions([])}
-                >
-                  Deselect All
+                  Regenerate All
                 </Button>
               </div>
             </div>
 
             <Divider />
 
-            {/* Question list */}
-            <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto">
-              {questions
-                .filter((q) => {
-                  const sectionTitles = [
-                    ...new Set(questions.map((q) => q.sectionTitle)),
-                  ];
-                  return (
-                    q.sectionTitle === sectionTitles[previewSection]
-                  );
-                })
-                .map((q, idx) => (
-                  <div
-                    key={q.id}
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      selectedQuestions.includes(q.id)
-                        ? "border-purple-400 bg-purple-50"
-                        : "border-gray-200 bg-gray-50 opacity-60"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        isSelected={selectedQuestions.includes(q.id)}
-                        onValueChange={() => toggleQuestion(q.id)}
-                        color="secondary"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Chip size="sm" variant="flat" color="default">
-                            Q{idx + 1}
-                          </Chip>
-                          <Chip size="sm" variant="flat" color="secondary">
-                            {q.moduleName}
-                          </Chip>
-                          <Chip
-                            size="sm"
-                            variant="flat"
-                            color={
-                              q.type === "options" ? "primary" : "warning"
-                            }
-                          >
-                            {q.type === "options" ? "MCQ" : "SA"}
-                          </Chip>
-                        </div>
-                        <div
-                          className="text-sm mt-1 question-preview"
-                          dangerouslySetInnerHTML={{
-                            __html:
-                              q.question?.substring(0, 300) +
-                              (q.question?.length > 300 ? "..." : ""),
-                          }}
-                        />
-                        {q.type === "options" && q.options && (
-                          <div className="mt-2 grid grid-cols-2 gap-1">
-                            {(Array.isArray(q.options)
-                              ? q.options
-                              : []
-                            ).map((opt, oIdx) => (
-                              <div
-                                key={oIdx}
-                                className={`text-xs p-1 rounded ${
-                                  opt.isCorrect
-                                    ? "bg-green-100 text-green-800 font-semibold"
-                                    : "bg-gray-100"
-                                }`}
+            {/* Group by section */}
+            <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+              {sections.map((section, sIdx) => {
+                const sectionQs = generatedQuestions.filter(
+                  (q) => q.sectionTitle === section.subjectTitle
+                );
+                if (sectionQs.length === 0) return null;
+                return (
+                  <div key={sIdx}>
+                    <p className="font-bold text-lg text-purple-700 mb-2">
+                      {section.subjectTitle} ({sectionQs.length} questions)
+                    </p>
+                    {sectionQs.map((q, qIdx) => (
+                      <div
+                        key={q.tempId}
+                        className="p-3 mb-2 rounded-lg border border-gray-200 bg-white"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Chip size="sm" variant="flat" color="default">
+                                Q{qIdx + 1}
+                              </Chip>
+                              <Chip size="sm" variant="flat" color="secondary">
+                                {q.topicName}
+                              </Chip>
+                              <Chip
+                                size="sm"
+                                variant="flat"
+                                color={q.type === "options" ? "primary" : "warning"}
                               >
-                                ({String.fromCharCode(65 + oIdx)}){" "}
-                                {opt.title}
+                                {q.type === "options" ? "MCQ" : "SA"}
+                              </Chip>
+                            </div>
+                            <div
+                              className="text-sm mt-1"
+                              dangerouslySetInnerHTML={{ __html: q.question }}
+                            />
+                            {q.type === "options" && q.options && (
+                              <div className="mt-2 grid grid-cols-2 gap-1">
+                                {(Array.isArray(q.options) ? q.options : []).map(
+                                  (opt, oIdx) => (
+                                    <div
+                                      key={oIdx}
+                                      className={`text-xs p-1 rounded ${
+                                        opt.isCorrect
+                                          ? "bg-green-100 text-green-800 font-semibold"
+                                          : "bg-gray-100"
+                                      }`}
+                                    >
+                                      ({opt.title || String.fromCharCode(65 + oIdx)}){" "}
+                                      {opt.text}
+                                    </div>
+                                  )
+                                )}
                               </div>
-                            ))}
+                            )}
+                            {q.type === "input" && q.options?.answer && (
+                              <p className="text-xs mt-1 text-green-700 font-semibold">
+                                Answer: {q.options.answer}
+                              </p>
+                            )}
+                            {q.explanation && (
+                              <p className="text-xs mt-2 text-blue-600 italic">
+                                Explanation: {q.explanation}
+                              </p>
+                            )}
                           </div>
-                        )}
-                        {q.type === "input" && q.options?.answer && (
-                          <p className="text-xs mt-1 text-green-700 font-semibold">
-                            Answer: {q.options.answer}
-                          </p>
-                        )}
+                          <Button
+                            isIconOnly
+                            color="danger"
+                            variant="light"
+                            size="sm"
+                            onClick={() => removeQuestion(q.tempId)}
+                          >
+                            ✕
+                          </Button>
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                );
+              })}
             </div>
           </>
         )}
@@ -824,23 +821,13 @@ function CustomTestGenerator({ userData, role }) {
             Test Created Successfully!
           </h2>
           <div className="bg-green-50 p-6 rounded-xl w-full max-w-lg">
-            <p>
-              <strong>Test ID:</strong> {publishResult.testId}
-            </p>
-            <p>
-              <strong>Title:</strong> {testTitle}
-            </p>
-            <p>
-              <strong>Questions:</strong> {publishResult.totalQuestions}
-            </p>
-            <p>
-              <strong>Sections:</strong>{" "}
-              {publishResult.sectionsCreated || sections.length}
-            </p>
+            <p><strong>Test ID:</strong> {publishResult.testId}</p>
+            <p><strong>Title:</strong> {testTitle}</p>
+            <p><strong>Questions:</strong> {publishResult.totalQuestions}</p>
+            <p><strong>Sections:</strong> {publishResult.sectionsCreated}</p>
           </div>
           <p className="text-sm text-gray-500">
-            The test is now live and visible to students in the selected
-            category.
+            The test is now live and visible to students in the selected category.
           </p>
           <Button
             color="secondary"
@@ -849,9 +836,9 @@ function CustomTestGenerator({ userData, role }) {
               setTestTitle("");
               setTestDesc("");
               setSections([]);
-              setQuestions([]);
-              setSelectedQuestions([]);
+              setGeneratedQuestions([]);
               setPublishResult(null);
+              setGenerationError(null);
             }}
           >
             Create Another Test
@@ -862,9 +849,7 @@ function CustomTestGenerator({ userData, role }) {
 
     return (
       <div className="flex flex-col gap-6 p-4">
-        <h2 className="text-2xl font-bold text-purple-800">
-          Step 4: Review & Publish
-        </h2>
+        <h2 className="text-2xl font-bold text-purple-800">Step 4: Review & Publish</h2>
 
         <Card>
           <CardBody className="gap-4">
@@ -882,16 +867,13 @@ function CustomTestGenerator({ userData, role }) {
               <div>
                 <p className="text-sm text-gray-500">Category</p>
                 <p className="font-semibold">
-                  {categories.find((c) => c.id === selectedCategory)?.title ||
-                    "N/A"}
+                  {categories.find((c) => c.id === selectedCategory)?.title || "N/A"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Difficulty</p>
                 <Chip
-                  color={
-                    DIFFICULTY_LEVELS.find((d) => d.key === difficulty)?.color
-                  }
+                  color={DIFFICULTY_LEVELS.find((d) => d.key === difficulty)?.color}
                   size="sm"
                 >
                   {difficulty}
@@ -899,43 +881,35 @@ function CustomTestGenerator({ userData, role }) {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Questions</p>
-                <p className="font-semibold">{selectedQuestions.length}</p>
+                <p className="font-semibold">{generatedQuestions.length}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Time Limit</p>
-                <p className="font-semibold">
-                  {Math.floor(timeLimit / 60)} minutes
-                </p>
+                <p className="font-semibold">{Math.floor(timeLimit / 60)} minutes</p>
               </div>
             </div>
 
             <Divider />
 
             <p className="font-semibold">Sections:</p>
-            {sections
-              .filter((s) => s.modules.some((m) => m.selectedCount > 0))
-              .map((s, idx) => (
-                <div key={idx} className="p-3 bg-gray-50 rounded-lg">
-                  <p className="font-medium">{s.subjectTitle}</p>
-                  <p className="text-sm text-gray-500">
-                    {s.modules.reduce(
-                      (a, m) => a + (m.selectedCount || 0),
-                      0
-                    )}{" "}
-                    questions | +{s.pos}/-{s.neg} marks |{" "}
-                    {s.questionType === "options" ? "MCQ" : "Short Answer"}
-                  </p>
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    {s.modules
-                      .filter((m) => m.selectedCount > 0)
-                      .map((m, mIdx) => (
-                        <Chip key={mIdx} size="sm" variant="flat">
-                          {m.title}: {m.selectedCount}
-                        </Chip>
-                      ))}
-                  </div>
+            {sections.map((s, idx) => (
+              <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+                <p className="font-medium">{s.subjectTitle}</p>
+                <p className="text-sm text-gray-500">
+                  {generatedQuestions.filter((q) => q.sectionTitle === s.subjectTitle).length}{" "}
+                  questions | +{s.pos}/-{s.neg} marks
+                </p>
+                <div className="flex gap-1 mt-1 flex-wrap">
+                  {s.topics
+                    .filter((t) => t.topicName)
+                    .map((t, tIdx) => (
+                      <Chip key={tIdx} size="sm" variant="flat">
+                        {t.topicName}: {(parseInt(t.mcqCount) || 0) + (parseInt(t.saCount) || 0)}
+                      </Chip>
+                    ))}
                 </div>
-              ))}
+              </div>
+            ))}
           </CardBody>
         </Card>
 
@@ -952,40 +926,24 @@ function CustomTestGenerator({ userData, role }) {
     );
   }
 
-  // Validation for next step
-  function canProceed() {
-    switch (step) {
-      case 0:
-        return testTitle.trim() && selectedCategory && selectedCourse;
-      case 1:
-        return totalSelectedQuestions > 0;
-      case 2:
-        return selectedQuestions.length > 0;
-      default:
-        return true;
-    }
-  }
-
   const steps = [
     "Test Config",
-    "Topics & Distribution",
-    "Review Questions",
+    "Sections & Topics",
+    "Generate Questions",
     "Publish",
   ];
 
   return (
     <div className="flex flex-col w-full h-full">
-      {/* Header */}
       <div className="p-4 border-b bg-white">
         <h1 className="text-xl font-bold text-purple-900">
-          Custom Test Generator
+          AI Test Generator
         </h1>
         <p className="text-sm text-gray-500">
-          Create tests from your question bank automatically
+          Create tests powered by Gemini AI — no question bank needed
         </p>
       </div>
 
-      {/* Step indicator */}
       <div className="flex items-center gap-2 p-4 bg-gray-50 border-b overflow-x-auto">
         {steps.map((s, idx) => (
           <div key={idx} className="flex items-center gap-2">
@@ -998,13 +956,11 @@ function CustomTestGenerator({ userData, role }) {
                   : "bg-gray-200 text-gray-500"
               }`}
             >
-              {idx < step ? "✓" : idx + 1}
+              {idx < step ? "\u2713" : idx + 1}
             </div>
             <span
               className={`text-sm whitespace-nowrap ${
-                idx === step
-                  ? "font-bold text-purple-800"
-                  : "text-gray-500"
+                idx === step ? "font-bold text-purple-800" : "text-gray-500"
               }`}
             >
               {s}
@@ -1016,7 +972,6 @@ function CustomTestGenerator({ userData, role }) {
         ))}
       </div>
 
-      {/* Step content */}
       <div className="flex-1 overflow-y-auto">
         {step === 0 && renderStep0()}
         {step === 1 && renderStep1()}
@@ -1024,7 +979,6 @@ function CustomTestGenerator({ userData, role }) {
         {step === 3 && renderStep3()}
       </div>
 
-      {/* Navigation buttons */}
       {!publishResult && (
         <div className="flex justify-between items-center p-4 border-t bg-white">
           <Button
@@ -1034,7 +988,6 @@ function CustomTestGenerator({ userData, role }) {
           >
             Back
           </Button>
-
           <div className="flex items-center gap-2">
             {step < 3 && (
               <Button
