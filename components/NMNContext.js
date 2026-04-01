@@ -1013,17 +1013,6 @@ export const NMNContextProvider = ({ children }) => {
           ),
         },
         {
-          title: "Test Generator",
-          type: "admin",
-          action: "test-generator",
-          id: 55,
-          icon: (
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="24" width="24">
-              <path fill="#833589" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#e79800" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          ),
-        },
-        {
           title: "Sectional Test",
           type: "user",
           action: "sectional-tests",
