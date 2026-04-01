@@ -35,32 +35,34 @@ export default function MockResult({result}){
     const {data,error} = await supabase.from('mock_groups').select('*,subject(*)').eq('test',a).order('seq',{ascending:true})
   if(data){
     
-    setSections(data)
+    // Filter to only subject-type groups (skip module groups that lack subject)
+    const subjectGroups = data.filter(s => s.type === 'subject' || s.subject != null);
+    setSections(subjectGroups)
    getModules(data)
   }
   else{
-   
+
     /* router.push('/login') */
   }
   }
-  
-  
+
+
   async function getModules(a){
-  
+
     const {data,error} = await supabase.from('mock_groups').select('*,module(*)').in('parent_sub',a.map(i=>i.id))
   if(data){
-    
+
     setModules(data)
    getQuestions(data)
   }
   else{
-   
+
     /* router.push('/login') */
   }
   }
   async function getQuestions(a){
 
-    const {data,error} = await supabase.from('mock_questions').select('*').in('parent',a.map(i=>i.module.id)).order('seq',{ascending:true})
+    const {data,error} = await supabase.from('mock_questions').select('*').in('parent',a.filter(i=>i.module).map(i=>i.module.id)).order('seq',{ascending:true})
 if(data){
     
     setQuestions(data)
@@ -121,7 +123,7 @@ const getQuestionCount = (sectionIndex) => {
     ?.filter(item => item.parent_sub === section.id) // Get modules for this section
     .reduce((total, module) => {
       const questionCount = questions
-        ?.filter(item => item.parent === module.module.id)
+        ?.filter(item => item.parent === module.module?.id)
         ?.length || 0;
       return total + questionCount;
     }, 0);
@@ -137,7 +139,7 @@ const getAttemptedQuestionCount = (sectionIndex) => {
     .reduce((total, module) => {
       // Get questions for this module
       const moduleQuestions = questions
-        ?.filter(item => item.parent === module.module.id);
+        ?.filter(item => item.parent === module.module?.id);
         
       // Count questions that have a matching report entry
       const attemptedCount = moduleQuestions?.reduce((count, question) => {
@@ -162,7 +164,7 @@ const getSectionalScores = (sectionIndex) => {
     ?.filter(item => item.parent_sub === section.id)
     .reduce((sectionTotals, module) => {
       const moduleQuestions = questions
-        ?.filter(item => item.parent === module.module.id) || [];
+        ?.filter(item => item.parent === module.module?.id) || [];
 
       const moduleAnalysis = moduleQuestions.reduce((analysis, question) => {
         analysis.maxPossibleScore += section.pos;
@@ -496,7 +498,7 @@ return <div className="p-2 flex flex-col md:flex-row-reverse md:flex-nowrap flex
           <Tabs onSelectionChange={(e)=>{setFilter(e)}} size='sm'>
           <Tab key={0} title={'All'} value={0}></Tab>
             {sections && sections.map((section,index)=>{
-                return <Tab key={index+1} value={index+1} title={section.subject.title}></Tab>
+                return <Tab key={index+1} value={index+1} title={section.subject?.title || 'Section'}></Tab>
             })}
           </Tabs>
         </div>
@@ -561,7 +563,7 @@ return <div className="p-2 flex flex-col md:flex-row-reverse md:flex-nowrap flex
 
       return (
         <TableRow key={index} className={rowColor}>
-          <TableCell>{section.subject.title}</TableCell>
+          <TableCell>{section.subject?.title || 'Section'}</TableCell>
           <TableCell>{getQuestionCount(index)}</TableCell>
           <TableCell>{getAttemptedQuestionCount(index)}</TableCell>
           <TableCell>{getSectionalScores(index)?.counts?.correct}</TableCell>

@@ -25,7 +25,9 @@ export default function MockResult({result}){
     const {data,error} = await supabase.from('mock_groups').select('*,subject(*)').eq('test',a).order('seq',{ascending:true})
   if(data){
     
-    setSections(data)
+    // Filter to only subject-type groups (skip module groups that lack subject)
+    const subjectGroups = data.filter(s => s.type === 'subject' || s.subject != null);
+    setSections(subjectGroups)
    getModules(data)
   }
   else{
@@ -50,7 +52,7 @@ export default function MockResult({result}){
   }
   async function getQuestions(a){
 
-    const {data,error} = await supabase.from('mock_questions').select('*').in('parent',a.map(i=>i.module.id)).order('seq',{ascending:true})
+    const {data,error} = await supabase.from('mock_questions').select('*').in('parent',a.filter(i=>i.module).map(i=>i.module.id)).order('seq',{ascending:true})
 if(data){
     
     setQuestions(data)
@@ -175,7 +177,7 @@ Note :</p>
 {sections && sections.map((i,d)=>{
         return <div className=" text-white flex-[20%] flex-grow-0 text-center flex flex-col justify-center items-center">
         {modules && modules.filter(item=>item.parent_sub == i.id).flatMap((z,v)=>{
-        return <CircularProgress label={i.subject.title} strokeWidth={3} color="red-500"  classNames={{
+        return <CircularProgress label={i.subject?.title || 'Section'} strokeWidth={3} color="red-500"  classNames={{
           svg: "w-36 h-36 drop-shadow-md",
           indicator: "stroke-secondary",
             label: "text-xs text-black",
@@ -221,7 +223,7 @@ Note :</p>
            /{questions
             .filter(item => item.parent === z.module.id)
             .reduce((sum, n) => sum + i.pos, 0)}</>})}</div>
-            {/* <div className="flex flex-col p-2 text-neutral-500 font-semibold text-xs items-start justify-start text-center ">{i.subject.title}</div> */}
+            {/* <div className="flex flex-col p-2 text-neutral-500 font-semibold text-xs items-start justify-start text-center ">{i.subject?.title || 'Section'}</div> */}
             
             
             
@@ -234,7 +236,7 @@ Note :</p>
 
     <div className="p-2 px-2 bg-neutral-600">
       {sections && sections.map((i,d)=>{
-        return <div className="bg-neutral-500 text-white"><div className="flex flex-col p-2 text-white font-semibold text-xs items-start justify-start text-left w-full ">Section : {i.subject.title}</div>
+        return <div className="bg-neutral-500 text-white"><div className="flex flex-col p-2 text-white font-semibold text-xs items-start justify-start text-left w-full ">Section : {i.subject?.title || 'Section'}</div>
         
         <div className="bg-gray-50 text-black">
         {modules && modules.filter(item=>item.parent_sub == i.id).map((z,v)=>{
