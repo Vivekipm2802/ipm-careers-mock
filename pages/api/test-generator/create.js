@@ -22,9 +22,16 @@ export default async function handler(req, res) {
 
     // Validate required fields
     const primaryCourse = course || (courses && courses[0]) || null;
-    if (!title || !category || !primaryCourse || !sections) {
+    // For concept/sectional tests, category can be null (routing is in config)
+    if (!title || !primaryCourse || !sections) {
       return res.status(400).json({
-        error: "Missing required fields: title, category, course, sections",
+        error: "Missing required fields: title, course, sections",
+      });
+    }
+    // For fullmock, category (mock_categories ID) is required
+    if (generatorType === "fullmock" && !category) {
+      return res.status(400).json({
+        error: "Full-length mock tests require a category",
       });
     }
 
@@ -50,17 +57,20 @@ export default async function handler(req, res) {
     };
 
     // Step 1: Create mock_test record
+    const insertData = {
+      title,
+      course: primaryCourse,
+      config: testConfig,
+      description: description || `Generated ${generatorType} test via AI`,
+    };
+    // Only set category for fullmock (references mock_categories)
+    // For concept/sectional, category stays null; routing info is in config
+    if (category) {
+      insertData.category = category;
+    }
     const { data: newTest, error: testError } = await serversupabase
       .from("mock_test")
-      .insert([
-        {
-          title,
-          category,
-          course: primaryCourse,
-          config: testConfig,
-          description: description || `Generated ${generatorType} test via AI`,
-        },
-      ])
+      .insert([insertData])
       .select("id")
       .single();
 

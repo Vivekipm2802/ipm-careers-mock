@@ -118,7 +118,11 @@ export default function MockTests({ enrolled = [] }) {
       .order("seq", { ascending: true });
 
     if (data) {
-      setTests(data);
+      // Exclude concept and sectional tests — they appear on their own pages
+      const filtered = data.filter(
+        (t) => !t.config?.generatorType || t.config?.generatorType === "fullmock"
+      );
+      setTests(filtered);
     } else {
       toast.error("Error loading tests.");
     }
@@ -132,7 +136,11 @@ export default function MockTests({ enrolled = [] }) {
       .order("seq", { ascending: true });
 
     if (data) {
-      setAllTests(data);
+      // Exclude concept and sectional tests
+      const filtered = data.filter(
+        (t) => !t.config?.generatorType || t.config?.generatorType === "fullmock"
+      );
+      setAllTests(filtered);
     } else {
       toast.error("Error loading tests.");
     }

@@ -93,6 +93,9 @@ export default function Concept({ role, group, onBack }) {
   const [latex, setLatex] = useState("\\frac{1}{\\sqrt{2}}\\cdot 2");
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
 
+  // AI-generated concept tests for this group
+  const [aiConceptTests, setAiConceptTests] = useState([]);
+
   const router = useRouter();
   const EditableMathField = dynamic(() => import("react-mathquill"), {
     ssr: false,
@@ -661,11 +664,30 @@ export default function Concept({ role, group, onBack }) {
     }
   }
 
+  // Load AI-generated concept tests that target this group
+  async function loadAiConceptTests() {
+    const { data } = await supabase
+      .from("mock_test")
+      .select("id, title, description, uid, config, start_time, end_time")
+      .order("id", { ascending: false });
+
+    if (data) {
+      // Filter by config.generatorType = "concept" AND config.targetGroup = group ID
+      const filtered = data.filter(
+        (t) =>
+          t.config?.generatorType === "concept" &&
+          String(t.config?.targetGroup) === String(group)
+      );
+      setAiConceptTests(filtered);
+    }
+  }
+
   useEffect(() => {
     if (userDetails != undefined) {
       getCategories();
       getEnrollments(userDetails?.email, role == "admin");
       getGameCategories();
+      loadAiConceptTests();
     }
   }, [userDetails]);
 
@@ -1695,6 +1717,31 @@ export default function Concept({ role, group, onBack }) {
                   </Button>
                 </div>
               </div>
+              {/* AI-Generated Concept Tests for this group */}
+              {aiConceptTests && aiConceptTests.length > 0 && (
+                <div className="flex mb-0 flex-col w-full text-left justify-start align-top items-start">
+                  <div className="flex bg-gradient-to-r from-purple-500 to-purple-300 text-white font-bold p-4 flex-row items-center justify-between w-full">
+                    <div className="w-full flex flex-row items-center justify-start">
+                      <Star size={16} /><Spacer x={2} />
+                      <h2 className="font-medium mr-5">AI-Generated Tests</h2>
+                    </div>
+                  </div>
+                  {aiConceptTests.map((test) => (
+                    <div key={test.id} className="w-full px-4 py-2 border-b border-gray-200 bg-white hover:bg-purple-50 cursor-pointer">
+                      <Link href={`/mock/${test.uid}`} target="_blank" className="flex flex-row items-center justify-between w-full">
+                        <div className="flex flex-col">
+                          <p className="font-semibold text-sm text-primary">{test.title}</p>
+                          <p className="text-xs text-gray-500">{test.description}</p>
+                        </div>
+                        <Button size="sm" color="primary" className="text-white ml-2 flex-shrink-0">
+                          Start
+                        </Button>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {categories &&
                 categories.map((i, d) => {
                   return (

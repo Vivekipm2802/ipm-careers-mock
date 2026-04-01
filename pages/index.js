@@ -2842,7 +2842,7 @@ export default function Home(props) {
                 )}
                 {slug == "sectional-tests" ? (
                   <div className="flex flex-col w-full h-full">
-                    <SectionalTest />
+                    <SectionalTest enrolled={coursesEnrolled || []} />
                   </div>
                 ) : (
                   ""

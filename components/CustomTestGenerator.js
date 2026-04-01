@@ -107,39 +107,37 @@ function CustomTestGenerator({ userData, role }) {
   const [publishing, setPublishing] = useState(false);
   const [publishResult, setPublishResult] = useState(null);
 
+  // Sectional test has 3 fixed section categories
+  const SECTIONAL_CATEGORIES = [
+    { id: "QA", title: "Quantitative Aptitude" },
+    { id: "VA", title: "Verbal Ability" },
+    { id: "LR", title: "Logical Reasoning" },
+  ];
+
+  // Store concept test_groups and mock_categories separately
+  const [conceptGroups, setConceptGroups] = useState([]);
+  const [mockCategories, setMockCategories] = useState([]);
+
   useEffect(() => {
-    loadCategories();
     loadCourses();
+    loadConceptGroups();
+    loadMockCategories();
   }, []);
 
-  // Category names that map to test types
-  const TYPE_CATEGORY_NAMES = {
-    concept: "Concept Tests",
-    sectional: "Sectional Tests",
-    fullmock: "Full Length Mocks",
-  };
+  async function loadConceptGroups() {
+    const { data } = await supabase
+      .from("test_groups")
+      .select("*")
+      .eq("type", "concept");
+    if (data) setConceptGroups(data);
+  }
 
-  async function loadCategories() {
-    try {
-      // Call server-side API to ensure test-type categories exist (bypasses RLS)
-      const res = await fetch("/api/test-generator/ensure-categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      const result = await res.json();
-      if (result.success && result.categories) {
-        setCategories(result.categories);
-        return;
-      }
-    } catch (e) {
-      console.error("ensure-categories failed, falling back:", e);
-    }
-    // Fallback: just load categories normally
+  async function loadMockCategories() {
     const { data } = await supabase
       .from("mock_categories")
       .select("*")
       .order("seq");
-    if (data) setCategories(data);
+    if (data) setMockCategories(data);
   }
 
   async function loadCourses() {
@@ -147,19 +145,28 @@ function CustomTestGenerator({ userData, role }) {
     if (data) setCourses(data);
   }
 
+  // Compute which categories to show based on test type
+  useEffect(() => {
+    let cats = [];
+    if (testType === "concept") {
+      cats = conceptGroups.map((g) => ({ id: g.id, title: g.title }));
+    } else if (testType === "sectional") {
+      cats = SECTIONAL_CATEGORIES;
+    } else if (testType === "fullmock") {
+      cats = mockCategories.map((c) => ({ id: c.id, title: c.title }));
+    }
+    setCategories(cats);
+    setSelectedCategory(null);
+  }, [testType, conceptGroups, mockCategories]);
+
+  // Update time defaults when type changes
   useEffect(() => {
     const type = TEST_TYPES.find((t) => t.key === testType);
     if (type) {
       setTimeLimit(type.defaultTime);
       setConfig((c) => ({ ...c, timeout: type.defaultTime }));
     }
-    // Auto-select matching category based on test type
-    if (categories.length > 0) {
-      const catName = TYPE_CATEGORY_NAMES[testType];
-      const match = categories.find((c) => c.title === catName);
-      if (match) setSelectedCategory(match.id);
-    }
-  }, [testType, categories]);
+  }, [testType]);
 
   // --- Section management ---
   function addSection(subjectTitle) {
@@ -344,7 +351,9 @@ function CustomTestGenerator({ userData, role }) {
       const payload = {
         title: testTitle,
         description: testDesc,
-        category: selectedCategory,
+        // For fullmock: category is a mock_categories ID
+        // For concept/sectional: category is null, routing info is in config
+        category: testType === "fullmock" ? selectedCategory : null,
         course: selectedCourses[0] || null,
         courses: selectedCourses,
         generatorType: testType,
@@ -363,7 +372,15 @@ function CustomTestGenerator({ userData, role }) {
           time: s.time,
         })),
         generatedQuestions,
-        config: { ...config, timeout: timeLimit, courses: selectedCourses },
+        config: {
+          ...config,
+          timeout: timeLimit,
+          courses: selectedCourses,
+          // Store page-routing info
+          generatorType: testType,
+          ...(testType === "concept" && { targetGroup: selectedCategory }),
+          ...(testType === "sectional" && { targetSection: selectedCategory }),
+        },
       };
 
       const res = await fetch("/api/test-generator/create", {
@@ -394,7 +411,7 @@ function CustomTestGenerator({ userData, role }) {
   function canProceed() {
     switch (step) {
       case 0:
-        return testTitle.trim() && selectedCategory && selectedCourses.length > 0;
+        return testTitle.trim() && selectedCategory !== null && selectedCategory !== "" && selectedCourses.length > 0;
       case 1:
         return totalQuestions > 0 && sections.every((s) =>
           s.topics.some((t) => t.topicName && ((parseInt(t.mcqCount) || 0) + (parseInt(t.saCount) || 0)) > 0)
@@ -456,13 +473,28 @@ function CustomTestGenerator({ userData, role }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Select
-            label="Category"
-            placeholder="Select category"
+            label={
+              testType === "concept"
+                ? "Collection (Concept Tests Page)"
+                : testType === "sectional"
+                ? "Section (Sectional Test Page)"
+                : "Category (Mock Tests Page)"
+            }
+            placeholder={
+              testType === "concept"
+                ? "Select collection"
+                : testType === "sectional"
+                ? "Select section"
+                : "Select category"
+            }
             variant="bordered"
             selectedKeys={selectedCategory ? [String(selectedCategory)] : []}
             onSelectionChange={(keys) => {
               const val = Array.from(keys)[0];
-              setSelectedCategory(val ? Number(val) : null);
+              // For fullmock, category IDs are numbers; for others, could be strings
+              setSelectedCategory(
+                testType === "fullmock" ? (val ? Number(val) : null) : val || null
+              );
             }}
           >
             {categories.map((c) => (
@@ -1049,9 +1081,11 @@ function CustomTestGenerator({ userData, role }) {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Category (Tab)</p>
+                <p className="text-sm text-gray-500">
+                  {testType === "concept" ? "Collection" : testType === "sectional" ? "Section" : "Category"}
+                </p>
                 <p className="font-semibold">
-                  {categories.find((c) => c.id === selectedCategory)?.title || "N/A"}
+                  {categories.find((c) => String(c.id) === String(selectedCategory))?.title || "N/A"}
                 </p>
               </div>
               <div>
