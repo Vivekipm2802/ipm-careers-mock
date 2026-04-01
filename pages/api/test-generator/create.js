@@ -57,17 +57,49 @@ export default async function handler(req, res) {
     };
 
     // Step 1: Create mock_test record
+    // For concept/sectional tests, we need a valid category since the column may have constraints.
+    // We'll find or create a placeholder category for non-fullmock tests.
+    let effectiveCategory = category;
+    if (!effectiveCategory && (generatorType === "concept" || generatorType === "sectional")) {
+      // Find or create an "AI Generated" category to satisfy the NOT NULL constraint
+      const { data: existing } = await serversupabase
+        .from("mock_categories")
+        .select("id")
+        .eq("title", "AI Generated")
+        .single();
+
+      if (existing) {
+        effectiveCategory = existing.id;
+      } else {
+        const { data: maxSeq } = await serversupabase
+          .from("mock_categories")
+          .select("seq")
+          .order("seq", { ascending: false })
+          .limit(1)
+          .single();
+
+        const { data: newCat } = await serversupabase
+          .from("mock_categories")
+          .insert([{ title: "AI Generated", seq: (maxSeq?.seq || 100) + 1 }])
+          .select("id")
+          .single();
+
+        if (newCat) {
+          effectiveCategory = newCat.id;
+        }
+      }
+    }
+
     const insertData = {
       title,
       course: primaryCourse,
       config: testConfig,
       description: description || `Generated ${generatorType} test via AI`,
     };
-    // Only set category for fullmock (references mock_categories)
-    // For concept/sectional, category stays null; routing info is in config
-    if (category) {
-      insertData.category = category;
+    if (effectiveCategory) {
+      insertData.category = effectiveCategory;
     }
+
     const { data: newTest, error: testError } = await serversupabase
       .from("mock_test")
       .insert([insertData])
@@ -76,7 +108,9 @@ export default async function handler(req, res) {
 
     if (testError || !newTest) {
       console.error("Error creating test:", testError);
-      return res.status(500).json({ error: "Failed to create test" });
+      return res.status(500).json({
+        error: "Failed to create test: " + (testError?.message || "unknown error"),
+      });
     }
 
     const testId = newTest.id;
