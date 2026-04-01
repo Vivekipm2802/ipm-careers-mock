@@ -246,7 +246,7 @@ const MockTest = ({ config, is_allowed, data }) => {
       .select("*")
       .in(
         "parent",
-        a.map((i) => i.module.id)
+        a.filter((i) => i.module).map((i) => i.module.id)
       )
       .order("seq", { ascending: true });
     if (data) {
@@ -279,13 +279,17 @@ const MockTest = ({ config, is_allowed, data }) => {
   useEffect(() => {
     if (sections && modules && questions) {
       let questionIndex = 1;
-      const r = sections.map((section) => ({
-        title: section.subject.title,
+      // Filter to only subject-type sections (skip module-type groups)
+      const subjectSections = sections.filter(
+        (s) => s.type === "subject" || s.subject != null
+      );
+      const r = subjectSections.map((section) => ({
+        title: section.subject?.title || section.title || "Section",
         child: modules
           .filter((b) => b.parent_sub == section.id)
           .flatMap((z) =>
             questions
-              .filter((question) => question.parent === z.module.id)
+              .filter((question) => question.parent === z.module?.id)
               .sort((a, b) => a.seq - b.seq)
               .map((lp) => ({ id: lp.id, index: questionIndex++ }))
           ),
