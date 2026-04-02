@@ -348,7 +348,24 @@ async function callGemini(apiKey, prompt) {
       }
 
       if (response.status === 404) {
-        const msg = `Model ${model} not found`;
+        const errBody = await response.text();
+        const msg = `Model ${model} not found — response: ${errBody.substring(0, 300)}`;
+        console.log(msg);
+        errors.push(msg);
+        continue;
+      }
+
+      if (response.status === 400) {
+        const errBody = await response.text();
+        const msg = `${model} 400 Bad Request — likely invalid API key: ${errBody.substring(0, 300)}`;
+        console.log(msg);
+        errors.push(msg);
+        continue;
+      }
+
+      if (response.status === 403) {
+        const errBody = await response.text();
+        const msg = `${model} 403 Forbidden — API not enabled or quota exceeded: ${errBody.substring(0, 300)}`;
         console.log(msg);
         errors.push(msg);
         continue;
