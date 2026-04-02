@@ -118,12 +118,26 @@ SA format:
 // ── Gemini caller ──────────────────────────────────────────────
 
 async function callGemini(apiKey, prompt, timeoutMs = 18000) {
-  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-pro-latest"];
+  // Fastest models first — avoid thinking models to stay within Edge 25s limit
+  const models = [
+    { name: "gemini-2.5-flash-lite",  thinking: false },
+    { name: "gemini-2.0-flash",        thinking: false },
+    { name: "gemini-2.5-flash",        thinking: false }, // thinking disabled via thinkingBudget:0
+    { name: "gemini-pro-latest",       thinking: false },
+  ];
 
-  for (const model of models) {
+  for (const { name: model, thinking } of models) {
     try {
       const controller = new AbortController();
       const tid = setTimeout(() => controller.abort(), timeoutMs);
+
+      const generationConfig = {
+        temperature: 0.75,
+        maxOutputTokens: 8192,
+        ...(thinking === false && model.includes("2.5-flash")
+          ? { thinkingConfig: { thinkingBudget: 0 } }
+          : {}),
+      };
 
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -133,7 +147,7 @@ async function callGemini(apiKey, prompt, timeoutMs = 18000) {
           signal: controller.signal,
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.75, maxOutputTokens: 8192 },
+            generationConfig,
           }),
         }
       );
@@ -262,8 +276,8 @@ export default async function handler(req) {
   }
 
   // Split into sub-batches of max 8 questions, run in parallel
-  const MAX_PER_BATCH = 8;
-  const DEADLINE = Date.now() + 20000; // 20s deadline
+  const MAX_PER_BATCH = 6;
+  const DEADLINE = Date.now() + 18000; // 18s deadline — leaves 7s buffer in Edge Runtime
 
   const subBatches = [];
   let remMcq = Math.ceil(mcqCount * 1.25); // 25% buffer for filtering
