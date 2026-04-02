@@ -59,19 +59,32 @@ export default async function handler(req) {
     let allParsed = [];
     const debugInfo = [];
 
-    // Split into per-subject batches and run in parallel
-    const subjectGroups = {};
+    // Split into small sub-batches of MAX 8 questions each, run all in parallel
+    // This keeps each Gemini call well within the 25s Edge Runtime limit
+    const MAX_QS_PER_CALL = 8;
+    const subBatches = []; // { subject, topics (trimmed to fit ≤8 Qs), label }
+
     for (const t of allTopicRequests) {
-      if (!subjectGroups[t.subject]) subjectGroups[t.subject] = [];
-      subjectGroups[t.subject].push(t);
+      // Split a single topic if it has too many questions
+      let remaining = { ...t };
+      while ((remaining.mcqCount + remaining.saCount) > 0) {
+        const used = Math.min(remaining.mcqCount + remaining.saCount, MAX_QS_PER_CALL);
+        const mcq = Math.min(remaining.mcqCount, used);
+        const sa = Math.min(used - mcq, remaining.saCount);
+        subBatches.push({
+          subject: t.subject,
+          topics: [{ ...remaining, mcqCount: mcq, saCount: sa }],
+          label: `${t.subject}/${t.topicName} (${mcq}MCQ+${sa}SA)`,
+        });
+        remaining = { ...remaining, mcqCount: remaining.mcqCount - mcq, saCount: remaining.saCount - sa };
+      }
     }
 
-    const batchEntries = Object.entries(subjectGroups);
+    console.log(`Running ${subBatches.length} parallel sub-batches (max ${MAX_QS_PER_CALL} Qs each)`);
 
     const batchResults = await Promise.allSettled(
-      batchEntries.map(async ([subject, topics]) => {
-        const batchQs = topics.reduce((a, t) => a + t.mcqCount + t.saCount, 0);
-        console.log(`Batch: ${subject} (${batchQs} Qs)`);
+      subBatches.map(async ({ subject, topics, label }) => {
+        console.log(`Batch: ${label}`);
 
         const batchPrompt = buildPrompt(topics, difficulty);
         const geminiResponse = await callGemini(apiKey, batchPrompt);
