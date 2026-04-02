@@ -256,20 +256,39 @@ export default function QuestionBankAdmin() {
 
             {/* Result */}
             {lastResult && (
-              <div className={`rounded-lg p-3 text-sm ${lastResult.success ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+              <div className={`rounded-lg p-3 text-sm border-2 ${lastResult.success ? "bg-green-50 text-green-700 border-green-300" : "bg-red-50 text-red-700 border-red-300"}`}>
                 {lastResult.success ? (
                   <>
                     ✅ <strong>Saved {lastResult.saved}</strong> questions to Supabase
                     {" "}(requested {lastResult.requested}, generated {lastResult.generated})
+                    {lastResult.dbError && (
+                      <div className="mt-2 text-red-600 font-mono text-xs bg-red-100 p-2 rounded">
+                        DB Error: {lastResult.dbError}
+                      </div>
+                    )}
                     {lastResult.generated < lastResult.requested && (
-                      <span className="text-amber-600 ml-2">
-                        Note: {lastResult.requested - lastResult.generated} filtered (LaTeX/non-integer answers removed)
-                      </span>
+                      <div className="text-amber-600 mt-1">
+                        ⚠️ {lastResult.requested - lastResult.generated} filtered out (LaTeX or non-integer answers)
+                      </div>
                     )}
                   </>
                 ) : (
-                  <>❌ {lastResult.error}</>
+                  <div>
+                    <div className="font-bold text-base mb-1">❌ Error</div>
+                    <div>{lastResult.error}</div>
+                    {lastResult.errors && (
+                      <div className="mt-2 font-mono text-xs bg-red-100 p-2 rounded">
+                        {lastResult.errors.join(" | ")}
+                      </div>
+                    )}
+                  </div>
                 )}
+                <details className="mt-2">
+                  <summary className="text-xs text-gray-400 cursor-pointer">Raw response (for debugging)</summary>
+                  <pre className="text-xs mt-1 bg-gray-100 p-2 rounded overflow-auto max-h-40">
+                    {JSON.stringify(lastResult, null, 2)}
+                  </pre>
+                </details>
               </div>
             )}
           </CardBody>
