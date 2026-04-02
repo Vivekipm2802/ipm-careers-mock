@@ -142,11 +142,11 @@ export default function Dashboard({ userData }) {
       keys: 3,
     },
     {
-      title: "Sectional Tests",
-      slug: "sectional-tests",
+      title: "Study Planner",
+      slug: "studyplan",
       icon: <img src="/plan.svg" className="w-8" />,
       shape: "bg-yellow-200",
-      demo: true,
+      demo: false,
       keys: 7,
     },
     {
