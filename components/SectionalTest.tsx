@@ -220,7 +220,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
       <div className="pr-2 mt-4 overflow-hidden flex flex-col justify-start items-start flex-1 h-full w-full text-left">
         <h2 className="font-bold text-2xl text-primary">Sectional Tests</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Practice individual sections with AI-generated questions
+          Practice individual sections to sharpen your skills
         </p>
         <Spacer y={4} />
 
@@ -257,7 +257,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
                 <div className="rounded-xl bg-white w-full border-gray-300 border-1 border-dashed text-gray-600 my-2 p-4 text-center">
                   <p className="font-semibold">No tests in {currentSection.title} yet</p>
                   <p className="text-sm mt-1">
-                    Tests created with the AI Test Generator will appear here
+                    New tests will appear here soon
                   </p>
                 </div>
               ) : null}
@@ -326,7 +326,7 @@ const TestCard = ({
           </>
         ) : (
           <>
-            <p className="text-xl text-primary font-bold">AI</p>
+            <p className="text-xl text-primary font-bold">New</p>
             <p className="text-xs">Test</p>
           </>
         )}

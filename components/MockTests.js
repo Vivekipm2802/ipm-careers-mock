@@ -90,8 +90,8 @@ export default function MockTests({ enrolled = [] }) {
       .order("seq", { ascending: true });
     if (data) {
       toast.remove(r);
-      // Hide the "AI Generated" placeholder category from the Mock Tests page
-      setCategories(data.filter((c) => c.title !== "AI Generated"));
+      // Hide the internal placeholder category from the Mock Tests page
+      setCategories(data.filter((c) => c.title !== "__internal__"));
     } else {
       toast.error("failed to get categories");
       toast.remove(r);

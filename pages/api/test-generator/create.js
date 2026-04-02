@@ -61,11 +61,11 @@ export default async function handler(req, res) {
     // We'll find or create a placeholder category for non-fullmock tests.
     let effectiveCategory = category;
     if (!effectiveCategory && (generatorType === "concept" || generatorType === "sectional")) {
-      // Find or create an "AI Generated" category to satisfy the NOT NULL constraint
+      // Find or create an "__internal__" category to satisfy the NOT NULL constraint
       const { data: existing } = await serversupabase
         .from("mock_categories")
         .select("id")
-        .eq("title", "AI Generated")
+        .eq("title", "__internal__")
         .single();
 
       if (existing) {
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
 
         const { data: newCat } = await serversupabase
           .from("mock_categories")
-          .insert([{ title: "AI Generated", seq: (maxSeq?.seq || 100) + 1 }])
+          .insert([{ title: "__internal__", seq: (maxSeq?.seq || 100) + 1 }])
           .select("id")
           .single();
 
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       title,
       course: primaryCourse,
       config: testConfig,
-      description: description || `Generated ${generatorType} test via AI`,
+      description: description || "",
     };
     if (effectiveCategory) {
       insertData.category = effectiveCategory;

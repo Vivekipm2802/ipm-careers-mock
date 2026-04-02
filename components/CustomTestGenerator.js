@@ -484,7 +484,7 @@ function CustomTestGenerator({ userData, role }) {
   async function generateQuestions() {
     setGenerating(true);
     setGenerationError(null);
-    const loadingToast = toast.loading("Generating questions with AI...");
+    const loadingToast = toast.loading("Generating questions...");
 
     try {
       const payload = {
@@ -807,7 +807,7 @@ function CustomTestGenerator({ userData, role }) {
           Step 2: Define Sections & Topics
         </h2>
         <p className="text-sm text-gray-500">
-          Add subjects and topics. AI will generate questions for each topic.
+          Add subjects and topics. Questions will be auto-generated for each topic.
         </p>
 
         {/* Full Mock Template selector */}
@@ -1125,13 +1125,13 @@ function CustomTestGenerator({ userData, role }) {
     return (
       <div className="flex flex-col gap-6 p-4">
         <h2 className="text-2xl font-bold text-purple-800">
-          Step 3: AI-Generated Questions
+          Step 3: Generated Questions
         </h2>
 
         {generating ? (
           <div className="flex flex-col items-center gap-4 p-12">
             <Spinner size="lg" color="secondary" />
-            <p className="text-gray-500">Generating questions with Gemini AI...</p>
+            <p className="text-gray-500">Generating questions...</p>
             <p className="text-sm text-gray-400">This may take 20-60 seconds depending on the number of questions</p>
           </div>
         ) : generationError ? (
@@ -1394,10 +1394,10 @@ function CustomTestGenerator({ userData, role }) {
     <div className="flex flex-col w-full h-full">
       <div className="p-4 border-b bg-white">
         <h1 className="text-xl font-bold text-purple-900">
-          AI Test Generator
+          Test Generator
         </h1>
         <p className="text-sm text-gray-500">
-          Create tests powered by Gemini AI — no question bank needed
+          Create and publish tests quickly with auto-generated questions
         </p>
       </div>
 

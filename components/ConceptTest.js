@@ -1717,13 +1717,13 @@ export default function Concept({ role, group, onBack }) {
                   </Button>
                 </div>
               </div>
-              {/* AI-Generated Concept Tests for this group */}
+              {/* Extra Concept Tests for this group */}
               {aiConceptTests && aiConceptTests.length > 0 && (
                 <div className="flex mb-0 flex-col w-full text-left justify-start align-top items-start">
                   <div className="flex bg-gradient-to-r from-purple-500 to-purple-300 text-white font-bold p-4 flex-row items-center justify-between w-full">
                     <div className="w-full flex flex-row items-center justify-start">
                       <Star size={16} /><Spacer x={2} />
-                      <h2 className="font-medium mr-5">AI-Generated Tests</h2>
+                      <h2 className="font-medium mr-5">Practice Tests</h2>
                     </div>
                   </div>
                   {aiConceptTests.map((test) => (
