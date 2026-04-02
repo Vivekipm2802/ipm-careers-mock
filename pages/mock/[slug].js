@@ -199,15 +199,15 @@ const MockTest = ({ config, is_allowed, data, previewSections, previewModules, p
   const [sideBarActive, setSidebarActive] = useState(!isMobile);
   const [answered, setAnswered] = useState();
   const [miscData, setMiscData] = useState();
-  const [sections, setSections] = useState();
-  const [modules, setModules] = useState();
+  const [sections, setSections] = useState(previewSections || undefined);
+  const [modules, setModules] = useState(previewModules || undefined);
   const [currentSection, setCurrentSection] = useState(0);
   const [insindex, setInsIndex] = useState(0);
   const [calculatorActive, setCalculatorActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitModal, setSubmitModal] = useState(false);
   const [gamestate, setGameState] = useState(0);
-  const [questions, setQuestions] = useState();
+  const [questions, setQuestions] = useState(previewQuestions || undefined);
   const [organized, setOrganized] = useState();
   const [exists, setExists] = useState(undefined);
 
@@ -445,17 +445,8 @@ const MockTest = ({ config, is_allowed, data, previewSections, previewModules, p
     }
   }, [userDetails]);
 
-  // For preview mode, use server-preloaded data instead of client-side fetch
   useEffect(() => {
-    if (previewSections && previewModules && previewQuestions) {
-      setSections(previewSections);
-      setModules(previewModules);
-      setQuestions(previewQuestions);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (previewSections) return; // Skip client fetch in preview mode
+    if (previewSections) return; // Skip client fetch in preview mode — data already initialized from props
     if (router.query.slug != undefined) {
       getSections(config?.id);
     }
@@ -1378,40 +1369,54 @@ export async function getServerSideProps(context) {
   if (context?.query?.preview === "true") {
     try {
       const testId = data[0].id;
+      console.log("[Preview] Loading data for test ID:", testId);
 
-      // Load sections (subject-type groups)
-      const { data: sectionsData } = await serversupabase
+      // Load ALL groups for this test (both subject and module types)
+      const { data: allGroups, error: groupsErr } = await serversupabase
         .from("mock_groups")
-        .select("*,subject(*)")
+        .select("*,subject(*),module(*)")
         .eq("test", testId)
         .order("seq", { ascending: true });
 
-      if (sectionsData && sectionsData.length > 0) {
-        // Load modules (module-type groups)
-        const { data: modulesData } = await serversupabase
-          .from("mock_groups")
-          .select("*,module(*)")
-          .in("parent_sub", sectionsData.map((s) => s.id));
+      console.log("[Preview] Groups loaded:", allGroups?.length, "Error:", groupsErr?.message);
 
-        if (modulesData && modulesData.length > 0) {
-          // Load questions
+      if (allGroups && allGroups.length > 0) {
+        // Separate subject-type (sections) and module-type (modules)
+        const sectionsData = allGroups.filter((g) => g.type === "subject");
+        const modulesData = allGroups.filter((g) => g.type === "module");
+
+        console.log("[Preview] Sections:", sectionsData.length, "Modules:", modulesData.length);
+
+        if (modulesData.length > 0) {
+          // Load questions for all modules
           const moduleIds = modulesData
             .filter((m) => m.module)
             .map((m) => m.module.id);
 
-          const { data: questionsData } = await serversupabase
+          console.log("[Preview] Loading questions for module IDs:", moduleIds);
+
+          const { data: questionsData, error: qErr } = await serversupabase
             .from("mock_questions")
             .select("*")
             .in("parent", moduleIds)
             .order("seq", { ascending: true });
 
+          console.log("[Preview] Questions loaded:", questionsData?.length, "Error:", qErr?.message);
+
           props.previewSections = sectionsData;
           props.previewModules = modulesData;
           props.previewQuestions = questionsData || [];
+        } else {
+          console.log("[Preview] No modules found, setting empty arrays");
+          props.previewSections = sectionsData;
+          props.previewModules = [];
+          props.previewQuestions = [];
         }
+      } else {
+        console.log("[Preview] No groups found for test");
       }
     } catch (e) {
-      console.error("Error preloading preview data:", e);
+      console.error("[Preview] Error preloading data:", e);
     }
   }
 
