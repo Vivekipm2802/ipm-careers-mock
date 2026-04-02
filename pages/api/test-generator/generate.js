@@ -308,11 +308,13 @@ JSON format for SA:
 
 async function callGemini(apiKey, prompt) {
   // Try models in order of preference
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  // gemini-2.0-flash is the latest fast model; gemini-1.5-flash is fallback
+  const models = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"];
+  const errors = [];
 
   for (const model of models) {
     try {
-      console.log(`Calling model: ${model}`);
+      console.log(`Calling model: ${model}, prompt length: ${prompt.length} chars`);
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
         {
@@ -329,18 +331,24 @@ async function callGemini(apiKey, prompt) {
       );
 
       if (response.status === 429) {
-        console.log(`Rate limited on ${model}, trying next...`);
+        const msg = `Rate limited on ${model}`;
+        console.log(msg);
+        errors.push(msg);
         continue;
       }
 
       if (response.status === 404) {
-        console.log(`Model ${model} not found, trying next...`);
+        const msg = `Model ${model} not found`;
+        console.log(msg);
+        errors.push(msg);
         continue;
       }
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.log(`${model} error ${response.status}: ${errorText.substring(0, 200)}`);
+        const msg = `${model} error ${response.status}: ${errorText.substring(0, 500)}`;
+        console.log(msg);
+        errors.push(msg);
         continue;
       }
 
@@ -388,7 +396,7 @@ async function callGemini(apiKey, prompt) {
     }
   }
 
-  return { error: "All Gemini models failed" };
+  return { error: "All Gemini models failed: " + errors.join(" | ") };
 }
 
 function parseGeminiResponse(text) {
