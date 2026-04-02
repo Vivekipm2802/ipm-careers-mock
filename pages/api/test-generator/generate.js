@@ -134,174 +134,24 @@ function buildCombinedPrompt(topicRequests, difficulty, testType) {
     subjects.add(t.subject.toLowerCase());
   }
 
-  // Detect which subject areas are being generated
-  const hasQA = [...subjects].some(s => s.includes("quantitative") || s.includes("qa") || s.includes("quant") || s.includes("mathematics"));
-  const hasVA = [...subjects].some(s => s.includes("verbal") || s.includes("va") || s.includes("varc") || s.includes("english") || s.includes("language"));
-  const hasLR = [...subjects].some(s => s.includes("logical") || s.includes("lr") || s.includes("reasoning") || s.includes("di") || s.includes("data interpretation"));
+  return `You are an expert question setter for IPMAT (IIM Indore/Rohtak), JIPMAT, and IIM Kozhikode BMS exams.
 
-  // Build subject-specific style guides based on real IPMAT/JIPMAT/IIM K BMS papers (2023-2025)
-  let styleGuide = "";
+Generate exactly ${totalMcq + totalSa} exam-quality questions. Difficulty: ${difficultyDesc[difficulty] || difficultyDesc.medium}
 
-  if (hasQA) {
-    styleGuide += `
-=== QUANTITATIVE ABILITY — QUESTION STYLE GUIDE (Based on IPMAT Indore/Rohtak, JIPMAT, IIM K BMS 2023-2025 papers) ===
+Topics:${topicBreakdown}
 
-CRITICAL: These are NOT school-level textbook questions. Every question must feel like it belongs in an actual IPMAT paper. Study these patterns:
+RULES:
+1. Return ONLY a valid JSON array — no markdown, no code fences, no text before/after.
+2. MCQ: 4 options (A/B/C/D), exactly 1 correct (isCorrect:true). Make distractors plausible (common mistake answers).
+3. SA: numeric answer only (integer or simple decimal). Student types it in.
+4. Explanation: 2 sentences max showing key steps.
+5. Wrap question in <p> tags. Math in plain text (x² not LaTeX).
+6. sectionTitle and topicName must match exactly as given above.
+7. Questions must be multi-step, IPMAT-level difficulty — NOT textbook basics.
 
-MCQ QUESTION PATTERNS:
-• Multi-concept integration: Each question should combine 2-3 mathematical concepts. Example patterns from real papers:
-  - A series convergence problem that requires knowledge of GP sum formula AND recognizing π²/6
-  - A logarithm problem that requires log properties AND algebraic manipulation AND inequality reasoning
-  - A probability problem where you must first count digit-constraint combinations THEN compute probability
-  - A geometry problem combining coordinate geometry with trigonometric angle computation
-  - A number theory problem requiring modular arithmetic AND divisibility rules together
+MCQ format: {"sectionTitle":"...","topicName":"...","type":"options","question":"<p>...</p>","options":[{"title":"A","text":"...","isCorrect":false},{"title":"B","text":"...","isCorrect":true},{"title":"C","text":"...","isCorrect":false},{"title":"D","text":"...","isCorrect":false}],"explanation":"..."}
 
-• Question complexity should require 2-4 steps of reasoning, NOT simple plug-and-formula.
-
-• For Algebra topics: Test polynomial roots with Vieta's formulas, functional equations f(f(x)), matrix equations, systems with parameters, quadratic discriminant analysis. Avoid simple "solve for x" — instead ask for sum/product of roots, number of integer solutions, range of parameter values.
-
-• For Number Theory topics: Remainders of large exponents (like 17^256 mod 9), factors that are perfect squares, digit-sum constraints, divisibility of expressions like n⁵−n, GCD/LCM of algebraic expressions. Use numbers large enough that brute force fails.
-
-• For Geometry topics: Combine circle theorems with coordinate geometry, triangle properties with trigonometry, area problems requiring auxiliary constructions. Include circumradius/inradius formulas, regular polygon properties, locus problems.
-
-• For Arithmetic topics: Multi-step percentage/ratio word problems with 3+ constraints. CI problems with different compounding schemes or multiple investments. Profit/loss with successive discounts and tax. Mixture/alligation with replacement.
-
-• For P&C/Probability: Conditional probability, derangements, circular permutations with restrictions, probability with geometric constraints, digit arrangement with divisibility conditions.
-
-• For DI (Data Interpretation): Create a data table or chart description (e.g., monthly sales across 5 products, student enrollment by department and year), then ask 3-5 questions from that SAME dataset. Questions should require percentage change, ratio comparison, average computation, and ranking — not just reading values.
-
-• For Statistics: Mean/median/mode problems with unknown values, effect of adding/removing data points, problems combining frequency tables with probability.
-
-SA (SHORT ANSWER) QUESTION PATTERNS:
-• Answer must ALWAYS be a precise integer or simple fraction/decimal (students type the answer, no options).
-• Multi-step word problems with real-world scenarios: work-rate with partial completion, speed-distance with multiple segments, age problems with 4+ people, team selection with constraints.
-• Set-based constraint puzzles: 4-5 related questions from ONE scenario (like a team expedition, tournament, or scheduling problem). Each question has a single numeric answer.
-• Pattern: Present a rich scenario with multiple conditions, then ask for a specific numeric value.
-• Avoid trivial computation — the challenge is in setting up equations from word problem constraints.
-
-OPTION DESIGN FOR MCQ:
-• All 4 options must be plausible. Include trap answers that result from common mistakes:
-  - The answer you get if you forget a negative sign
-  - The answer from a partial solution (stopping one step early)
-  - The answer from misapplying a formula (e.g., using nPr instead of nCr)
-  - Close numerical values (e.g., if answer is 24, options might be 18, 20, 24, 30)
-• NEVER use obviously wrong options like 0 or negative numbers when the context doesn't allow them.
-• Options should be in ascending or logical order.
-`;
-  }
-
-  if (hasVA) {
-    styleGuide += `
-=== VERBAL ABILITY — QUESTION STYLE GUIDE (Based on IPMAT Indore 2023-2025, JIPMAT, IIM K BMS papers) ===
-
-CRITICAL: VA questions in IPMAT are sophisticated — NOT simple school grammar. Follow these exact patterns:
-
-READING COMPREHENSION:
-• Generate passages of 200-350 words on topics like: social media policy debates, economic theory, philosophical concepts (e.g., Baudrillard's consumption theory), scientific discoveries, historical analysis, business strategy, technology ethics, environmental policy.
-• Passage tone should be academic but accessible — like an editorial from The Hindu or an excerpt from a McKinsey report.
-• For each passage, generate 4-6 questions testing: main idea/central argument, author's tone/stance, specific inference (what can be concluded from paragraph 2), vocabulary in context, logical implication, what would weaken/strengthen the argument.
-• Question stems should use phrases like: "It can be inferred from the passage that...", "The author's primary purpose is to...", "Which of the following best describes...", "The passage suggests that...", "Which statement would the author most likely agree with?"
-• Options should include sophisticated distractors: partially correct statements, statements true but not supported by passage, extreme versions of correct answers.
-
-SENTENCE COMPLETION / FILL IN THE BLANKS:
-• Use phrasal verbs and idiomatic expressions: "The committee decided to ___ the proposal" (shelve/table/defer — test nuanced word choice).
-• Triple-blank sentences where all three words must fit contextually: "The ___ politician delivered a ___ speech that left the audience ___."
-• Test collocations: words that naturally go together in English (e.g., "wreak havoc" not "create havoc").
-
-SENTENCE CORRECTION:
-• Present a sentence with an underlined portion and 4 options for the correct version.
-• Test: subject-verb agreement with intervening clauses, tense consistency in complex sentences, parallel structure, dangling modifiers, causative verbs (make/let/have/get), correct preposition usage, pronoun-antecedent agreement.
-• The original sentence should sound almost right — the error should be subtle.
-
-PARA JUMBLES:
-• Give 4-5 sentences labeled P, Q, R, S (or 1-5) that form a coherent paragraph when rearranged.
-• Options give different orderings (e.g., QPRS, RQSP, PRQS, SQRP).
-• Sentences should have clear discourse markers, pronoun references, and logical flow indicators that allow determining the correct order.
-
-PARA COMPLETION:
-• Give a paragraph with one sentence missing (indicated by ___).
-• Four options offer different sentences to fill the gap.
-• The correct answer maintains logical flow, tone, and argument progression.
-
-VOCABULARY — INCORRECT WORD USAGE:
-• Present 4 sentences, each using the SAME word. In exactly one sentence, the word is used incorrectly.
-• Test commonly confused words: affect/effect, principal/principle, complement/compliment, discrete/discreet, elicit/illicit, farther/further, hoard/horde.
-• The incorrect usage should be subtle — the word should almost make sense in context.
-
-VOCABULARY — SYNONYMS/ANTONYMS:
-• Test advanced vocabulary: words like "obsequious", "perspicacious", "ephemeral", "sanguine", "perfunctory", "recalcitrant".
-• Options should include near-synonyms that don't quite match the context.
-
-CONVERSATION ANALYSIS (for IPMAT Indore style):
-• Present a short dialogue/transcript (5-8 exchanges) and ask analytical questions about it.
-`;
-  }
-
-  if (hasLR) {
-    styleGuide += `
-=== LOGICAL REASONING & DATA INTERPRETATION — QUESTION STYLE GUIDE (Based on IPMAT Rohtak, JIPMAT 2023-2024 papers) ===
-
-CODING-DECODING:
-• Pattern-based letter/number coding where the student must identify the rule and apply it.
-• Example pattern: If MOBILITY = 46293927, find code for EXAMINATION (positional cipher + operation).
-
-SEATING ARRANGEMENT:
-• 6-8 people in circular or linear arrangement with 4-6 conditional constraints.
-• Generate 3-4 questions from the SAME arrangement scenario.
-• Constraints like: "A sits opposite B", "C is not adjacent to D", "E sits 2 places to the left of F".
-
-SYLLOGISM:
-• 3-4 statements followed by 2-3 conclusions. Test "All/Some/No" logic with Venn diagram reasoning.
-• Include cases where conclusion follows definitely vs. possibility.
-
-SERIES COMPLETION:
-• Number series with non-obvious patterns (differences of differences, alternating operations, prime-based).
-• Letter/alphanumeric series requiring pattern recognition across multiple dimensions.
-
-DATA INTERPRETATION SETS:
-• Create a data table (e.g., production across 5 factories over 4 years, or expenditure breakdown by category).
-• Ask 4-5 questions requiring: percentage calculation, ratio comparison, year-over-year growth, ranking, average vs individual comparison.
-• Include at least one question requiring multi-step calculation (e.g., "By what percentage did the average exceed the median?").
-
-ASSERTION-REASON (for JIPMAT style):
-• Statement A (Assertion) and Statement R (Reason). Options: Both true and R explains A / Both true but R doesn't explain A / A true R false / A false R true / Both false.
-
-ARGUMENT EVALUATION:
-• Present a statement about a policy/decision, followed by 2-3 arguments for and against.
-• Ask which arguments are strong/weak based on logical validity (not opinion).
-
-BLOOD RELATIONS / DIRECTION SENSE:
-• Multi-step relationship or direction problems requiring careful tracking.
-• Use coded relationships (+ means brother, - means sister, etc.) for complexity.
-`;
-  }
-
-  return `You are a senior question paper setter for IPMAT (IIM Indore & Rohtak), JIPMAT (NIT Trichy), and IIM Kozhikode BMS entrance exams. You have set papers for these exams for 10+ years.
-
-Your task: Generate exactly ${totalMcq + totalSa} questions that are INDISTINGUISHABLE from real previous year questions of these exams.
-
-Difficulty: ${difficultyDesc[difficulty] || difficultyDesc.medium}
-
-Questions needed:${topicBreakdown}
-
-Total: ${totalMcq} MCQ + ${totalSa} SA = ${totalMcq + totalSa} questions
-${styleGuide}
-=== ABSOLUTE RULES ===
-1. Return ONLY a valid JSON array — no markdown, no code fences, no explanation text before or after the array.
-2. MCQ questions: exactly 4 options labeled A/B/C/D, exactly 1 correct answer (isCorrect: true), other 3 must be false.
-3. SA questions: answer must be a precise integer or simple decimal that a student types in. No ambiguity.
-4. Explanations: 2-3 sentences showing the solution approach (not just "the answer is X"). Include key formula or reasoning step.
-5. Use simple HTML: wrap question text in <p> tags. Use <br> for line breaks. For math use plain text (e.g., x² not rendered LaTeX).
-6. Each question MUST have "sectionTitle" and "topicName" matching EXACTLY the values given above.
-7. Questions must be ORIGINAL — not copied from any published source. But they must MATCH the style, difficulty, and multi-step nature of real IPMAT/JIPMAT papers.
-8. NO trivial questions. Every MCQ should require at least 2 steps of reasoning. Every SA should require setting up equations from word problem constraints.
-9. For DI/set-based topics: Generate a data scenario (table/chart description embedded in the question text) and create 3-5 questions from that SAME dataset. Reference the dataset in each question.
-
-JSON format for MCQ:
-{"sectionTitle":"...","topicName":"...","type":"options","question":"<p>question text here</p>","options":[{"title":"A","text":"option text","isCorrect":false},{"title":"B","text":"option text","isCorrect":true},{"title":"C","text":"option text","isCorrect":false},{"title":"D","text":"option text","isCorrect":false}],"explanation":"Step 1: ... Step 2: ... Therefore the answer is B."}
-
-JSON format for SA:
-{"sectionTitle":"...","topicName":"...","type":"input","question":"<p>word problem text here</p>","options":{"answer":"42"},"explanation":"Step 1: ... Step 2: ... The answer is 42."}
+SA format: {"sectionTitle":"...","topicName":"...","type":"input","question":"<p>...</p>","options":{"answer":"42"},"explanation":"..."}
 
 [`;
 }
@@ -325,20 +175,26 @@ async function callGemini(apiKey, prompt) {
   for (const model of models) {
     try {
       console.log(`Calling model: ${model}, prompt length: ${prompt.length} chars`);
+      // Abort after 8.5s so we return proper JSON before Vercel's 10s hard kill
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8500);
+
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature: 0.8,
-              maxOutputTokens: 65536,
+              temperature: 0.7,
+              maxOutputTokens: 8192,
             },
           }),
         }
       );
+      clearTimeout(timeoutId);
 
       if (response.status === 429) {
         const msg = `Rate limited on ${model}`;
@@ -418,7 +274,14 @@ async function callGemini(apiKey, prompt) {
       console.log(`Success with ${model}, response length: ${text.length}`);
       return { text };
     } catch (err) {
-      console.log(`Fetch error on ${model}: ${err.message}`);
+      if (err.name === "AbortError") {
+        const msg = `${model} timed out after 8.5s`;
+        console.log(msg);
+        errors.push(msg);
+      } else {
+        console.log(`Fetch error on ${model}: ${err.message}`);
+        errors.push(`${model} fetch error: ${err.message}`);
+      }
       continue;
     }
   }
