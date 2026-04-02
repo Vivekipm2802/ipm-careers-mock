@@ -25,11 +25,10 @@ import {
   format,
   endOfDay,
 } from "date-fns";
-import { ChartBarIncreasing, ChartSplineIcon, Eye, EyeOff, Lock, Trash2 } from "lucide-react";
+import { ChartBarIncreasing, ChartSplineIcon, Lock } from "lucide-react";
 
-export default function MockTests({ enrolled = [], role = "user" }) {
+export default function MockTests({ enrolled = [] }) {
   const { isDemo } = useNMNContext();
-  const isAdmin = role === "admin";
   const [type, setType] = useState(0);
   const [tests, setTests] = useState();
   const [courses, setCourses] = useState();
@@ -129,56 +128,6 @@ export default function MockTests({ enrolled = [], role = "user" }) {
       toast.error("Error loading tests.");
     }
   }
-  async function toggleVisibility(testId, currentlyHidden) {
-    const action = currentlyHidden ? "Showing" : "Hiding";
-    const loadingToast = toast.loading(`${action} test...`);
-    try {
-      const res = await fetch("/api/test-generator/toggle-visibility", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ testId, hidden: !currentlyHidden }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(currentlyHidden ? "Test is now visible to students" : "Test hidden from students");
-        toast.dismiss(loadingToast);
-        getTests();
-        getAllTests();
-      } else {
-        toast.error(data.error || "Failed to update");
-        toast.dismiss(loadingToast);
-      }
-    } catch (e) {
-      toast.error("Error: " + e.message);
-      toast.dismiss(loadingToast);
-    }
-  }
-
-  async function deleteTest(testId) {
-    if (!confirm("Are you sure you want to delete this test? This cannot be undone.")) return;
-    const loadingToast = toast.loading("Deleting test...");
-    try {
-      const res = await fetch("/api/test-generator/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ testId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("Test deleted");
-        toast.dismiss(loadingToast);
-        getTests();
-        getAllTests();
-      } else {
-        toast.error(data.error || "Failed to delete");
-        toast.dismiss(loadingToast);
-      }
-    } catch (e) {
-      toast.error("Error: " + e.message);
-      toast.dismiss(loadingToast);
-    }
-  }
-
   async function getAllTests() {
     const { data, error } = await supabase
       .from("mock_test_view")
@@ -409,8 +358,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                         tests
                           ?.filter(
                             (item) =>
-                              item?.category == categories[activeCategory]?.id &&
-                              (isAdmin || !item?.config?.hidden),
+                              item?.category == categories[activeCategory]?.id,
                           )
                           ?.map((i, d) => {
                             return (
@@ -420,9 +368,6 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                                 openResult={() => {
                                   setActiveResult(i?.id);
                                 }}
-                                isAdmin={isAdmin}
-                                onDelete={() => deleteTest(i.id)}
-                                onToggleVisibility={() => toggleVisibility(i.id, !!i?.config?.hidden)}
                                 i={i}
                               ></ListCard>
                             );
@@ -436,8 +381,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                             (item) =>
                               item?.category ==
                                 categories[activeCategory]?.id &&
-                              !tests?.some((test) => test.id == item.id) &&
-                              (isAdmin || !item?.config?.hidden),
+                              !tests?.some((test) => test.id == item.id),
                           )
                           ?.map((i, d) => {
                             return (
@@ -447,9 +391,6 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                                 openResult={() => {
                                   setActiveResult(i?.id);
                                 }}
-                                isAdmin={isAdmin}
-                                onDelete={() => deleteTest(i.id)}
-                                onToggleVisibility={() => toggleVisibility(i.id, !!i?.config?.hidden)}
                                 demo={
                                   i?.config?.public_access !== true &&
                                   !enrolled?.some(
@@ -497,7 +438,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                           )}
                           {tests &&
                             tests
-                              ?.filter((item) => (item.course == i.id || item.config?.courses?.includes(i.id)) && (isAdmin || !item?.config?.hidden))
+                              ?.filter((item) => item.course == i.id || item.config?.courses?.includes(i.id))
                               ?.map((z, d) => {
                                 return (
                                   <ListCard
@@ -506,9 +447,6 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                                     openResult={() => {
                                       setActiveResult(z?.id);
                                     }}
-                                    isAdmin={isAdmin}
-                                    onDelete={() => deleteTest(z.id)}
-                                    onToggleVisibility={() => toggleVisibility(z.id, !!z?.config?.hidden)}
                                     i={z}
                                   ></ListCard>
                                 );
@@ -530,10 +468,9 @@ export default function MockTests({ enrolled = [], role = "user" }) {
   );
 }
 
-const ListCard = ({ i, demo, hasResult, openResult, isAdmin, onDelete, onToggleVisibility }) => {
-  const isHidden = !!i?.config?.hidden;
+const ListCard = ({ i, demo, hasResult, openResult }) => {
   return (
-    <div className={"w-full bg-white rounded-md border-1 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1 " + (isAdmin && isHidden ? "border-orange-300 bg-orange-50" : "border-gray-100")}>
+    <div className="w-full bg-white rounded-md border-1 border-gray-100 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1">
       <div className="w-[70px] flex flex-col items-center justify-center aspect-square rounded-lg bg-gray-50">
         <p className="text-xl text-primary font-bold">
           {CtoLocal(i?.start_time)?.date}
@@ -542,51 +479,10 @@ const ListCard = ({ i, demo, hasResult, openResult, isAdmin, onDelete, onToggleV
       </div>
       <Spacer x={2}></Spacer>
       <div className="flex flex-col items-start justify-start flex-1 text-left">
-        <div className="flex flex-row items-center gap-2">
-          <p className="font-semibold text-primary">{i?.title}</p>
-          {isAdmin && isHidden && (
-            <span className="text-[10px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded font-medium">HIDDEN</span>
-          )}
-        </div>
+        <p className="font-semibold text-primary">{i?.title}</p>
         <p className="text-sm text-gray-500">{i?.description}</p>
       </div>
-      <div className="flex flex-row pr-2 gap-2">
-        {isAdmin && onToggleVisibility && (
-          <Button
-            isIconOnly
-            size="sm"
-            color={isHidden ? "warning" : "default"}
-            variant="light"
-            onPress={onToggleVisibility}
-            title={isHidden ? "Show to students" : "Hide from students"}
-          >
-            {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
-          </Button>
-        )}
-        {isAdmin && (
-          <Button
-            size="sm"
-            color="default"
-            variant="flat"
-            as={Link}
-            href={`/mock/${i?.uid}`}
-            target="_blank"
-            title="Preview test"
-          >
-            Preview
-          </Button>
-        )}
-        {isAdmin && onDelete && (
-          <Button
-            isIconOnly
-            size="sm"
-            color="danger"
-            variant="light"
-            onPress={onDelete}
-          >
-            <Trash2 size={16} />
-          </Button>
-        )}
+      <div className="flex flex-row pr-2">
         {hasResult && (
           <Button onPress={() => openResult()} size="sm" color="success">
             View Result

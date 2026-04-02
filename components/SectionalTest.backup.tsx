@@ -23,7 +23,7 @@ import {
   format,
   endOfDay,
 } from "date-fns";
-import { Lock, Trash2, ChartBarIncreasing, ChartSpline, Eye, EyeOff } from "lucide-react";
+import { Lock, Trash2, ChartBarIncreasing, ChartSpline } from "lucide-react";
 
 const SECTIONS = [
   { key: "QA", title: "Quantitative Aptitude" },
@@ -124,30 +124,6 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
     }
   }
 
-  async function toggleVisibility(testId: number, currentlyHidden: boolean) {
-    const action = currentlyHidden ? "Showing" : "Hiding";
-    const loadingToast = toast.loading(`${action} test...`);
-    try {
-      const res = await fetch("/api/test-generator/toggle-visibility", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ testId, hidden: !currentlyHidden }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(currentlyHidden ? "Test is now visible to students" : "Test hidden from students");
-        toast.dismiss(loadingToast);
-        loadTests();
-      } else {
-        toast.error(data.error || "Failed to update");
-        toast.dismiss(loadingToast);
-      }
-    } catch (e: any) {
-      toast.error("Error: " + e.message);
-      toast.dismiss(loadingToast);
-    }
-  }
-
   useEffect(() => {
     loadTests();
     loadResults();
@@ -155,15 +131,12 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
 
   const currentSection = SECTIONS[activeSection];
   const filteredTests = tests.filter(
-    (t) =>
-      t.config?.targetSection === currentSection.key &&
-      (isAdmin || !t.config?.hidden)
+    (t) => t.config?.targetSection === currentSection.key
   );
   const filteredAllTests = allTests.filter(
     (t) =>
       t.config?.targetSection === currentSection.key &&
-      !tests.some((existing) => existing.id === t.id) &&
-      (isAdmin || !t.config?.hidden)
+      !tests.some((existing) => existing.id === t.id)
   );
 
   if (loading) {
@@ -297,7 +270,6 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
                   isAdmin={isAdmin}
                   onDelete={() => deleteTest(i.id)}
                   openResult={() => setActiveResult(i.id)}
-                  onToggleVisibility={() => toggleVisibility(i.id, !!i.config?.hidden)}
                   demo={isDemo && idx > 0}
                 />
               ))}
@@ -321,7 +293,6 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
                     isAdmin={isAdmin}
                     onDelete={() => deleteTest(i.id)}
                     openResult={() => setActiveResult(i.id)}
-                    onToggleVisibility={() => toggleVisibility(i.id, !!i.config?.hidden)}
                     demo={isLocked}
                   />
                 );
@@ -341,7 +312,6 @@ const TestCard = ({
   isAdmin,
   onDelete,
   openResult,
-  onToggleVisibility,
 }: {
   i: any;
   demo?: boolean;
@@ -349,11 +319,9 @@ const TestCard = ({
   isAdmin?: boolean;
   onDelete?: () => void;
   openResult?: () => void;
-  onToggleVisibility?: () => void;
 }) => {
-  const isHidden = !!i?.config?.hidden;
   return (
-    <div className={"w-full bg-white rounded-md border-1 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1 " + (isAdmin && isHidden ? "border-orange-300 bg-orange-50" : "border-gray-100")}>
+    <div className="w-full bg-white rounded-md border-1 border-gray-100 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1">
       <div className="w-[70px] flex flex-col items-center justify-center aspect-square rounded-lg bg-gray-50">
         {i?.start_time ? (
           <>
@@ -371,40 +339,10 @@ const TestCard = ({
       </div>
       <Spacer x={2} />
       <div className="flex flex-col items-start justify-start flex-1 text-left">
-        <div className="flex flex-row items-center gap-2">
-          <p className="font-semibold text-primary">{i?.title}</p>
-          {isAdmin && isHidden && (
-            <span className="text-[10px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded font-medium">HIDDEN</span>
-          )}
-        </div>
+        <p className="font-semibold text-primary">{i?.title}</p>
         <p className="text-sm text-gray-500">{i?.description}</p>
       </div>
       <div className="flex flex-row pr-2 gap-2">
-        {isAdmin && onToggleVisibility && (
-          <Button
-            isIconOnly
-            size="sm"
-            color={isHidden ? "warning" : "default"}
-            variant="light"
-            onPress={onToggleVisibility}
-            title={isHidden ? "Show to students" : "Hide from students"}
-          >
-            {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
-          </Button>
-        )}
-        {isAdmin && (
-          <Button
-            size="sm"
-            color="default"
-            variant="flat"
-            as={Link}
-            href={`/mock/${i?.uid}`}
-            target="_blank"
-            title="Preview test"
-          >
-            Preview
-          </Button>
-        )}
         {isAdmin && onDelete && (
           <Button
             isIconOnly

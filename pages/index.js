@@ -2835,7 +2835,7 @@ export default function Home(props) {
                 )}
                 {slug == "mocks" ? (
                   <div className="flex flex-col w-full h-full">
-                    <MockTests enrolled={coursesEnrolled || []}></MockTests>
+                    <MockTests enrolled={coursesEnrolled || []} role={props?.type || "user"}></MockTests>
                   </div>
                 ) : (
                   ""

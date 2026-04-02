@@ -44,7 +44,6 @@ import {
   ChevronRight,
   Edit2,
   Eye,
-  EyeOff,
   GripVertical,
   Info,
   LockIcon,
@@ -680,54 +679,6 @@ export default function Concept({ role, group, onBack }) {
           String(t.config?.targetGroup) === String(group)
       );
       setAiConceptTests(filtered);
-    }
-  }
-
-  async function toggleConceptTestVisibility(testId, currentlyHidden) {
-    const action = currentlyHidden ? "Showing" : "Hiding";
-    const loadingToast = toast.loading(`${action} test...`);
-    try {
-      const res = await fetch("/api/test-generator/toggle-visibility", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ testId, hidden: !currentlyHidden }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(currentlyHidden ? "Test is now visible to students" : "Test hidden from students");
-        toast.dismiss(loadingToast);
-        loadAiConceptTests();
-      } else {
-        toast.error(data.error || "Failed to update");
-        toast.dismiss(loadingToast);
-      }
-    } catch (e) {
-      toast.error("Error: " + e.message);
-      toast.dismiss(loadingToast);
-    }
-  }
-
-  async function deleteConceptTest(testId) {
-    if (!confirm("Are you sure you want to delete this test? This cannot be undone.")) return;
-    const loadingToast = toast.loading("Deleting test...");
-    try {
-      const res = await fetch("/api/test-generator/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ testId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("Test deleted");
-        toast.dismiss(loadingToast);
-        loadAiConceptTests();
-      } else {
-        toast.error(data.error || "Failed to delete");
-        toast.dismiss(loadingToast);
-      }
-    } catch (e) {
-      toast.error("Error: " + e.message);
-      toast.dismiss(loadingToast);
     }
   }
 
@@ -1767,7 +1718,7 @@ export default function Concept({ role, group, onBack }) {
                 </div>
               </div>
               {/* Extra Concept Tests for this group */}
-              {aiConceptTests && aiConceptTests.filter((t) => role === "admin" || !t.config?.hidden).length > 0 && (
+              {aiConceptTests && aiConceptTests.length > 0 && (
                 <div className="flex mb-0 flex-col w-full text-left justify-start align-top items-start">
                   <div className="flex bg-gradient-to-r from-purple-500 to-purple-300 text-white font-bold p-4 flex-row items-center justify-between w-full">
                     <div className="w-full flex flex-row items-center justify-start">
@@ -1775,67 +1726,19 @@ export default function Concept({ role, group, onBack }) {
                       <h2 className="font-medium mr-5">Practice Tests</h2>
                     </div>
                   </div>
-                  {aiConceptTests.filter((t) => role === "admin" || !t.config?.hidden).map((test) => {
-                    const isHidden = !!test.config?.hidden;
-                    return (
-                      <div key={test.id} className={"w-full px-4 py-2 border-b border-gray-200 hover:bg-purple-50 " + (role === "admin" && isHidden ? "bg-orange-50" : "bg-white")}>
-                        <div className="flex flex-row items-center justify-between w-full">
-                          <div className="flex flex-col flex-1">
-                            <div className="flex flex-row items-center gap-2">
-                              <p className="font-semibold text-sm text-primary">{test.title}</p>
-                              {role === "admin" && isHidden && (
-                                <span className="text-[10px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded font-medium">HIDDEN</span>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500">{test.description}</p>
-                          </div>
-                          <div className="flex flex-row items-center gap-2 ml-2 flex-shrink-0">
-                            {role === "admin" && (
-                              <Button
-                                isIconOnly
-                                size="sm"
-                                color={isHidden ? "warning" : "default"}
-                                variant="light"
-                                onPress={() => toggleConceptTestVisibility(test.id, isHidden)}
-                                title={isHidden ? "Show to students" : "Hide from students"}
-                              >
-                                {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
-                              </Button>
-                            )}
-                            {role === "admin" && (
-                              <Button
-                                size="sm"
-                                color="default"
-                                variant="flat"
-                                as={Link}
-                                href={`/mock/${test.uid}`}
-                                target="_blank"
-                                title="Preview test"
-                              >
-                                Preview
-                              </Button>
-                            )}
-                            {role === "admin" && (
-                              <Button
-                                isIconOnly
-                                size="sm"
-                                color="danger"
-                                variant="light"
-                                onPress={() => deleteConceptTest(test.id)}
-                              >
-                                <Trash2 size={16} />
-                              </Button>
-                            )}
-                            {!isHidden && (
-                              <Button size="sm" color="primary" className="text-white" as={Link} href={`/mock/${test.uid}`} target="_blank">
-                                Start
-                              </Button>
-                            )}
-                          </div>
+                  {aiConceptTests.map((test) => (
+                    <div key={test.id} className="w-full px-4 py-2 border-b border-gray-200 bg-white hover:bg-purple-50 cursor-pointer">
+                      <Link href={`/mock/${test.uid}`} target="_blank" className="flex flex-row items-center justify-between w-full">
+                        <div className="flex flex-col">
+                          <p className="font-semibold text-sm text-primary">{test.title}</p>
+                          <p className="text-xs text-gray-500">{test.description}</p>
                         </div>
-                      </div>
-                    );
-                  })}
+                        <Button size="sm" color="primary" className="text-white ml-2 flex-shrink-0">
+                          Start
+                        </Button>
+                      </Link>
+                    </div>
+                  ))}
                 </div>
               )}
 
