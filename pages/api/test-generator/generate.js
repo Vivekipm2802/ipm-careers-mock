@@ -227,13 +227,25 @@ export default async function handler(req) {
     let geminiQuestions = [];
     const debugInfo = [];
 
+    // Track exactly how many questions were requested from Gemini so we can
+    // trim after validation (SA buffer may produce extras).
+    const totalRequestedFromGemini = geminiTopicRequests.reduce(
+      (a, t) => a + t.mcqCount + t.saCount, 0
+    );
+
     if (geminiTopicRequests.length > 0) {
-      // Split into sub-batches of MAX 8 questions each, run all in parallel
+      // Split into sub-batches of MAX 8 questions each, run all in parallel.
+      // SA questions get a 50% buffer because integer validation may reject
+      // some — we trim back to the exact requested count after collecting.
       const MAX_QS_PER_CALL = 8;
+      const SA_BUFFER = 1.5; // ask for 50% extra SAs to cover rejections
       const subBatches = [];
 
       for (const t of geminiTopicRequests) {
-        let remaining = { ...t };
+        // Inflate SA count so we still have enough after integer filtering
+        const saBuffered = Math.ceil(t.saCount * SA_BUFFER);
+        let remaining = { ...t, saCount: saBuffered };
+
         while (remaining.mcqCount + remaining.saCount > 0) {
           const used = Math.min(remaining.mcqCount + remaining.saCount, MAX_QS_PER_CALL);
           const mcq = Math.min(remaining.mcqCount, used);
@@ -282,9 +294,15 @@ export default async function handler(req) {
         }
       }
 
-      // Save freshly generated questions to the bank (non-blocking)
+      // Save ALL valid questions (including buffer extras) to the bank before trimming
       if (geminiQuestions.length > 0) {
         saveToBank(geminiQuestions, difficulty || "medium"); // intentionally not awaited
+      }
+
+      // Trim back to exactly what the user requested — buffer extras go to bank only
+      if (geminiQuestions.length > totalRequestedFromGemini) {
+        console.log(`Trimming ${geminiQuestions.length} → ${totalRequestedFromGemini} (buffer extras saved to bank)`);
+        geminiQuestions = geminiQuestions.slice(0, totalRequestedFromGemini);
       }
     }
 
