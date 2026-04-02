@@ -52,60 +52,25 @@ const SUBJECT_PRESETS = [
 ];
 
 const QA_TOPICS = [
-  // Algebra
-  "Algebra", "Linear Equations", "Quadratic Equations", "Indices", "Progression & Series", "Identities",
-  // Arithmetic
-  "Arithmetic", "Percentages", "Time Speed & Distance", "Ratio Proportion & Variation",
-  "Averages", "Time & Work", "Profit & Loss", "Simple & Compound Interest", "Mixture & Alligation",
-  // Geometry
-  "Geometry", "Solids", "Trigonometry", "Circles", "Triangles", "Quadrilaterals",
-  "Polygons", "Coordinate Geometry", "Mensuration",
-  // Number System
-  "Number System", "HCF & LCM", "Divisibility Rules", "Unit Digit", "Remainder",
-  // Modern Math
-  "Permutation & Combination", "Probability", "Set Theory", "Statistics & Probability",
-  // DI (included in QA for IPMAT Indore)
+  "Algebra", "Arithmetic", "Geometry", "Number System", "Mensuration",
+  "Trigonometry", "Permutation & Combination", "Probability", "Percentages",
+  "Profit & Loss", "Time & Work", "Speed Distance Time", "Averages", "Ratio & Proportion",
   "Tables", "Bar Graphs", "Pie Charts", "Line Graphs", "Caselets",
-  // General
-  "Ratio & Proportion", "Speed Distance Time",
 ];
 
 const VA_TOPICS = [
-  // Reading
-  "Reading Comprehension",
-  // Grammar
-  "Grammar", "Parts of Speech", "Grammatical Error", "Tenses", "Direct & Indirect Speech",
-  "Punctuations", "Active & Passive Voice", "Subject Verb Agreement", "Sentence Correction",
-  // Vocabulary
-  "Vocabulary", "Vocabulary (Fill in the Blanks)", "Vocabulary (Word Usage)",
-  "Synonyms & Antonyms", "Idioms & Phrases", "Idioms & Phrasal Verbs",
-  "Phrases", "Spelling", "Verbal Analogies",
-  // Sentence & Para
-  "Para Jumbles", "Para-Completion", "Parasummary", "Fill in the Blanks",
-  "Sentence Completion", "Sequencing", "Figures of Speech",
-  // Reasoning in VA
-  "Critical Reasoning", "Analogies", "Statement & Conclusion",
+  "Reading Comprehension", "Vocabulary", "Grammar", "Para Jumbles",
+  "Sentence Correction", "Fill in the Blanks", "Synonyms & Antonyms",
+  "Idioms & Phrases", "Critical Reasoning", "Analogies",
 ];
 
 const LR_TOPICS = [
-  // High-frequency
-  "Tabular Data", "Logical Sequence", "Puzzles", "Coding & Decoding", "Analogy",
-  "Arrangements", "Clocks & Calendars", "Directions", "Blood Relations",
-  "Odd One Out", "Venn Diagrams", "Dices & Cubes", "Syllogisms",
-  // Medium-frequency
-  "Series", "Ranking", "Reflection", "Bar Graphs", "Pie Charts",
-  // Statement-based
-  "Statement & Conclusion", "Assertion & Reason", "Course of Action",
-  "Statements & Assumptions", "Strong & Weak Arguments",
-  "Assertions & Reasonings", "Inference & Judgements",
-  // Others
-  "Input & Output", "Binary Logic", "Critical Thinking",
-  "Verbal Reasoning", "Data Interpretation", "Spatial Reasoning", "Data Sufficiency",
-  "Cubes & Dices", "Logical Sequence Series", "Direction Sense", "Coding-Decoding",
+  "Arrangements", "Syllogisms", "Blood Relations", "Coding-Decoding",
+  "Direction Sense", "Puzzles", "Series", "Venn Diagrams", "Clocks & Calendars",
 ];
 
 const DI_TOPICS = [
-  "Tables", "Tabular Data", "Bar Graphs", "Pie Charts", "Line Graphs", "Caselets",
+  "Tables", "Bar Graphs", "Pie Charts", "Line Graphs", "Caselets",
   "Mixed DI Sets", "Data Sufficiency",
 ];
 
@@ -115,12 +80,10 @@ const TOPIC_PRESETS = {
   "Quantitative Ability (SA)": QA_TOPICS,
   "Quantitative Aptitude": QA_TOPICS,
   "Quantitative & Numerical Ability": QA_TOPICS,
-  "Quantitative Reasoning": QA_TOPICS,
   "Verbal Ability": VA_TOPICS,
   "Verbal Ability (MCQ)": VA_TOPICS,
   "Verbal Ability & Reading Comprehension": VA_TOPICS,
-  "Verbal & Reasoning Ability": VA_TOPICS,
-  "Verbal Reasoning": VA_TOPICS,
+  "Verbal & Reasoning Ability": [...VA_TOPICS, ...LR_TOPICS.slice(0, 4)],
   "Data Interpretation": DI_TOPICS,
   "Logical Reasoning": LR_TOPICS,
   "Data Interpretation & Logical Reasoning": [...DI_TOPICS, ...LR_TOPICS],
@@ -247,68 +210,47 @@ function CustomTestGenerator({ userData, role }) {
   }
 
   // Exam templates for full-length mock
-  // ===================== EXAM TEMPLATES =====================
-  // Based on actual exam patterns and topic-wise question distributions
   const EXAM_TEMPLATES = {
     "ipmat-indore": {
       label: "IPMAT Indore",
       totalTime: 7200, // 120 min
-      desc: "3 sections | 90 questions | 120 min (40 min each)",
+      desc: "3 sections | 90 questions | 120 minutes (40 min each)",
       sections: [
         {
-          // Section 1: QA MCQ — 30 questions (includes DI)
-          // Based on IPMAT Indore VA topic distribution table (2020-2025 actuals)
           subjectTitle: "Quantitative Ability (MCQ)",
           topics: [
-            { topicName: "Percentages", mcqCount: 3, saCount: 0 },
-            { topicName: "Time Speed & Distance", mcqCount: 2, saCount: 0 },
-            { topicName: "Ratio Proportion & Variation", mcqCount: 2, saCount: 0 },
-            { topicName: "Averages", mcqCount: 1, saCount: 0 },
-            { topicName: "Time & Work", mcqCount: 1, saCount: 0 },
-            { topicName: "Profit & Loss", mcqCount: 1, saCount: 0 },
-            { topicName: "Algebra", mcqCount: 3, saCount: 0 },
-            { topicName: "Geometry", mcqCount: 3, saCount: 0 },
-            { topicName: "Number System", mcqCount: 2, saCount: 0 },
-            { topicName: "Permutation & Combination", mcqCount: 1, saCount: 0 },
-            { topicName: "Probability", mcqCount: 1, saCount: 0 },
-            // DI included in QA MCQ for IPMAT Indore
+            { topicName: "Algebra", mcqCount: 5, saCount: 0 },
+            { topicName: "Arithmetic", mcqCount: 5, saCount: 0 },
+            { topicName: "Geometry", mcqCount: 4, saCount: 0 },
+            { topicName: "Number System", mcqCount: 4, saCount: 0 },
             { topicName: "Tables", mcqCount: 3, saCount: 0 },
-            { topicName: "Pie Charts", mcqCount: 2, saCount: 0 },
-            { topicName: "Bar Graphs", mcqCount: 2, saCount: 0 },
-            { topicName: "Caselets", mcqCount: 3, saCount: 0 },
+            { topicName: "Bar Graphs", mcqCount: 3, saCount: 0 },
+            { topicName: "Pie Charts", mcqCount: 3, saCount: 0 },
+            { topicName: "Percentages", mcqCount: 3, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 2400, // 40 min
         },
         {
-          // Section 2: QA SA — 15 questions
           subjectTitle: "Quantitative Ability (SA)",
           topics: [
-            { topicName: "Algebra", mcqCount: 0, saCount: 3 },
-            { topicName: "Arithmetic", mcqCount: 0, saCount: 3 },
-            { topicName: "Geometry", mcqCount: 0, saCount: 3 },
+            { topicName: "Algebra", mcqCount: 0, saCount: 4 },
+            { topicName: "Arithmetic", mcqCount: 0, saCount: 4 },
+            { topicName: "Geometry", mcqCount: 0, saCount: 4 },
             { topicName: "Number System", mcqCount: 0, saCount: 3 },
-            { topicName: "Permutation & Combination", mcqCount: 0, saCount: 1 },
-            { topicName: "Probability", mcqCount: 0, saCount: 1 },
-            { topicName: "Trigonometry", mcqCount: 0, saCount: 1 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 2400, // 40 min
         },
         {
-          // Section 3: VA MCQ — 45 questions
-          // Based on IPMAT Indore VA distribution (2020-2025): RC 66, Grammar 26,
-          // Para Jumbles 26, Vocab FIB 95, Vocab Word Usage 89, Para-Completion 20, Idioms 23
           subjectTitle: "Verbal Ability (MCQ)",
           topics: [
-            { topicName: "Vocabulary (Fill in the Blanks)", mcqCount: 10, saCount: 0 },
-            { topicName: "Vocabulary (Word Usage)", mcqCount: 9, saCount: 0 },
-            { topicName: "Reading Comprehension", mcqCount: 8, saCount: 0 },
-            { topicName: "Para Jumbles", mcqCount: 5, saCount: 0 },
-            { topicName: "Grammar", mcqCount: 5, saCount: 0 },
-            { topicName: "Para-Completion", mcqCount: 3, saCount: 0 },
-            { topicName: "Idioms & Phrases", mcqCount: 3, saCount: 0 },
-            { topicName: "Synonyms & Antonyms", mcqCount: 2, saCount: 0 },
+            { topicName: "Reading Comprehension", mcqCount: 12, saCount: 0 },
+            { topicName: "Vocabulary", mcqCount: 8, saCount: 0 },
+            { topicName: "Grammar", mcqCount: 8, saCount: 0 },
+            { topicName: "Para Jumbles", mcqCount: 8, saCount: 0 },
+            { topicName: "Fill in the Blanks", mcqCount: 5, saCount: 0 },
+            { topicName: "Sentence Correction", mcqCount: 4, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 2400, // 40 min
@@ -318,7 +260,7 @@ function CustomTestGenerator({ userData, role }) {
     "ipmat-rohtak": {
       label: "IPMAT Rohtak",
       totalTime: 7200, // 120 min
-      desc: "3 sections | 120 questions | 120 min (40 min each)",
+      desc: "3 sections | 120 questions | 120 minutes (40 min each)",
       sections: [
         {
           subjectTitle: "Quantitative Ability",
@@ -327,10 +269,8 @@ function CustomTestGenerator({ userData, role }) {
             { topicName: "Arithmetic", mcqCount: 8, saCount: 0 },
             { topicName: "Geometry", mcqCount: 6, saCount: 0 },
             { topicName: "Number System", mcqCount: 6, saCount: 0 },
-            { topicName: "Percentages", mcqCount: 4, saCount: 0 },
-            { topicName: "Ratio Proportion & Variation", mcqCount: 4, saCount: 0 },
-            { topicName: "Permutation & Combination", mcqCount: 2, saCount: 0 },
-            { topicName: "Probability", mcqCount: 2, saCount: 0 },
+            { topicName: "Percentages", mcqCount: 6, saCount: 0 },
+            { topicName: "Ratio & Proportion", mcqCount: 6, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 2400, // 40 min
@@ -338,15 +278,12 @@ function CustomTestGenerator({ userData, role }) {
         {
           subjectTitle: "Logical Reasoning",
           topics: [
-            { topicName: "Arrangements", mcqCount: 6, saCount: 0 },
-            { topicName: "Puzzles", mcqCount: 6, saCount: 0 },
-            { topicName: "Syllogisms", mcqCount: 5, saCount: 0 },
-            { topicName: "Blood Relations", mcqCount: 5, saCount: 0 },
-            { topicName: "Coding & Decoding", mcqCount: 5, saCount: 0 },
-            { topicName: "Series", mcqCount: 4, saCount: 0 },
-            { topicName: "Analogy", mcqCount: 4, saCount: 0 },
-            { topicName: "Directions", mcqCount: 3, saCount: 0 },
-            { topicName: "Venn Diagrams", mcqCount: 2, saCount: 0 },
+            { topicName: "Arrangements", mcqCount: 8, saCount: 0 },
+            { topicName: "Puzzles", mcqCount: 8, saCount: 0 },
+            { topicName: "Syllogisms", mcqCount: 6, saCount: 0 },
+            { topicName: "Blood Relations", mcqCount: 6, saCount: 0 },
+            { topicName: "Coding-Decoding", mcqCount: 6, saCount: 0 },
+            { topicName: "Series", mcqCount: 6, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 2400, // 40 min
@@ -355,12 +292,10 @@ function CustomTestGenerator({ userData, role }) {
           subjectTitle: "Verbal Ability",
           topics: [
             { topicName: "Reading Comprehension", mcqCount: 10, saCount: 0 },
+            { topicName: "Vocabulary", mcqCount: 8, saCount: 0 },
             { topicName: "Grammar", mcqCount: 8, saCount: 0 },
-            { topicName: "Vocabulary", mcqCount: 7, saCount: 0 },
-            { topicName: "Para Jumbles", mcqCount: 5, saCount: 0 },
-            { topicName: "Fill in the Blanks", mcqCount: 5, saCount: 0 },
-            { topicName: "Idioms & Phrases", mcqCount: 3, saCount: 0 },
-            { topicName: "Sentence Correction", mcqCount: 2, saCount: 0 },
+            { topicName: "Para Jumbles", mcqCount: 7, saCount: 0 },
+            { topicName: "Fill in the Blanks", mcqCount: 7, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 2400, // 40 min
@@ -370,75 +305,43 @@ function CustomTestGenerator({ userData, role }) {
     "jipmat": {
       label: "JIPMAT",
       totalTime: 9000, // 150 min
-      desc: "3 sections | 100 questions | 150 min (no sectional limit)",
+      desc: "3 sections | 100 questions | 150 minutes",
       sections: [
         {
-          // QA: 33 questions — based on AfterBoards JIPMAT 2021-2025 analysis
-          // Algebra ~34, Arithmetic ~59, Geometry ~40, Modern Math ~10, Number System ~21
           subjectTitle: "Quantitative Aptitude",
           topics: [
-            { topicName: "Percentages", mcqCount: 2, saCount: 0 },
-            { topicName: "Time Speed & Distance", mcqCount: 2, saCount: 0 },
-            { topicName: "Ratio Proportion & Variation", mcqCount: 2, saCount: 0 },
-            { topicName: "Averages", mcqCount: 2, saCount: 0 },
-            { topicName: "Profit & Loss", mcqCount: 1, saCount: 0 },
-            { topicName: "Simple & Compound Interest", mcqCount: 1, saCount: 0 },
-            { topicName: "Time & Work", mcqCount: 1, saCount: 0 },
-            { topicName: "Linear Equations", mcqCount: 2, saCount: 0 },
-            { topicName: "Quadratic Equations", mcqCount: 2, saCount: 0 },
-            { topicName: "Progression & Series", mcqCount: 1, saCount: 0 },
-            { topicName: "Solids", mcqCount: 2, saCount: 0 },
-            { topicName: "Trigonometry", mcqCount: 2, saCount: 0 },
-            { topicName: "Circles", mcqCount: 2, saCount: 0 },
-            { topicName: "Triangles", mcqCount: 1, saCount: 0 },
-            { topicName: "Number System", mcqCount: 3, saCount: 0 },
-            { topicName: "Probability", mcqCount: 2, saCount: 0 },
-            { topicName: "Permutation & Combination", mcqCount: 1, saCount: 0 },
-            { topicName: "Statement & Conclusion", mcqCount: 2, saCount: 0 },
+            { topicName: "Algebra", mcqCount: 7, saCount: 0 },
+            { topicName: "Arithmetic", mcqCount: 7, saCount: 0 },
+            { topicName: "Geometry", mcqCount: 5, saCount: 0 },
+            { topicName: "Number System", mcqCount: 5, saCount: 0 },
+            { topicName: "Percentages", mcqCount: 5, saCount: 0 },
+            { topicName: "Profit & Loss", mcqCount: 4, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 3000, // 50 min
         },
         {
-          // DILR: 33 questions — based on AfterBoards analysis
-          // Tabular Data 21, Logical Sequence 20, Pie Chart 16, Puzzles 16,
-          // Coding 13, Analogy 12, Arrangements 10, Clocks 9, etc.
-          subjectTitle: "Data Interpretation & Logical Reasoning",
-          topics: [
-            { topicName: "Tabular Data", mcqCount: 4, saCount: 0 },
-            { topicName: "Logical Sequence", mcqCount: 4, saCount: 0 },
-            { topicName: "Pie Charts", mcqCount: 3, saCount: 0 },
-            { topicName: "Puzzles", mcqCount: 3, saCount: 0 },
-            { topicName: "Coding & Decoding", mcqCount: 3, saCount: 0 },
-            { topicName: "Analogy", mcqCount: 2, saCount: 0 },
-            { topicName: "Arrangements", mcqCount: 2, saCount: 0 },
-            { topicName: "Clocks & Calendars", mcqCount: 2, saCount: 0 },
-            { topicName: "Blood Relations", mcqCount: 2, saCount: 0 },
-            { topicName: "Directions", mcqCount: 2, saCount: 0 },
-            { topicName: "Odd One Out", mcqCount: 2, saCount: 0 },
-            { topicName: "Venn Diagrams", mcqCount: 1, saCount: 0 },
-            { topicName: "Dices & Cubes", mcqCount: 1, saCount: 0 },
-            { topicName: "Bar Graphs", mcqCount: 1, saCount: 0 },
-            { topicName: "Syllogisms", mcqCount: 1, saCount: 0 },
-          ],
-          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
-          time: 3000, // 50 min
-        },
-        {
-          // VARC: 34 questions — based on AfterBoards analysis
-          // Grammar 42, Vocabulary 23, RC 21, Parajumbles 13, Idioms 7, Spelling 7
           subjectTitle: "Verbal Ability & Reading Comprehension",
           topics: [
-            { topicName: "Grammar", mcqCount: 8, saCount: 0 },
-            { topicName: "Reading Comprehension", mcqCount: 6, saCount: 0 },
-            { topicName: "Vocabulary", mcqCount: 5, saCount: 0 },
-            { topicName: "Para Jumbles", mcqCount: 4, saCount: 0 },
-            { topicName: "Idioms & Phrasal Verbs", mcqCount: 3, saCount: 0 },
-            { topicName: "Spelling", mcqCount: 2, saCount: 0 },
-            { topicName: "Verbal Analogies", mcqCount: 2, saCount: 0 },
-            { topicName: "Phrases", mcqCount: 2, saCount: 0 },
-            { topicName: "Parasummary", mcqCount: 1, saCount: 0 },
-            { topicName: "Figures of Speech", mcqCount: 1, saCount: 0 },
+            { topicName: "Reading Comprehension", mcqCount: 10, saCount: 0 },
+            { topicName: "Vocabulary", mcqCount: 6, saCount: 0 },
+            { topicName: "Grammar", mcqCount: 6, saCount: 0 },
+            { topicName: "Para Jumbles", mcqCount: 6, saCount: 0 },
+            { topicName: "Fill in the Blanks", mcqCount: 6, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 3000, // 50 min
+        },
+        {
+          subjectTitle: "Data Interpretation & Logical Reasoning",
+          topics: [
+            { topicName: "Tables", mcqCount: 4, saCount: 0 },
+            { topicName: "Bar Graphs", mcqCount: 4, saCount: 0 },
+            { topicName: "Pie Charts", mcqCount: 3, saCount: 0 },
+            { topicName: "Arrangements", mcqCount: 6, saCount: 0 },
+            { topicName: "Puzzles", mcqCount: 6, saCount: 0 },
+            { topicName: "Syllogisms", mcqCount: 5, saCount: 0 },
+            { topicName: "Blood Relations", mcqCount: 5, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 3000, // 50 min
@@ -448,31 +351,29 @@ function CustomTestGenerator({ userData, role }) {
     "iim-k-bms": {
       label: "IIM Kozhikode BMS",
       totalTime: 7200, // 120 min
-      desc: "2 sections | 100 questions | 120 min (60 min each)",
+      desc: "2 sections | 100 questions | 120 minutes (60 min each)",
       sections: [
         {
-          // VA+RC: 50 questions — Grammar 15, Vocab & Idioms 15, RC 15, Statement & Conclusion 5
           subjectTitle: "Verbal Ability & Reading Comprehension",
           topics: [
-            { topicName: "Grammar", mcqCount: 15, saCount: 0 },
+            { topicName: "Reading Comprehension", mcqCount: 12, saCount: 0 },
             { topicName: "Vocabulary", mcqCount: 8, saCount: 0 },
-            { topicName: "Idioms & Phrases", mcqCount: 7, saCount: 0 },
-            { topicName: "Reading Comprehension", mcqCount: 15, saCount: 0 },
-            { topicName: "Statement & Conclusion", mcqCount: 5, saCount: 0 },
+            { topicName: "Grammar", mcqCount: 8, saCount: 0 },
+            { topicName: "Para Jumbles", mcqCount: 6, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 3600, // 60 min
         },
         {
-          // QA: 50 questions — Arithmetic 15, Numbers 7, Algebra 7, Geometry 12, Modern Math 9
           subjectTitle: "Quantitative Ability",
           topics: [
-            { topicName: "Arithmetic", mcqCount: 15, saCount: 0 },
-            { topicName: "Geometry", mcqCount: 12, saCount: 0 },
-            { topicName: "Permutation & Combination", mcqCount: 4, saCount: 0 },
-            { topicName: "Probability", mcqCount: 5, saCount: 0 },
             { topicName: "Algebra", mcqCount: 7, saCount: 0 },
-            { topicName: "Number System", mcqCount: 7, saCount: 0 },
+            { topicName: "Arithmetic", mcqCount: 7, saCount: 0 },
+            { topicName: "Geometry", mcqCount: 5, saCount: 0 },
+            { topicName: "Number System", mcqCount: 5, saCount: 0 },
+            { topicName: "Tables", mcqCount: 3, saCount: 0 },
+            { topicName: "Bar Graphs", mcqCount: 3, saCount: 0 },
+            { topicName: "Percentages", mcqCount: 3, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 3600, // 60 min
@@ -482,62 +383,42 @@ function CustomTestGenerator({ userData, role }) {
     "npat": {
       label: "NPAT",
       totalTime: 6000, // 100 min
-      desc: "3 sections | 120 questions | 100 min",
+      desc: "3 sections | 120 questions | 100 minutes",
       sections: [
         {
-          // Quantitative Reasoning: 40 questions
-          // Arithmetic, Algebra, Geometry & Mensuration, Trigonometry, Statistics & Probability
           subjectTitle: "Quantitative & Numerical Ability",
           topics: [
-            { topicName: "Arithmetic", mcqCount: 10, saCount: 0 },
             { topicName: "Algebra", mcqCount: 8, saCount: 0 },
+            { topicName: "Arithmetic", mcqCount: 8, saCount: 0 },
             { topicName: "Geometry", mcqCount: 6, saCount: 0 },
-            { topicName: "Mensuration", mcqCount: 4, saCount: 0 },
-            { topicName: "Trigonometry", mcqCount: 4, saCount: 0 },
-            { topicName: "Statistics & Probability", mcqCount: 4, saCount: 0 },
-            { topicName: "Number System", mcqCount: 4, saCount: 0 },
+            { topicName: "Number System", mcqCount: 6, saCount: 0 },
+            { topicName: "Percentages", mcqCount: 6, saCount: 0 },
+            { topicName: "Profit & Loss", mcqCount: 6, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 2000, // ~33 min
         },
         {
-          // Logical Reasoning: 40 questions
-          // Coding, Arrangements, Cubes & Dices, Blood Relations, Venn Diagrams,
-          // Input & Output, Binary Logic, Syllogism, Statements & Conclusions,
-          // Statements & Assumptions, Critical Reasoning, Strong & Weak Arguments,
-          // Assertions & Reasonings, Logical Sequence Series, Inference & Judgements, Clocks, Calendars
           subjectTitle: "Logical Reasoning",
           topics: [
-            { topicName: "Coding & Decoding", mcqCount: 4, saCount: 0 },
-            { topicName: "Arrangements", mcqCount: 4, saCount: 0 },
-            { topicName: "Cubes & Dices", mcqCount: 3, saCount: 0 },
-            { topicName: "Blood Relations", mcqCount: 3, saCount: 0 },
-            { topicName: "Venn Diagrams", mcqCount: 3, saCount: 0 },
-            { topicName: "Input & Output", mcqCount: 2, saCount: 0 },
-            { topicName: "Binary Logic", mcqCount: 2, saCount: 0 },
-            { topicName: "Syllogisms", mcqCount: 3, saCount: 0 },
-            { topicName: "Statements & Assumptions", mcqCount: 2, saCount: 0 },
-            { topicName: "Statement & Conclusion", mcqCount: 2, saCount: 0 },
-            { topicName: "Critical Reasoning", mcqCount: 2, saCount: 0 },
-            { topicName: "Strong & Weak Arguments", mcqCount: 2, saCount: 0 },
-            { topicName: "Logical Sequence Series", mcqCount: 3, saCount: 0 },
-            { topicName: "Inference & Judgements", mcqCount: 2, saCount: 0 },
-            { topicName: "Clocks & Calendars", mcqCount: 3, saCount: 0 },
+            { topicName: "Arrangements", mcqCount: 8, saCount: 0 },
+            { topicName: "Puzzles", mcqCount: 8, saCount: 0 },
+            { topicName: "Syllogisms", mcqCount: 6, saCount: 0 },
+            { topicName: "Blood Relations", mcqCount: 6, saCount: 0 },
+            { topicName: "Coding-Decoding", mcqCount: 6, saCount: 0 },
+            { topicName: "Series", mcqCount: 6, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 2000, // ~33 min
         },
         {
-          // Verbal Reasoning: 40 questions
-          // Grammar & Usage, Vocabulary, Reading Comprehension, Sentence Completion, Sequencing
           subjectTitle: "Verbal & Reasoning Ability",
           topics: [
             { topicName: "Reading Comprehension", mcqCount: 10, saCount: 0 },
-            { topicName: "Grammar", mcqCount: 8, saCount: 0 },
             { topicName: "Vocabulary", mcqCount: 8, saCount: 0 },
-            { topicName: "Sentence Completion", mcqCount: 5, saCount: 0 },
-            { topicName: "Sequencing", mcqCount: 5, saCount: 0 },
-            { topicName: "Synonyms & Antonyms", mcqCount: 4, saCount: 0 },
+            { topicName: "Grammar", mcqCount: 8, saCount: 0 },
+            { topicName: "Para Jumbles", mcqCount: 7, saCount: 0 },
+            { topicName: "Analogies", mcqCount: 7, saCount: 0 },
           ],
           mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
           time: 2000, // ~33 min
