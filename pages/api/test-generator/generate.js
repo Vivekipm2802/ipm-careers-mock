@@ -261,11 +261,15 @@ export default async function handler(req) {
     );
 
     if (geminiTopicRequests.length > 0) {
+      // Hard deadline: bank check used up to 3s, leaving 19s for Gemini.
+      // Each sub-batch call gets however much time is left — so earlier
+      // calls get more, but the total phase is always ≤ 19s.
+      const GEMINI_DEADLINE = Date.now() + 19000;
+
       // Split into sub-batches of MAX 8 questions each, run all in parallel.
-      // SA questions get a 50% buffer because integer validation may reject
-      // some — we trim back to the exact requested count after collecting.
+      // SA questions get a 25% buffer to cover integer-validation rejections.
       const MAX_QS_PER_CALL = 8;
-      const SA_BUFFER = 1.5; // ask for 50% extra SAs to cover rejections
+      const SA_BUFFER = 1.25;
       const subBatches = [];
 
       for (const t of geminiTopicRequests) {
@@ -296,7 +300,9 @@ export default async function handler(req) {
         subBatches.map(async ({ subject, topics, label }) => {
           console.log(`Batch: ${label}`);
           const batchPrompt = buildPrompt(topics, difficulty);
-          const geminiResponse = await callGemini(apiKey, batchPrompt);
+          // Each call gets however much deadline is left, minimum 5s
+          const batchTimeout = Math.max(5000, GEMINI_DEADLINE - Date.now());
+          const geminiResponse = await callGemini(apiKey, batchPrompt, batchTimeout);
 
           if (geminiResponse.error) {
             return { subject, error: geminiResponse.error, questions: [] };
@@ -423,7 +429,7 @@ SA format: {"sectionTitle":"...","topicName":"...","type":"input","question":"<p
 
 // ── Gemini caller ─────────────────────────────────────────────────────────────
 
-async function callGemini(apiKey, prompt) {
+async function callGemini(apiKey, prompt, timeoutMs = 15000) {
   if (!apiKey) {
     return { error: "GEMINI_API_KEY not configured" };
   }
@@ -435,10 +441,9 @@ async function callGemini(apiKey, prompt) {
 
   for (const model of models) {
     try {
-      console.log(`Trying model: ${model}`);
-      // 25s timeout — safe within Edge Runtime's 30s limit
+      console.log(`Trying model: ${model} (timeout: ${timeoutMs}ms)`);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -500,7 +505,7 @@ async function callGemini(apiKey, prompt) {
     } catch (err) {
       const msg =
         err.name === "AbortError"
-          ? `${model} timed out after 25s`
+          ? `${model} timed out after ${timeoutMs}ms`
           : `${model} error: ${err.message}`;
       console.log(msg);
       errors.push(msg);
