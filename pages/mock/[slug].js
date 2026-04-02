@@ -191,7 +191,7 @@ const QuestionCard = ({ answered, question, onSelect, index }) => {
   );
 };
 
-const MockTest = ({ config, is_allowed, data }) => {
+const MockTest = ({ config, is_allowed, data, previewSections, previewModules, previewQuestions }) => {
   const [level, setLevel] = useState(0);
   const [currentQ, setCurrentQ] = useState(0);
 
@@ -445,7 +445,17 @@ const MockTest = ({ config, is_allowed, data }) => {
     }
   }, [userDetails]);
 
+  // For preview mode, use server-preloaded data instead of client-side fetch
   useEffect(() => {
+    if (previewSections && previewModules && previewQuestions) {
+      setSections(previewSections);
+      setModules(previewModules);
+      setQuestions(previewQuestions);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (previewSections) return; // Skip client fetch in preview mode
     if (router.query.slug != undefined) {
       getSections(config?.id);
     }
@@ -1355,14 +1365,55 @@ export async function getServerSideProps(context) {
     return true; // Return true if no time limits are set
   }
 
-  return {
-    props: {
-      config: data[0],
-      is_allowed:
-        (data[0]?.start_time || data[0]?.end_time) && p == false
-          ? getStatus(data[0]?.start_time, data[0]?.end_time)
-          : true,
-      data: data[0],
-    },
+  const props = {
+    config: data[0],
+    is_allowed:
+      (data[0]?.start_time || data[0]?.end_time) && p == false
+        ? getStatus(data[0]?.start_time, data[0]?.end_time)
+        : true,
+    data: data[0],
   };
+
+  // For preview mode, preload all test data server-side (bypasses RLS)
+  if (context?.query?.preview === "true") {
+    try {
+      const testId = data[0].id;
+
+      // Load sections (subject-type groups)
+      const { data: sectionsData } = await serversupabase
+        .from("mock_groups")
+        .select("*,subject(*)")
+        .eq("test", testId)
+        .order("seq", { ascending: true });
+
+      if (sectionsData && sectionsData.length > 0) {
+        // Load modules (module-type groups)
+        const { data: modulesData } = await serversupabase
+          .from("mock_groups")
+          .select("*,module(*)")
+          .in("parent_sub", sectionsData.map((s) => s.id));
+
+        if (modulesData && modulesData.length > 0) {
+          // Load questions
+          const moduleIds = modulesData
+            .filter((m) => m.module)
+            .map((m) => m.module.id);
+
+          const { data: questionsData } = await serversupabase
+            .from("mock_questions")
+            .select("*")
+            .in("parent", moduleIds)
+            .order("seq", { ascending: true });
+
+          props.previewSections = sectionsData;
+          props.previewModules = modulesData;
+          props.previewQuestions = questionsData || [];
+        }
+      }
+    } catch (e) {
+      console.error("Error preloading preview data:", e);
+    }
+  }
+
+  return { props };
 }
