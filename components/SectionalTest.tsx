@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabaseClient";
-import { Button, Spacer, Spinner } from "@nextui-org/react";
+import {
+  Button,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Spacer,
+  Spinner,
+} from "@nextui-org/react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 import { useNMNContext } from "./NMNContext";
@@ -14,7 +23,7 @@ import {
   format,
   endOfDay,
 } from "date-fns";
-import { Lock, Trash2 } from "lucide-react";
+import { Lock, Trash2, ChartBarIncreasing, ChartSpline } from "lucide-react";
 
 const SECTIONS = [
   { key: "QA", title: "Quantitative Aptitude" },
@@ -30,6 +39,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState(0);
   const [results, setResults] = useState<any[]>([]);
+  const [activeResult, setActiveResult] = useState<number | undefined>(undefined);
 
   const testIdsWithResults = results
     ? new Set(results.map((r: any) => r.test_id))
@@ -140,6 +150,73 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
 
   return (
     <div className="flex flex-col overflow-hidden justify-start items-start w-full h-full">
+      {/* Results Modal */}
+      <Modal
+        isOpen={!!activeResult}
+        onClose={() => setActiveResult(undefined)}
+      >
+        <ModalContent>
+          <ModalHeader>Your Attempts</ModalHeader>
+          <ModalBody>
+            {results &&
+              results
+                .filter((item: any) => item.test_id === activeResult)
+                ?.map((i: any, d: number) => (
+                  <div
+                    key={i.uid || d}
+                    className="flex flex-row items-center justify-between"
+                  >
+                    <div className="flex-1">
+                      <h2 className="text-xs">
+                        <strong className="text-primary">
+                          {CtoLocal(i?.created_at)?.time}{" "}
+                          {CtoLocal(i?.created_at)?.amPm}
+                        </strong>
+                        <br />
+                        {CtoLocal(i?.created_at)?.date}{" "}
+                        {CtoLocal(i?.created_at)?.monthName}{" "}
+                        {CtoLocal(i?.created_at)?.year}
+                      </h2>
+                    </div>
+                    <div className="flex flex-row items-center justify-end">
+                      <Button
+                        endContent={<ChartBarIncreasing size={16} />}
+                        as={Link}
+                        target="_blank"
+                        href={`/mock/result/${i?.uid}`}
+                        size="sm"
+                        color="success"
+                      >
+                        View Result
+                      </Button>
+                      <Spacer x={2} />
+                      <Button
+                        endContent={<ChartSpline size={16} />}
+                        as={Link}
+                        target="_blank"
+                        href={`/mock/analytics/${i?.uid}`}
+                        size="sm"
+                        className="text-white bg-gradient-purple"
+                      >
+                        View Analysis
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              size="sm"
+              color="danger"
+              variant="flat"
+              onPress={() => setActiveResult(undefined)}
+            >
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
       <div className="pr-2 mt-4 overflow-hidden flex flex-col justify-start items-start flex-1 h-full w-full text-left">
         <h2 className="font-bold text-2xl text-primary">Sectional Tests</h2>
         <p className="text-sm text-gray-500 mt-1">
@@ -192,6 +269,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
                   hasResult={testIdsWithResults.has(i?.id)}
                   isAdmin={isAdmin}
                   onDelete={() => deleteTest(i.id)}
+                  openResult={() => setActiveResult(i.id)}
                 />
               ))}
 
@@ -202,6 +280,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
                   hasResult={testIdsWithResults.has(i?.id)}
                   isAdmin={isAdmin}
                   onDelete={() => deleteTest(i.id)}
+                  openResult={() => setActiveResult(i.id)}
                   demo={
                     i?.config?.public_access !== true &&
                     !enrolled?.some(
@@ -226,12 +305,14 @@ const TestCard = ({
   hasResult,
   isAdmin,
   onDelete,
+  openResult,
 }: {
   i: any;
   demo?: boolean;
   hasResult?: boolean;
   isAdmin?: boolean;
   onDelete?: () => void;
+  openResult?: () => void;
 }) => {
   return (
     <div className="w-full bg-white rounded-md border-1 border-gray-100 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1">
@@ -268,7 +349,7 @@ const TestCard = ({
           </Button>
         )}
         {hasResult && (
-          <Button size="sm" color="success">
+          <Button size="sm" color="success" onPress={openResult}>
             View Result
           </Button>
         )}

@@ -36,22 +36,56 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "No questions requested" });
     }
 
-    const prompt = buildCombinedPrompt(allTopicRequests, difficulty, testType);
+    // Calculate total questions
+    const totalQs = allTopicRequests.reduce((a, t) => a + t.mcqCount + t.saCount, 0);
+    console.log(`Total questions requested: ${totalQs}, topics: ${allTopicRequests.length}`);
 
-    // Call Gemini with retry logic for rate limits
-    const geminiResponse = await callGeminiWithRetry(apiKey, prompt, 3);
+    let allParsed = [];
 
-    if (geminiResponse.error) {
-      console.error("Gemini error:", geminiResponse.error);
-      return res.status(500).json({
-        error: "Failed to generate questions",
-        details: geminiResponse.error,
-      });
+    // For large question sets (>40), split into batches per section
+    if (totalQs > 40) {
+      // Group by subject
+      const subjectGroups = {};
+      for (const t of allTopicRequests) {
+        if (!subjectGroups[t.subject]) subjectGroups[t.subject] = [];
+        subjectGroups[t.subject].push(t);
+      }
+
+      for (const [subject, topics] of Object.entries(subjectGroups)) {
+        console.log(`Generating batch for: ${subject} (${topics.length} topics)`);
+        const batchPrompt = buildCombinedPrompt(topics, difficulty, testType);
+        const geminiResponse = await callGeminiWithRetry(apiKey, batchPrompt, 3);
+
+        if (geminiResponse.error) {
+          console.error(`Batch error for ${subject}:`, geminiResponse.error);
+          continue; // Skip this batch, try others
+        }
+
+        const parsed = parseGeminiResponse(geminiResponse.text);
+        if (parsed && parsed.length > 0) {
+          allParsed = [...allParsed, ...parsed];
+        } else {
+          console.error(`No questions parsed for batch: ${subject}`);
+        }
+      }
+    } else {
+      // Small question set — single call
+      const prompt = buildCombinedPrompt(allTopicRequests, difficulty, testType);
+      const geminiResponse = await callGeminiWithRetry(apiKey, prompt, 3);
+
+      if (geminiResponse.error) {
+        console.error("Gemini error:", geminiResponse.error);
+        return res.status(500).json({
+          error: "Failed to generate questions",
+          details: geminiResponse.error,
+        });
+      }
+
+      const parsed = parseGeminiResponse(geminiResponse.text);
+      if (parsed) allParsed = parsed;
     }
 
-    const parsed = parseGeminiResponse(geminiResponse.text);
-
-    if (!parsed || parsed.length === 0) {
+    if (allParsed.length === 0) {
       console.error("No questions parsed from Gemini response");
       return res.status(500).json({
         error: "Could not parse generated questions from AI response",
@@ -59,7 +93,7 @@ export default async function handler(req, res) {
     }
 
     // Add tempId and metadata
-    const allGeneratedQuestions = parsed.map((q, idx) => ({
+    const allGeneratedQuestions = allParsed.map((q, idx) => ({
       ...q,
       tempId: `gen_${Date.now()}_${idx}`,
     }));
@@ -164,8 +198,7 @@ async function callGeminiWithRetry(apiKey, prompt, maxRetries) {
               contents: [{ parts: [{ text: prompt }] }],
               generationConfig: {
                 temperature: 0.7,
-                maxOutputTokens: 16384,
-                responseMimeType: "application/json",
+                maxOutputTokens: 65536,
               },
             }),
           }
@@ -215,34 +248,67 @@ async function callGeminiWithRetry(apiKey, prompt, maxRetries) {
 }
 
 function parseGeminiResponse(text) {
+  console.log("Gemini response length:", text?.length, "first 200 chars:", text?.substring(0, 200));
+
+  // Strategy 1: Direct JSON parse
   try {
     let questions = JSON.parse(text);
     if (!Array.isArray(questions)) questions = [questions];
-    return validateQuestions(questions);
+    const validated = validateQuestions(questions);
+    if (validated.length > 0) return validated;
   } catch (e) {
-    // Try extracting JSON from markdown code blocks
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) {
-      try {
-        let questions = JSON.parse(jsonMatch[1].trim());
-        if (!Array.isArray(questions)) questions = [questions];
-        return validateQuestions(questions);
-      } catch (e2) {}
-    }
-
-    // Try finding array brackets
-    const arrayMatch = text.match(/\[[\s\S]*\]/);
-    if (arrayMatch) {
-      try {
-        let questions = JSON.parse(arrayMatch[0]);
-        if (!Array.isArray(questions)) questions = [questions];
-        return validateQuestions(questions);
-      } catch (e3) {}
-    }
-
-    console.error("Could not parse Gemini response:", text.substring(0, 500));
-    return null;
+    console.log("Direct parse failed:", e.message);
   }
+
+  // Strategy 2: Extract from markdown code blocks
+  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch) {
+    try {
+      let questions = JSON.parse(jsonMatch[1].trim());
+      if (!Array.isArray(questions)) questions = [questions];
+      const validated = validateQuestions(questions);
+      if (validated.length > 0) return validated;
+    } catch (e2) {
+      console.log("Code block parse failed:", e2.message);
+    }
+  }
+
+  // Strategy 3: Find array brackets
+  const arrayMatch = text.match(/\[[\s\S]*\]/);
+  if (arrayMatch) {
+    try {
+      let questions = JSON.parse(arrayMatch[0]);
+      if (!Array.isArray(questions)) questions = [questions];
+      const validated = validateQuestions(questions);
+      if (validated.length > 0) return validated;
+    } catch (e3) {
+      console.log("Array bracket parse failed:", e3.message);
+    }
+  }
+
+  // Strategy 4: Try to fix truncated JSON (incomplete last object)
+  if (arrayMatch) {
+    let jsonStr = arrayMatch[0];
+    // Find last complete object by finding last '}' before an incomplete one
+    const lastCompleteObj = jsonStr.lastIndexOf("},");
+    if (lastCompleteObj > 0) {
+      const truncated = jsonStr.substring(0, lastCompleteObj + 1) + "]";
+      try {
+        let questions = JSON.parse(truncated);
+        if (!Array.isArray(questions)) questions = [questions];
+        const validated = validateQuestions(questions);
+        if (validated.length > 0) {
+          console.log(`Recovered ${validated.length} questions from truncated response`);
+          return validated;
+        }
+      } catch (e4) {
+        console.log("Truncation recovery failed:", e4.message);
+      }
+    }
+  }
+
+  console.error("Could not parse Gemini response. Last 200 chars:", text?.substring(text.length - 200));
+  return null;
 }
 
 function validateQuestions(questions) {
