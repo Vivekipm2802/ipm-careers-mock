@@ -307,51 +307,19 @@ JSON format for SA:
 }
 
 async function callGemini(apiKey, prompt) {
-  // First, discover which models are available with this API key
-  let models = [];
-  try {
-    const listRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
-    );
-    if (listRes.ok) {
-      const listData = await listRes.json();
-      const available = (listData.models || [])
-        .filter((m) => m.name && m.supportedGenerationMethods?.includes("generateContent"))
-        .map((m) => m.name.replace("models/", ""));
-      console.log("Available Gemini models:", available.join(", "));
-
-      // Prefer flash models in this order
-      const preferred = [
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-pro",
-        "gemini-pro",
-      ];
-      for (const p of preferred) {
-        if (available.some((a) => a === p || a.startsWith(p))) {
-          const match = available.find((a) => a === p || a.startsWith(p));
-          if (!models.includes(match)) models.push(match);
-        }
-      }
-      // If no preferred match, use any available generateContent model
-      if (models.length === 0 && available.length > 0) {
-        models = available.slice(0, 3);
-      }
-    } else {
-      console.log("Failed to list models:", listRes.status);
-    }
-  } catch (e) {
-    console.log("Error listing models:", e.message);
+  if (!apiKey) {
+    return { error: "GEMINI_API_KEY is not configured in environment variables" };
   }
 
-  // Fallback to hardcoded names if listing failed
-  if (models.length === 0) {
-    models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
-  }
+  // Try models in order — all are standard Google AI Studio models
+  const models = [
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-pro",
+  ];
 
-  console.log("Will try models:", models.join(", "));
+  console.log(`callGemini: key ends in ...${apiKey.slice(-6)}, prompt ${prompt.length} chars`);
   const errors = [];
 
   for (const model of models) {
