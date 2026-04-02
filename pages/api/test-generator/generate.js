@@ -16,18 +16,31 @@ function supabaseHeaders() {
   };
 }
 
+/** Supabase fetch with a hard 3-second timeout so it never blocks Gemini. */
+async function sbFetch(url, options = {}) {
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), 3000);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(tid);
+    return res;
+  } catch (e) {
+    clearTimeout(tid);
+    throw e;
+  }
+}
+
 /**
- * Pull questions from the bank for a given subject/topic/difficulty.
+ * Fetch questions from the bank for a given subject/topic/difficulty.
  * Returns at most `limit` questions, ordered least-recently-used first.
  */
 async function fetchFromBank(subject, topic, difficulty, limit) {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!base) return [];
 
-  // Build filter: exact subject + topic; difficulty is exact OR "mixed" covers all
   const diffFilter =
     difficulty === "mixed"
-      ? "" // accept any difficulty stored under mixed
+      ? ""
       : `&difficulty=eq.${encodeURIComponent(difficulty)}`;
 
   const url =
@@ -40,7 +53,7 @@ async function fetchFromBank(subject, topic, difficulty, limit) {
     `&select=id,type,question,options,explanation`;
 
   try {
-    const res = await fetch(url, { headers: supabaseHeaders() });
+    const res = await sbFetch(url, { headers: supabaseHeaders() });
     if (!res.ok) return [];
     const rows = await res.json();
     return Array.isArray(rows) ? rows : [];
@@ -61,22 +74,26 @@ async function countInBank(subject, topic, difficulty) {
       ? ""
       : `&difficulty=eq.${encodeURIComponent(difficulty)}`;
 
+  // Use limit=1 + count=exact — fastest way to get a count
   const url =
     `${base}/rest/v1/question_bank` +
     `?subject=eq.${encodeURIComponent(subject)}` +
     `&topic=eq.${encodeURIComponent(topic)}` +
     diffFilter +
-    `&select=id`;
+    `&select=id&limit=1`;
 
   try {
-    const res = await fetch(url, {
+    const res = await sbFetch(url, {
       headers: { ...supabaseHeaders(), Prefer: "count=exact" },
     });
-    const countHeader = res.headers.get("content-range");
-    if (countHeader) {
-      const total = parseInt(countHeader.split("/")[1], 10);
+    if (!res.ok) return 0;
+    // Content-Range: 0-0/42  →  total = 42
+    const cr = res.headers.get("content-range");
+    if (cr) {
+      const total = parseInt(cr.split("/")[1], 10);
       return isNaN(total) ? 0 : total;
     }
+    // Fallback: count the returned rows
     const rows = await res.json();
     return Array.isArray(rows) ? rows.length : 0;
   } catch {
@@ -183,45 +200,55 @@ export default async function handler(req) {
     const totalQs = allTopicRequests.reduce((a, t) => a + t.mcqCount + t.saCount, 0);
     console.log(`Total questions requested: ${totalQs}`);
 
-    // ── STEP 1: Try to serve from question bank ───────────────────────────────
-    const bankQuestions = [];       // questions served from the bank
-    const geminiTopicRequests = []; // topics that still need Gemini
+    // ── STEP 1: Try to serve from question bank (all topics checked in parallel) ─
+    const bankQuestions = [];
+    const geminiTopicRequests = [];
     const usedBankIds = [];
+    const diff = difficulty || "medium";
 
-    for (const t of allTopicRequests) {
-      const needed = t.mcqCount + t.saCount;
-      const available = await countInBank(t.subject, t.topicName, difficulty || "medium");
+    // Check all topic counts in parallel — max 3s per call, never blocks Gemini
+    const counts = await Promise.all(
+      allTopicRequests.map((t) => countInBank(t.subject, t.topicName, diff))
+    );
 
-      if (available >= needed) {
-        // Bank has enough — serve from bank
-        const rows = await fetchFromBank(t.subject, t.topicName, difficulty || "medium", needed);
-        if (rows.length >= needed) {
-          for (const row of rows) {
-            bankQuestions.push({
-              sectionTitle: t.subject,
-              topicName: t.topicName,
-              type: row.type,
-              question: row.question,
-              options: row.options,
-              explanation: row.explanation || "",
-              _bankId: row.id,
-            });
-            usedBankIds.push(row.id);
-          }
-          console.log(`Bank hit: ${t.subject}/${t.topicName} (${rows.length} questions)`);
-          continue;
+    // Fetch bank rows for topics that have enough, also in parallel
+    const fetchResults = await Promise.all(
+      allTopicRequests.map((t, i) => {
+        const needed = t.mcqCount + t.saCount;
+        if (counts[i] >= needed) {
+          return fetchFromBank(t.subject, t.topicName, diff, needed);
         }
+        return Promise.resolve(null); // null = needs Gemini
+      })
+    );
+
+    for (let i = 0; i < allTopicRequests.length; i++) {
+      const t = allTopicRequests[i];
+      const needed = t.mcqCount + t.saCount;
+      const rows = fetchResults[i];
+
+      if (rows && rows.length >= needed) {
+        for (const row of rows) {
+          bankQuestions.push({
+            sectionTitle: t.subject,
+            topicName: t.topicName,
+            type: row.type,
+            question: row.question,
+            options: row.options,
+            explanation: row.explanation || "",
+            _bankId: row.id,
+          });
+          usedBankIds.push(row.id);
+        }
+        console.log(`Bank hit: ${t.subject}/${t.topicName} (${rows.length}q)`);
+      } else {
+        console.log(`Bank miss: ${t.subject}/${t.topicName} (have ${counts[i]}, need ${needed})`);
+        geminiTopicRequests.push(t);
       }
-
-      // Not enough in bank — queue for Gemini
-      console.log(`Bank miss: ${t.subject}/${t.topicName} (have ${available}, need ${needed})`);
-      geminiTopicRequests.push(t);
     }
 
-    // Mark bank questions as used (non-blocking, best-effort)
-    if (usedBankIds.length > 0) {
-      markAsUsed(usedBankIds); // intentionally not awaited
-    }
+    // Mark bank questions as used (non-blocking)
+    if (usedBankIds.length > 0) markAsUsed(usedBankIds);
 
     // ── STEP 2: Generate remaining topics with Gemini ─────────────────────────
     let geminiQuestions = [];
