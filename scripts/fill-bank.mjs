@@ -12,7 +12,7 @@
 const GEMINI_API_KEY   = process.env.GEMINI_API_KEY;
 const SUPABASE_URL     = process.env.SUPABASE_URL;
 const SUPABASE_KEY     = process.env.SUPABASE_SERVICE_KEY;
-const TARGET_PER_TOPIC = 30;  // questions per topic per difficulty
+const TARGET_PER_TOPIC = parseInt(process.env.TARGET_PER_TOPIC) || 30;
 const MCQ_PER_CALL     = 5;
 const SA_PER_CALL      = 3;
 const DIFFICULTY       = "medium";

@@ -118,26 +118,12 @@ SA format:
 // ── Gemini caller ──────────────────────────────────────────────
 
 async function callGemini(apiKey, prompt, timeoutMs = 18000) {
-  // Fastest models first — avoid thinking models to stay within Edge 25s limit
-  const models = [
-    { name: "gemini-2.5-flash-lite",  thinking: false },
-    { name: "gemini-2.0-flash",        thinking: false },
-    { name: "gemini-2.5-flash",        thinking: false }, // thinking disabled via thinkingBudget:0
-    { name: "gemini-pro-latest",       thinking: false },
-  ];
+  const models = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-pro-latest"];
 
-  for (const { name: model, thinking } of models) {
+  for (const model of models) {
     try {
       const controller = new AbortController();
       const tid = setTimeout(() => controller.abort(), timeoutMs);
-
-      const generationConfig = {
-        temperature: 0.75,
-        maxOutputTokens: 8192,
-        ...(thinking === false && model.includes("2.5-flash")
-          ? { thinkingConfig: { thinkingBudget: 0 } }
-          : {}),
-      };
 
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -147,7 +133,7 @@ async function callGemini(apiKey, prompt, timeoutMs = 18000) {
           signal: controller.signal,
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig,
+            generationConfig: { temperature: 0.75, maxOutputTokens: 8192 },
           }),
         }
       );
