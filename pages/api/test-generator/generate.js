@@ -411,14 +411,23 @@ Generate exactly ${totalMcq + totalSa} exam-quality questions. Difficulty: ${dif
 
 Topics:${topicBreakdown}
 
-RULES:
-1. Return ONLY a valid JSON array — no markdown, no code fences, no text before/after.
-2. MCQ: 4 options (A/B/C/D), exactly 1 correct (isCorrect:true). Make distractors plausible.
-3. SA: answer MUST be a whole number (positive integer). NEVER use decimals, fractions, or negatives. Design the question so the answer works out to a clean integer (e.g. "how many", "find the value of n", counts, integer ratios).
-4. Explanation: 2 sentences max showing key steps.
-5. Wrap question in <p> tags. Math in plain text (x² not LaTeX).
-6. sectionTitle and topicName must match exactly as given above.
-7. Questions must be multi-step, IPMAT-level — NOT textbook basics.
+━━━ CRITICAL FORMATTING RULES ━━━
+1. Return ONLY a valid JSON array. Zero text before or after. No markdown, no code fences.
+2. NO LATEX EVER. Not \\frac{}, not \\sqrt{}, not $...$, not \\(...\\), not \\[...\\]. ZERO.
+   Plain-text math rules:
+   • Fractions  → write as "3/4" or "(a+b)/(c+d)"
+   • Square root → write as "√n" or "sqrt(n)"
+   • Powers      → write as "x²" or "x^2"
+   • Subscripts  → write as "a1", "b2"
+   • Summation   → write as "sum of" in words
+   • Greek letters → π, α, β, θ  (use the Unicode symbol directly)
+3. Wrap question text in <p> tags. Keep it clean HTML.
+4. MCQ: exactly 4 options (A B C D), exactly 1 correct (isCorrect:true). 3 plausible wrong options.
+5. SA answer MUST be a positive whole-number integer (e.g. 42, 100, 7). Never a decimal or fraction.
+   Design the question so the arithmetic works out to a clean integer.
+6. Explanation: max 3 sentences showing key steps in plain text (no LaTeX).
+7. sectionTitle and topicName must match exactly as given above.
+8. Questions must be genuinely exam-quality — NOT trivial textbook definitions.
 
 MCQ format: {"sectionTitle":"...","topicName":"...","type":"options","question":"<p>...</p>","options":[{"title":"A","text":"...","isCorrect":false},{"title":"B","text":"...","isCorrect":true},{"title":"C","text":"...","isCorrect":false},{"title":"D","text":"...","isCorrect":false}],"explanation":"..."}
 

@@ -181,13 +181,23 @@ Subject: "${subject}", Topic: "${topic}"
 Difficulty: ${diffDesc[difficulty] || diffDesc.medium}
 MCQ questions: ${mcq}, SA (numeric) questions: ${sa}
 
-RULES:
-1. Return ONLY a valid JSON array — no markdown, no fences, no text before/after.
-2. MCQ: 4 options (A/B/C/D), exactly 1 correct (isCorrect:true). Plausible distractors.
-3. SA: answer MUST be a whole number (positive integer). NEVER use decimals, fractions, or negatives. Design the question so the answer works out to a clean integer.
-4. Explanation: 2 sentences max.
-5. Wrap question text in <p> tags. Plain-text math (x² not LaTeX).
-6. sectionTitle must be exactly "${subject}", topicName exactly "${topic}".
+━━━ CRITICAL FORMATTING RULES ━━━
+1. Return ONLY a valid JSON array. Zero text before or after. No markdown, no code fences.
+2. NO LATEX EVER. Not \\frac{}, not \\sqrt{}, not $...$, not \\(...\\), not \\[...\\]. ZERO.
+   Plain-text math rules:
+   • Fractions  → write as "3/4" or "(a+b)/(c+d)"
+   • Square root → write as "√n" or "sqrt(n)"
+   • Powers      → write as "x²" or "x^2"
+   • Subscripts  → write as "a1", "b2"
+   • Summation   → write as "sum of" in words
+   • Greek letters → π, α, β, θ  (use the Unicode symbol directly)
+3. Wrap question text in <p> tags. Keep it clean HTML.
+4. MCQ: exactly 4 options (A B C D), exactly 1 correct (isCorrect:true). 3 plausible wrong options.
+5. SA answer MUST be a positive whole-number integer (e.g. 42, 100, 7). Never a decimal or fraction.
+   Design the question so the arithmetic works out to a clean integer.
+6. Explanation: max 3 sentences showing key steps in plain text (no LaTeX).
+7. sectionTitle must be exactly "${subject}", topicName exactly "${topic}".
+8. Questions must be genuinely exam-quality — NOT trivial textbook definitions.
 
 MCQ format: {"sectionTitle":"${subject}","topicName":"${topic}","type":"options","question":"<p>...</p>","options":[{"title":"A","text":"...","isCorrect":false},{"title":"B","text":"...","isCorrect":true},{"title":"C","text":"...","isCorrect":false},{"title":"D","text":"...","isCorrect":false}],"explanation":"..."}
 SA  format: {"sectionTitle":"${subject}","topicName":"${topic}","type":"input","question":"<p>...</p>","options":{"answer":"42"},"explanation":"..."}
