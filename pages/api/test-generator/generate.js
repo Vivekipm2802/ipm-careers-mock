@@ -3,6 +3,133 @@ export const config = {
   runtime: "edge",
 };
 
+// ── Supabase REST helpers (Edge-safe, no Node SDK needed) ────────────────────
+
+function supabaseHeaders() {
+  const key =
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY;
+  return {
+    apikey: key,
+    Authorization: `Bearer ${key}`,
+    "Content-Type": "application/json",
+  };
+}
+
+/**
+ * Pull questions from the bank for a given subject/topic/difficulty.
+ * Returns at most `limit` questions, ordered least-recently-used first.
+ */
+async function fetchFromBank(subject, topic, difficulty, limit) {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return [];
+
+  // Build filter: exact subject + topic; difficulty is exact OR "mixed" covers all
+  const diffFilter =
+    difficulty === "mixed"
+      ? "" // accept any difficulty stored under mixed
+      : `&difficulty=eq.${encodeURIComponent(difficulty)}`;
+
+  const url =
+    `${base}/rest/v1/question_bank` +
+    `?subject=eq.${encodeURIComponent(subject)}` +
+    `&topic=eq.${encodeURIComponent(topic)}` +
+    diffFilter +
+    `&order=used_count.asc,last_used_at.asc.nullsfirst` +
+    `&limit=${limit}` +
+    `&select=id,type,question,options,explanation`;
+
+  try {
+    const res = await fetch(url, { headers: supabaseHeaders() });
+    if (!res.ok) return [];
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Count questions available in the bank for a subject/topic/difficulty.
+ */
+async function countInBank(subject, topic, difficulty) {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return 0;
+
+  const diffFilter =
+    difficulty === "mixed"
+      ? ""
+      : `&difficulty=eq.${encodeURIComponent(difficulty)}`;
+
+  const url =
+    `${base}/rest/v1/question_bank` +
+    `?subject=eq.${encodeURIComponent(subject)}` +
+    `&topic=eq.${encodeURIComponent(topic)}` +
+    diffFilter +
+    `&select=id`;
+
+  try {
+    const res = await fetch(url, {
+      headers: { ...supabaseHeaders(), Prefer: "count=exact" },
+    });
+    const countHeader = res.headers.get("content-range");
+    if (countHeader) {
+      const total = parseInt(countHeader.split("/")[1], 10);
+      return isNaN(total) ? 0 : total;
+    }
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Mark questions as used (increment used_count, set last_used_at).
+ * Fire-and-forget: we don't await this in the critical path.
+ */
+async function markAsUsed(ids) {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base || !ids.length) return;
+
+  const idList = ids.map((id) => `"${id}"`).join(",");
+  const url = `${base}/rest/v1/question_bank?id=in.(${idList})`;
+
+  // We need the current used_count to increment — simplest approach: use
+  // a separate RPC. For now, just update last_used_at so we rotate questions.
+  await fetch(url, {
+    method: "PATCH",
+    headers: { ...supabaseHeaders(), Prefer: "return=minimal" },
+    body: JSON.stringify({ last_used_at: new Date().toISOString() }),
+  }).catch(() => {});
+}
+
+/**
+ * Save newly Gemini-generated questions to the bank for future use.
+ */
+async function saveToBank(questions, difficulty) {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base || !questions.length) return;
+
+  const rows = questions.map((q) => ({
+    subject: q.sectionTitle || "General",
+    topic: q.topicName || "General",
+    difficulty: difficulty || "medium",
+    type: q.type,
+    question: q.question,
+    options: q.options,
+    explanation: q.explanation || null,
+  }));
+
+  await fetch(`${base}/rest/v1/question_bank`, {
+    method: "POST",
+    headers: { ...supabaseHeaders(), Prefer: "return=minimal" },
+    body: JSON.stringify(rows),
+  }).catch(() => {});
+}
+
+// ── Main handler ─────────────────────────────────────────────────────────────
+
 export default async function handler(req) {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -16,21 +143,21 @@ export default async function handler(req) {
     const { sections, difficulty, testType } = body;
 
     if (!sections || !Array.isArray(sections) || sections.length === 0) {
-      return new Response(JSON.stringify({ error: "sections is required and must be a non-empty array" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "sections is required and must be a non-empty array" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Gemini API key not configured" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Gemini API key not configured" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
     }
 
-    // Build topic requests from all sections
+    // Build full topic request list
     const allTopicRequests = [];
     for (const section of sections) {
       for (const topic of section.topics || []) {
@@ -47,100 +174,167 @@ export default async function handler(req) {
     }
 
     if (allTopicRequests.length === 0) {
-      return new Response(JSON.stringify({ error: "No questions requested" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "No questions requested" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const totalQs = allTopicRequests.reduce((a, t) => a + t.mcqCount + t.saCount, 0);
     console.log(`Total questions requested: ${totalQs}`);
 
-    let allParsed = [];
-    const debugInfo = [];
-
-    // Split into small sub-batches of MAX 8 questions each, run all in parallel
-    // This keeps each Gemini call well within the 25s Edge Runtime limit
-    const MAX_QS_PER_CALL = 8;
-    const subBatches = []; // { subject, topics (trimmed to fit ≤8 Qs), label }
+    // ── STEP 1: Try to serve from question bank ───────────────────────────────
+    const bankQuestions = [];       // questions served from the bank
+    const geminiTopicRequests = []; // topics that still need Gemini
+    const usedBankIds = [];
 
     for (const t of allTopicRequests) {
-      // Split a single topic if it has too many questions
-      let remaining = { ...t };
-      while ((remaining.mcqCount + remaining.saCount) > 0) {
-        const used = Math.min(remaining.mcqCount + remaining.saCount, MAX_QS_PER_CALL);
-        const mcq = Math.min(remaining.mcqCount, used);
-        const sa = Math.min(used - mcq, remaining.saCount);
-        subBatches.push({
-          subject: t.subject,
-          topics: [{ ...remaining, mcqCount: mcq, saCount: sa }],
-          label: `${t.subject}/${t.topicName} (${mcq}MCQ+${sa}SA)`,
-        });
-        remaining = { ...remaining, mcqCount: remaining.mcqCount - mcq, saCount: remaining.saCount - sa };
-      }
-    }
+      const needed = t.mcqCount + t.saCount;
+      const available = await countInBank(t.subject, t.topicName, difficulty || "medium");
 
-    console.log(`Running ${subBatches.length} parallel sub-batches (max ${MAX_QS_PER_CALL} Qs each)`);
-
-    const batchResults = await Promise.allSettled(
-      subBatches.map(async ({ subject, topics, label }) => {
-        console.log(`Batch: ${label}`);
-
-        const batchPrompt = buildPrompt(topics, difficulty);
-        const geminiResponse = await callGemini(apiKey, batchPrompt);
-
-        if (geminiResponse.error) {
-          return { subject, error: geminiResponse.error, questions: [] };
+      if (available >= needed) {
+        // Bank has enough — serve from bank
+        const rows = await fetchFromBank(t.subject, t.topicName, difficulty || "medium", needed);
+        if (rows.length >= needed) {
+          for (const row of rows) {
+            bankQuestions.push({
+              sectionTitle: t.subject,
+              topicName: t.topicName,
+              type: row.type,
+              question: row.question,
+              options: row.options,
+              explanation: row.explanation || "",
+              _bankId: row.id,
+            });
+            usedBankIds.push(row.id);
+          }
+          console.log(`Bank hit: ${t.subject}/${t.topicName} (${rows.length} questions)`);
+          continue;
         }
+      }
 
-        const parsed = parseGeminiResponse(geminiResponse.text);
-        return { subject, questions: parsed || [], responseLength: geminiResponse.text?.length };
-      })
-    );
+      // Not enough in bank — queue for Gemini
+      console.log(`Bank miss: ${t.subject}/${t.topicName} (have ${available}, need ${needed})`);
+      geminiTopicRequests.push(t);
+    }
 
-    for (const result of batchResults) {
-      if (result.status === "fulfilled") {
-        const { subject, questions, error, responseLength } = result.value;
-        debugInfo.push({ subject, parsed: questions.length, error: error || null, responseLength });
-        allParsed = [...allParsed, ...questions];
-      } else {
-        debugInfo.push({ error: result.reason?.message || "Promise rejected" });
+    // Mark bank questions as used (non-blocking, best-effort)
+    if (usedBankIds.length > 0) {
+      markAsUsed(usedBankIds); // intentionally not awaited
+    }
+
+    // ── STEP 2: Generate remaining topics with Gemini ─────────────────────────
+    let geminiQuestions = [];
+    const debugInfo = [];
+
+    if (geminiTopicRequests.length > 0) {
+      // Split into sub-batches of MAX 8 questions each, run all in parallel
+      const MAX_QS_PER_CALL = 8;
+      const subBatches = [];
+
+      for (const t of geminiTopicRequests) {
+        let remaining = { ...t };
+        while (remaining.mcqCount + remaining.saCount > 0) {
+          const used = Math.min(remaining.mcqCount + remaining.saCount, MAX_QS_PER_CALL);
+          const mcq = Math.min(remaining.mcqCount, used);
+          const sa = Math.min(used - mcq, remaining.saCount);
+          subBatches.push({
+            subject: t.subject,
+            topics: [{ ...remaining, mcqCount: mcq, saCount: sa }],
+            label: `${t.subject}/${t.topicName} (${mcq}MCQ+${sa}SA)`,
+          });
+          remaining = {
+            ...remaining,
+            mcqCount: remaining.mcqCount - mcq,
+            saCount: remaining.saCount - sa,
+          };
+        }
+      }
+
+      console.log(`Running ${subBatches.length} parallel Gemini sub-batches (max ${MAX_QS_PER_CALL} Qs each)`);
+
+      const batchResults = await Promise.allSettled(
+        subBatches.map(async ({ subject, topics, label }) => {
+          console.log(`Batch: ${label}`);
+          const batchPrompt = buildPrompt(topics, difficulty);
+          const geminiResponse = await callGemini(apiKey, batchPrompt);
+
+          if (geminiResponse.error) {
+            return { subject, error: geminiResponse.error, questions: [] };
+          }
+
+          const parsed = parseGeminiResponse(geminiResponse.text);
+          return {
+            subject,
+            questions: parsed || [],
+            responseLength: geminiResponse.text?.length,
+          };
+        })
+      );
+
+      for (const result of batchResults) {
+        if (result.status === "fulfilled") {
+          const { subject, questions, error, responseLength } = result.value;
+          debugInfo.push({ subject, parsed: questions.length, error: error || null, responseLength });
+          geminiQuestions = [...geminiQuestions, ...questions];
+        } else {
+          debugInfo.push({ error: result.reason?.message || "Promise rejected" });
+        }
+      }
+
+      // Save freshly generated questions to the bank (non-blocking)
+      if (geminiQuestions.length > 0) {
+        saveToBank(geminiQuestions, difficulty || "medium"); // intentionally not awaited
       }
     }
+
+    // ── STEP 3: Merge bank + Gemini questions ─────────────────────────────────
+    const allParsed = [...bankQuestions, ...geminiQuestions];
 
     if (allParsed.length === 0) {
-      return new Response(JSON.stringify({
-        error: "Could not parse generated questions from AI response",
-        debug: debugInfo,
-      }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Could not generate questions — Gemini failed and bank is empty for these topics",
+          debug: debugInfo,
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
     }
 
-    const allGeneratedQuestions = allParsed.map((q, idx) => ({
-      ...q,
-      tempId: `gen_${Date.now()}_${idx}`,
-    }));
-
-    return new Response(JSON.stringify({
-      success: true,
-      questions: allGeneratedQuestions,
-      totalGenerated: allGeneratedQuestions.length,
-      debug: debugInfo,
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    const allGeneratedQuestions = allParsed.map((q, idx) => {
+      const { _bankId, ...clean } = q;
+      return { ...clean, tempId: `gen_${Date.now()}_${idx}` };
     });
 
+    const bankCount = bankQuestions.length;
+    const geminiCount = geminiQuestions.length;
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        questions: allGeneratedQuestions,
+        totalGenerated: allGeneratedQuestions.length,
+        source: bankCount > 0 && geminiCount === 0
+          ? "bank"
+          : bankCount > 0
+          ? "mixed"
+          : "gemini",
+        bankHits: bankCount,
+        geminiGenerated: geminiCount,
+        debug: debugInfo,
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
   } catch (error) {
     console.error("Unexpected error:", error);
-    return new Response(JSON.stringify({ error: "Internal server error: " + error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Internal server error: " + error.message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 }
+
+// ── Prompt builder ────────────────────────────────────────────────────────────
 
 function buildPrompt(topicRequests, difficulty) {
   const difficultyDesc = {
@@ -181,6 +375,8 @@ SA format: {"sectionTitle":"...","topicName":"...","type":"input","question":"<p
 
 [`;
 }
+
+// ── Gemini caller ─────────────────────────────────────────────────────────────
 
 async function callGemini(apiKey, prompt) {
   if (!apiKey) {
@@ -231,14 +427,20 @@ async function callGemini(apiKey, prompt) {
         const parts = data.candidates[0].content?.parts || [];
         // Get the last text part that looks like JSON (handles thinking models)
         for (let i = parts.length - 1; i >= 0; i--) {
-          if (parts[i].text && (parts[i].text.includes('"sectionTitle"') || parts[i].text.includes('"type"'))) {
+          if (
+            parts[i].text &&
+            (parts[i].text.includes('"sectionTitle"') || parts[i].text.includes('"type"'))
+          ) {
             text = parts[i].text;
             break;
           }
         }
         if (!text) {
           for (let i = parts.length - 1; i >= 0; i--) {
-            if (parts[i].text) { text = parts[i].text; break; }
+            if (parts[i].text) {
+              text = parts[i].text;
+              break;
+            }
           }
         }
       }
@@ -250,11 +452,11 @@ async function callGemini(apiKey, prompt) {
 
       console.log(`Success with ${model}, length: ${text.length}`);
       return { text };
-
     } catch (err) {
-      const msg = err.name === "AbortError"
-        ? `${model} timed out after 25s`
-        : `${model} error: ${err.message}`;
+      const msg =
+        err.name === "AbortError"
+          ? `${model} timed out after 25s`
+          : `${model} error: ${err.message}`;
       console.log(msg);
       errors.push(msg);
     }
@@ -262,6 +464,8 @@ async function callGemini(apiKey, prompt) {
 
   return { error: "All Gemini models failed: " + errors.join(" | ") };
 }
+
+// ── Response parser ───────────────────────────────────────────────────────────
 
 function parseGeminiResponse(text) {
   if (!text) return null;
