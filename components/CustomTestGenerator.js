@@ -515,7 +515,8 @@ function CustomTestGenerator({ userData, role }) {
         toast.success(`Generated ${data.questions.length} questions!`);
         toast.dismiss(loadingToast);
       } else {
-        setGenerationError(data.error || "Failed to generate questions");
+        const debugStr = data.debug ? "\n\nDebug: " + JSON.stringify(data.debug, null, 2) : "";
+        setGenerationError((data.error || "Failed to generate questions") + debugStr);
         toast.error(data.error || "Failed to generate questions");
         toast.dismiss(loadingToast);
       }
@@ -1136,7 +1137,7 @@ function CustomTestGenerator({ userData, role }) {
         ) : generationError ? (
           <div className="flex flex-col items-center gap-4 p-8">
             <div className="text-4xl">&#9888;</div>
-            <p className="text-red-600 font-semibold">{generationError}</p>
+            <pre className="text-red-600 font-semibold text-sm whitespace-pre-wrap max-w-2xl text-left">{generationError}</pre>
             <Button color="secondary" onClick={generateQuestions}>
               Retry Generation
             </Button>

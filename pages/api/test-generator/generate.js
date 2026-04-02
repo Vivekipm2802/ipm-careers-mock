@@ -1,3 +1,8 @@
+// Increase Vercel function timeout (Pro plan = 60s, Hobby = 10s)
+export const config = {
+  maxDuration: 60,
+};
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -15,9 +20,8 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Gemini API key not configured" });
     }
 
-    // Build ONE combined prompt for ALL sections and topics to minimize API calls
+    // Build topic requests from all sections
     const allTopicRequests = [];
-
     for (const section of sections) {
       for (const topic of section.topics || []) {
         const mcq = parseInt(topic.mcqCount) || 0;
@@ -36,63 +40,63 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "No questions requested" });
     }
 
-    // Calculate total questions
     const totalQs = allTopicRequests.reduce((a, t) => a + t.mcqCount + t.saCount, 0);
     console.log(`Total questions requested: ${totalQs}, topics: ${allTopicRequests.length}`);
 
     let allParsed = [];
+    const debugInfo = [];
 
-    // For large question sets (>40), split into batches per section
-    if (totalQs > 40) {
-      // Group by subject
-      const subjectGroups = {};
-      for (const t of allTopicRequests) {
-        if (!subjectGroups[t.subject]) subjectGroups[t.subject] = [];
-        subjectGroups[t.subject].push(t);
-      }
+    // Always split into per-section batches and run in PARALLEL
+    // This avoids response truncation AND timeout issues
+    const subjectGroups = {};
+    for (const t of allTopicRequests) {
+      if (!subjectGroups[t.subject]) subjectGroups[t.subject] = [];
+      subjectGroups[t.subject].push(t);
+    }
 
-      for (const [subject, topics] of Object.entries(subjectGroups)) {
-        console.log(`Generating batch for: ${subject} (${topics.length} topics)`);
+    const batchEntries = Object.entries(subjectGroups);
+
+    // Run all batches in parallel
+    const batchResults = await Promise.allSettled(
+      batchEntries.map(async ([subject, topics]) => {
+        const batchQs = topics.reduce((a, t) => a + t.mcqCount + t.saCount, 0);
+        console.log(`Generating batch: ${subject} (${batchQs} questions, ${topics.length} topics)`);
+
         const batchPrompt = buildCombinedPrompt(topics, difficulty, testType);
-        const geminiResponse = await callGeminiWithRetry(apiKey, batchPrompt, 3);
+        const geminiResponse = await callGemini(apiKey, batchPrompt);
 
         if (geminiResponse.error) {
           console.error(`Batch error for ${subject}:`, geminiResponse.error);
-          continue; // Skip this batch, try others
+          return { subject, error: geminiResponse.error, questions: [] };
         }
 
         const parsed = parseGeminiResponse(geminiResponse.text);
-        if (parsed && parsed.length > 0) {
-          allParsed = [...allParsed, ...parsed];
-        } else {
-          console.error(`No questions parsed for batch: ${subject}`);
-        }
-      }
-    } else {
-      // Small question set — single call
-      const prompt = buildCombinedPrompt(allTopicRequests, difficulty, testType);
-      const geminiResponse = await callGeminiWithRetry(apiKey, prompt, 3);
+        const count = parsed ? parsed.length : 0;
+        console.log(`Parsed ${count} questions for ${subject}`);
+        return { subject, questions: parsed || [], responseLength: geminiResponse.text?.length };
+      })
+    );
 
-      if (geminiResponse.error) {
-        console.error("Gemini error:", geminiResponse.error);
-        return res.status(500).json({
-          error: "Failed to generate questions",
-          details: geminiResponse.error,
-        });
+    // Collect results
+    for (const result of batchResults) {
+      if (result.status === "fulfilled") {
+        const { subject, questions, error, responseLength } = result.value;
+        debugInfo.push({ subject, parsed: questions.length, error: error || null, responseLength });
+        allParsed = [...allParsed, ...questions];
+      } else {
+        debugInfo.push({ error: result.reason?.message || "Promise rejected" });
       }
-
-      const parsed = parseGeminiResponse(geminiResponse.text);
-      if (parsed) allParsed = parsed;
     }
 
     if (allParsed.length === 0) {
-      console.error("No questions parsed from Gemini response");
+      console.error("No questions parsed. Debug:", JSON.stringify(debugInfo));
       return res.status(500).json({
         error: "Could not parse generated questions from AI response",
+        debug: debugInfo,
       });
     }
 
-    // Add tempId and metadata
+    // Add tempId
     const allGeneratedQuestions = allParsed.map((q, idx) => ({
       ...q,
       tempId: `gen_${Date.now()}_${idx}`,
@@ -102,6 +106,7 @@ export default async function handler(req, res) {
       success: true,
       questions: allGeneratedQuestions,
       totalGenerated: allGeneratedQuestions.length,
+      debug: debugInfo,
     });
   } catch (error) {
     console.error("Unexpected error in generate:", error);
@@ -117,13 +122,6 @@ function buildCombinedPrompt(topicRequests, difficulty, testType) {
     mixed: "a mix of easy (30%), medium (40%), and hard (30%)",
   };
 
-  const testTypeDesc = {
-    concept: "a concept-focused practice test",
-    sectional: "a sectional test for exam preparation",
-    fullmock: "a full-length mock simulating real IPMAT exam style",
-  };
-
-  // Build per-topic breakdown
   let topicBreakdown = "";
   let totalMcq = 0;
   let totalSa = 0;
@@ -134,180 +132,206 @@ function buildCombinedPrompt(topicRequests, difficulty, testType) {
     totalSa += t.saCount;
   }
 
-  return `You are an expert question paper setter for IPMAT (Integrated Program in Management Aptitude Test) and similar Indian management entrance exams.
+  return `You are an expert question paper setter for IPMAT and similar Indian management entrance exams.
 
-Generate questions for ${testTypeDesc[testType] || testTypeDesc.concept}.
-Difficulty: ${difficultyDesc[difficulty] || difficultyDesc.medium}
+Generate exactly ${totalMcq + totalSa} questions. Difficulty: ${difficultyDesc[difficulty] || difficultyDesc.medium}
 
-Questions needed per topic:${topicBreakdown}
+Questions needed:${topicBreakdown}
 
-Total: ${totalMcq} MCQ + ${totalSa} Short Answer = ${totalMcq + totalSa} questions
+Total: ${totalMcq} MCQ + ${totalSa} SA = ${totalMcq + totalSa} questions
 
-RULES:
-1. Each question must be unique, well-formed, and mathematically/factually correct
-2. MCQ: exactly 4 options, exactly 1 correct answer
-3. Short Answer (SA): answer must be a single number or short text (max 10 chars)
-4. Include a brief explanation for each question
-5. Use clean HTML for question text (<p>, <br>, <strong> tags)
-6. For math: use text notation like x^2, sqrt(x), etc.
-7. Each question MUST have "sectionTitle" matching the Subject and "topicName" matching the Topic exactly as given above
+IMPORTANT RULES:
+1. Return ONLY a JSON array — no markdown, no code fences, no explanation text before or after
+2. MCQ: exactly 4 options, exactly 1 correct (isCorrect: true)
+3. SA: answer must be a number or short text
+4. Keep explanations brief (1-2 sentences)
+5. Use simple HTML for questions (<p> tags)
+6. Each question MUST include "sectionTitle" and "topicName" matching EXACTLY as given above
 
-OUTPUT: Return ONLY a valid JSON array. No markdown, no code blocks, no extra text.
+JSON format for MCQ:
+{"sectionTitle":"...","topicName":"...","type":"options","question":"<p>...</p>","options":[{"title":"A","text":"...","isCorrect":false},{"title":"B","text":"...","isCorrect":true},{"title":"C","text":"...","isCorrect":false},{"title":"D","text":"...","isCorrect":false}],"explanation":"..."}
 
-Each object must have these exact fields:
-{
-  "sectionTitle": "exact subject name from above",
-  "topicName": "exact topic name from above",
-  "type": "options" or "input",
-  "question": "<p>Question HTML</p>",
-  "options": [{"title":"A","text":"...","isCorrect":false},{"title":"B","text":"...","isCorrect":true},{"title":"C","text":"...","isCorrect":false},{"title":"D","text":"...","isCorrect":false}],
-  "explanation": "Brief explanation"
+JSON format for SA:
+{"sectionTitle":"...","topicName":"...","type":"input","question":"<p>...</p>","options":{"answer":"42"},"explanation":"..."}
+
+[`;
 }
 
-For SA questions, use: "options": {"answer": "5"}
-
-Return the JSON array now:`;
-}
-
-async function callGeminiWithRetry(apiKey, prompt, maxRetries) {
-  // Try multiple model names in case one is deprecated or unavailable
-  const models = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-  ];
+async function callGemini(apiKey, prompt) {
+  // Try models in order of preference
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
 
   for (const model of models) {
-    let lastError = null;
+    try {
+      console.log(`Calling model: ${model}`);
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 32768,
+            },
+          }),
+        }
+      );
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      if (attempt > 0) {
-        const waitMs = Math.pow(2, attempt) * 1000;
-        console.log(`Retry attempt ${attempt} for ${model}, waiting ${waitMs}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, waitMs));
+      if (response.status === 429) {
+        console.log(`Rate limited on ${model}, trying next...`);
+        continue;
       }
 
-      try {
-        console.log(`Trying model: ${model}, attempt ${attempt + 1}`);
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 65536,
-              },
-            }),
+      if (response.status === 404) {
+        console.log(`Model ${model} not found, trying next...`);
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`${model} error ${response.status}: ${errorText.substring(0, 200)}`);
+        continue;
+      }
+
+      const data = await response.json();
+
+      // Handle both regular and "thinking" model response formats
+      let text = null;
+      if (data.candidates && data.candidates[0]) {
+        const parts = data.candidates[0].content?.parts || [];
+        // Some models return multiple parts (thinking + actual response)
+        // Get the last text part that looks like JSON
+        for (let i = parts.length - 1; i >= 0; i--) {
+          if (parts[i].text && (parts[i].text.includes('"sectionTitle"') || parts[i].text.includes('"type"'))) {
+            text = parts[i].text;
+            break;
           }
-        );
-
-        if (response.status === 429) {
-          lastError = `Rate limited (429) on ${model}`;
-          console.log(lastError);
-          continue; // Retry same model
         }
-
-        if (response.status === 404) {
-          console.log(`Model ${model} not found (404), trying next model...`);
-          break; // Try next model
-        }
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          lastError = `${model} returned ${response.status}: ${errorText}`;
-          console.log(lastError);
-          break; // Try next model for non-retryable errors
-        }
-
-        const data = await response.json();
-
-        if (!data.candidates || data.candidates.length === 0) {
-          lastError = `No candidates from ${model}`;
-          break; // Try next model
-        }
-
-        const text = data.candidates[0].content?.parts?.[0]?.text;
+        // Fallback: just get the last text part
         if (!text) {
-          lastError = `Empty response from ${model}`;
-          break; // Try next model
+          for (let i = parts.length - 1; i >= 0; i--) {
+            if (parts[i].text) {
+              text = parts[i].text;
+              break;
+            }
+          }
         }
-
-        console.log(`Success with model: ${model}`);
-        return { text };
-      } catch (err) {
-        lastError = `Fetch error on ${model}: ${err.message}`;
-        if (attempt < maxRetries) continue;
       }
+
+      if (!text) {
+        console.log(`Empty response from ${model}, candidates:`, JSON.stringify(data.candidates?.[0]?.content).substring(0, 300));
+        continue;
+      }
+
+      // Check for finish reason
+      const finishReason = data.candidates[0].finishReason;
+      if (finishReason && finishReason !== "STOP") {
+        console.log(`Warning: ${model} finish reason: ${finishReason}`);
+      }
+
+      console.log(`Success with ${model}, response length: ${text.length}`);
+      return { text };
+    } catch (err) {
+      console.log(`Fetch error on ${model}: ${err.message}`);
+      continue;
     }
   }
 
-  return { error: "All models and retries failed. Please check your Gemini API key and billing." };
+  return { error: "All Gemini models failed" };
 }
 
 function parseGeminiResponse(text) {
-  console.log("Gemini response length:", text?.length, "first 200 chars:", text?.substring(0, 200));
+  if (!text) return null;
+  console.log("Parsing response, length:", text.length, "start:", text.substring(0, 100));
 
-  // Strategy 1: Direct JSON parse
-  try {
-    let questions = JSON.parse(text);
-    if (!Array.isArray(questions)) questions = [questions];
-    const validated = validateQuestions(questions);
-    if (validated.length > 0) return validated;
-  } catch (e) {
-    console.log("Direct parse failed:", e.message);
-  }
+  // Clean up the text
+  let cleaned = text.trim();
 
-  // Strategy 2: Extract from markdown code blocks
-  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (jsonMatch) {
-    try {
-      let questions = JSON.parse(jsonMatch[1].trim());
-      if (!Array.isArray(questions)) questions = [questions];
-      const validated = validateQuestions(questions);
-      if (validated.length > 0) return validated;
-    } catch (e2) {
-      console.log("Code block parse failed:", e2.message);
+  // If prompt ended with "[" and model continued, prepend it
+  if (!cleaned.startsWith("[")) {
+    // Check if it starts with { (model omitted the opening bracket)
+    if (cleaned.startsWith("{") || cleaned.startsWith("\n{")) {
+      cleaned = "[" + cleaned;
     }
   }
 
-  // Strategy 3: Find array brackets
+  // Remove trailing text after the JSON array
+  const lastBracket = cleaned.lastIndexOf("]");
+  if (lastBracket > 0) {
+    cleaned = cleaned.substring(0, lastBracket + 1);
+  }
+
+  // Strategy 1: Direct parse
+  try {
+    const questions = JSON.parse(cleaned);
+    if (Array.isArray(questions)) {
+      const validated = validateQuestions(questions);
+      if (validated.length > 0) {
+        console.log(`Direct parse: ${validated.length} valid questions`);
+        return validated;
+      }
+    }
+  } catch (e) {
+    console.log("Direct parse failed:", e.message?.substring(0, 100));
+  }
+
+  // Strategy 2: Extract from code blocks
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    try {
+      const questions = JSON.parse(codeBlockMatch[1].trim());
+      if (Array.isArray(questions)) {
+        const validated = validateQuestions(questions);
+        if (validated.length > 0) {
+          console.log(`Code block parse: ${validated.length} valid questions`);
+          return validated;
+        }
+      }
+    } catch (e2) {
+      console.log("Code block parse failed:", e2.message?.substring(0, 100));
+    }
+  }
+
+  // Strategy 3: Find the largest JSON array
   const arrayMatch = text.match(/\[[\s\S]*\]/);
   if (arrayMatch) {
     try {
-      let questions = JSON.parse(arrayMatch[0]);
-      if (!Array.isArray(questions)) questions = [questions];
-      const validated = validateQuestions(questions);
-      if (validated.length > 0) return validated;
-    } catch (e3) {
-      console.log("Array bracket parse failed:", e3.message);
-    }
-  }
-
-  // Strategy 4: Try to fix truncated JSON (incomplete last object)
-  if (arrayMatch) {
-    let jsonStr = arrayMatch[0];
-    // Find last complete object by finding last '}' before an incomplete one
-    const lastCompleteObj = jsonStr.lastIndexOf("},");
-    if (lastCompleteObj > 0) {
-      const truncated = jsonStr.substring(0, lastCompleteObj + 1) + "]";
-      try {
-        let questions = JSON.parse(truncated);
-        if (!Array.isArray(questions)) questions = [questions];
+      const questions = JSON.parse(arrayMatch[0]);
+      if (Array.isArray(questions)) {
         const validated = validateQuestions(questions);
         if (validated.length > 0) {
-          console.log(`Recovered ${validated.length} questions from truncated response`);
+          console.log(`Array match parse: ${validated.length} valid questions`);
           return validated;
         }
-      } catch (e4) {
-        console.log("Truncation recovery failed:", e4.message);
+      }
+    } catch (e3) {
+      console.log("Array match failed:", e3.message?.substring(0, 100));
+
+      // Strategy 4: Truncation recovery — find last complete object
+      const jsonStr = arrayMatch[0];
+      let lastGood = jsonStr.lastIndexOf("},");
+      if (lastGood < 0) lastGood = jsonStr.lastIndexOf("}]");
+      if (lastGood > 0) {
+        const truncated = jsonStr.substring(0, lastGood + 1) + "]";
+        try {
+          const questions = JSON.parse(truncated);
+          if (Array.isArray(questions)) {
+            const validated = validateQuestions(questions);
+            if (validated.length > 0) {
+              console.log(`Truncation recovery: ${validated.length} valid questions`);
+              return validated;
+            }
+          }
+        } catch (e4) {
+          console.log("Truncation recovery failed:", e4.message?.substring(0, 100));
+        }
       }
     }
   }
 
-  console.error("Could not parse Gemini response. Last 200 chars:", text?.substring(text.length - 200));
+  console.error("All parse strategies failed. Response end:", text.substring(Math.max(0, text.length - 300)));
   return null;
 }
 
