@@ -311,12 +311,12 @@ async function callGemini(apiKey, prompt) {
     return { error: "GEMINI_API_KEY is not configured in environment variables" };
   }
 
-  // Try models in order — all are standard Google AI Studio models
+  // Try models in order — confirmed available from your AI Studio key (Apr 2026)
   const models = [
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-latest",
-    "gemini-pro",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash-001",
+    "gemini-2.0-flash-lite",
+    "gemini-flash-latest",
   ];
 
   console.log(`callGemini: key ends in ...${apiKey.slice(-6)}, prompt ${prompt.length} chars`);
