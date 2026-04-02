@@ -60,9 +60,10 @@ const SUBJECT_ROTATION = [
   { subject: "Logical Reasoning",    topics: LR_TOPICS },
 ];
 
-const MIN_BANK_SIZE  = 30;  // replenish when a topic has fewer than this
-const GENERATE_COUNT = 20;  // questions to generate per depleted topic
-const MAX_TOPICS_PER_RUN = 2; // max topics to fill per cron invocation
+const MIN_BANK_SIZE  = 100; // replenish when a topic has fewer than this
+const GENERATE_COUNT = 40;  // questions to generate per depleted topic
+const MAX_PER_CALL   = 8;   // max questions per single Gemini call (timeout safety)
+const MAX_TOPICS_PER_RUN = 3; // max topics to fill per cron invocation
 
 // ── Supabase REST helpers ─────────────────────────────────────────────────────
 
@@ -165,19 +166,17 @@ async function callGemini(apiKey, prompt) {
   return { error: "All models failed" };
 }
 
-function buildPrefillPrompt(subject, topic, difficulty, count) {
+function buildPrefillPrompt(subject, topic, difficulty, mcq, sa) {
   const diffDesc = {
     easy:   "EASY — straightforward, 1-2 steps",
     medium: "MEDIUM — IPMAT/JIPMAT level, 2-3 steps",
     hard:   "HARD — IIM-level, 3-4 steps",
     mixed:  "MIXED — variety of easy/medium/hard",
   };
-  const half = Math.floor(count / 2);
-  const mcq  = count - half;  // slight MCQ bias
-  const sa   = half;
+  const total = mcq + sa;
   return `You are an expert IPMAT/JIPMAT question setter.
 
-Generate exactly ${count} exam-quality questions.
+Generate exactly ${total} exam-quality questions.
 Subject: "${subject}", Topic: "${topic}"
 Difficulty: ${diffDesc[difficulty] || diffDesc.medium}
 MCQ questions: ${mcq}, SA (numeric) questions: ${sa}
@@ -185,7 +184,7 @@ MCQ questions: ${mcq}, SA (numeric) questions: ${sa}
 RULES:
 1. Return ONLY a valid JSON array — no markdown, no fences, no text before/after.
 2. MCQ: 4 options (A/B/C/D), exactly 1 correct (isCorrect:true). Plausible distractors.
-3. SA: numeric answer only. Student types it in.
+3. SA: answer MUST be a whole number (positive integer). NEVER use decimals, fractions, or negatives. Design the question so the answer works out to a clean integer.
 4. Explanation: 2 sentences max.
 5. Wrap question text in <p> tags. Plain-text math (x² not LaTeX).
 6. sectionTitle must be exactly "${subject}", topicName exactly "${topic}".
@@ -215,9 +214,17 @@ function parseAndValidate(text) {
         }
         if (q.type === "input") {
           if (!q.options || q.options.answer === undefined) return false;
+          // Reject non-integer SA answers
+          const num = Number(String(q.options.answer).trim());
+          if (isNaN(num) || !Number.isInteger(num)) return false;
         }
         return true;
-      });
+      }).map((q) => ({
+        ...q,
+        options: q.type === "input"
+          ? { answer: String(Math.round(Number(q.options.answer))) }
+          : q.options,
+      }));
     } catch { return []; }
   };
 
@@ -297,20 +304,45 @@ export default async function handler(req) {
     );
   }
 
-  // Generate in parallel (one Gemini call per depleted topic)
+  // Generate in parallel — sub-batch each topic into MAX_PER_CALL chunks
   const results = await Promise.allSettled(
     depleted.map(async ({ topic, count }) => {
       const toGenerate = Math.min(GENERATE_COUNT, MIN_BANK_SIZE - count);
-      const prompt     = buildPrefillPrompt(subject, topic, difficulty, toGenerate);
-      const gemRes     = await callGemini(apiKey, prompt);
 
-      if (gemRes.error) {
-        return { topic, error: gemRes.error, saved: 0 };
+      // Split into sub-batches of MAX_PER_CALL questions each
+      const subBatches = [];
+      let remaining = toGenerate;
+      while (remaining > 0) {
+        const batchSize = Math.min(remaining, MAX_PER_CALL);
+        const mcq = Math.ceil(batchSize * 0.65); // 65% MCQ bias
+        const sa  = batchSize - mcq;
+        subBatches.push({ mcq, sa });
+        remaining -= batchSize;
       }
 
-      const questions = parseAndValidate(gemRes.text);
-      const saved     = await saveToBank(supabaseUrl, questions, difficulty);
-      return { topic, parsed: questions.length, saved, model: gemRes.model };
+      // Run all sub-batches for this topic in parallel
+      const batchResults = await Promise.allSettled(
+        subBatches.map(({ mcq, sa }) => {
+          const prompt = buildPrefillPrompt(subject, topic, difficulty, mcq, sa);
+          return callGemini(apiKey, prompt);
+        })
+      );
+
+      const allQuestions = [];
+      const models = [];
+      for (const r of batchResults) {
+        if (r.status === "fulfilled" && r.value.text) {
+          allQuestions.push(...parseAndValidate(r.value.text));
+          if (r.value.model) models.push(r.value.model);
+        }
+      }
+
+      if (allQuestions.length === 0) {
+        return { topic, error: "All sub-batches failed", saved: 0 };
+      }
+
+      const saved = await saveToBank(supabaseUrl, allQuestions, difficulty);
+      return { topic, parsed: allQuestions.length, saved, models: [...new Set(models)] };
     })
   );
 

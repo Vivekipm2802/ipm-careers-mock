@@ -363,7 +363,7 @@ Topics:${topicBreakdown}
 RULES:
 1. Return ONLY a valid JSON array — no markdown, no code fences, no text before/after.
 2. MCQ: 4 options (A/B/C/D), exactly 1 correct (isCorrect:true). Make distractors plausible.
-3. SA: numeric answer only (integer or simple decimal). Student types it in.
+3. SA: answer MUST be a whole number (positive integer). NEVER use decimals, fractions, or negatives. Design the question so the answer works out to a clean integer (e.g. "how many", "find the value of n", counts, integer ratios).
 4. Explanation: 2 sentences max showing key steps.
 5. Wrap question in <p> tags. Math in plain text (x² not LaTeX).
 6. sectionTitle and topicName must match exactly as given above.
@@ -543,6 +543,10 @@ function validateQuestions(questions) {
       }
       if (q.type === "input") {
         if (!q.options || typeof q.options.answer === "undefined") return false;
+        // Answer must be a whole number — reject decimals/fractions
+        const ans = String(q.options.answer).trim();
+        const num = Number(ans);
+        if (isNaN(num) || !Number.isInteger(num)) return false;
       }
       return true;
     })
@@ -551,7 +555,10 @@ function validateQuestions(questions) {
       topicName: q.topicName || "General",
       type: q.type,
       question: q.question,
-      options: q.options,
+      // Ensure SA answer is stored as a clean integer string
+      options: q.type === "input"
+        ? { answer: String(Math.round(Number(q.options.answer))) }
+        : q.options,
       explanation: q.explanation || "",
     }));
 }
