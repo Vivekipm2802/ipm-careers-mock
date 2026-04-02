@@ -51,25 +51,42 @@ const SUBJECT_PRESETS = [
   "Logical Reasoning",
 ];
 
+const QA_TOPICS = [
+  "Algebra", "Arithmetic", "Geometry", "Number System", "Mensuration",
+  "Trigonometry", "Permutation & Combination", "Probability", "Percentages",
+  "Profit & Loss", "Time & Work", "Speed Distance Time", "Averages", "Ratio & Proportion",
+  "Tables", "Bar Graphs", "Pie Charts", "Line Graphs", "Caselets",
+];
+
+const VA_TOPICS = [
+  "Reading Comprehension", "Vocabulary", "Grammar", "Para Jumbles",
+  "Sentence Correction", "Fill in the Blanks", "Synonyms & Antonyms",
+  "Idioms & Phrases", "Critical Reasoning", "Analogies",
+];
+
+const LR_TOPICS = [
+  "Arrangements", "Syllogisms", "Blood Relations", "Coding-Decoding",
+  "Direction Sense", "Puzzles", "Series", "Venn Diagrams", "Clocks & Calendars",
+];
+
+const DI_TOPICS = [
+  "Tables", "Bar Graphs", "Pie Charts", "Line Graphs", "Caselets",
+  "Mixed DI Sets", "Data Sufficiency",
+];
+
 const TOPIC_PRESETS = {
-  "Quantitative Ability": [
-    "Algebra", "Arithmetic", "Geometry", "Number System", "Mensuration",
-    "Trigonometry", "Permutation & Combination", "Probability", "Percentages",
-    "Profit & Loss", "Time & Work", "Speed Distance Time", "Averages", "Ratio & Proportion",
-  ],
-  "Verbal Ability": [
-    "Reading Comprehension", "Vocabulary", "Grammar", "Para Jumbles",
-    "Sentence Correction", "Fill in the Blanks", "Synonyms & Antonyms",
-    "Idioms & Phrases", "Critical Reasoning", "Analogies",
-  ],
-  "Data Interpretation": [
-    "Tables", "Bar Graphs", "Pie Charts", "Line Graphs", "Caselets",
-    "Mixed DI Sets", "Data Sufficiency",
-  ],
-  "Logical Reasoning": [
-    "Arrangements", "Syllogisms", "Blood Relations", "Coding-Decoding",
-    "Direction Sense", "Puzzles", "Series", "Venn Diagrams", "Clocks & Calendars",
-  ],
+  "Quantitative Ability": QA_TOPICS,
+  "Quantitative Ability (MCQ)": QA_TOPICS,
+  "Quantitative Ability (SA)": QA_TOPICS,
+  "Quantitative Aptitude": QA_TOPICS,
+  "Quantitative & Numerical Ability": QA_TOPICS,
+  "Verbal Ability": VA_TOPICS,
+  "Verbal Ability (MCQ)": VA_TOPICS,
+  "Verbal Ability & Reading Comprehension": VA_TOPICS,
+  "Verbal & Reasoning Ability": [...VA_TOPICS, ...LR_TOPICS.slice(0, 4)],
+  "Data Interpretation": DI_TOPICS,
+  "Logical Reasoning": LR_TOPICS,
+  "Data Interpretation & Logical Reasoning": [...DI_TOPICS, ...LR_TOPICS],
 };
 
 function CustomTestGenerator({ userData, role }) {
@@ -192,55 +209,235 @@ function CustomTestGenerator({ userData, role }) {
     ]);
   }
 
-  // Pre-create all IPMAT sections for full-length mock
-  function createFullMockTemplate() {
-    const template = [
-      {
-        subjectTitle: "Quantitative Ability",
-        topics: [
-          { topicName: "Algebra", mcqCount: 5, saCount: 3 },
-          { topicName: "Arithmetic", mcqCount: 5, saCount: 3 },
-          { topicName: "Geometry", mcqCount: 3, saCount: 2 },
-          { topicName: "Number System", mcqCount: 3, saCount: 2 },
-        ],
-        mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
-        time: 2400,
-      },
-      {
-        subjectTitle: "Verbal Ability",
-        topics: [
-          { topicName: "Reading Comprehension", mcqCount: 8, saCount: 0 },
-          { topicName: "Vocabulary", mcqCount: 5, saCount: 0 },
-          { topicName: "Grammar", mcqCount: 5, saCount: 0 },
-          { topicName: "Para Jumbles", mcqCount: 4, saCount: 0 },
-        ],
-        mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
-        time: 2400,
-      },
-      {
-        subjectTitle: "Data Interpretation",
-        topics: [
-          { topicName: "Tables", mcqCount: 4, saCount: 2 },
-          { topicName: "Bar Graphs", mcqCount: 3, saCount: 2 },
-          { topicName: "Pie Charts", mcqCount: 3, saCount: 1 },
-        ],
-        mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
-        time: 1200,
-      },
-      {
-        subjectTitle: "Logical Reasoning",
-        topics: [
-          { topicName: "Arrangements", mcqCount: 4, saCount: 0 },
-          { topicName: "Puzzles", mcqCount: 4, saCount: 0 },
-          { topicName: "Syllogisms", mcqCount: 3, saCount: 0 },
-          { topicName: "Blood Relations", mcqCount: 3, saCount: 0 },
-        ],
-        mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
-        time: 1200,
-      },
-    ];
-    setSections(template);
-    toast.success("Full mock template loaded with 4 sections!");
+  // Exam templates for full-length mock
+  const EXAM_TEMPLATES = {
+    "ipmat-indore": {
+      label: "IPMAT Indore",
+      totalTime: 7200, // 120 min
+      desc: "3 sections | 90 questions | 120 minutes (40 min each)",
+      sections: [
+        {
+          subjectTitle: "Quantitative Ability (MCQ)",
+          topics: [
+            { topicName: "Algebra", mcqCount: 5, saCount: 0 },
+            { topicName: "Arithmetic", mcqCount: 5, saCount: 0 },
+            { topicName: "Geometry", mcqCount: 4, saCount: 0 },
+            { topicName: "Number System", mcqCount: 4, saCount: 0 },
+            { topicName: "Tables", mcqCount: 3, saCount: 0 },
+            { topicName: "Bar Graphs", mcqCount: 3, saCount: 0 },
+            { topicName: "Pie Charts", mcqCount: 3, saCount: 0 },
+            { topicName: "Percentages", mcqCount: 3, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 2400, // 40 min
+        },
+        {
+          subjectTitle: "Quantitative Ability (SA)",
+          topics: [
+            { topicName: "Algebra", mcqCount: 0, saCount: 4 },
+            { topicName: "Arithmetic", mcqCount: 0, saCount: 4 },
+            { topicName: "Geometry", mcqCount: 0, saCount: 4 },
+            { topicName: "Number System", mcqCount: 0, saCount: 3 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 2400, // 40 min
+        },
+        {
+          subjectTitle: "Verbal Ability (MCQ)",
+          topics: [
+            { topicName: "Reading Comprehension", mcqCount: 12, saCount: 0 },
+            { topicName: "Vocabulary", mcqCount: 8, saCount: 0 },
+            { topicName: "Grammar", mcqCount: 8, saCount: 0 },
+            { topicName: "Para Jumbles", mcqCount: 8, saCount: 0 },
+            { topicName: "Fill in the Blanks", mcqCount: 5, saCount: 0 },
+            { topicName: "Sentence Correction", mcqCount: 4, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 2400, // 40 min
+        },
+      ],
+    },
+    "ipmat-rohtak": {
+      label: "IPMAT Rohtak",
+      totalTime: 7200, // 120 min
+      desc: "3 sections | 120 questions | 120 minutes (40 min each)",
+      sections: [
+        {
+          subjectTitle: "Quantitative Ability",
+          topics: [
+            { topicName: "Algebra", mcqCount: 8, saCount: 0 },
+            { topicName: "Arithmetic", mcqCount: 8, saCount: 0 },
+            { topicName: "Geometry", mcqCount: 6, saCount: 0 },
+            { topicName: "Number System", mcqCount: 6, saCount: 0 },
+            { topicName: "Percentages", mcqCount: 6, saCount: 0 },
+            { topicName: "Ratio & Proportion", mcqCount: 6, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 2400, // 40 min
+        },
+        {
+          subjectTitle: "Logical Reasoning",
+          topics: [
+            { topicName: "Arrangements", mcqCount: 8, saCount: 0 },
+            { topicName: "Puzzles", mcqCount: 8, saCount: 0 },
+            { topicName: "Syllogisms", mcqCount: 6, saCount: 0 },
+            { topicName: "Blood Relations", mcqCount: 6, saCount: 0 },
+            { topicName: "Coding-Decoding", mcqCount: 6, saCount: 0 },
+            { topicName: "Series", mcqCount: 6, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 2400, // 40 min
+        },
+        {
+          subjectTitle: "Verbal Ability",
+          topics: [
+            { topicName: "Reading Comprehension", mcqCount: 10, saCount: 0 },
+            { topicName: "Vocabulary", mcqCount: 8, saCount: 0 },
+            { topicName: "Grammar", mcqCount: 8, saCount: 0 },
+            { topicName: "Para Jumbles", mcqCount: 7, saCount: 0 },
+            { topicName: "Fill in the Blanks", mcqCount: 7, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 2400, // 40 min
+        },
+      ],
+    },
+    "jipmat": {
+      label: "JIPMAT",
+      totalTime: 9000, // 150 min
+      desc: "3 sections | 100 questions | 150 minutes",
+      sections: [
+        {
+          subjectTitle: "Quantitative Aptitude",
+          topics: [
+            { topicName: "Algebra", mcqCount: 7, saCount: 0 },
+            { topicName: "Arithmetic", mcqCount: 7, saCount: 0 },
+            { topicName: "Geometry", mcqCount: 5, saCount: 0 },
+            { topicName: "Number System", mcqCount: 5, saCount: 0 },
+            { topicName: "Percentages", mcqCount: 5, saCount: 0 },
+            { topicName: "Profit & Loss", mcqCount: 4, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 3000, // 50 min
+        },
+        {
+          subjectTitle: "Verbal Ability & Reading Comprehension",
+          topics: [
+            { topicName: "Reading Comprehension", mcqCount: 10, saCount: 0 },
+            { topicName: "Vocabulary", mcqCount: 6, saCount: 0 },
+            { topicName: "Grammar", mcqCount: 6, saCount: 0 },
+            { topicName: "Para Jumbles", mcqCount: 6, saCount: 0 },
+            { topicName: "Fill in the Blanks", mcqCount: 6, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 3000, // 50 min
+        },
+        {
+          subjectTitle: "Data Interpretation & Logical Reasoning",
+          topics: [
+            { topicName: "Tables", mcqCount: 4, saCount: 0 },
+            { topicName: "Bar Graphs", mcqCount: 4, saCount: 0 },
+            { topicName: "Pie Charts", mcqCount: 3, saCount: 0 },
+            { topicName: "Arrangements", mcqCount: 6, saCount: 0 },
+            { topicName: "Puzzles", mcqCount: 6, saCount: 0 },
+            { topicName: "Syllogisms", mcqCount: 5, saCount: 0 },
+            { topicName: "Blood Relations", mcqCount: 5, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 3000, // 50 min
+        },
+      ],
+    },
+    "iim-k-bms": {
+      label: "IIM Kozhikode BMS",
+      totalTime: 7200, // 120 min
+      desc: "2 sections | 100 questions | 120 minutes (60 min each)",
+      sections: [
+        {
+          subjectTitle: "Verbal Ability & Reading Comprehension",
+          topics: [
+            { topicName: "Reading Comprehension", mcqCount: 12, saCount: 0 },
+            { topicName: "Vocabulary", mcqCount: 8, saCount: 0 },
+            { topicName: "Grammar", mcqCount: 8, saCount: 0 },
+            { topicName: "Para Jumbles", mcqCount: 6, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 3600, // 60 min
+        },
+        {
+          subjectTitle: "Quantitative Ability",
+          topics: [
+            { topicName: "Algebra", mcqCount: 7, saCount: 0 },
+            { topicName: "Arithmetic", mcqCount: 7, saCount: 0 },
+            { topicName: "Geometry", mcqCount: 5, saCount: 0 },
+            { topicName: "Number System", mcqCount: 5, saCount: 0 },
+            { topicName: "Tables", mcqCount: 3, saCount: 0 },
+            { topicName: "Bar Graphs", mcqCount: 3, saCount: 0 },
+            { topicName: "Percentages", mcqCount: 3, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 3600, // 60 min
+        },
+      ],
+    },
+    "npat": {
+      label: "NPAT",
+      totalTime: 6000, // 100 min
+      desc: "3 sections | 120 questions | 100 minutes",
+      sections: [
+        {
+          subjectTitle: "Quantitative & Numerical Ability",
+          topics: [
+            { topicName: "Algebra", mcqCount: 8, saCount: 0 },
+            { topicName: "Arithmetic", mcqCount: 8, saCount: 0 },
+            { topicName: "Geometry", mcqCount: 6, saCount: 0 },
+            { topicName: "Number System", mcqCount: 6, saCount: 0 },
+            { topicName: "Percentages", mcqCount: 6, saCount: 0 },
+            { topicName: "Profit & Loss", mcqCount: 6, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 2000, // ~33 min
+        },
+        {
+          subjectTitle: "Logical Reasoning",
+          topics: [
+            { topicName: "Arrangements", mcqCount: 8, saCount: 0 },
+            { topicName: "Puzzles", mcqCount: 8, saCount: 0 },
+            { topicName: "Syllogisms", mcqCount: 6, saCount: 0 },
+            { topicName: "Blood Relations", mcqCount: 6, saCount: 0 },
+            { topicName: "Coding-Decoding", mcqCount: 6, saCount: 0 },
+            { topicName: "Series", mcqCount: 6, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 2000, // ~33 min
+        },
+        {
+          subjectTitle: "Verbal & Reasoning Ability",
+          topics: [
+            { topicName: "Reading Comprehension", mcqCount: 10, saCount: 0 },
+            { topicName: "Vocabulary", mcqCount: 8, saCount: 0 },
+            { topicName: "Grammar", mcqCount: 8, saCount: 0 },
+            { topicName: "Para Jumbles", mcqCount: 7, saCount: 0 },
+            { topicName: "Analogies", mcqCount: 7, saCount: 0 },
+          ],
+          mcqPos: 4, mcqNeg: 1, saPos: 4, saNeg: 0,
+          time: 2000, // ~33 min
+        },
+      ],
+    },
+  };
+
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+
+  // Load a full-length mock template by exam name
+  function createFullMockTemplate(templateKey) {
+    const template = EXAM_TEMPLATES[templateKey];
+    if (!template) return;
+    setSections(template.sections.map((s) => ({ ...s })));
+    setTimeLimit(template.totalTime);
+    setConfig((c) => ({ ...c, timeout: template.totalTime }));
+    setSelectedTemplate(templateKey);
+    toast.success(`${template.label} template loaded!`);
   }
 
   function removeSection(idx) {
@@ -612,19 +809,42 @@ function CustomTestGenerator({ userData, role }) {
           Add subjects and topics. AI will generate questions for each topic.
         </p>
 
-        {/* Full Mock Template button */}
+        {/* Full Mock Template selector */}
         {testType === "fullmock" && sections.length === 0 && (
           <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
-            <p className="font-semibold text-purple-800 mb-2">Full-Length Mock Template</p>
+            <p className="font-semibold text-purple-800 mb-2">Choose Exam Template</p>
             <p className="text-sm text-gray-600 mb-3">
-              Load a pre-configured IPMAT mock template with all 4 sections (QA, VA, DI, LR),
-              pre-set topics, question counts, and sectional timing.
+              Load a pre-configured exam template with sections, topics, question counts, and sectional timing.
             </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {Object.entries(EXAM_TEMPLATES).map(([key, tmpl]) => (
+                <div
+                  key={key}
+                  onClick={() => createFullMockTemplate(key)}
+                  className="cursor-pointer p-3 rounded-lg border-2 border-purple-200 hover:border-purple-500 hover:bg-purple-100 transition-all bg-white"
+                >
+                  <p className="font-bold text-purple-800">{tmpl.label}</p>
+                  <p className="text-xs text-gray-500 mt-1">{tmpl.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {testType === "fullmock" && sections.length > 0 && selectedTemplate && (
+          <div className="flex items-center gap-3">
+            <Chip color="secondary" variant="flat" size="sm">
+              Template: {EXAM_TEMPLATES[selectedTemplate]?.label}
+            </Chip>
             <Button
-              color="secondary"
-              onClick={createFullMockTemplate}
+              size="sm"
+              variant="light"
+              color="danger"
+              onClick={() => {
+                setSections([]);
+                setSelectedTemplate(null);
+              }}
             >
-              Load IPMAT Full Mock Template
+              Clear & Choose Different Template
             </Button>
           </div>
         )}
@@ -698,34 +918,41 @@ function CustomTestGenerator({ userData, role }) {
                     >
                       {/* Topic name - select from presets or type custom */}
                       <div className="flex-1">
-                        {TOPIC_PRESETS[section.subjectTitle] ? (
-                          <Select
-                            label="Topic"
-                            size="sm"
-                            variant="bordered"
-                            selectedKeys={topic.topicName ? [topic.topicName] : []}
-                            onSelectionChange={(keys) => {
-                              const val = Array.from(keys)[0];
-                              if (val) updateTopic(sIdx, tIdx, "topicName", val);
-                            }}
-                          >
-                            {TOPIC_PRESETS[section.subjectTitle].map((t) => (
-                              <SelectItem key={t} value={t}>
-                                {t}
-                              </SelectItem>
-                            ))}
-                          </Select>
-                        ) : (
-                          <Input
-                            label="Topic Name"
-                            size="sm"
-                            variant="bordered"
-                            value={topic.topicName}
-                            onChange={(e) =>
-                              updateTopic(sIdx, tIdx, "topicName", e.target.value)
-                            }
-                          />
-                        )}
+                        {(() => {
+                          // Find matching topic presets — check exact match first, then partial match
+                          const presets = TOPIC_PRESETS[section.subjectTitle] ||
+                            Object.entries(TOPIC_PRESETS).find(([key]) =>
+                              section.subjectTitle.toLowerCase().includes(key.toLowerCase().split(" ")[0])
+                            )?.[1] || null;
+                          return presets ? (
+                            <Select
+                              label="Topic"
+                              size="sm"
+                              variant="bordered"
+                              selectedKeys={topic.topicName ? [topic.topicName] : []}
+                              onSelectionChange={(keys) => {
+                                const val = Array.from(keys)[0];
+                                if (val) updateTopic(sIdx, tIdx, "topicName", val);
+                              }}
+                            >
+                              {presets.map((t) => (
+                                <SelectItem key={t} value={t}>
+                                  {t}
+                                </SelectItem>
+                              ))}
+                            </Select>
+                          ) : (
+                            <Input
+                              label="Topic Name"
+                              size="sm"
+                              variant="bordered"
+                              value={topic.topicName}
+                              onChange={(e) =>
+                                updateTopic(sIdx, tIdx, "topicName", e.target.value)
+                              }
+                            />
+                          );
+                        })()}
                       </div>
                       <Input
                         type="number"

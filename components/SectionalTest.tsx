@@ -14,7 +14,7 @@ import {
   format,
   endOfDay,
 } from "date-fns";
-import { Lock } from "lucide-react";
+import { Lock, Trash2 } from "lucide-react";
 
 const SECTIONS = [
   { key: "QA", title: "Quantitative Aptitude" },
@@ -22,8 +22,9 @@ const SECTIONS = [
   { key: "LR", title: "Logical Reasoning" },
 ];
 
-const SectionalTest = ({ enrolled = [] }: { enrolled?: any[] }) => {
+const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; role?: string }) => {
   const { isDemo } = useNMNContext();
+  const isAdmin = role === "admin";
   const [tests, setTests] = useState<any[]>([]);
   const [allTests, setAllTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +88,30 @@ const SectionalTest = ({ enrolled = [] }: { enrolled?: any[] }) => {
     }
 
     setResults(allResults);
+  }
+
+  async function deleteTest(testId: number) {
+    if (!confirm("Are you sure you want to delete this test? This cannot be undone.")) return;
+    const loadingToast = toast.loading("Deleting test...");
+    try {
+      const res = await fetch("/api/test-generator/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Test deleted");
+        toast.dismiss(loadingToast);
+        loadTests(); // Refresh
+      } else {
+        toast.error(data.error || "Failed to delete");
+        toast.dismiss(loadingToast);
+      }
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+      toast.dismiss(loadingToast);
+    }
   }
 
   useEffect(() => {
@@ -165,6 +190,8 @@ const SectionalTest = ({ enrolled = [] }: { enrolled?: any[] }) => {
                   key={i.id}
                   i={i}
                   hasResult={testIdsWithResults.has(i?.id)}
+                  isAdmin={isAdmin}
+                  onDelete={() => deleteTest(i.id)}
                 />
               ))}
 
@@ -173,6 +200,8 @@ const SectionalTest = ({ enrolled = [] }: { enrolled?: any[] }) => {
                   key={i.id}
                   i={i}
                   hasResult={testIdsWithResults.has(i?.id)}
+                  isAdmin={isAdmin}
+                  onDelete={() => deleteTest(i.id)}
                   demo={
                     i?.config?.public_access !== true &&
                     !enrolled?.some(
@@ -195,10 +224,14 @@ const TestCard = ({
   i,
   demo,
   hasResult,
+  isAdmin,
+  onDelete,
 }: {
   i: any;
   demo?: boolean;
   hasResult?: boolean;
+  isAdmin?: boolean;
+  onDelete?: () => void;
 }) => {
   return (
     <div className="w-full bg-white rounded-md border-1 border-gray-100 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1">
@@ -223,6 +256,17 @@ const TestCard = ({
         <p className="text-sm text-gray-500">{i?.description}</p>
       </div>
       <div className="flex flex-row pr-2 gap-2">
+        {isAdmin && onDelete && (
+          <Button
+            isIconOnly
+            size="sm"
+            color="danger"
+            variant="light"
+            onPress={onDelete}
+          >
+            <Trash2 size={16} />
+          </Button>
+        )}
         {hasResult && (
           <Button size="sm" color="success">
             View Result

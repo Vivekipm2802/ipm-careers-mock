@@ -940,7 +940,29 @@ const MockTest = ({ config, is_allowed, data }) => {
                       <div
                         className="text-xs font-sans overflow-y-auto max-h-[70vh]"
                         dangerouslySetInnerHTML={{
-                          __html: config?.config?.instructions,
+                          __html: config?.config?.instructions || `
+                            <div style="font-size:13px; line-height:1.8;">
+                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin-bottom:8px;">General Instructions</h3>
+                              <ol style="padding-left:20px;">
+                                <li>The test contains <b>${organized?.reduce((a, s) => a + (s.child?.length || 0), 0) || 'multiple'} questions</b> across <b>${organized?.length || 'multiple'} section(s)</b>.</li>
+                                <li>Total time for this test is <b>${Math.floor((config?.config?.timeout || 0) / 60)} minutes</b>.</li>
+                                <li>The clock will be set at the right top corner of your screen. The countdown timer will display the remaining time available for you to complete the test.</li>
+                                <li>When the timer reaches zero, the test will end automatically and your answers will be submitted.</li>
+                                <li>The Question Palette displayed on the right side of the screen will show the status of each question.</li>
+                              </ol>
+                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin:12px 0 8px;">Question Types</h3>
+                              <ol style="padding-left:20px;">
+                                <li><b>MCQ (Multiple Choice Questions):</b> Select one option from the given choices.</li>
+                                <li><b>SA (Short Answer):</b> Type your numerical answer in the input box provided.</li>
+                              </ol>
+                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin:12px 0 8px;">Navigation</h3>
+                              <ol style="padding-left:20px;">
+                                <li>Click on the question number in the palette to go to that question directly.</li>
+                                <li>Use <b>Next</b> and <b>Previous</b> buttons to navigate between questions.</li>
+                                <li>Click on the section names at the top to switch between sections.</li>
+                                <li>You can mark a question for <b>Review</b> using the Mark for Review button.</li>
+                              </ol>
+                            </div>`,
                         }}
                       ></div>
                     </>
@@ -952,7 +974,43 @@ const MockTest = ({ config, is_allowed, data }) => {
                       <div
                         className="text-xs font-sans overflow-y-auto max-h-[70vh]"
                         dangerouslySetInnerHTML={{
-                          __html: config?.config?.instructions2,
+                          __html: config?.config?.instructions2 || `
+                            <div style="font-size:13px; line-height:1.8;">
+                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin-bottom:8px;">Marking Scheme</h3>
+                              <table style="border-collapse:collapse; width:100%; margin-bottom:12px;">
+                                <tr style="background:#f3e8ff;">
+                                  <th style="border:1px solid #d8b4fe; padding:8px; text-align:left;">Question Type</th>
+                                  <th style="border:1px solid #d8b4fe; padding:8px; text-align:center;">Correct Answer</th>
+                                  <th style="border:1px solid #d8b4fe; padding:8px; text-align:center;">Wrong Answer</th>
+                                  <th style="border:1px solid #d8b4fe; padding:8px; text-align:center;">Unanswered</th>
+                                </tr>
+                                <tr>
+                                  <td style="border:1px solid #e9d5ff; padding:8px;">MCQ</td>
+                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center; color:green;">+4</td>
+                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center; color:red;">-1</td>
+                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center;">0</td>
+                                </tr>
+                                <tr>
+                                  <td style="border:1px solid #e9d5ff; padding:8px;">Short Answer</td>
+                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center; color:green;">+4</td>
+                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center;">0</td>
+                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center;">0</td>
+                                </tr>
+                              </table>
+                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin:12px 0 8px;">Question Palette Legend</h3>
+                              <ul style="padding-left:20px;">
+                                <li style="margin:4px 0;"><span style="display:inline-block;width:16px;height:16px;background:#e5e7eb;border-radius:2px;margin-right:6px;vertical-align:middle;"></span> Not Visited — You have not visited the question yet.</li>
+                                <li style="margin:4px 0;"><span style="display:inline-block;width:16px;height:16px;background:#ef4444;border-radius:2px;margin-right:6px;vertical-align:middle;"></span> Not Answered — You visited but did not answer.</li>
+                                <li style="margin:4px 0;"><span style="display:inline-block;width:16px;height:16px;background:#22c55e;border-radius:2px;margin-right:6px;vertical-align:middle;"></span> Answered — You have answered the question.</li>
+                                <li style="margin:4px 0;"><span style="display:inline-block;width:16px;height:16px;background:#a855f7;border-radius:2px;margin-right:6px;vertical-align:middle;"></span> Marked for Review — You want to revisit this question.</li>
+                              </ul>
+                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin:12px 0 8px;">Important Notes</h3>
+                              <ol style="padding-left:20px;">
+                                <li>Ensure you have a stable internet connection throughout the test.</li>
+                                <li>Do not refresh the page during the test.</li>
+                                <li>Click the <b>Submit</b> button when you are done. You will be redirected to the results page.</li>
+                              </ol>
+                            </div>`,
                         }}
                       ></div>
                     </>
