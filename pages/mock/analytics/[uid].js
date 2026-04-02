@@ -35,8 +35,11 @@ export default function MockResult({result}){
     const {data,error} = await supabase.from('mock_groups').select('*,subject(*)').eq('test',a).order('seq',{ascending:true})
   if(data){
     
-    // Filter to only subject-type groups (skip module groups that lack subject)
-    const subjectGroups = data.filter(s => s.type === 'subject' || s.subject != null);
+    // Keep only subject-level groups (exclude module rows which have a module FK).
+    const subjectGroups = data.filter(s =>
+      s.type === 'subject' ||
+      (s.subject != null && s.module == null)
+    );
     setSections(subjectGroups)
    getModules(data)
   }
