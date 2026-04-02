@@ -1808,7 +1808,7 @@ export default function Concept({ role, group, onBack }) {
                                 color="default"
                                 variant="flat"
                                 as={Link}
-                                href={`/mock/${test.uid}`}
+                                href={`/mock/${test.uid}?preview=true`}
                                 target="_blank"
                                 title="Preview test"
                               >

@@ -398,7 +398,7 @@ const TestCard = ({
             color="default"
             variant="flat"
             as={Link}
-            href={`/mock/${i?.uid}`}
+            href={`/mock/${i?.uid}?preview=true`}
             target="_blank"
             title="Preview test"
           >

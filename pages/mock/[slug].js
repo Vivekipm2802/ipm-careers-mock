@@ -724,7 +724,8 @@ const MockTest = ({ config, is_allowed, data }) => {
     config?.config?.allow_retests == false &&
     exists != undefined &&
     exists == true &&
-    process.env.NODE_ENV != "development"
+    process.env.NODE_ENV != "development" &&
+    router.query.preview !== "true"
   ) {
     return (
       <div className="flex flex-col relative justify-center align-middle items-center text-center font-sans h-screen w-full">

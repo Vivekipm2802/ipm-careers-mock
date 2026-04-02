@@ -569,7 +569,7 @@ const ListCard = ({ i, demo, hasResult, openResult, isAdmin, onDelete, onToggleV
             color="default"
             variant="flat"
             as={Link}
-            href={`/mock/${i?.uid}`}
+            href={`/mock/${i?.uid}?preview=true`}
             target="_blank"
             title="Preview test"
           >
