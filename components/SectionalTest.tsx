@@ -262,7 +262,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
                 </div>
               ) : null}
 
-              {filteredTests.map((i: any) => (
+              {filteredTests.map((i: any, idx: number) => (
                 <TestCard
                   key={i.id}
                   i={i}
@@ -270,27 +270,33 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
                   isAdmin={isAdmin}
                   onDelete={() => deleteTest(i.id)}
                   openResult={() => setActiveResult(i.id)}
+                  demo={isDemo && idx > 0}
                 />
               ))}
 
-              {filteredAllTests.map((i: any) => (
-                <TestCard
-                  key={i.id}
-                  i={i}
-                  hasResult={testIdsWithResults.has(i?.id)}
-                  isAdmin={isAdmin}
-                  onDelete={() => deleteTest(i.id)}
-                  openResult={() => setActiveResult(i.id)}
-                  demo={
-                    i?.config?.public_access !== true &&
+              {filteredAllTests.map((i: any) => {
+                // For demo users, all "allTests" (locked) tests stay locked
+                // For enrolled users, check enrollment as before
+                const isLocked = isDemo
+                  ? true
+                  : (i?.config?.public_access !== true &&
                     !enrolled?.some(
                       (enrollment: any) =>
                         enrollment?.course?.id === i?.course ||
                         i?.config?.courses?.includes(enrollment?.course?.id)
-                    )
-                  }
-                />
-              ))}
+                    ));
+                return (
+                  <TestCard
+                    key={i.id}
+                    i={i}
+                    hasResult={testIdsWithResults.has(i?.id)}
+                    isAdmin={isAdmin}
+                    onDelete={() => deleteTest(i.id)}
+                    openResult={() => setActiveResult(i.id)}
+                    demo={isLocked}
+                  />
+                );
+              })}
             </motion.div>
           </AnimatePresence>
         </div>
