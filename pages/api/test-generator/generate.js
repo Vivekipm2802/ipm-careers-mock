@@ -87,7 +87,7 @@ async function countInBank(subject, topic, difficulty) {
       headers: { ...supabaseHeaders(), Prefer: "count=exact" },
     });
     if (!res.ok) return 0;
-    // Content-Range: 0-0/42  →  total = 42
+    // Content-Range: 0-0/42 → total = 42
     const cr = res.headers.get("content-range");
     if (cr) {
       const total = parseInt(cr.split("/")[1], 10);
@@ -103,7 +103,7 @@ async function countInBank(subject, topic, difficulty) {
 
 /**
  * Mark questions as used (increment used_count, set last_used_at).
- * Fire-and-forget: we don't await this in the critical path.
+ * Uses sbFetch (3s timeout) to avoid keeping Edge function alive too long.
  */
 async function markAsUsed(ids) {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -114,7 +114,7 @@ async function markAsUsed(ids) {
 
   // We need the current used_count to increment — simplest approach: use
   // a separate RPC. For now, just update last_used_at so we rotate questions.
-  await fetch(url, {
+  await sbFetch(url, {
     method: "PATCH",
     headers: { ...supabaseHeaders(), Prefer: "return=minimal" },
     body: JSON.stringify({ last_used_at: new Date().toISOString() }),
@@ -123,6 +123,7 @@ async function markAsUsed(ids) {
 
 /**
  * Save newly Gemini-generated questions to the bank for future use.
+ * Uses sbFetch (3s timeout) to avoid keeping Edge function alive too long.
  */
 async function saveToBank(questions, difficulty) {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -138,7 +139,7 @@ async function saveToBank(questions, difficulty) {
     explanation: q.explanation || null,
   }));
 
-  await fetch(`${base}/rest/v1/question_bank`, {
+  await sbFetch(`${base}/rest/v1/question_bank`, {
     method: "POST",
     headers: { ...supabaseHeaders(), Prefer: "return=minimal" },
     body: JSON.stringify(rows),
@@ -247,8 +248,9 @@ export default async function handler(req) {
       }
     }
 
-    // Mark bank questions as used (non-blocking)
-    if (usedBankIds.length > 0) markAsUsed(usedBankIds);
+    // FIX: await markAsUsed so it completes within the Edge function's lifetime.
+    // Uses sbFetch internally (3s timeout) so it won't hang.
+    if (usedBankIds.length > 0) await markAsUsed(usedBankIds);
 
     // ── STEP 2: Generate remaining topics with Gemini ─────────────────────────
     let geminiQuestions = [];
@@ -261,10 +263,10 @@ export default async function handler(req) {
     );
 
     if (geminiTopicRequests.length > 0) {
-      // Hard deadline: bank check used up to 3s, leaving 19s for Gemini.
-      // Each sub-batch call gets however much time is left — so earlier
-      // calls get more, but the total phase is always ≤ 19s.
-      const GEMINI_DEADLINE = Date.now() + 19000;
+      // FIX: Reduced from 19000 → 17000 to leave ~3s budget for awaited saveToBank.
+      // Bank checks used up to 3s, so Gemini gets 17s, saveToBank gets remaining ~3s.
+      // Total: 3 (bank) + 17 (Gemini) + 3 (saveToBank) = 23s — safely under 25s limit.
+      const GEMINI_DEADLINE = Date.now() + 17000;
 
       // Split into sub-batches of MAX 8 questions each, run all in parallel.
       // SA questions get a 25% buffer to cover integer-validation rejections.
@@ -327,9 +329,11 @@ export default async function handler(req) {
         }
       }
 
-      // Save ALL valid questions (including buffer extras) to the bank before trimming
+      // FIX: await saveToBank so it completes within the Edge function's lifetime.
+      // Uses sbFetch internally (3s timeout) so it won't hang.
+      // Saves ALL valid questions (including buffer extras) to the bank before trimming.
       if (geminiQuestions.length > 0) {
-        saveToBank(geminiQuestions, difficulty || "medium"); // intentionally not awaited
+        await saveToBank(geminiQuestions, difficulty || "medium");
       }
 
       // Trim back to exactly what the user requested — buffer extras go to bank only
@@ -414,17 +418,17 @@ Topics:${topicBreakdown}
 ━━━ CRITICAL FORMATTING RULES ━━━
 1. Return ONLY a valid JSON array. Zero text before or after. No markdown, no code fences.
 2. NO LATEX EVER. Not \\frac{}, not \\sqrt{}, not $...$, not \\(...\\), not \\[...\\]. ZERO.
-   Plain-text math rules:
-   • Fractions  → write as "3/4" or "(a+b)/(c+d)"
-   • Square root → write as "√n" or "sqrt(n)"
-   • Powers      → write as "x²" or "x^2"
-   • Subscripts  → write as "a1", "b2"
-   • Summation   → write as "sum of" in words
-   • Greek letters → π, α, β, θ  (use the Unicode symbol directly)
+ Plain-text math rules:
+ • Fractions → write as "3/4" or "(a+b)/(c+d)"
+ • Square root → write as "√n" or "sqrt(n)"
+ • Powers → write as "x²" or "x^2"
+ • Subscripts → write as "a1", "b2"
+ • Summation → write as "sum of" in words
+ • Greek letters → π, α, β, θ (use the Unicode symbol directly)
 3. Wrap question text in <p> tags. Keep it clean HTML.
 4. MCQ: exactly 4 options (A B C D), exactly 1 correct (isCorrect:true). 3 plausible wrong options.
 5. SA answer MUST be a positive whole-number integer (e.g. 42, 100, 7). Never a decimal or fraction.
-   Design the question so the arithmetic works out to a clean integer.
+ Design the question so the arithmetic works out to a clean integer.
 6. Explanation: max 3 sentences showing key steps in plain text (no LaTeX).
 7. sectionTitle and topicName must match exactly as given above.
 8. Questions must be genuinely exam-quality — NOT trivial textbook definitions.
@@ -552,7 +556,7 @@ function parseGeminiResponse(text) {
   } catch (e) {}
 
   // Strategy 2: Extract from code blocks
-  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const codeBlockMatch = text.match(/```(?:json)?\s*(\[\s\S]*?)\```/);
   if (codeBlockMatch) {
     try {
       const questions = JSON.parse(codeBlockMatch[1].trim());
@@ -564,7 +568,7 @@ function parseGeminiResponse(text) {
   }
 
   // Strategy 3: Find the largest JSON array
-  const arrayMatch = text.match(/\[[\s\S]*\]/);
+  const arrayMatch = text.match(/\[\[\s\S]*\]/);
   if (arrayMatch) {
     try {
       const questions = JSON.parse(arrayMatch[0]);
