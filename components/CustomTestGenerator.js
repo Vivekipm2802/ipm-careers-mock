@@ -627,6 +627,10 @@ function CustomTestGenerator({ userData, role }) {
         body: JSON.stringify(payload),
       });
 
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "HTTP " + res.status);
+        throw new Error("Server error " + res.status + ": " + errText.substring(0, 200));
+      }
       const data = await res.json();
 
       if (data.success && data.questions) {
