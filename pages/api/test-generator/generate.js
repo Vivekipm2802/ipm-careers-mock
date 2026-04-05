@@ -448,7 +448,7 @@ async function callGemini(apiKey, prompt, timeoutMs = 15000) {
   }
 
   // Only models confirmed available for new users (Apr 2026)
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  const models = ["gemini-2.5-flash-lite", "gemini-2.5-flash"];
 
   const errors = [];
 
@@ -469,6 +469,7 @@ async function callGemini(apiKey, prompt, timeoutMs = 15000) {
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 8192,
+              thinkingConfig: { thinkingBudget: 0 },
             },
           }),
         }
