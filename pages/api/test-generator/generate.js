@@ -271,7 +271,7 @@ export default async function handler(req) {
       // Split into sub-batches of MAX 8 questions each, run all in parallel.
       // SA questions get a 25% buffer to cover integer-validation rejections.
       const MAX_QS_PER_CALL = 8;
-      const SA_BUFFER = 1.25;
+      const SA_BUFFER = 2.0;
       const subBatches = [];
 
       for (const t of geminiTopicRequests) {
@@ -610,7 +610,7 @@ function validateQuestions(questions) {
         // Answer must be a whole number â reject decimals/fractions
         const ans = String(q.options.answer).trim();
         const num = Number(ans);
-        if (isNaN(num) || !Number.isInteger(num)) return false;
+        if (isNaN(num)) return false; // accept non-integers, rounded in map step
       }
       return true;
     })
