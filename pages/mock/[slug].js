@@ -318,9 +318,9 @@ const MockTest = ({ config, is_allowed, data, previewSections, previewModules, p
     });
   };
 
-  const timeDuration = config?.config?.switch_section
-    ? Number(config?.config?.timeout) || 1800 // Ensure timeout is a valid number
-    : Number(sections?.[currentSection]?.time) || 1800; // Ensure section time is valid
+const timeDuration = config?.config?.switch_section
+  ? Number(config?.config?.timeout) || 1800
+  : Number(config?.config?.timeout) || Number(sections?.[currentSection]?.time) || 1800;
 
   const { seconds, minutes, hours, totalSeconds, restart, isRunning } =
     useTimer({
@@ -859,7 +859,7 @@ const MockTest = ({ config, is_allowed, data, previewSections, previewModules, p
           state={gamestate}
           userData={userDetails}
           title={config?.title}
-          timeOut={config?.config?.timeout || 1800}
+          timeOut={timeDuration}
         ></HeaderMock>
         <div className="flex-1 p-0 flex flex-row justify-start items-stretch flex-nowrap overflow-hidden">
           <div className="flex flex-col items-start justify-start h-full flex-1 relative overflow-hidden">
@@ -908,7 +908,7 @@ const MockTest = ({ config, is_allowed, data, previewSections, previewModules, p
                       handleScroll();
                     }}
                     isIconOnly
-                    color="primary"
+                    color="primary"timeDuration
                     size="sm"
                     className="right-0 border-1 flex md:hidden border-white absolute top-1/2 -translate-y-1/2"
                   >
