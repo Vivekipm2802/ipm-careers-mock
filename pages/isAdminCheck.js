@@ -39,6 +39,7 @@ function IsAdminCheck(props) {
 
         // For admin pages, also check admin status
         const res = await axios.post("/api/isAdmin", { email: user.email });
+        console.log("isAdmin response:", res.data); 
 
         if (res.data.success) {
           setVerified(true);
