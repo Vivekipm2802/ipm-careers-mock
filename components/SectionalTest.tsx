@@ -25,6 +25,12 @@ import {
 } from "date-fns";
 import { Lock, Trash2, ChartBarIncreasing, ChartSpline, Eye, EyeOff } from "lucide-react";
 
+// Fix NextUI TypeScript prop type mismatches
+const AnySpinner = Spinner as any;
+const AnyModal = Modal as any;
+const AnySpacerX = ({ x }: { x: number }) => <div style={{ display: "inline-block", width: `${x * 4}px` }} />;
+const AnySpacerY = ({ y }: { y: number }) => <div style={{ height: `${y * 4}px` }} />;
+
 const SECTIONS = [
   { key: "QA", title: "Quantitative Aptitude" },
   { key: "VA", title: "Verbal Ability" },
@@ -46,21 +52,18 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
     : new Set();
 
   async function loadTests() {
-    // Load tests the user has access to
     const { data, error } = await supabase
       .from("mock_test")
       .select("id, title, description, category, course, seq, start_time, end_time, uid, config")
       .order("seq", { ascending: true });
 
     if (data) {
-      // Filter to only sectional tests (generatorType = "sectional" in config)
       const sectional = data.filter(
         (t: any) => t.config?.generatorType === "sectional"
       );
       setTests(sectional);
     }
 
-    // Also load from the view (includes locked tests)
     const { data: allData } = await supabase
       .from("mock_test_view")
       .select("id, title, description, category, course, seq, start_time, end_time, uid, config")
@@ -113,7 +116,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
       if (data.success) {
         toast.success("Test deleted");
         toast.dismiss(loadingToast);
-        loadTests(); // Refresh
+        loadTests();
       } else {
         toast.error(data.error || "Failed to delete");
         toast.dismiss(loadingToast);
@@ -169,7 +172,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
   if (loading) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center p-12">
-        <Spinner size="lg" color="secondary" />
+        <AnySpinner size="lg" color="secondary" />
         <p className="text-gray-500 mt-4">Loading sectional tests...</p>
       </div>
     );
@@ -178,7 +181,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
   return (
     <div className="flex flex-col overflow-hidden justify-start items-start w-full h-full">
       {/* Results Modal */}
-      <Modal
+      <AnyModal
         isOpen={!!activeResult}
         onClose={() => setActiveResult(undefined)}
       >
@@ -216,7 +219,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
                       >
                         View Result
                       </Button>
-                      <Spacer x={2} />
+                      <AnySpacerX x={2} />
                       <Button
                         endContent={<ChartSpline size={16} />}
                         as={Link}
@@ -242,14 +245,14 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
             </Button>
           </ModalFooter>
         </ModalContent>
-      </Modal>
+      </AnyModal>
 
       <div className="pr-2 mt-4 overflow-hidden flex flex-col justify-start items-start flex-1 h-full w-full text-left">
         <h2 className="font-bold text-2xl text-primary">Sectional Tests</h2>
         <p className="text-sm text-gray-500 mt-1">
           Practice individual sections to sharpen your skills
         </p>
-        <Spacer y={4} />
+        <AnySpacerY y={4} />
 
         <div className="w-full h-full flex flex-col items-start justify-start overflow-hidden">
           {/* Section tabs */}
@@ -303,8 +306,6 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
               ))}
 
               {filteredAllTests.map((i: any) => {
-                // For demo users, all "allTests" (locked) tests stay locked
-                // For enrolled users, check enrollment as before
                 const isLocked = isDemo
                   ? true
                   : (i?.config?.public_access !== true &&
@@ -369,7 +370,7 @@ const TestCard = ({
           </>
         )}
       </div>
-      <Spacer x={2} />
+      <AnySpacerX x={2} />
       <div className="flex flex-col items-start justify-start flex-1 text-left">
         <div className="flex flex-row items-center gap-2">
           <p className="font-semibold text-primary">{i?.title}</p>
