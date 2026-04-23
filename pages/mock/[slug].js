@@ -191,7 +191,14 @@ const QuestionCard = ({ answered, question, onSelect, index }) => {
   );
 };
 
-const MockTest = ({ config, is_allowed, data, previewSections, previewModules, previewQuestions }) => {
+const MockTest = ({
+  config,
+  is_allowed,
+  data,
+  previewSections,
+  previewModules,
+  previewQuestions,
+}) => {
   const [level, setLevel] = useState(0);
   const [currentQ, setCurrentQ] = useState(0);
 
@@ -230,7 +237,7 @@ const MockTest = ({ config, is_allowed, data, previewSections, previewModules, p
   }
   const t = useMemo(
     () => timeDifferenceInSeconds(data?.start_time),
-    [data?.start_time]
+    [data?.start_time],
   );
   const { remainingTime } = useCountdown({
     duration: t,
@@ -246,7 +253,7 @@ const MockTest = ({ config, is_allowed, data, previewSections, previewModules, p
       .select("*")
       .in(
         "parent",
-        a.filter((i) => i.module).map((i) => i.module.id)
+        a.filter((i) => i.module).map((i) => i.module.id),
       )
       .order("seq", { ascending: true });
     if (data) {
@@ -281,7 +288,7 @@ const MockTest = ({ config, is_allowed, data, previewSections, previewModules, p
       let questionIndex = 1;
       // Filter to only subject-type sections (skip module-type groups)
       const subjectSections = sections.filter(
-        (s) => s.type === "subject" || s.subject != null
+        (s) => s.type === "subject" || s.subject != null,
       );
       const r = subjectSections.map((section) => ({
         title: section.subject?.title || section.title || "Section",
@@ -291,7 +298,7 @@ const MockTest = ({ config, is_allowed, data, previewSections, previewModules, p
             questions
               .filter((question) => question.parent === z.module?.id)
               .sort((a, b) => a.seq - b.seq)
-              .map((lp) => ({ id: lp.id, index: questionIndex++ }))
+              .map((lp) => ({ id: lp.id, index: questionIndex++ })),
           ),
       }));
 
@@ -318,9 +325,15 @@ const MockTest = ({ config, is_allowed, data, previewSections, previewModules, p
     });
   };
 
-const timeDuration = config?.config?.switch_section
-  ? Number(config?.config?.timeout) || 1800
-  : Number(config?.config?.timeout) || Number(sections?.[currentSection]?.time) || 1800;
+  const totalTimeout = Number(config?.config?.timeout) || 1800;
+  const sectionCount = sections?.length || 1;
+  const sectionTime = Number(sections?.[currentSection]?.time); // what admin set in editor
+
+  const timeDuration = config?.config?.switch_section
+    ? totalTimeout // one timer for whole test
+    : sectionTime > 0
+      ? sectionTime // ✅ use admin-set section time
+      : Math.floor(totalTimeout / sectionCount); // fallback: divide equally
 
   const { seconds, minutes, hours, totalSeconds, restart, isRunning } =
     useTimer({
@@ -358,8 +371,8 @@ const timeDuration = config?.config?.switch_section
 
       setCurrentQ(
         questions.findIndex(
-          (item) => item.id == organized[currentSection + 1].child[0].id
-        )
+          (item) => item.id == organized[currentSection + 1].child[0].id,
+        ),
       );
 
       addMiscItem({
@@ -393,7 +406,7 @@ const timeDuration = config?.config?.switch_section
           report: a || [],
           data: b || [],
         },
-        { headers }
+        { headers },
       );
       if (apiRes.data?.data) {
         toast.success("Test Submitted Successfully");
@@ -425,7 +438,7 @@ const timeDuration = config?.config?.switch_section
         toast.remove(r);
       } else {
         toast.error(
-          error?.message || "Unable to Submit Test. Please try again."
+          error?.message || "Unable to Submit Test. Please try again.",
         );
         setLoading(false);
         setGameState(1);
@@ -472,7 +485,7 @@ const timeDuration = config?.config?.switch_section
       .select("*,module(*)")
       .in(
         "parent_sub",
-        a.map((i) => i.id)
+        a.map((i) => i.id),
       );
     if (data) {
       setModules(data);
@@ -518,12 +531,12 @@ const timeDuration = config?.config?.switch_section
       } else {
         const isLast = _.isEqual(
           _.last(filt),
-          _.find(filt, { id: questions[currentQ].id })
+          _.find(filt, { id: questions[currentQ].id }),
         );
 
         if (isLast && config?.config?.switch_section == false) {
           toast.error(
-            "You have reached end of questions in this section , please change to previous question from menu or wait for next section"
+            "You have reached end of questions in this section , please change to previous question from menu or wait for next section",
           );
           return null;
         }
@@ -531,8 +544,8 @@ const timeDuration = config?.config?.switch_section
           ? (setCurrentSection((res) => res + 1),
             setCurrentQ(
               questions.findIndex(
-                (item) => item.id == organized[currentSection + 1].child[0].id
-              )
+                (item) => item.id == organized[currentSection + 1].child[0].id,
+              ),
             ),
             addMiscItem({
               id: organized[currentSection + 1].child[0].id,
@@ -542,7 +555,7 @@ const timeDuration = config?.config?.switch_section
       }
     } else {
       toast.error(
-        "You have reached end of questions, click on submit if you have finished your test"
+        "You have reached end of questions, click on submit if you have finished your test",
       );
     }
   }
@@ -571,20 +584,20 @@ const timeDuration = config?.config?.switch_section
 
       if (prev != null) {
         const questionIndex = questions.findIndex((item) => item.id == prev.id);
-        setCurrentQ(questionIndex),
-          addMiscItem({ id: prev.id, status: "pending" });
+        (setCurrentQ(questionIndex),
+          addMiscItem({ id: prev.id, status: "pending" }));
       } else {
         const isFirst = _.isEqual(
           _.first(filt),
-          _.find(filt, { id: questions[currentQ].id })
+          _.find(filt, { id: questions[currentQ].id }),
         );
 
         isFirst
           ? (setCurrentSection((res) => res - 1),
             setCurrentQ(
               questions.findIndex(
-                (item) => item.id == organized[currentSection - 1].child[0].id
-              )
+                (item) => item.id == organized[currentSection - 1].child[0].id,
+              ),
             ))
           : toast.error("invalid");
       }
@@ -878,17 +891,17 @@ const timeDuration = config?.config?.switch_section
                         return (
                           <div
                             onClick={() => {
-                              (config?.config?.switch_section ||
+                              ((config?.config?.switch_section ||
                                 process.env.NODE_ENV == "development") ??
-                              false
+                              false)
                                 ? (setCurrentSection(d),
                                   setCurrentQ(
                                     questions.findIndex(
-                                      (item) => item.id == i.child[0].id
-                                    )
+                                      (item) => item.id == i.child[0].id,
+                                    ),
                                   ))
                                 : toast.error(
-                                    "You cannot switch sections in this test"
+                                    "You cannot switch sections in this test",
                                   );
                             }}
                             className={
@@ -908,7 +921,8 @@ const timeDuration = config?.config?.switch_section
                       handleScroll();
                     }}
                     isIconOnly
-                    color="primary"timeDuration
+                    color="primary"
+                    timeDuration
                     size="sm"
                     className="right-0 border-1 flex md:hidden border-white absolute top-1/2 -translate-y-1/2"
                   >
@@ -942,11 +956,13 @@ const timeDuration = config?.config?.switch_section
                       <div
                         className="text-xs font-sans overflow-y-auto max-h-[70vh]"
                         dangerouslySetInnerHTML={{
-                          __html: config?.config?.instructions || `
+                          __html:
+                            config?.config?.instructions ||
+                            `
                             <div style="font-size:13px; line-height:1.8;">
                               <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin-bottom:8px;">General Instructions</h3>
                               <ol style="padding-left:20px;">
-                                <li>The test contains <b>${organized?.reduce((a, s) => a + (s.child?.length || 0), 0) || 'multiple'} questions</b> across <b>${organized?.length || 'multiple'} section(s)</b>.</li>
+                                <li>The test contains <b>${organized?.reduce((a, s) => a + (s.child?.length || 0), 0) || "multiple"} questions</b> across <b>${organized?.length || "multiple"} section(s)</b>.</li>
                                 <li>Total time for this test is <b>${Math.floor((config?.config?.timeout || 0) / 60)} minutes</b>.</li>
                                 <li>The clock will be set at the right top corner of your screen. The countdown timer will display the remaining time available for you to complete the test.</li>
                                 <li>When the timer reaches zero, the test will end automatically and your answers will be submitted.</li>
@@ -976,7 +992,9 @@ const timeDuration = config?.config?.switch_section
                       <div
                         className="text-xs font-sans overflow-y-auto max-h-[70vh]"
                         dangerouslySetInnerHTML={{
-                          __html: config?.config?.instructions2 || `
+                          __html:
+                            config?.config?.instructions2 ||
+                            `
                             <div style="font-size:13px; line-height:1.8;">
                               <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin-bottom:8px;">Marking Scheme</h3>
                               <table style="border-collapse:collapse; width:100%; margin-bottom:12px;">
@@ -1086,17 +1104,17 @@ const timeDuration = config?.config?.switch_section
                   setInsIndex(e);
                 }}
                 onStart={() => {
-                  setGameState(1),
+                  (setGameState(1),
                     setCurrentQ(
                       questions.findIndex(
-                        (item) => item.id == organized[0]?.child[0]?.id
-                      )
+                        (item) => item.id == organized[0]?.child[0]?.id,
+                      ),
                     ),
                     addMiscItem({
                       id: organized[0]?.child[0]?.id,
                       status: "pending",
                     }),
-                    openFullscreen();
+                    openFullscreen());
                 }}
                 state={gamestate}
                 onNext={() => {
@@ -1106,8 +1124,11 @@ const timeDuration = config?.config?.switch_section
                   handlePrev();
                 }}
                 onReview={() => {
-                  addMiscItem({ id: questions[currentQ].id, status: "review" }),
-                    toast.success("Marked for Review");
+                  (addMiscItem({
+                    id: questions[currentQ].id,
+                    status: "review",
+                  }),
+                    toast.success("Marked for Review"));
                 }}
                 onClear={() => {
                   clearResponse(questions[currentQ].id);
@@ -1242,7 +1263,7 @@ const timeDuration = config?.config?.switch_section
                             {miscData?.filter((item1) =>
                               answered
                                 ?.map((item2) => item2.id)
-                                .includes(item1.id)
+                                .includes(item1.id),
                             )?.length || 0}
                           </p>
                         </div>
@@ -1267,18 +1288,18 @@ const timeDuration = config?.config?.switch_section
                             <div
                               className="p-1 relative group"
                               onClick={() => {
-                                config?.config?.switch_questions ?? false
+                                (config?.config?.switch_questions ?? false)
                                   ? (setCurrentQ(
                                       questions.findIndex(
-                                        (item) => item.id == i.id
-                                      )
+                                        (item) => item.id == i.id,
+                                      ),
                                     ),
                                     addMiscItem({
                                       id: i.id,
                                       status: "pending",
                                     }))
                                   : toast.error(
-                                      "You cannot switch question in this test."
+                                      "You cannot switch question in this test.",
                                     );
                               }}
                             >
@@ -1378,14 +1399,24 @@ export async function getServerSideProps(context) {
         .eq("test", testId)
         .order("seq", { ascending: true });
 
-      console.log("[Preview] Groups loaded:", allGroups?.length, "Error:", groupsErr?.message);
+      console.log(
+        "[Preview] Groups loaded:",
+        allGroups?.length,
+        "Error:",
+        groupsErr?.message,
+      );
 
       if (allGroups && allGroups.length > 0) {
         // Separate subject-type (sections) and module-type (modules)
         const sectionsData = allGroups.filter((g) => g.type === "subject");
         const modulesData = allGroups.filter((g) => g.type === "module");
 
-        console.log("[Preview] Sections:", sectionsData.length, "Modules:", modulesData.length);
+        console.log(
+          "[Preview] Sections:",
+          sectionsData.length,
+          "Modules:",
+          modulesData.length,
+        );
 
         if (modulesData.length > 0) {
           // Load questions for all modules
@@ -1401,7 +1432,12 @@ export async function getServerSideProps(context) {
             .in("parent", moduleIds)
             .order("seq", { ascending: true });
 
-          console.log("[Preview] Questions loaded:", questionsData?.length, "Error:", qErr?.message);
+          console.log(
+            "[Preview] Questions loaded:",
+            questionsData?.length,
+            "Error:",
+            qErr?.message,
+          );
 
           props.previewSections = sectionsData;
           props.previewModules = modulesData;
