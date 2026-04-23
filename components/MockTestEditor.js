@@ -184,7 +184,7 @@ function MockTestEditor({ userData, role }) {
       });
       return positive + negative;
     }
-                
+
     const scoreMap = {};
     await Promise.all(
       (data || []).map(async (i) => {
@@ -611,6 +611,25 @@ function MockTestEditor({ userData, role }) {
     } else {
       toast.remove(r);
       toast.error("Error deleting category");
+    }
+  }
+
+  async function toggleCategoryVisibility(categoryId, currentVisibility) {
+    const { data, error } = await supabase
+      .from("mock_categories")
+      .update({ is_visible: !currentVisibility })
+      .eq("id", categoryId)
+      .select();
+
+    if (data) {
+      toast.success(
+        !currentVisibility
+          ? "Category is now visible"
+          : "Category hidden from students",
+      );
+      getCategories();
+    } else {
+      toast.error("Failed to update visibility");
     }
   }
   async function addModule(a, b, c) {
@@ -1060,15 +1079,27 @@ function MockTestEditor({ userData, role }) {
               return (
                 <>
                   <div className="flex flex-row items-center justify-between my-1">
-                    <div className="font-sans font-medium">{z.title}</div>
-                    <Popover>
-                      <PopoverTrigger>
-                        <Button
-                          size="sm"
-                          color="danger"
-                          isIconOnly
-                          className="p-1"
-                        >
+                    <div className="flex flex-row items-center gap-2">
+                      <div className="font-sans font-medium">{z.title}</div>
+                      {z.is_visible === false && (
+                        <span className="text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">
+                          Hidden from students
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-row gap-1">
+                      {/* Eye Toggle Button */}
+                      <Button
+                        size="sm"
+                        color={z.is_visible === false ? "default" : "primary"}
+                        isIconOnly
+                        className="p-1"
+                        onPress={() =>
+                          toggleCategoryVisibility(z.id, z.is_visible !== false)
+                        }
+                      >
+                        {z.is_visible === false ? (
+                          // Eye-off icon (hidden)
                           <svg
                             width="16"
                             height="16"
@@ -1076,38 +1107,73 @@ function MockTestEditor({ userData, role }) {
                             viewBox="0 0 24 24"
                           >
                             <path
-                              d="M21.5 6a1 1 0 0 1-.883.993L20.5 7h-.845l-1.231 12.52A2.75 2.75 0 0 1 15.687 22H8.313a2.75 2.75 0 0 1-2.737-2.48L4.345 7H3.5a1 1 0 0 1 0-2h5a3.5 3.5 0 1 1 7 0h5a1 1 0 0 1 1 1Zm-7.25 3.25a.75.75 0 0 0-.743.648L13.5 10v7l.007.102a.75.75 0 0 0 1.486 0L15 17v-7l-.007-.102a.75.75 0 0 0-.743-.648Zm-4.5 0a.75.75 0 0 0-.743.648L9 10v7l.007.102a.75.75 0 0 0 1.486 0L10.5 17v-7l-.007-.102a.75.75 0 0 0-.743-.648ZM12 3.5A1.5 1.5 0 0 0 10.5 5h3A1.5 1.5 0 0 0 12 3.5Z"
+                              d="M2.22 2.22a.75.75 0 0 0 0 1.06l1.57 1.57C2.27 6.42 1 8.09 1 12c0 0 3.58 7 11 7a10.9 10.9 0 0 0 5.15-1.28l2.63 2.63a.75.75 0 1 0 1.06-1.06l-18.56-18.5a.75.75 0 0 0-1.06 0ZM12 17.5A5.5 5.5 0 0 1 7.1 9.22l1.12 1.12a4 4 0 0 0 5.44 5.44l1.12 1.12A5.47 5.47 0 0 1 12 17.5ZM23 12s-3.58 7-11 7c-.4 0-.8-.02-1.18-.06l-1.1-1.1A10.9 10.9 0 0 0 12 18c5.93 0 9.27-5.35 9.95-6.5-.44-.76-1.4-2.18-2.95-3.43L20.1 6.96C22.01 8.62 23 11.06 23 12ZM12 6.5c.52 0 1.02.07 1.5.19l-1.08-1.08A5.53 5.53 0 0 0 6.69 9.32L5.58 8.21A7 7 0 0 1 12 6.5Z"
                               fill="currentColor"
                             />
                           </svg>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent>
-                        <div className="p-2 text-sm text-center">
-                          <p className="mb-2 font-medium">
-                            Delete "
-                            <span className="text-danger">{z.title}</span>"?
-                          </p>
-                          <p className="text-xs text-gray-500 mb-2">
-                            This will also delete all{" "}
-                            {tests?.filter((t) => t.category == z.id).length}{" "}
-                            test(s) inside.
-                          </p>
-                          <div className="flex flex-row gap-2">
-                            <Button size="sm" color="success">
-                              Cancel
-                            </Button>
-                            <Button
-                              size="sm"
-                              color="danger"
-                              onPress={() => deleteCategory(z.id)}
+                        ) : (
+                          // Eye icon (visible)
+                          <svg
+                            width="16"
+                            height="16"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              d="M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM12 5C7 5 2.73 8.11 1 12.5 2.73 16.89 7 20 12 20s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5Zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        )}
+                      </Button>
+                      <Popover>
+                        <PopoverTrigger>
+                          <Button
+                            size="sm"
+                            color="danger"
+                            isIconOnly
+                            className="p-1"
+                          >
+                            <svg
+                              width="16"
+                              height="16"
+                              fill="none"
+                              viewBox="0 0 24 24"
                             >
-                              Delete All
-                            </Button>
+                              <path
+                                d="M21.5 6a1 1 0 0 1-.883.993L20.5 7h-.845l-1.231 12.52A2.75 2.75 0 0 1 15.687 22H8.313a2.75 2.75 0 0 1-2.737-2.48L4.345 7H3.5a1 1 0 0 1 0-2h5a3.5 3.5 0 1 1 7 0h5a1 1 0 0 1 1 1Zm-7.25 3.25a.75.75 0 0 0-.743.648L13.5 10v7l.007.102a.75.75 0 0 0 1.486 0L15 17v-7l-.007-.102a.75.75 0 0 0-.743-.648Zm-4.5 0a.75.75 0 0 0-.743.648L9 10v7l.007.102a.75.75 0 0 0 1.486 0L10.5 17v-7l-.007-.102a.75.75 0 0 0-.743-.648ZM12 3.5A1.5 1.5 0 0 0 10.5 5h3A1.5 1.5 0 0 0 12 3.5Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                          <div className="p-2 text-sm text-center">
+                            <p className="mb-2 font-medium">
+                              Delete "
+                              <span className="text-danger">{z.title}</span>"?
+                            </p>
+                            <p className="text-xs text-gray-500 mb-2">
+                              This will also delete all{" "}
+                              {tests?.filter((t) => t.category == z.id).length}{" "}
+                              test(s) inside.
+                            </p>
+                            <div className="flex flex-row gap-2">
+                              <Button size="sm" color="success">
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                color="danger"
+                                onPress={() => deleteCategory(z.id)}
+                              >
+                                Delete All
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>{" "}
                   <Divider className="my-1"></Divider>
                   {tests == undefined ||
@@ -2685,8 +2751,7 @@ function MockTestEditor({ userData, role }) {
                           explanation: e,
                         }));
                       }}
-                    >  
-                    </QuillWarapper>
+                    ></QuillWarapper>
 
                     <h2>Explanation Image</h2>
                     <ImageUploader
