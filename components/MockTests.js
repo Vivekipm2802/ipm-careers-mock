@@ -92,20 +92,26 @@ export default function MockTests({ enrolled = [], role = "user" }) {
   }
   async function getCategories(a) {
     const r = toast.loading("getting categories");
-    const { data, error } = await supabase
+
+    let query = supabase
       .from("mock_categories")
       .select("id, title, seq")
       .order("seq", { ascending: true });
+
+    // Hide invisible categories from students
+    if (!isAdmin) {
+      query = query.eq("is_visible", true);
+    }
+
+    const { data, error } = await query;
     if (data) {
       toast.remove(r);
-      // Hide the internal placeholder category from the Mock Tests page
       setCategories(data.filter((c) => c.title !== "__internal__"));
     } else {
       toast.error("failed to get categories");
       toast.remove(r);
     }
   }
-
   async function getAllCategories(a) {
     const { data, error } = await supabase
       .from("mock_categories_view")
@@ -225,7 +231,6 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     getAllCategories();
     getResults();
   }, []);
-
 
   function getPerSectionTime(config) {
     if (!config) return null;
@@ -402,7 +407,8 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                             </div>
                           );
                         })}
-                      {categories &&
+                      {isAdmin &&
+                        categories &&
                         allCategories
                           ?.filter(
                             (item) =>
@@ -412,11 +418,8 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                             return (
                               <div
                                 key={z.id}
-                                onClick={() => {
-                                  setActiveCategory(v);
-                                }}
                                 className={
-                                  "bg-gray-100 flex flex-row flex-shrink-0 px-3 cursor-pointer hover:brightness-90  p-2 text-sm rounded-t-lg  mx-[1px] pointer-events-none grayscale opacity-80 "
+                                  "bg-gray-100 flex flex-row flex-shrink-0 px-3 p-2 text-sm rounded-t-lg mx-[1px] pointer-events-none grayscale opacity-80 "
                                 }
                               >
                                 <Lock size={16} className="mr-2"></Lock>
