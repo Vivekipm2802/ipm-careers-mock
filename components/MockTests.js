@@ -25,7 +25,14 @@ import {
   format,
   endOfDay,
 } from "date-fns";
-import { ChartBarIncreasing, ChartSplineIcon, Eye, EyeOff, Lock, Trash2 } from "lucide-react";
+import {
+  ChartBarIncreasing,
+  ChartSplineIcon,
+  Eye,
+  EyeOff,
+  Lock,
+  Trash2,
+} from "lucide-react";
 
 export default function MockTests({ enrolled = [], role = "user" }) {
   const { isDemo } = useNMNContext();
@@ -122,7 +129,8 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     if (data) {
       // Exclude concept and sectional tests — they appear on their own pages
       const filtered = data.filter(
-        (t) => !t.config?.generatorType || t.config?.generatorType === "fullmock"
+        (t) =>
+          !t.config?.generatorType || t.config?.generatorType === "fullmock",
       );
       setTests(filtered);
     } else {
@@ -140,7 +148,11 @@ export default function MockTests({ enrolled = [], role = "user" }) {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(currentlyHidden ? "Test is now visible to students" : "Test hidden from students");
+        toast.success(
+          currentlyHidden
+            ? "Test is now visible to students"
+            : "Test hidden from students",
+        );
         toast.dismiss(loadingToast);
         getTests();
         getAllTests();
@@ -155,7 +167,12 @@ export default function MockTests({ enrolled = [], role = "user" }) {
   }
 
   async function deleteTest(testId) {
-    if (!confirm("Are you sure you want to delete this test? This cannot be undone.")) return;
+    if (
+      !confirm(
+        "Are you sure you want to delete this test? This cannot be undone.",
+      )
+    )
+      return;
     const loadingToast = toast.loading("Deleting test...");
     try {
       const res = await fetch("/api/test-generator/delete", {
@@ -190,7 +207,8 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     if (data) {
       // Exclude concept and sectional tests
       const filtered = data.filter(
-        (t) => !t.config?.generatorType || t.config?.generatorType === "fullmock"
+        (t) =>
+          !t.config?.generatorType || t.config?.generatorType === "fullmock",
       );
       setAllTests(filtered);
     } else {
@@ -207,6 +225,23 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     getAllCategories();
     getResults();
   }, []);
+
+  function getPerSectionTime(config) {
+    if (!config) return null;
+
+    const totalMinutes = config?.duration; // total test duration in minutes
+    const sections = config?.sections; // array of sections
+
+    if (!totalMinutes || !sections || sections.length === 0) return null;
+
+    const perSection = Math.floor(totalMinutes / sections.length);
+    const hours = Math.floor(perSection / 60);
+    const mins = perSection % 60;
+
+    if (hours > 0 && mins > 0) return `${hours}h ${mins}m / section`;
+    if (hours > 0) return `${hours}h / section`;
+    return `${mins}m / section`;
+  }
   return (
     <div className="flex flex-col overflow-hidden justify-start items-start w-full">
       <Modal
@@ -409,7 +444,8 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                         tests
                           ?.filter(
                             (item) =>
-                              item?.category == categories[activeCategory]?.id &&
+                              item?.category ==
+                                categories[activeCategory]?.id &&
                               (isAdmin || !item?.config?.hidden),
                           )
                           ?.map((i, d) => {
@@ -422,7 +458,9 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                                 }}
                                 isAdmin={isAdmin}
                                 onDelete={() => deleteTest(i.id)}
-                                onToggleVisibility={() => toggleVisibility(i.id, !!i?.config?.hidden)}
+                                onToggleVisibility={() =>
+                                  toggleVisibility(i.id, !!i?.config?.hidden)
+                                }
                                 i={i}
                               ></ListCard>
                             );
@@ -449,13 +487,17 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                                 }}
                                 isAdmin={isAdmin}
                                 onDelete={() => deleteTest(i.id)}
-                                onToggleVisibility={() => toggleVisibility(i.id, !!i?.config?.hidden)}
+                                onToggleVisibility={() =>
+                                  toggleVisibility(i.id, !!i?.config?.hidden)
+                                }
                                 demo={
                                   i?.config?.public_access !== true &&
                                   !enrolled?.some(
                                     (enrollment) =>
                                       enrollment?.course?.id === i?.course ||
-                                      i?.config?.courses?.includes(enrollment?.course?.id),
+                                      i?.config?.courses?.includes(
+                                        enrollment?.course?.id,
+                                      ),
                                   )
                                 }
                                 i={i}
@@ -488,7 +530,11 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                           <Divider className="my-1"></Divider>
 
                           {tests == undefined ||
-                          tests?.filter((item) => item.course == i.id || item.config?.courses?.includes(i.id)) == 0 ? (
+                          tests?.filter(
+                            (item) =>
+                              item.course == i.id ||
+                              item.config?.courses?.includes(i.id),
+                          ) == 0 ? (
                             <div className="rounded-xl border-gray-300 border-1 border-dashed text-gray-600 my-2 p-2 text-center ">
                               No Test Found in this Category
                             </div>
@@ -497,7 +543,12 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                           )}
                           {tests &&
                             tests
-                              ?.filter((item) => (item.course == i.id || item.config?.courses?.includes(i.id)) && (isAdmin || !item?.config?.hidden))
+                              ?.filter(
+                                (item) =>
+                                  (item.course == i.id ||
+                                    item.config?.courses?.includes(i.id)) &&
+                                  (isAdmin || !item?.config?.hidden),
+                              )
                               ?.map((z, d) => {
                                 return (
                                   <ListCard
@@ -508,7 +559,12 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                                     }}
                                     isAdmin={isAdmin}
                                     onDelete={() => deleteTest(z.id)}
-                                    onToggleVisibility={() => toggleVisibility(z.id, !!z?.config?.hidden)}
+                                    onToggleVisibility={() =>
+                                      toggleVisibility(
+                                        z.id,
+                                        !!z?.config?.hidden,
+                                      )
+                                    }
                                     i={z}
                                   ></ListCard>
                                 );
@@ -530,10 +586,25 @@ export default function MockTests({ enrolled = [], role = "user" }) {
   );
 }
 
-const ListCard = ({ i, demo, hasResult, openResult, isAdmin, onDelete, onToggleVisibility }) => {
+const ListCard = ({
+  i,
+  demo,
+  hasResult,
+  openResult,
+  isAdmin,
+  onDelete,
+  onToggleVisibility,
+}) => {
   const isHidden = !!i?.config?.hidden;
   return (
-    <div className={"w-full bg-white rounded-md border-1 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1 " + (isAdmin && isHidden ? "border-orange-300 bg-orange-50" : "border-gray-100")}>
+    <div
+      className={
+        "w-full bg-white rounded-md border-1 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1 " +
+        (isAdmin && isHidden
+          ? "border-orange-300 bg-orange-50"
+          : "border-gray-100")
+      }
+    >
       <div className="w-[70px] flex flex-col items-center justify-center aspect-square rounded-lg bg-gray-50">
         <p className="text-xl text-primary font-bold">
           {CtoLocal(i?.start_time)?.date}
@@ -545,10 +616,27 @@ const ListCard = ({ i, demo, hasResult, openResult, isAdmin, onDelete, onToggleV
         <div className="flex flex-row items-center gap-2">
           <p className="font-semibold text-primary">{i?.title}</p>
           {isAdmin && isHidden && (
-            <span className="text-[10px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded font-medium">HIDDEN</span>
+            <span className="text-[10px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded font-medium">
+              HIDDEN
+            </span>
           )}
         </div>
         <p className="text-sm text-gray-500">{i?.description}</p>
+
+        {/* ✅ Per-section time display */}
+        {getPerSectionTime(i?.config) && (
+          <div className="flex flex-row items-center gap-3 mt-1">
+            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-medium">
+              ⏱ {getPerSectionTime(i?.config)}
+            </span>
+            {i?.config?.sections?.length > 0 && (
+              <span className="text-xs text-gray-400">
+                {i.config.sections.length} sections · {i.config.duration} min
+                total
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="flex flex-row pr-2 gap-2">
         {isAdmin && onToggleVisibility && (
