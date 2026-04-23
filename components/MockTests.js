@@ -226,6 +226,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     getResults();
   }, []);
 
+
   function getPerSectionTime(config) {
     if (!config) return null;
 
@@ -622,21 +623,6 @@ const ListCard = ({
           )}
         </div>
         <p className="text-sm text-gray-500">{i?.description}</p>
-
-        {/* ✅ Per-section time display */}
-        {getPerSectionTime(i?.config) && (
-          <div className="flex flex-row items-center gap-3 mt-1">
-            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-medium">
-              ⏱ {getPerSectionTime(i?.config)}
-            </span>
-            {i?.config?.sections?.length > 0 && (
-              <span className="text-xs text-gray-400">
-                {i.config.sections.length} sections · {i.config.duration} min
-                total
-              </span>
-            )}
-          </div>
-        )}
       </div>
       <div className="flex flex-row pr-2 gap-2">
         {isAdmin && onToggleVisibility && (
