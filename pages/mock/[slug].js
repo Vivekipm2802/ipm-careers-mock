@@ -325,15 +325,20 @@ const MockTest = ({
     });
   };
 
+  // ✅ NEW
   const totalTimeout = Number(config?.config?.timeout) || 1800;
-  const sectionCount = sections?.length || 1;
-  const sectionTime = Number(sections?.[currentSection]?.time); // what admin set in editor
+
+  const subjectSections =
+    sections?.filter((s) => s.type === "subject" || s.subject != null) || [];
+
+  const sectionCount = subjectSections.length || 1;
+  const sectionTime = Number(subjectSections?.[currentSection]?.time);
 
   const timeDuration = config?.config?.switch_section
-    ? totalTimeout // one timer for whole test
+    ? totalTimeout
     : sectionTime > 0
-      ? sectionTime // ✅ use admin-set section time
-      : Math.floor(totalTimeout / sectionCount); // fallback: divide equally
+      ? sectionTime
+      : Math.floor(totalTimeout / sectionCount);
 
   const { seconds, minutes, hours, totalSeconds, restart, isRunning } =
     useTimer({
