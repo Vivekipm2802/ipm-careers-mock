@@ -1,26 +1,40 @@
 import { supabase } from "@/utils/supabaseClient";
-import { Button, Spacer } from "@nextui-org/react";
 import { useEffect, useState } from "react";
 import { useNMNContext } from "./NMNContext";
 import StudentAttendance from "./StudentAttendance";
 import DemoComponent from "./DemoComponent";
-import { motion } from "framer-motion";
 import ClassDashboard from "./TodaysClasses";
 import { toast } from "react-hot-toast";
-import DailyRC from "./DailyRC";
-import WordOfTheDay from "./WordOfTheDay";
 import Loader from "./Loader";
 import axios from "axios";
+import {
+  ArrowRight,
+  Target,
+  Layers,
+  Flame,
+  BookOpen,
+  FileText,
+  PlayCircle,
+} from "lucide-react";
 
+/**
+ * Redesigned student dashboard — Phase 1 of the portal redesign.
+ *
+ * Data fetching (classes, results, isAdmin) is preserved verbatim from the
+ * previous version so backend behaviour is unchanged. Only the JSX has been
+ * rebuilt to match the new design system: tokens from globals.css, the
+ * Inter + Instrument Serif type pairing, and a calmer, scannable layout.
+ */
 export default function Dashboard({ userData }) {
+  // ── Existing state — preserved ──
   const [isNull, setIsNull] = useState(true);
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState();
   const [isAdmin, setIsAdmin] = useState(false);
   const [results, setResults] = useState([]);
 
+  // ── Existing data fetching — preserved ──
   async function getClasses() {
-    // Get the course IDs the student is enrolled in
     const enrolledCourseIds =
       userCourses?.map((enrollment) => enrollment.course?.id).filter(Boolean) ||
       [];
@@ -28,7 +42,6 @@ export default function Dashboard({ userData }) {
     let enrolledClasses = [];
     let demoClasses = [];
 
-    // Fetch classes for enrolled courses (existing behavior)
     if (enrolledCourseIds.length > 0) {
       const { data, error } = await supabase
         .from("classes")
@@ -37,54 +50,45 @@ export default function Dashboard({ userData }) {
         .eq("batches.is_deleted", false)
         .order("created_at", { ascending: true })
         .limit(10);
-
       if (error) {
         toast.error("Error Loading Classes");
         return;
       }
-
       enrolledClasses = data ?? [];
     }
 
-    // Append ALL classes whose batches have demo=true
     const { data: demoData, error: demoError } = await supabase
       .from("classes")
       .select("*, batches!inner(course_id,demo)")
       .eq("batches.demo", true)
       .eq("batches.is_deleted", false)
       .order("created_at", { ascending: true });
-
     if (demoError) {
       toast.error("Error Loading Demo Classes");
       return;
     }
-
     demoClasses = demoData ?? [];
 
-    // Merge + de-dup (in case an enrolled class is also from a demo batch)
     const merged = [...enrolledClasses, ...demoClasses].filter(Boolean);
-    const deduped = Array.from(new Map(merged.map((c) => [c?.id, c])).values());
-
-    // Keep consistent ordering
+    const deduped = Array.from(
+      new Map(merged.map((c) => [c?.id, c])).values()
+    );
     deduped.sort((a, b) => {
       const aTime = a?.created_at ? new Date(a.created_at).getTime() : 0;
       const bTime = b?.created_at ? new Date(b.created_at).getTime() : 0;
       return aTime - bTime;
     });
-
     setClasses(deduped);
   }
 
-  const { setCTXSlug, sk, setSK, userCourses } = useNMNContext();
+  const { setCTXSlug, sk, setSK, userCourses, isDemo } = useNMNContext();
 
   async function checkAdminStatus() {
     try {
       const response = await axios.post("/api/isAdmin", {
         email: userData?.email,
       });
-      if (response.data.success) {
-        setIsAdmin(true);
-      }
+      if (response.data.success) setIsAdmin(true);
     } catch (error) {
       console.error("Error checking admin status:", error);
     }
@@ -95,7 +99,6 @@ export default function Dashboard({ userData }) {
       .from("results")
       .select("*,test(course(title,id),id)")
       .match({ email: userData?.email, status: "finished" });
-
     if (error) {
       console.error("Error loading results:", error);
       toast.error("Error loading results");
@@ -103,221 +106,384 @@ export default function Dashboard({ userData }) {
       setLoading(false);
       return;
     }
-
     if (data && data?.length > 0) {
       setResults(data);
       setIsNull(false);
       setLoading(false);
-      /* getActiveResult(data[0].id) */
     } else {
       setIsNull(true);
       setLoading(false);
     }
   }
 
-  const { isDemo } = useNMNContext();
-  const links = [
+  useEffect(() => {
+    getResults();
+    if (userData?.email) checkAdminStatus();
+  }, [userData?.email]);
+
+  useEffect(() => {
+    getClasses();
+  }, []);
+
+  // ── Quick actions config (replaces "Quick Links" block) ──
+  // Same destinations as the old Quick Links — only the visuals change.
+  const quickActions = [
     {
       title: "Concept Tests",
+      desc: "Master one topic at a time",
       slug: "play",
-      icon: <img src="/concept.png" className="w-8" />,
-      shape: "bg-red-100",
       keys: 2,
+      Icon: Target,
+      accent: "brand",
       demo: true,
     },
     {
       title: "Mock Tests",
+      desc: "Full-length practice papers",
       slug: "mocks",
-      icon: <img src="/concept.png" className="w-8" />,
-      shape: "bg-blue-200",
       keys: 2,
+      Icon: Layers,
+      accent: "brand",
       demo: true,
     },
     {
       title: "Daily Learning",
+      desc: "Keep your streak alive",
       slug: "currentaffairs",
-      icon: <img src="/daily.png" className="w-8" />,
-      shape: "bg-purple-200",
-      demo: true,
       keys: 3,
+      Icon: Flame,
+      accent: "gold",
+      demo: true,
     },
     {
       title: "Sectional Tests",
+      desc: "Target a single section",
       slug: "sectional-tests",
-      icon: <img src="/plan.svg" className="w-8" />,
-      shape: "bg-yellow-200",
-      demo: true,
       keys: 7,
+      Icon: BookOpen,
+      accent: "brand",
+      demo: true,
     },
     {
       title: "Previous Year Papers",
+      desc: "Actual exam questions",
       slug: "exmscan",
-      icon: <img src="/studym.png" className="w-8" />,
-      shape: "bg-teal-200",
-      demo: true,
       keys: 6,
+      Icon: FileText,
+      accent: "brand",
+      demo: true,
     },
     {
       title: "Pre Recorded Videos",
+      desc: "Study at your own pace",
       slug: "prv",
-      icon: <img src="/studym.png" className="w-8" />,
-      shape: "bg-pink-200",
       keys: 5,
+      Icon: PlayCircle,
+      accent: "brand",
       demo: true,
     },
   ];
 
-  useEffect(() => {
-    getResults();
-    if (userData?.email) {
-      checkAdminStatus();
-    }
-  }, [userData?.email]);
-
-  useEffect(() => {
-    // Fetch classes
-    getClasses();
-  }, []);
-
-  const t1 = `Hi ${userData?.user_metadata?.full_name || "Unknown User"},`;
-  const t2 = "Welcome to IPM Careers Study Panel";
+  const fullName = userData?.user_metadata?.full_name || "there";
+  const firstName = fullName.split(" ")[0];
 
   if (loading) {
     return (
-      <div className="w-full h-screen bg-white flex flex-col justify-center items-center align-middle">
-        <Loader></Loader>
+      <div
+        className="w-full h-screen flex flex-col justify-center items-center"
+        style={{ background: "var(--c-bg)" }}
+      >
+        <Loader />
       </div>
     );
   }
 
   return (
-    <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4">
-      <motion.div className="flex bg-gradient-purple rounded-xl text-white mb-4 p-8 overflow-hidden flex-col md:flex-row w-full items-stretch justify-end align-middle py-6 md:py-6 min-h-[12rem]">
-        <div className="w-full md:w-full text-left text-2xl font-bold flex flex-col items-start justify-end  relative mr-5">
-          <h2 className="flex flex-row flex-wrap items-start justify-start">
-            {t1.split(" ").map((i, d) => {
-              return (
-                <div className=" overflow-hidden mr-1.5">
-                  <motion.div
-                    initial={{ y: 50, opacity: 0 }}
-                    exit={{ y: 50, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    key={"fea"}
-                    transition={{
-                      type: "tween",
-                      duration: 0.6,
-                      delay: 0.1 + d * 0.05,
-                      ease: [0.57, 0, 0, 0.99],
-                    }}
-                  >
-                    {i}
-                  </motion.div>
-                </div>
-              );
-            })}
-          </h2>
-          <div className="flex flex-row flex-wrap items-start justify-start">
-            {t2.split(" ").map((i, d) => {
-              return (
-                <div className=" overflow-hidden text-secondary-400 mr-1.5">
-                  <motion.div
-                    initial={{ y: 50, opacity: 0 }}
-                    exit={{ y: 50, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    key={"fea"}
-                    transition={{
-                      type: "tween",
-                      duration: 0.6,
-                      delay: 0.3 + d * 0.05,
-                      ease: [0.57, 0, 0, 0.99],
-                    }}
-                  >
-                    {i}
-                  </motion.div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </motion.div>
+    <div
+      className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4"
+      style={{ color: "var(--c-text-primary)" }}
+    >
+      {/* ── Greeting ───────────────────────────────────────────── */}
+      <header className="mb-8 mt-2">
+        <h1
+          className="ds-display"
+          style={{
+            fontSize: "clamp(28px, 4.2vw, 40px)",
+            lineHeight: 1.1,
+            color: "var(--c-text-primary)",
+          }}
+        >
+          Welcome back,{" "}
+          <span
+            className="ds-accent"
+            style={{ color: "var(--c-brand-primary)" }}
+          >
+            {firstName}.
+          </span>
+        </h1>
+        <p
+          className="mt-2"
+          style={{
+            fontSize: 15,
+            color: "var(--c-text-secondary)",
+            lineHeight: 1.5,
+          }}
+        >
+          Here's everything waiting for you today.
+        </p>
+      </header>
 
-      <div className="p-4 border-1 border-gray-200 my-2 rounded-xl flex flex-col justify-start items-start">
-        <h2 className="font-sans w-full text-left text-primary p-1 text-2xl font-bold">
-          Quick Links
+      {/* ── Stats row ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <Stat
+          label="Enrolled courses"
+          value={userCourses?.length || 0}
+          subtle={userCourses?.length ? "Active" : "Get started"}
+        />
+        <Stat
+          label="Classes today"
+          value={(classes || []).length}
+          subtle="Scheduled"
+        />
+        <Stat
+          label="Tests completed"
+          value={results?.length || 0}
+          subtle={results?.length ? "Keep going" : "Take your first"}
+        />
+        <Stat label="Study streak" value="—" subtle="Coming soon" />
+      </div>
+
+      {/* ── Quick actions ─────────────────────────────────────── */}
+      <div className="mb-2 flex items-baseline justify-between">
+        <h2
+          className="ds-display"
+          style={{
+            fontSize: 18,
+            fontWeight: 600,
+            letterSpacing: "-0.015em",
+          }}
+        >
+          Quick actions
         </h2>
-        <div className="flex flex-row items-center justify-start w-full flex-wrap">
-          {links &&
-            links
-              .filter((item) => (isDemo ? item.demo == true : true))
-              .map((i, d) => {
-                return (
-                  <div className="flex-[100%] sm:flex-[50%] lg:flex-[33.333%] xl:flex-[33.333%] relative !flex-grow-0 p-1">
-                    <div
-                      className="rounded-xl group relative overflow-hidden hover:bg-secondary hover:border-black transition-all   flex flex-row items-center justify-center p-2 text-sm border-1 shadow-sm bg-white "
-                      onClick={() => {
-                        setCTXSlug(i.slug), setSK(new Set(i.keys.toString()));
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+        {quickActions
+          .filter((q) => (isDemo ? q.demo === true : true))
+          .map((q, i) => (
+            <QuickAction
+              key={i}
+              title={q.title}
+              desc={q.desc}
+              Icon={q.Icon}
+              accent={q.accent}
+              onClick={() => {
+                setCTXSlug(q.slug);
+                setSK(new Set(q.keys.toString()));
+              }}
+            />
+          ))}
+      </div>
+
+      {/* ── Today's classes ───────────────────────────────────── */}
+      <div
+        className="rounded-[14px] border p-5 mb-6"
+        style={{
+          background: "var(--c-surface)",
+          borderColor: "var(--c-border-faint)",
+          boxShadow: "var(--c-shadow-xs)",
+        }}
+      >
+        <h3
+          className="ds-display mb-4"
+          style={{
+            fontSize: 18,
+            fontWeight: 600,
+            letterSpacing: "-0.015em",
+            color: "var(--c-text-primary)",
+          }}
+        >
+          Today's classes
+        </h3>
+        <ClassDashboard classes={classes ?? []} />
+      </div>
+
+      {/* ── Admin only: Your courses + Attendance ─────────────── */}
+      {isAdmin && (
+        <div className="grid lg:grid-cols-2 gap-4 mb-4">
+          <div
+            className="rounded-[14px] border p-5"
+            style={{
+              background: "var(--c-surface)",
+              borderColor: "var(--c-border-faint)",
+              boxShadow: "var(--c-shadow-xs)",
+            }}
+          >
+            <h3
+              className="ds-display mb-4"
+              style={{
+                fontSize: 18,
+                fontWeight: 600,
+                letterSpacing: "-0.015em",
+                color: "var(--c-text-primary)",
+              }}
+            >
+              Your courses
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {isDemo ? <DemoComponent /> : null}
+              {userCourses &&
+                userCourses.map((i, d) => (
+                  <div
+                    key={d}
+                    className="rounded-[10px] border p-4 transition-all hover:-translate-y-0.5"
+                    style={{
+                      background: "var(--c-surface-muted)",
+                      borderColor: "var(--c-border-faint)",
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: "var(--c-brand-primary)",
+                        letterSpacing: "-0.01em",
                       }}
                     >
-                      <div className="w-full flex flex-row justify-between z-10 items-center">
-                        {i.icon}
-                        <h2 className="font-sans font-medium text-sm text-center w-full">
-                          {i.title}
-                        </h2>
-                      </div>
-                      <div
-                        className={
-                          i.shape +
-                          " group-hover:opacity-0 pointer-events-none transition-all flex flex-row  w-full h-full absolute z-0 "
-                        }
-                      ></div>
-                    </div>
+                      {i?.course?.title}
+                    </p>
                   </div>
-                );
-              })}
-        </div>
-      </div>
-      <Spacer y={2}></Spacer>
-      <ClassDashboard classes={classes ?? []}></ClassDashboard>
-      {/* <div className="p-4 border-1 border-gray-200 my-2 rounded-xl flex flex-col justify-start items-start">
-    <h2 className="font-sans w-full text-left text-primary p-1 text-2xl font-bold">Assigned Tests</h2>
-    <div className="flex relative flex-row items-center justify-start w-full flex-wrap">
-    {isDemo ? <>
-    <DemoComponent></DemoComponent>
-    </>:''}
-    
-    </div>
-</div> */}
-
-      {isAdmin && (
-        <div className="flex flex-col lg:flex-row items-start justify-start">
-          <div className="p-4 flex-1 lg:w-[unset] w-full border-1 border-gray-200 my-2 rounded-xl flex flex-col justify-start items-start">
-            <h2 className="font-sans w-full text-left text-primary p-1 text-2xl font-bold">
-              Your Courses
-            </h2>
-            <div className="flex flex-row items-center justify-start w-full flex-wrap relative">
-              {isDemo ? <DemoComponent></DemoComponent> : ""}
-              {userCourses &&
-                userCourses.map((i, d) => {
-                  return (
-                    <div className="flex-[50%] flex-grow-0 relative bg-gradient-to-b from-gray-100 hover:shadow-lg hover:border-primary transition-all to-white shadow-md overflow-hidden flex flex-col rounded-xl border-1 border-gray-200 p-4">
-                      <div className=" pointer-events-none w-32 h-32 absolute -right-16 -top-16 bg-primary opacity-50 rounded-full"></div>
-                      <Spacer y={6}></Spacer>
-                      <h2 className="font-bold text-2xl text-left text-primary">
-                        {i?.course?.title}
-                      </h2>
-                    </div>
-                  );
-                })}
+                ))}
             </div>
           </div>
 
-          <Spacer className=" hidden md:flex " x={4} y={4}></Spacer>
-          <div className="p-0 flex-1 lg:w-[unset] w-full my-2 rounded-xl flex flex-col justify-start items-start">
-            {isDemo ? <DemoComponent floating={true}></DemoComponent> : ""}
-            <StudentAttendance></StudentAttendance>
+          <div
+            className="rounded-[14px] border overflow-hidden"
+            style={{
+              background: "var(--c-surface)",
+              borderColor: "var(--c-border-faint)",
+              boxShadow: "var(--c-shadow-xs)",
+            }}
+          >
+            {isDemo ? <DemoComponent floating={true} /> : null}
+            <StudentAttendance />
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+// Sub-components
+// ───────────────────────────────────────────────────────────────
+
+function Stat({ label, value, subtle }) {
+  return (
+    <div
+      className="rounded-[12px] border p-4 transition-all"
+      style={{
+        background: "var(--c-surface)",
+        borderColor: "var(--c-border-faint)",
+        boxShadow: "var(--c-shadow-xs)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 500,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          color: "var(--c-text-tertiary)",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 26,
+          fontWeight: 600,
+          letterSpacing: "-0.02em",
+          color: "var(--c-text-primary)",
+          marginTop: 4,
+          lineHeight: 1.1,
+        }}
+      >
+        {value}
+      </div>
+      {subtle && (
+        <div
+          style={{
+            fontSize: 11,
+            marginTop: 4,
+            color: "var(--c-text-tertiary)",
+          }}
+        >
+          {subtle}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuickAction({ title, desc, Icon, accent, onClick }) {
+  const iconBg =
+    accent === "gold"
+      ? "var(--c-brand-gold-tint)"
+      : "var(--c-brand-primary-tint)";
+  const iconFg =
+    accent === "gold"
+      ? "var(--c-brand-gold)"
+      : "var(--c-brand-primary)";
+
+  return (
+    <button
+      onClick={onClick}
+      className="text-left rounded-[12px] border p-4 flex items-start gap-3 transition-all hover:-translate-y-0.5"
+      style={{
+        background: "var(--c-surface)",
+        borderColor: "var(--c-border-faint)",
+        boxShadow: "var(--c-shadow-xs)",
+        cursor: "pointer",
+      }}
+    >
+      <div
+        className="grid place-items-center shrink-0"
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 10,
+          background: iconBg,
+          color: iconFg,
+        }}
+      >
+        <Icon size={19} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: "var(--c-text-primary)",
+            letterSpacing: "-0.005em",
+          }}
+        >
+          {title}
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            marginTop: 2,
+            color: "var(--c-text-secondary)",
+            lineHeight: 1.45,
+          }}
+        >
+          {desc}{" "}
+          <ArrowRight
+            size={11}
+            style={{ display: "inline", verticalAlign: "-1px" }}
+          />
+        </div>
+      </div>
+    </button>
   );
 }

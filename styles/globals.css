@@ -2,7 +2,65 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
+/* ================================================================
+   IPM Careers — Design System Tokens (Phase 1)
+   Light + dark mode, premium "Apple-like" aesthetic.
+   All NEW tokens are prefixed with --c-* to avoid colliding with the
+   legacy --brand-* tokens which we keep working for existing screens.
+   ================================================================ */
+
 :root {
+  /* ── Brand ── */
+  --c-brand-primary:      #6E2B73;
+  --c-brand-primary-soft: #B17BB6;
+  --c-brand-primary-tint: #F4ECF5;
+  --c-brand-gold:         #E89B0F;
+  --c-brand-gold-soft:    #FFB627;
+  --c-brand-gold-tint:    #FDF3DA;
+
+  /* ── Surfaces ── */
+  --c-bg:                 #F5F5F7;
+  --c-bg-elevated:        #FFFFFF;
+  --c-bg-overlay:         rgba(255,255,255,0.72);
+  --c-surface:            #FFFFFF;
+  --c-surface-muted:      #FAFAFB;
+  --c-surface-sunken:     #F0F0F2;
+
+  /* ── Text ── */
+  --c-text-primary:       #1D1D1F;
+  --c-text-secondary:     #515154;
+  --c-text-tertiary:      #86868B;
+  --c-text-on-brand:      #FFFFFF;
+
+  /* ── Borders ── */
+  --c-border-faint:       rgba(0,0,0,0.06);
+  --c-border-soft:        rgba(0,0,0,0.09);
+  --c-border-strong:      rgba(0,0,0,0.16);
+
+  /* ── Shadows (very subtle) ── */
+  --c-shadow-xs:          0 1px 2px rgba(0,0,0,0.04);
+  --c-shadow-sm:          0 1px 3px rgba(0,0,0,0.05),0 1px 2px rgba(0,0,0,0.03);
+  --c-shadow-md:          0 4px 16px rgba(0,0,0,0.06),0 1px 3px rgba(0,0,0,0.04);
+  --c-shadow-lg:          0 16px 48px rgba(0,0,0,0.10),0 4px 12px rgba(0,0,0,0.05);
+
+  /* ── Semantic ── */
+  --c-success:            #1A8754;
+  --c-success-soft:       #D6F3E3;
+  --c-warning:            #C7741E;
+  --c-warning-soft:       #FCE9CC;
+  --c-danger:             #C53030;
+  --c-danger-soft:        #FBE3E3;
+  --c-info:               #2A6FCB;
+  --c-info-soft:          #DCEAF9;
+
+  /* ── Radii ── */
+  --c-r-sm: 10px; --c-r-md: 14px; --c-r-lg: 20px; --c-r-xl: 28px;
+
+  /* ── Type ── */
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-accent:  'Instrument Serif', Georgia, serif;
+
+  /* Legacy tokens kept as-is for existing screens */
   --max-width: 1100px;
   --border-radius: 12px;
   --font-mono: ui-monospace, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono",
@@ -21,54 +79,96 @@
     rgba(2, 118, 255, 1) 100%
   );
 }
-.qcontent ul {
-  list-style-type: none !important;
+
+/* Dark mode overrides */
+html[data-theme="dark"] {
+  --c-brand-primary:      #C896CD;
+  --c-brand-primary-soft: #6E2B73;
+  --c-brand-primary-tint: rgba(177,123,182,0.16);
+  --c-brand-gold:         #FFB627;
+  --c-brand-gold-soft:    #E89B0F;
+  --c-brand-gold-tint:    rgba(255,182,39,0.14);
+
+  --c-bg:                 #000000;
+  --c-bg-elevated:        #0E0E10;
+  --c-bg-overlay:         rgba(28,28,30,0.78);
+  --c-surface:            #1C1C1E;
+  --c-surface-muted:      #18181A;
+  --c-surface-sunken:     #0A0A0B;
+
+  --c-text-primary:       #F5F5F7;
+  --c-text-secondary:     #ABABB0;
+  --c-text-tertiary:      #6E6E73;
+  --c-text-on-brand:      #1D1D1F;
+
+  --c-border-faint:       rgba(255,255,255,0.06);
+  --c-border-soft:        rgba(255,255,255,0.10);
+  --c-border-strong:      rgba(255,255,255,0.18);
+
+  --c-shadow-xs:          0 1px 2px rgba(0,0,0,0.5);
+  --c-shadow-sm:          0 1px 3px rgba(0,0,0,0.6),0 1px 2px rgba(0,0,0,0.4);
+  --c-shadow-md:          0 4px 16px rgba(0,0,0,0.6),0 1px 3px rgba(0,0,0,0.4);
+  --c-shadow-lg:          0 16px 48px rgba(0,0,0,0.7),0 4px 12px rgba(0,0,0,0.5);
+
+  --c-success:            #34C77A;
+  --c-success-soft:       rgba(52,199,122,0.16);
+  --c-warning:            #FFB627;
+  --c-warning-soft:       rgba(255,182,39,0.16);
+  --c-danger:             #FF6961;
+  --c-danger-soft:        rgba(255,105,97,0.16);
+  --c-info:               #6FA8E4;
+  --c-info-soft:          rgba(111,168,228,0.16);
 }
-.qcontent ol {
-  list-style-type: none !important;
+
+/* Dark mode body background — overrides legacy body { background: white } */
+html[data-theme="dark"] body {
+  background: var(--c-bg) !important;
+  color: var(--c-text-primary);
 }
-.qcontent li {
-  margin-left: 15px;
-  position: relative;
+
+/* Smooth theme transition */
+html, body {
+  transition: background-color 0.32s ease, color 0.32s ease;
 }
+
+/* Utility helpers for new design system */
+.ds-display { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.025em; }
+.ds-accent  { font-family: var(--font-accent); font-style: italic; font-weight: 400; }
+.ds-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-faint);
+  border-radius: var(--c-r-md);
+  box-shadow: var(--c-shadow-xs);
+}
+
+/* ================================================================
+   Legacy styles kept verbatim — existing screens depend on these
+   ================================================================ */
+
+.qcontent ul { list-style-type: none !important; }
+.qcontent ol { list-style-type: none !important; }
+.qcontent li { margin-left: 15px; position: relative; }
 .gradtext {
   background: rgb(106, 30, 112);
-  background: linear-gradient(
-    94deg,
-    rgba(106, 30, 112, 1) 0%,
-    rgba(166, 54, 175, 1) 100%
-  );
+  background: linear-gradient(94deg, rgba(106, 30, 112, 1) 0%, rgba(166, 54, 175, 1) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .qcontent li::before {
   content: "";
-  width: 7px;
-  height: 7px;
+  width: 7px; height: 7px;
   background-color: var(--brand-col2);
-  position: absolute;
-  top: 7px;
+  position: absolute; top: 7px;
   border-radius: 200px;
   left: -12px;
 }
-.sf {
-  font-family: SF Pro Display;
-}
-/* width */
-.mdl {
-  z-index: 99999999999999;
-}
-.swiper-wrapper {
-  transition: 0.5s cubic-bezier(0.075, 0.82, 0.165, 1) !important;
-}
+.sf { font-family: SF Pro Display; }
+.mdl { z-index: 99999999999999; }
+.swiper-wrapper { transition: 0.5s cubic-bezier(0.075, 0.82, 0.165, 1) !important; }
 
-::-webkit-scrollbar {
-  width: 4px;
-}
+::-webkit-scrollbar { width: 4px; }
 
-.nextui-tooltip-button {
-  width: 100%;
-}
+.nextui-tooltip-button { width: 100%; }
 
 .embed-container {
   position: relative;
@@ -78,8 +178,7 @@
   max-width: 100%;
 }
 
-.paginate,
-.paginate2 {
+.paginate, .paginate2 {
   width: 100%;
   display: flex;
   flex-direction: row;
@@ -89,96 +188,42 @@
   margin-top: 30px;
 }
 
-.embed-container iframe,
-.embed-container object,
-.embed-container embed {
+.embed-container iframe, .embed-container object, .embed-container embed {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
 }
 
-/* Track */
+.swiper-pagination-bullet-active { background-color: var(--brand-col1) !important; }
 
-.swiper-pagination-bullet-active {
-  background-color: var(--brand-col1) !important;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-/* Handle */
-
+::-webkit-scrollbar-track { background: #f1f1f1; }
 ::-webkit-scrollbar-thumb {
   border-radius: 200px;
   background: var(--brand-col2);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-
-/* Handle on hover */
-
 ::-webkit-scrollbar-thumb:hover {
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   background: var(--brand-col1);
 }
-.allwhite text {
-  fill: white;
-}
-.allwhite line {
-  stroke: white;
-}
-/* * {
-box-sizing: border-box;
-padding: 0;
-margin: 0;
-} */
+html[data-theme="dark"] ::-webkit-scrollbar-track { background: #18181A; }
 
-/* html,
-body {
-max-width: 100vw;
-overflow-x: hidden;
-} */
+.allwhite text { fill: white; }
+.allwhite line { stroke: white; }
 
-/* body {
-color: rgb(var(--foreground-rgb));
-background: linear-gradient( to bottom, transparent, rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
-} */
+.b1 { color: var(--brand-col1); }
 
-/* a {
-color: inherit;
-text-decoration: none;
-}
-*/
-
-/* @media (prefers-color-scheme: dark) {
-html {
-  color-scheme: dark;
-}
-} */
-
-.b1 {
-  color: var(--brand-col1);
-}
-
-html,
-body {
-  color-scheme: only light;
+html, body {
+  color-scheme: light dark;
   padding: 0;
   margin: 0;
-  font-family: Poppins, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
+  font-family: 'Inter', Poppins, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
     Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
 }
 
-body {
-  background-color: white;
-}
+body { background-color: white; }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+a { color: inherit; text-decoration: none; }
 
 * {
   -webkit-touch-callout: none;
@@ -188,8 +233,7 @@ a {
   box-sizing: border-box;
 }
 
-input,
-textarea {
+input, textarea {
   -webkit-text-size-adjust: text;
   -khtml-user-select: text;
   -moz-user-select: text;
@@ -197,93 +241,50 @@ textarea {
   user-select: text;
 }
 
-@media (prefers-color-scheme: light) {
-  html {
-    color-scheme: light;
-  }
-  body {
-    color: black;
-    background: white;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: light;
-  }
-  body {
-    color: black;
-    background: white;
-  }
-}
-
 @font-face {
   font-family: SF Pro Display;
-  font-style: normal;
-  font-weight: 400;
+  font-style: normal; font-weight: 400;
   src: local("SF Pro Display"), url("/SFPRODISPLAYREGULAR.woff") format("woff");
 }
-
 @font-face {
   font-family: SF Pro Display;
-  font-style: italic;
-  font-weight: 100;
-  src: local("SF Pro Display"),
-    url("/SFPRODISPLAYULTRALIGHTITALIC.woff") format("woff");
+  font-style: italic; font-weight: 100;
+  src: local("SF Pro Display"), url("/SFPRODISPLAYULTRALIGHTITALIC.woff") format("woff");
 }
-
 @font-face {
   font-family: SF Pro Display;
-  font-style: italic;
-  font-weight: 200;
-  src: local("SF Pro Display"),
-    url("/SFPRODISPLAYTHINITALIC.woff") format("woff");
+  font-style: italic; font-weight: 200;
+  src: local("SF Pro Display"), url("/SFPRODISPLAYTHINITALIC.woff") format("woff");
 }
-
 @font-face {
   font-family: SF Pro Display;
-  font-style: italic;
-  font-weight: 300;
-  src: local("SF Pro Display"),
-    url("/SFPRODISPLAYLIGHTITALIC.woff") format("woff");
+  font-style: italic; font-weight: 300;
+  src: local("SF Pro Display"), url("/SFPRODISPLAYLIGHTITALIC.woff") format("woff");
 }
-
 @font-face {
   font-family: SF Pro Display;
-  font-style: normal;
-  font-weight: 500;
+  font-style: normal; font-weight: 500;
   src: local("SF Pro Display"), url("/SFPRODISPLAYMEDIUM.woff") format("woff");
 }
-
 @font-face {
   font-family: sf pro display;
-  font-style: italic;
-  font-weight: 600;
-  src: local("SF Pro Display"),
-    url("/SFPRODISPLAYSEMIBOLDITALIC.woff") format("woff");
+  font-style: italic; font-weight: 600;
+  src: local("SF Pro Display"), url("/SFPRODISPLAYSEMIBOLDITALIC.woff") format("woff");
 }
-
 @font-face {
   font-family: sf pro display;
-  font-style: normal;
-  font-weight: 700;
+  font-style: normal; font-weight: 700;
   src: local("SF Pro Display"), url("/SFPRODISPLAYBOLD.woff") format("woff");
 }
-
 @font-face {
   font-family: sf pro display;
-  font-style: italic;
-  font-weight: 800;
-  src: local("SF Pro Display"),
-    url("/SFPRODISPLAYHEAVYITALIC.woff") format("woff");
+  font-style: italic; font-weight: 800;
+  src: local("SF Pro Display"), url("/SFPRODISPLAYHEAVYITALIC.woff") format("woff");
 }
-
 @font-face {
   font-family: sf pro display;
-  font-style: italic;
-  font-weight: 900;
-  src: local("SF Pro Display"),
-    url("/SFPRODISPLAYBLACKITALIC.woff") format("woff");
+  font-style: italic; font-weight: 900;
+  src: local("SF Pro Display"), url("/SFPRODISPLAYBLACKITALIC.woff") format("woff");
 }
 
 .explanation-content iframe {
