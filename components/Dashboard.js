@@ -241,59 +241,6 @@ export default function Dashboard({ userData }) {
         </div>
       </motion.div>
 
-      <div className="border-1 p-2 rounded-xl relative">
-        {isNull && !loading ? (
-          <div>
-            <div className="p-1 px-2 border-dashed border-1 border-gray-200 rounded-md bg-gray-100 text-gray-500 flex flex-row items-center justify-between">
-              You have not attempted any SWOT test yet.
-              <Button
-                className="my-1 text-white"
-                size="sm"
-                color="primary"
-                onPress={() => {
-                  setCTXSlug("kyc");
-                }}
-              >
-                Go to SWOT Tests
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <h2 className="font-sans w-full text-left text-primary p-1 text-2xl font-bold">
-              Your <br />
-              Study Area
-            </h2>
-            <div className="flex flex-row items-center justify-between border-1 rounded-xl px-2 p-1 bg-gray-100">
-              <h2>You have an ongoing study plan</h2>
-              <div className="flex flex-row items-center justify-end">
-                <Button
-                  className="my-1 text-white"
-                  size="sm"
-                  color="success"
-                  onPress={() => {
-                    setCTXSlug("kyc");
-                  }}
-                >
-                  View Result
-                </Button>
-                <Spacer x={2}></Spacer>
-                <Button
-                  className="my-1 text-white"
-                  size="sm"
-                  color="primary"
-                  onPress={() => {
-                    setCTXSlug("prv"), setSK(new Set(["5"]));
-                  }}
-                >
-                  Start Learning
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-      <Spacer y={2}></Spacer>
       <div className="p-4 border-1 border-gray-200 my-2 rounded-xl flex flex-col justify-start items-start">
         <h2 className="font-sans w-full text-left text-primary p-1 text-2xl font-bold">
           Quick Links
@@ -327,15 +274,6 @@ export default function Dashboard({ userData }) {
                   </div>
                 );
               })}
-        </div>
-      </div>
-      <Spacer y={2}></Spacer>
-      <div className="flex flex-col lg:flex-col items-stretch justify-between gap-4">
-        <div className="p-4 border-1 w-full border-gray-200 my-2 rounded-xl flex flex-col justify-start items-start">
-          <WordOfTheDay></WordOfTheDay>
-        </div>
-        <div className="p-4 border-1 w-full border-gray-200 my-2 rounded-xl flex flex-col justify-start items-start">
-          <DailyRC></DailyRC>
         </div>
       </div>
       <Spacer y={2}></Spacer>
