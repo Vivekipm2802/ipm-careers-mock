@@ -1,3 +1,10 @@
+/* ================================================================
+   Navbar — Phase 1.5 redesign
+   All colors come from design tokens (CSS vars in globals.css) so the
+   nav auto-adapts to light/dark. No more uppercase labels, no more
+   hardcoded yellow/white blocks. Active state is a calm purple tint.
+   ================================================================ */
+
 .clickable {
   cursor: pointer;
 }
@@ -6,55 +13,61 @@
   width: 100%;
 }
 
-.nav li.active {
-  background: rgb(103, 29, 110);
-  background: linear-gradient(
-    97deg,
-    rgba(103, 29, 110, 1) 0%,
-    rgba(144, 44, 152, 1) 100%
-  );
-  color: white;
-}
-.active svg path[fill="#833589"] {
-  fill: white;
-}
+/* ── Sidebar list items (desktop) ─────────────────────────────── */
 .nav ul {
   list-style-type: none;
   text-align: left !important;
   padding: 0;
 }
+
 .nav ul li svg {
   margin-right: 10px;
 }
+
 .nav ul li a {
   display: flex;
   flex-direction: row;
   align-items: center;
   align-content: center;
-  justify-content: flex-start; /* changed from center to left align submenu items */
+  justify-content: flex-start;
   text-align: left;
 }
 
 .nav ul li {
-  background: white;
-  margin: 10px 20px;
-  padding: 10px 20px;
-  color: #523f0cfa;
-
-  /*  border: 2px solid #e2bb4e; */
+  background: transparent;
+  margin: 4px 8px;
+  padding: 10px 14px;
+  color: var(--c-text-secondary);
   border-radius: 10px;
   font-weight: 500;
   font-size: 14px;
-  /* box-shadow: 2px 2px 10px rgba(202, 94, 21, 0.2); */
-  text-transform: uppercase; /* Uppercase text */
-  transition: transform 0.2s, box-shadow 0.2s;
+  letter-spacing: -0.005em;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
   cursor: pointer;
 }
 
+.nav ul li:hover {
+  background: var(--c-surface-muted);
+  color: var(--c-text-primary);
+}
+
+/* Active state — soft purple tint, primary text */
+.nav li.active {
+  background: var(--c-brand-primary-tint) !important;
+  color: var(--c-brand-primary) !important;
+}
+.nav li.active a,
+.nav li.active p {
+  color: var(--c-brand-primary) !important;
+}
+.active svg path[fill="#833589"] {
+  fill: var(--c-brand-primary);
+}
+
+/* ── Mobile slide-out menu ────────────────────────────────────── */
 .navslide {
   transition: all 0.4s cubic-bezier(0.075, 0.82, 0.165, 1);
   transform: translateX(-100%);
-
   z-index: 25;
 }
 .activeNav {
@@ -87,72 +100,39 @@
 }
 
 @keyframes slideup {
-  0% {
-    transform: translateY(100%);
-  }
-
-  100% {
-    transform: translateY(0%);
-  }
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0%); }
 }
+
+/* ── Mobile breakpoint ────────────────────────────────────────── */
 @media only screen and (max-width: 968px) {
   .nav {
     flex-direction: column;
     width: 100%;
-
     position: fixed;
     bottom: 100px;
     left: 10px;
   }
-  .nav ul li:hover svg path {
-    fill: #333;
-  }
-  .nav li h3 {
-    display: none;
-  }
-  .nav ul {
-    display: flex;
-    flex-direction: column;
-    margin: 0;
-  }
+  .nav ul li:hover svg path { fill: var(--c-text-primary); }
+  .nav li h3 { display: none; }
+  .nav ul { display: flex; flex-direction: column; margin: 0; }
   .clickable {
     display: flex;
     justify-content: center;
     align-items: center;
     align-content: center;
   }
-
-  .activeMain li {
-    display: flex !important;
-  }
-  .accord {
-    padding: 0 !important;
-  }
+  .activeMain li { display: flex !important; }
+  .accord { padding: 0 !important; }
   @keyframes comup {
-    0% {
-      transform: translateY(50px);
-      opacity: 0;
-    }
-    100% {
-      transform: translateY(0px);
-      opacity: 1;
-    }
+    0%   { transform: translateY(50px); opacity: 0; }
+    100% { transform: translateY(0px);  opacity: 1; }
   }
-  .nav li a {
-    flex-direction: column !important;
-  }
-  .nav li a svg {
-    margin-right: 0 !important;
-  }
-  .nav ul li:hover svg path {
-    fill: var(--brand-col2);
-  }
-  .nav ul li:hover {
-    transform: scale(1); /* Slightly scale up on hover */
-
-    box-shadow: unset;
-  }
+  .nav li a { flex-direction: column !important; }
+  .nav li a svg { margin-right: 0 !important; }
+  .nav ul li:hover { transform: scale(1); box-shadow: unset; }
   .nav li.active {
-    background-color: var(--brand-col2);
+    background: var(--c-brand-primary-tint) !important;
+    color: var(--c-brand-primary) !important;
   }
 }

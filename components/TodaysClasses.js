@@ -1,6 +1,15 @@
 import { Button, ScrollShadow } from "@nextui-org/react";
 import Link from "next/link";
 
+/**
+ * Today's Classes — Phase 1.5 redesign
+ *
+ * Replaces the old white-card-with-pink-heading look with a clean list of
+ * class rows that use design tokens. Sits cleanly inside the Dashboard's
+ * "Today's classes" wrapper card in both light and dark mode.
+ *
+ * All time-parsing and status logic is preserved exactly as the original.
+ */
 const ClassDashboard = ({ classes }) => {
   const getClassStatus = (startTime, endTime) => {
     const now = new Date();
@@ -8,7 +17,6 @@ const ClassDashboard = ({ classes }) => {
 
     const parseTime = (timeStr) => {
       if (!timeStr) return null;
-      // Normalize timezone format if present, though we focus on hours:minutes:seconds
       timeStr = timeStr.replace(/([+-]\d{2})(?!:)/, "$1:00");
       let [h, m, s] = timeStr.split(":");
       h = parseInt(h) || 0;
@@ -21,11 +29,7 @@ const ClassDashboard = ({ classes }) => {
 
     const start = parseTime(startTime);
     const end = parseTime(endTime);
-
-    if (!start || !end || isNaN(start) || isNaN(end)) {
-      return "invalid";
-    }
-
+    if (!start || !end || isNaN(start) || isNaN(end)) return "invalid";
     if (now < start) return "upcoming";
     if (now > end) return "expired";
     return "ongoing";
@@ -47,75 +51,148 @@ const ClassDashboard = ({ classes }) => {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "expired":
-        return "bg-gray-500 text-white";
-      case "ongoing":
-        return "bg-green-500 text-white";
-      case "upcoming":
-        return "bg-blue-500 text-white";
-      default:
-        return "bg-gray-300 text-black";
-    }
+  // Status pill — soft tinted background, semantic text
+  const statusStyles = {
+    expired: {
+      background: "var(--c-surface-sunken)",
+      color: "var(--c-text-tertiary)",
+      label: "Completed",
+    },
+    ongoing: {
+      background: "var(--c-success-soft)",
+      color: "var(--c-success)",
+      label: "Live now",
+    },
+    upcoming: {
+      background: "var(--c-warning-soft)",
+      color: "var(--c-warning)",
+      label: "Upcoming",
+    },
+    invalid: {
+      background: "var(--c-surface-sunken)",
+      color: "var(--c-text-tertiary)",
+      label: "Scheduled",
+    },
   };
 
   return (
-    <div className="w-full border-1 mb-3 mx-auto bg-white rounded-lg p-6">
-      <div className="text-left flex flex-row items-center justify-between text-primary mb-4">
-        <h2 className="text-2xl font-bold">Today's Classes</h2>
-        {/* <Button size="sm" onPress={()=>{setCTXSlug('batch-wise'),setSK(new Set([1].toString()))}} color="secondary" className="text-black" endContent={<ArrowRight size={16}></ArrowRight>}>View All</Button> */}
-      </div>
-      <ScrollShadow className="max-h-[250px]">
+    <div className="w-full">
+      <ScrollShadow className="max-h-[360px]">
         {classes.length === 0 ? (
-          <p className="text-center text-gray-700">
+          <p
+            className="text-center py-4"
+            style={{
+              color: "var(--c-text-tertiary)",
+              fontSize: 14,
+            }}
+          >
             No classes scheduled for today.
           </p>
         ) : (
-          classes.map((item) => {
-            const status = getClassStatus(item.start_time, item.end_time);
-            return (
-              <div
-                key={item.id}
-                className="p-4 border mb-4 border-gray-200 rounded-lg bg-gray-50 shadow-sm"
-              >
-                <div className="flex flex-col md:flex-row flex-1 justify-between items-start md:items-center ">
-                  <div className="flex flex-col items-start flex-1 justify-start">
-                    <h3 className="text-lg text-left font-semibold">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {formatTime(item.start_time)} -{" "}
-                      {formatTime(item.end_time)}
-                    </p>
-                  </div>
-                  <div className=" flex flex-row items-center justify-center">
+          <div>
+            {classes.map((item, idx) => {
+              const status = getClassStatus(item.start_time, item.end_time);
+              const s = statusStyles[status] || statusStyles.invalid;
+              return (
+                <div
+                  key={item.id}
+                  className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3"
+                  style={{
+                    padding: "14px 0",
+                    borderTop:
+                      idx === 0
+                        ? "none"
+                        : "1px solid var(--c-border-faint)",
+                  }}
+                >
+                  {/* Time */}
+                  <div
+                    style={{
+                      minWidth: 76,
+                      textAlign: "left",
+                    }}
+                  >
                     <div
-                      className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(
-                        status
-                      )}`}
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: "var(--c-text-primary)",
+                        letterSpacing: "-0.01em",
+                      }}
                     >
-                      {status}
+                      {formatTime(item.start_time)}
                     </div>
-                    {/* <div className="text-xs rounded-full text-primary border-1 border-primary ml-2 p-1 px-3 bg-primary/20 rounded-1">
-                      {status != "expired" && timeUntilClass(item?.start_time)}
-                    </div> */}
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "var(--c-text-tertiary)",
+                        marginTop: 2,
+                      }}
+                    >
+                      to {formatTime(item.end_time)}
+                    </div>
                   </div>
-                  <div className="flex-1 mt-2 md:mt-0 flex flex-row items-center justify-end">
+
+                  {/* Title */}
+                  <div className="flex-1 min-w-0 text-left">
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: "var(--c-text-primary)",
+                        letterSpacing: "-0.005em",
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {item.title}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "var(--c-text-secondary)",
+                        marginTop: 2,
+                      }}
+                    >
+                      Live class
+                    </div>
+                  </div>
+
+                  {/* Status pill */}
+                  <div
+                    className="inline-flex items-center"
+                    style={{
+                      background: s.background,
+                      color: s.color,
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      fontSize: 12,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {s.label}
+                  </div>
+
+                  {/* Action */}
+                  <div className="flex flex-row items-center justify-end">
                     <Button
                       as={Link}
                       href={`${item.url}`}
                       color="primary"
                       target="_blank"
+                      size="sm"
                       isDisabled={status !== "ongoing"}
+                      style={{
+                        borderRadius: 999,
+                        fontWeight: 500,
+                      }}
                     >
-                      Join Class
+                      Join class
                     </Button>
                   </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </ScrollShadow>
     </div>
