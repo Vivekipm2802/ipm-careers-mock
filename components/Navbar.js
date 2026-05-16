@@ -196,7 +196,8 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
             >
               <path d="M15.707 4.293a1 1 0 0 1 0 1.414L9.414 12l6.293 6.293a1 1 0 0 1-1.414 1.414l-7-7a1 1 0 0 1 0-1.414l7-7a1 1 0 0 1 1.414 0Z" fill="currentColor"/>
             </svg>
-            <img src="/newlog.svg" width={150} className="flex object-cover" alt="IPM Careers" />
+            <img src="/newlog.svg" width={150} className="flex object-cover logo-light" alt="IPM Careers" />
+            <img src="https://register.ipmcareer.com/whitelogoipm.svg" width={150} className="flex object-cover logo-dark" alt="IPM Careers" />
           </div>
 
           <Divider className="my-4" />

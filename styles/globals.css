@@ -293,3 +293,12 @@ input, textarea {
   height: 450px;
   display: block;
 }
+
+/* ================================================================
+   Theme-aware logo — Phase 1.9
+   Renders white logo when dark theme is active, colorful when light.
+   ================================================================ */
+.logo-light { display: block; }
+.logo-dark  { display: none; }
+html[data-theme="dark"] .logo-light { display: none; }
+html[data-theme="dark"] .logo-dark  { display: block; }

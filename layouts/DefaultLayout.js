@@ -70,7 +70,8 @@ function DefaultLayout(props){
           borderRight: '1px solid var(--c-border-faint)',
         }}
       >
-        <img className={styles.logo + " px-6"} width={300} src='/newlog.svg' alt="IPM Careers" />
+        <img className={styles.logo + " px-6 logo-light"} width={300} src='/newlog.svg' alt="IPM Careers" />
+        <img className={styles.logo + " px-6 logo-dark"} width={300} src='https://register.ipmcareer.com/whitelogoipm.svg' alt="IPM Careers" />
         <Navbar
           currentSlug={props?.currentSlug}
           changePage={(e) => { props?.changePage ? props.changePage(e) : ''; }}
