@@ -7,33 +7,33 @@ import ClassDashboard from "./TodaysClasses";
 import { toast } from "react-hot-toast";
 import Loader from "./Loader";
 import axios from "axios";
-import {
-  ArrowRight,
-  Target,
-  Layers,
-  Flame,
-  BookOpen,
-  FileText,
-  PlayCircle,
-} from "lucide-react";
+import { ArrowRight, Target, Flame, BookOpen } from "lucide-react";
 
 /**
- * Redesigned student dashboard — Phase 1 of the portal redesign.
+ * Student dashboard — Phase 1.8
  *
- * Data fetching (classes, results, isAdmin) is preserved verbatim from the
- * previous version so backend behaviour is unchanged. Only the JSX has been
- * rebuilt to match the new design system: tokens from globals.css, the
- * Inter + Instrument Serif type pairing, and a calmer, scannable layout.
+ * Matched to the design-system-preview section 08:
+ *  - Greeting with serif italic name accent
+ *  - Contextual subtitle (driven by class count)
+ *  - Four stat cards with delta indicators (placeholders for backend wiring)
+ *  - Three focused quick-action cards (Continue mock / Today's quiz / Previous year)
+ *  - Today's classes row list
+ *
+ * Data fetching (classes, results, isAdmin) is preserved exactly as before so
+ * backend behaviour is unchanged. Stats that need new backend wiring are
+ * shown with em-dash + "Coming soon" instead of fake numbers.
  */
 export default function Dashboard({ userData }) {
-  // ── Existing state — preserved ──
+  // ── State (preserved) ──
   const [isNull, setIsNull] = useState(true);
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState();
   const [isAdmin, setIsAdmin] = useState(false);
   const [results, setResults] = useState([]);
 
-  // ── Existing data fetching — preserved ──
+  const { setCTXSlug, sk, setSK, userCourses, isDemo } = useNMNContext();
+
+  // ── Data fetching (preserved) ──
   async function getClasses() {
     const enrolledCourseIds =
       userCourses?.map((enrollment) => enrollment.course?.id).filter(Boolean) ||
@@ -81,8 +81,6 @@ export default function Dashboard({ userData }) {
     setClasses(deduped);
   }
 
-  const { setCTXSlug, sk, setSK, userCourses, isDemo } = useNMNContext();
-
   async function checkAdminStatus() {
     try {
       const response = await axios.post("/api/isAdmin", {
@@ -125,67 +123,27 @@ export default function Dashboard({ userData }) {
     getClasses();
   }, []);
 
-  // ── Quick actions config (replaces "Quick Links" block) ──
-  // Same destinations as the old Quick Links — only the visuals change.
-  const quickActions = [
-    {
-      title: "Concept Tests",
-      desc: "Master one topic at a time",
-      slug: "play",
-      keys: 2,
-      Icon: Target,
-      accent: "brand",
-      demo: true,
-    },
-    {
-      title: "Mock Tests",
-      desc: "Full-length practice papers",
-      slug: "mocks",
-      keys: 2,
-      Icon: Layers,
-      accent: "brand",
-      demo: true,
-    },
-    {
-      title: "Daily Learning",
-      desc: "Keep your streak alive",
-      slug: "currentaffairs",
-      keys: 3,
-      Icon: Flame,
-      accent: "gold",
-      demo: true,
-    },
-    {
-      title: "Sectional Tests",
-      desc: "Target a single section",
-      slug: "sectional-tests",
-      keys: 7,
-      Icon: BookOpen,
-      accent: "brand",
-      demo: true,
-    },
-    {
-      title: "Previous Year Papers",
-      desc: "Actual exam questions",
-      slug: "exmscan",
-      keys: 6,
-      Icon: FileText,
-      accent: "brand",
-      demo: true,
-    },
-    {
-      title: "Pre Recorded Videos",
-      desc: "Study at your own pace",
-      slug: "prv",
-      keys: 5,
-      Icon: PlayCircle,
-      accent: "brand",
-      demo: true,
-    },
-  ];
-
+  // ── Derived display values ──
   const fullName = userData?.user_metadata?.full_name || "there";
   const firstName = fullName.split(" ")[0];
+  const classCount = (classes || []).length;
+  const testCount = results?.length || 0;
+
+  // Contextual subtitle based on what's actually waiting for the student.
+  let subtitle;
+  if (classCount > 0 && testCount > 0) {
+    subtitle = `${classCount} ${
+      classCount === 1 ? "class" : "classes"
+    } today and ${testCount === 1 ? "a test" : `${testCount} tests`} so far. Let's keep going.`;
+  } else if (classCount > 0) {
+    subtitle = `${classCount} ${
+      classCount === 1 ? "class" : "classes"
+    } today. Let's make it count.`;
+  } else if (testCount > 0) {
+    subtitle = "No classes today — perfect time to revisit a mock.";
+  } else {
+    subtitle = "Ready when you are.";
+  }
 
   if (loading) {
     return (
@@ -201,9 +159,9 @@ export default function Dashboard({ userData }) {
   return (
     <div
       className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4"
-      style={{ color: "var(--c-text-primary)" }}
+      style={{ color: "var(--c-text-primary)", textAlign: "left" }}
     >
-      {/* ── Greeting ───────────────────────────────────────────── */}
+      {/* ── Greeting ─────────────────────────────────────────── */}
       <header className="mb-8 mt-2">
         <h1
           className="ds-display"
@@ -229,62 +187,74 @@ export default function Dashboard({ userData }) {
             lineHeight: 1.5,
           }}
         >
-          Here's everything waiting for you today.
+          {subtitle}
         </p>
       </header>
 
-      {/* ── Stats row ─────────────────────────────────────────── */}
+      {/* ── Stats (4 cards) ──────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Stat
-          label="Enrolled courses"
-          value={userCourses?.length || 0}
-          subtle={userCourses?.length ? "Active" : "Get started"}
+          label="Study streak"
+          value="—"
+          suffix=""
+          delta="Coming soon"
+          deltaTone="muted"
         />
         <Stat
-          label="Classes today"
-          value={(classes || []).length}
-          subtle="Scheduled"
+          label="Tests this week"
+          value={testCount}
+          delta={testCount > 0 ? "Keep going" : "Take your first"}
+          deltaTone={testCount > 0 ? "success" : "muted"}
         />
         <Stat
-          label="Tests completed"
-          value={results?.length || 0}
-          subtle={results?.length ? "Keep going" : "Take your first"}
+          label="Avg. accuracy"
+          value="—"
+          delta="Coming soon"
+          deltaTone="muted"
         />
-        <Stat label="Study streak" value="—" subtle="Coming soon" />
+        <Stat
+          label="IPMAT rank"
+          value="—"
+          delta="Coming soon"
+          deltaTone="muted"
+        />
       </div>
 
-      {/* ── Quick actions ─────────────────────────────────────── */}
-      <div className="mb-2 flex items-baseline justify-between">
-        <h2
-          className="ds-display"
-          style={{
-            fontSize: 18,
-            fontWeight: 600,
-            letterSpacing: "-0.015em",
-          }}
-        >
-          Quick actions
-        </h2>
-      </div>
+      {/* ── Quick actions (3 focused cards) ──────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
-        {quickActions
-          .filter((q) => (isDemo ? q.demo === true : true))
-          .map((q, i) => (
-            <QuickAction
-              key={i}
-              title={q.title}
-              desc={q.desc}
-              Icon={q.Icon}
-              accent={q.accent}
-              onClick={() => {
-                setCTXSlug(q.slug);
-                setSK(new Set(q.keys.toString()));
-              }}
-            />
-          ))}
+        <QuickAction
+          title="Continue practice"
+          desc="Pick up a mock test where you left off"
+          Icon={Target}
+          accent="brand"
+          onClick={() => {
+            setCTXSlug("mocks");
+            setSK(new Set(["2"]));
+          }}
+        />
+        <QuickAction
+          title="Today's quiz"
+          desc="Keep your streak alive with daily current affairs"
+          Icon={Flame}
+          accent="gold"
+          onClick={() => {
+            setCTXSlug("currentaffairs");
+            setSK(new Set(["3"]));
+          }}
+        />
+        <QuickAction
+          title="Previous year papers"
+          desc="Actual exam questions, year by year"
+          Icon={BookOpen}
+          accent="info"
+          onClick={() => {
+            setCTXSlug("pyqyear");
+            setSK(new Set(["6"]));
+          }}
+        />
       </div>
 
-      {/* ── Today's classes ───────────────────────────────────── */}
+      {/* ── Today's classes ──────────────────────────────────── */}
       <div
         className="rounded-[14px] border p-5 mb-6"
         style={{
@@ -300,6 +270,7 @@ export default function Dashboard({ userData }) {
             fontWeight: 600,
             letterSpacing: "-0.015em",
             color: "var(--c-text-primary)",
+            textAlign: "left",
           }}
         >
           Today's classes
@@ -307,7 +278,7 @@ export default function Dashboard({ userData }) {
         <ClassDashboard classes={classes ?? []} />
       </div>
 
-      {/* ── Admin only: Your courses + Attendance ─────────────── */}
+      {/* ── Admin-only: Your Courses + Attendance ─────────────── */}
       {isAdmin && (
         <div className="grid lg:grid-cols-2 gap-4 mb-4">
           <div
@@ -325,6 +296,7 @@ export default function Dashboard({ userData }) {
                 fontWeight: 600,
                 letterSpacing: "-0.015em",
                 color: "var(--c-text-primary)",
+                textAlign: "left",
               }}
             >
               Your courses
@@ -377,7 +349,16 @@ export default function Dashboard({ userData }) {
 // Sub-components
 // ───────────────────────────────────────────────────────────────
 
-function Stat({ label, value, subtle }) {
+function Stat({ label, value, suffix, delta, deltaTone = "muted" }) {
+  const deltaColor =
+    deltaTone === "success"
+      ? "var(--c-success)"
+      : deltaTone === "danger"
+      ? "var(--c-danger)"
+      : deltaTone === "gold"
+      ? "var(--c-brand-gold)"
+      : "var(--c-text-tertiary)";
+
   return (
     <div
       className="rounded-[12px] border p-4 transition-all"
@@ -409,16 +390,29 @@ function Stat({ label, value, subtle }) {
         }}
       >
         {value}
+        {suffix ? (
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              marginLeft: 6,
+              color: "var(--c-brand-gold)",
+            }}
+          >
+            {suffix}
+          </span>
+        ) : null}
       </div>
-      {subtle && (
+      {delta && (
         <div
           style={{
             fontSize: 11,
-            marginTop: 4,
-            color: "var(--c-text-tertiary)",
+            marginTop: 6,
+            color: deltaColor,
+            fontWeight: 500,
           }}
         >
-          {subtle}
+          {delta}
         </div>
       )}
     </div>
@@ -426,14 +420,21 @@ function Stat({ label, value, subtle }) {
 }
 
 function QuickAction({ title, desc, Icon, accent, onClick }) {
-  const iconBg =
-    accent === "gold"
-      ? "var(--c-brand-gold-tint)"
-      : "var(--c-brand-primary-tint)";
-  const iconFg =
-    accent === "gold"
-      ? "var(--c-brand-gold)"
-      : "var(--c-brand-primary)";
+  const palette = {
+    brand: {
+      bg: "var(--c-brand-primary-tint)",
+      fg: "var(--c-brand-primary)",
+    },
+    gold: {
+      bg: "var(--c-brand-gold-tint)",
+      fg: "var(--c-brand-gold)",
+    },
+    info: {
+      bg: "var(--c-info-soft)",
+      fg: "var(--c-info)",
+    },
+  };
+  const p = palette[accent] || palette.brand;
 
   return (
     <button
@@ -452,8 +453,8 @@ function QuickAction({ title, desc, Icon, accent, onClick }) {
           width: 38,
           height: 38,
           borderRadius: 10,
-          background: iconBg,
-          color: iconFg,
+          background: p.bg,
+          color: p.fg,
         }}
       >
         <Icon size={19} />

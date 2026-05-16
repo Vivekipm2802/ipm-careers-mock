@@ -9,6 +9,33 @@ import { useNMNContext } from './NMNContext';
 import { toast } from 'react-hot-toast';
 import { Lock } from 'lucide-react';
 
+/**
+ * Navbar — Phase 1.8
+ *
+ *   1. Hides parent subtitles (cleaner look matching the preview)
+ *   2. Groups parent items into three sections — STUDY / RESOURCES / YOU —
+ *      with small uppercase labels above each, exactly like the preview.
+ *
+ * The Accordion behaviour underneath is unchanged: click a parent to expand
+ * its sub-items, active sub-item gets the soft purple tint.
+ */
+
+// Section grouping — parent titles → display section
+const SECTIONS = [
+  {
+    label: 'Study',
+    titles: ['Dashboard', 'Classes', 'Concept & Mock Tests', 'Learn Daily'],
+  },
+  {
+    label: 'Resources',
+    titles: ['DoubtsPad', 'Self Learning', 'Previous Year Papers'],
+  },
+  {
+    label: 'You',
+    titles: ['My Plan'],
+  },
+];
+
 const Navbar = ({ type, changePage, accordian, currentSlug }) => {
   const [showAdminItems, setShowAdminItems] = useState(
     type === 'admin' || type === 'teacher'
@@ -19,34 +46,22 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
   const router = useRouter();
   const handleItemClick = (action) => {
     switch (action) {
-      case 'logout':
-        logoutUser(router);
-        break;
-      case 'profile':
-        break;
-      default:
-        break;
+      case 'logout': logoutUser(router); break;
+      case 'profile': break;
+      default: break;
     }
   };
 
   const {
-    setProfileModal,
-    setCoursesModal,
-    setRedeemActive,
-    userDetails,
-    ctxSlug,
-    setCTXSlug,
-    sk,
-    setSK,
-    isDemo,
+    setProfileModal, setCoursesModal, setRedeemActive,
+    userDetails, ctxSlug, setCTXSlug, sk, setSK, isDemo,
   } = useNMNContext();
 
   function convertToWebP(url) {
     if (url == undefined) return null;
     const parts = url.split('/');
     const uploadIndex = parts.indexOf('upload') + 1;
-    const transformation = 'c_fill,w_256,h_256,f_webp';
-    parts.splice(uploadIndex, 0, transformation);
+    parts.splice(uploadIndex, 0, 'c_fill,w_256,h_256,f_webp');
     return parts.join('/');
   }
 
@@ -58,22 +73,95 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
     { title: 'Logout', action: () => { logoutUser(router); }, itemClass: '!text-red-500' },
   ];
 
-  // Shared accordion classNames — control title/subtitle color via design tokens.
-  // NextUI doesn't expose CSS-vars for these directly, so we pass classes that
-  // read from our system on both light and dark mode via Tailwind.
   const accordionItemClasses = {
     title: 'text-sm font-medium',
     subtitle: 'text-xs',
   };
 
-  // Inline style applied to AccordionItem titles + subtitles so they always
-  // pick up the design tokens regardless of NextUI's internals.
-  const titleStyle  = { color: 'var(--c-text-primary)',  fontWeight: 500, fontSize: 14, letterSpacing: '-0.005em' };
-  const subStyle    = { color: 'var(--c-text-tertiary)', fontSize: 11, marginTop: 2 };
+  const titleStyle = {
+    color: 'var(--c-text-primary)',
+    fontWeight: 500,
+    fontSize: 14,
+    letterSpacing: '-0.005em',
+  };
+
+  // Section-label styling — small, uppercase, low contrast — preview's STUDY/RESOURCES/YOU look
+  const sectionLabelStyle = {
+    fontSize: 11,
+    fontWeight: 500,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: 'var(--c-text-tertiary)',
+    padding: '14px 18px 6px',
+  };
+
+  // Group accordian items by section, preserving original order within each section
+  const sectionItems = (accordian || []).reduce((acc, item) => {
+    const section = SECTIONS.find((s) => s.titles.includes(item.title));
+    const key = section ? section.label : 'Other';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  // Render the desktop sub-items (the items under each parent in accordion)
+  const renderSubItems = (i) => (
+    <ul
+      className={'lg:flex flex-col hidden w-full overflow-hidden p-2 rounded-md !px-1 ' + (isActive ? styles.activeMain : '')}
+    >
+      {i?.items && i.items.map((z, v) => {
+        if (z.type === 'admin' && !showAdminItems) return null;
+
+        if (isDemo && z.demo != undefined && z.demo == false) {
+          return (
+            <li
+              key={v}
+              onClick={() => { toast.error('Purchase a Course to Unlock'); }}
+              className={'opacity-70 relative grayscale !rounded-md transition-all !mx-2 !my-0.5 hover:brightness-95'}
+              style={{ animationDelay: (v + 1) * 30 + 'ms' }}
+            >
+              <>
+                <div className={styles.clickable} onClick={() => {}}>
+                  <a><Lock size={16} /><p className="hidden md:block">{z.title}</p></a>
+                </div>
+                <p
+                  className="md:hidden absolute left-[70px] text-left top-[50%] rounded-xl shadow-md p-2 w-auto -translate-y-[50%]"
+                  style={{ background: 'var(--c-surface)' }}
+                >
+                  {z.title}
+                </p>
+              </>
+            </li>
+          );
+        }
+
+        return (
+          <li
+            key={v}
+            onClick={() => { setCTXSlug(z.action); }}
+            className={(ctxSlug == z.action ? styles.active : '') + ' relative !rounded-md transition-all !mx-2 !my-0.5'}
+            style={{ animationDelay: (v + 1) * 30 + 'ms' }}
+          >
+            <>
+              <div className={styles.clickable} onClick={() => handleItemClick(z.action)}>
+                <a>{z.icon}<p className="hidden md:block">{z.title}</p></a>
+              </div>
+              <p
+                className="md:hidden absolute left-[70px] text-left top-[50%] rounded-xl shadow-md p-2 w-auto -translate-y-[50%]"
+                style={{ background: 'var(--c-surface)' }}
+              >
+                {z.title}
+              </p>
+            </>
+          </li>
+        );
+      })}
+    </ul>
+  );
 
   return (
     <nav className={styles.nav}>
-      {/* ── Mobile floating toggle button ─────────────────────────── */}
+      {/* ── Mobile toggle button ────────────────────────────────── */}
       <div
         onClick={() => { setIsActive(!isActive); }}
         className={
@@ -90,7 +178,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
         </svg>
       </div>
 
-      {/* ── Mobile slide-out drawer ───────────────────────────────── */}
+      {/* ── Mobile slide-out drawer ─────────────────────────────── */}
       <div
         className={`${styles.navslide} ${isActive ? styles.activeNav : ''} lg:hidden fixed flex flex-row left-0 bottom-0 w-full h-full z-0 backdrop-blur-sm ${
           isActive ? 'pointer-events-all' : 'pointer-events-none'
@@ -115,10 +203,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
 
           <h2
             className="px-2 text-sm mb-0 p-2 font-semibold rounded-lg"
-            style={{
-              background: 'var(--c-brand-primary-tint)',
-              color: 'var(--c-brand-primary)',
-            }}
+            style={{ background: 'var(--c-brand-primary-tint)', color: 'var(--c-brand-primary)' }}
           >
             Hi, Welcome back {userDetails?.user_metadata?.full_name}
           </h2>
@@ -128,15 +213,12 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
             className="flex lg:hidden max-h-[90vh] overflow-auto w-full p-2 flex-col flex-nowrap"
             selectedKeys={sk}
             onSelectionChange={(e) => { setSK(new Set(e)); }}
-            fullWidth
-            showDivider={false}
-            isCompact
+            fullWidth showDivider={false} isCompact
           >
             <AccordionItem
               key={'User Profile'}
               className="w-full font-sans"
               title={<span style={titleStyle}>Your profile</span>}
-              subtitle={<span style={subStyle}>Manage your profile</span>}
               startContent={
                 <img
                   src={convertToWebP(userDetails?.user_metadata?.profile_pic) ?? '/defprofile.svg'}
@@ -145,23 +227,15 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
                 />
               }
             >
-              <ul className={'flex-col flex w-full overflow-hidden text-sm ' + ' ' + (isActive ? styles.activeMain : '')}>
+              <ul className={'flex-col flex w-full overflow-hidden text-sm ' + (isActive ? styles.activeMain : '')}>
                 {profile && profile.map((z, v) => (
                   <li
                     key={v}
                     onClick={() => { z.action(); setIsActive(false); }}
                     className={(ctxSlug == z.action ? styles.active : '') + ' relative !mx-0 !my-1 !rounded-md ' + z.itemClass}
-                    style={{
-                      animationDelay: (v + 1) * 30 + 'ms',
-                      borderTop: '1px solid var(--c-border-faint)',
-                    }}
+                    style={{ animationDelay: (v + 1) * 30 + 'ms', borderTop: '1px solid var(--c-border-faint)' }}
                   >
-                    <>
-                      <div className={styles.clickable}>
-                        <a>{z.icon}</a>
-                      </div>
-                      <p className="text-center rounded-xl w-full">{z.title}</p>
-                    </>
+                    <p className="text-center rounded-xl w-full">{z.title}</p>
                   </li>
                 ))}
               </ul>
@@ -173,14 +247,10 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
                 startContent={i.icon || ''}
                 className="w-full font-sans"
                 title={<span style={titleStyle}>{i.title}</span>}
-                subtitle={i?.subtitle ? <span style={subStyle}>{i.subtitle}</span> : null}
               >
                 <ul
                   className={'lg:hidden flex-col flex w-full overflow-hidden p-3 rounded-lg !px-1 ' + (isActive ? styles.activeMain : '')}
-                  style={{
-                    background: 'var(--c-surface-muted)',
-                    border: '1px solid var(--c-border-faint)',
-                  }}
+                  style={{ background: 'var(--c-surface-muted)', border: '1px solid var(--c-border-faint)' }}
                 >
                   {i?.items && i.items.map((z, v) => {
                     if (z.type === 'admin' && !showAdminItems) return null;
@@ -191,12 +261,8 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
                         className={(ctxSlug == z.action ? styles.active : '') + ' relative !mx-0 !my-1'}
                         style={{ animationDelay: (v + 1) * 30 + 'ms' }}
                       >
-                        <>
-                          <div className={styles.clickable} onClick={() => handleItemClick(z.action)}>
-                            <a>{z.icon}<p className="hidden md:block">{z.title}</p></a>
-                          </div>
-                          <p className="md:hidden text-center rounded-xl w-full">{z.title}</p>
-                        </>
+                        <a>{z.icon}<p className="hidden md:block">{z.title}</p></a>
+                        <p className="md:hidden text-center rounded-xl w-full">{z.title}</p>
                       </li>
                     );
                   })}
@@ -207,10 +273,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
 
           <div
             className="flex mt-auto flex-row items-center justify-around flex-shrink-0 max-h-[200px] w-full p-4 font-semibold text-xl rounded-xl"
-            style={{
-              background: 'var(--c-brand-primary)',
-              color: 'var(--c-text-on-brand)',
-            }}
+            style={{ background: 'var(--c-brand-primary)', color: 'var(--c-text-on-brand)' }}
           >
             Have a <br />doubt ?
             <Button color="secondary" size="sm" as={Link} href="tel:+918299470392">
@@ -218,97 +281,51 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
             </Button>
           </div>
 
-          <div
-            className="lg:hidden block bottom-1 text-xs w-full font-sans text-center p-2"
-            style={{ color: 'var(--c-text-tertiary)' }}
-          >
+          <div className="lg:hidden block bottom-1 text-xs w-full font-sans text-center p-2" style={{ color: 'var(--c-text-tertiary)' }}>
             © 2024 IPM Careers. All rights reserved
           </div>
         </div>
         <div className="flex flex-1 h-full bg-transparent cursor-pointer" onClick={() => { setIsActive(false); }}></div>
       </div>
 
-      {/* ── Desktop sidebar accordion ──────────────────────────────── */}
-      <Accordion
-        itemClasses={accordionItemClasses}
-        selectedKeys={sk}
-        onSelectionChange={(e) => { setSK(new Set(e)); }}
-        showDivider={false}
-        className="hidden lg:flex w-full p-2 flex-col flex-nowrap max-h-[70vh] overflow-y-auto"
-        fullWidth
-        isCompact
-      >
-        {accordian && accordian.map((i, d) => (
-          <AccordionItem
-            isDisabled={isDemo && i.demo === false}
-            startContent={
-              isDemo && i.demo === false ? (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.5 -0.5 16 16" height="28" width="28" aria-hidden="true">
-                  <g fill="none" fillRule="evenodd">
-                    <path fill="currentColor" d="M3.75 5a3.75 3.75 0 1 1 7.5 0h0.625a1.25 1.25 0 0 1 1.25 1.25v6.25a1.25 1.25 0 0 1-1.25 1.25H3.125a1.25 1.25 0 0 1-1.25-1.25V6.25a1.25 1.25 0 0 1 1.25-1.25h0.625Zm3.75-2.5a2.5 2.5 0 0 1 2.5 2.5H5a2.5 2.5 0 0 1 2.5-2.5Zm1.25 6.25a1.25 1.25 0 0 1-0.625 1.0825V10.625a0.625 0.625 0 1 1-1.25 0v-0.7925A1.25 1.25 0 0 1 7.5 7.5a1.25 1.25 0 0 1 1.25 1.25Z" />
-                  </g>
-                </svg>
-              ) : i.icon || ''
-            }
-            key={d}
-            className="w-full font-sans"
-            title={<span style={titleStyle}>{i.title}</span>}
-            subtitle={i?.subtitle ? <span style={subStyle}>{i.subtitle}</span> : null}
-          >
-            <ul
-              className={'lg:flex flex-col hidden w-full overflow-hidden p-2 rounded-md !px-1 ' + (isActive ? styles.activeMain : '')}
-            >
-              {i?.items && i.items.map((z, v) => {
-                if (z.type === 'admin' && !showAdminItems) return null;
-
-                if (isDemo && z.demo != undefined && z.demo == false) {
-                  return (
-                    <li
-                      key={v}
-                      onClick={() => { toast.error('Purchase a Course to Unlock'); }}
-                      className={'opacity-70 relative grayscale !rounded-md transition-all !mx-2 !my-0.5 hover:brightness-95'}
-                      style={{ animationDelay: (v + 1) * 30 + 'ms' }}
-                    >
-                      <>
-                        <div className={styles.clickable} onClick={() => {}}>
-                          <a><Lock size={16} /><p className="hidden md:block">{z.title}</p></a>
-                        </div>
-                        <p
-                          className="md:hidden absolute left-[70px] text-left top-[50%] rounded-xl shadow-md p-2 w-auto -translate-y-[50%]"
-                          style={{ background: 'var(--c-surface)' }}
-                        >
-                          {z.title}
-                        </p>
-                      </>
-                    </li>
-                  );
-                }
-
-                return (
-                  <li
-                    key={v}
-                    onClick={() => { setCTXSlug(z.action); }}
-                    className={(ctxSlug == z.action ? styles.active : '') + ' relative !rounded-md transition-all !mx-2 !my-0.5'}
-                    style={{ animationDelay: (v + 1) * 30 + 'ms' }}
+      {/* ── Desktop sidebar — sections with labels ─────────────── */}
+      <div className="hidden lg:flex w-full flex-col flex-nowrap max-h-[70vh] overflow-y-auto p-1">
+        {SECTIONS.map((section) => {
+          const items = sectionItems[section.label] || [];
+          if (items.length === 0) return null;
+          return (
+            <div key={section.label}>
+              <div style={sectionLabelStyle}>{section.label}</div>
+              <Accordion
+                itemClasses={accordionItemClasses}
+                selectedKeys={sk}
+                onSelectionChange={(e) => { setSK(new Set(e)); }}
+                showDivider={false}
+                fullWidth isCompact
+                className="px-1"
+              >
+                {items.map((i, d) => (
+                  <AccordionItem
+                    isDisabled={isDemo && i.demo === false}
+                    startContent={
+                      isDemo && i.demo === false ? (
+                        <Lock size={18} />
+                      ) : (
+                        i.icon || ''
+                      )
+                    }
+                    key={i.title}
+                    className="w-full font-sans"
+                    title={<span style={titleStyle}>{i.title}</span>}
                   >
-                    <>
-                      <div className={styles.clickable} onClick={() => handleItemClick(z.action)}>
-                        <a>{z.icon}<p className="hidden md:block">{z.title}</p></a>
-                      </div>
-                      <p
-                        className="md:hidden absolute left-[70px] text-left top-[50%] rounded-xl shadow-md p-2 w-auto -translate-y-[50%]"
-                        style={{ background: 'var(--c-surface)' }}
-                      >
-                        {z.title}
-                      </p>
-                    </>
-                  </li>
-                );
-              })}
-            </ul>
-          </AccordionItem>
-        ))}
-      </Accordion>
+                    {renderSubItems(i)}
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          );
+        })}
+      </div>
     </nav>
   );
 };
