@@ -1,8 +1,6 @@
 // ============================================================
-// Teacher Login — Phase 2 redesign
-// Original logic preserved (signup, signin, forgot password,
-// teacher role check, password recovery). Layout rebuilt to
-// match the student login design.
+// Teacher Login — Phase 2 (final), centered single-card design.
+// All teacher auth logic preserved (role check, redirect, etc.)
 // ============================================================
 
 import Notifications from "@/components/Notification";
@@ -10,16 +8,8 @@ import { supabase } from "@/utils/supabaseClient";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import styles from "./Login.module.css";
-import {
-  Spinner,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-} from "@nextui-org/react";
+import { Spinner, Modal, ModalBody, ModalContent, ModalHeader, ModalFooter } from "@nextui-org/react";
 import axios from "axios";
-import { toast } from "react-hot-toast";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 
 function TeacherLogin() {
@@ -39,14 +29,10 @@ function TeacherLogin() {
     setNotificationText(de);
     setTimeout(() => { setNotificationText(); }, 2500);
   }
-
-  function validateEmail(email) {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  }
+  function validateEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
 
   async function getRole(a) {
-    const { data, error } = await supabase.rpc("get_user_role_by_email", { email_address: a });
+    const { data } = await supabase.rpc("get_user_role_by_email", { email_address: a });
     return data || null;
   }
 
@@ -55,27 +41,14 @@ function TeacherLogin() {
     const { data, error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
-      options: {
-        data: {
-          full_name: formData.fullname,
-          role: "teacher",
-          city: formData.city,
-          phone: formData.phone,
-        },
-      },
+      options: { data: { full_name: formData.fullname, role: "teacher", city: formData.city, phone: formData.phone } },
     });
-
-    if (data) {
-      setLoading(false);
-      setNotification("Confirmation email sent");
-      setIsSignUp(false);
-    } else if (error) {
+    if (data) { setLoading(false); setNotification("Confirmation email sent"); setIsSignUp(false); }
+    else if (error) {
       setLoading(false);
       if (error.status == 400) setNotification("User already registered");
       else setNotification(error.message);
-    } else {
-      setLoading(false);
-    }
+    } else { setLoading(false); }
   }
 
   function Switch() {
@@ -118,27 +91,17 @@ function TeacherLogin() {
     if (data && data.user && data.session) {
       if (router.query.redirect_to != undefined) router.push(router.query.redirect_to);
       else router.push("/teacher");
-      setNotification("Welcome back");
-      setLoading(false);
-    } else if (error) {
-      setNotification(error.message);
-      setLoading(false);
-    }
+      setNotification("Welcome back"); setLoading(false);
+    } else if (error) { setNotification(error.message); setLoading(false); }
   }
 
   async function forgotPassword(a) {
     if (a == null || !validateEmail(a)) { setNotification("Please enter a valid email"); return null; }
     try {
       const res = await axios.post("/api/resetPassword", { email: a });
-      if (res.data.success) {
-        setNotification("Reset link sent. Check your inbox.");
-        setFPModal(false);
-      } else {
-        setNotification(res.data.message || "Unable to send reset link");
-      }
-    } catch (err) {
-      setNotification("Unable to send reset link. Try again.");
-    }
+      if (res.data.success) { setNotification("Reset link sent. Check your inbox."); setFPModal(false); }
+      else setNotification(res.data.message || "Unable to send reset link");
+    } catch (err) { setNotification("Unable to send reset link. Try again."); }
   }
 
   useEffect(() => {
@@ -148,10 +111,7 @@ function TeacherLogin() {
   }, []);
 
   async function updatePassword(a) {
-    if (a == undefined || a?.length < 8) {
-      setNotification("Password must be at least 8 characters");
-      return null;
-    }
+    if (a == undefined || a?.length < 8) { setNotification("Password must be at least 8 characters"); return null; }
     const { data, error } = await supabase.auth.updateUser({ password: a });
     if (data) { setNotification("Password updated. Sign in now."); setPasswordModal(false); }
     if (error) setNotification("Error updating password");
@@ -160,88 +120,53 @@ function TeacherLogin() {
   return (
     <>
       <div className={styles.page}>
-        {notificationText && notificationText.length > 2 ? (
-          <Notifications text={notificationText} />
-        ) : ""}
+        {notificationText && notificationText.length > 2 ? <Notifications text={notificationText} /> : ""}
 
-        {/* Password Recovery Modal */}
-        <Modal
-          placement="center" className="overflow-hidden"
-          isOpen={passwordModal} backdrop="opaque"
-          onClose={() => setPasswordModal(false)}
-          isDismissable={false}
-        >
+        <Modal placement="center" isOpen={passwordModal} backdrop="opaque" onClose={() => setPasswordModal(false)} isDismissable={false}>
           <ModalContent>
             {(onClose) => (
               <>
                 <ModalHeader>
-                  <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.015em" }}>
-                    Set a new password
-                  </h2>
+                  <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.015em" }}>Set a new password</h2>
                 </ModalHeader>
                 <ModalBody>
-                  <input
-                    type="password"
-                    placeholder="At least 8 characters"
-                    onChange={(e) => setFPUpdate(e.target.value)}
-                    className={styles.input}
-                  />
+                  <input type="password" placeholder="At least 8 characters" onChange={(e) => setFPUpdate(e.target.value)} className={styles.input} />
                 </ModalBody>
                 <ModalFooter>
-                  <button className={styles.primaryBtn} style={{ width: "auto", padding: "0 22px" }} onClick={() => updatePassword(fpUpdate)}>
-                    Update password
-                  </button>
+                  <button className={styles.primaryBtn} style={{ width: "auto", padding: "0 22px", height: 42, marginTop: 0 }} onClick={() => updatePassword(fpUpdate)}>Update password</button>
                 </ModalFooter>
               </>
             )}
           </ModalContent>
         </Modal>
 
-        {/* Forgot Password Modal */}
-        <Modal
-          placement="center" className="overflow-hidden"
-          isOpen={fpModal} backdrop="opaque"
-          onClose={() => setFPModal(false)}
-          isDismissable={false}
-        >
+        <Modal placement="center" isOpen={fpModal} backdrop="opaque" onClose={() => setFPModal(false)} isDismissable={false}>
           <ModalContent>
             {(onClose) => (
               <>
                 <ModalHeader>
                   <div>
-                    <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.015em" }}>
-                      Reset your password
-                    </h2>
-                    <p style={{ fontSize: 13, color: "var(--c-text-secondary)", marginTop: 4 }}>
-                      Enter your email and we'll send you a reset link.
-                    </p>
+                    <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.015em" }}>Reset your password</h2>
+                    <p style={{ fontSize: 13, color: "var(--c-text-secondary)", marginTop: 4 }}>Enter your email and we'll send you a reset link.</p>
                   </div>
                 </ModalHeader>
                 <ModalBody>
-                  <input
-                    type="email"
-                    placeholder="you@example.com"
-                    onChange={(e) => setFPData(e.target.value)}
-                    className={styles.input}
-                  />
+                  <input type="email" placeholder="you@example.com" onChange={(e) => setFPData(e.target.value)} className={styles.input} />
                 </ModalBody>
                 <ModalFooter>
-                  <button className={styles.primaryBtn} style={{ width: "auto", padding: "0 22px" }} onClick={() => forgotPassword(fpData)}>
-                    Send reset link
-                  </button>
+                  <button className={styles.primaryBtn} style={{ width: "auto", padding: "0 22px", height: 42, marginTop: 0 }} onClick={() => forgotPassword(fpData)}>Send reset link</button>
                 </ModalFooter>
               </>
             )}
           </ModalContent>
         </Modal>
 
-        <div className={styles.card}>
-
-          {/* LEFT — Form */}
-          <div className={styles.formPane}>
+        <div className={styles.wrap}>
+          <div className={styles.card}>
             <img className={styles.logo} src="/newlog.svg" alt="IPM Careers" />
 
-            <div className={styles.form + " " + (isChanging ? styles.formHidden : "")}>
+            <div className={styles.formArea + " " + (isChanging ? styles.formHidden : "")}>
+              <div className={styles.eyebrow}>{isSignUp ? "Teacher signup" : "Teacher sign in"}</div>
               <h1 className={styles.heading}>
                 {isSignUp ? (
                   <>Join as a <span className={styles.headingAccent}>teacher.</span></>
@@ -255,91 +180,89 @@ function TeacherLogin() {
                   : "Sign in to your teacher dashboard."}
               </p>
 
-              {isSignUp && (
+              <div className={styles.form}>
+                {isSignUp && (
+                  <div className={styles.field}>
+                    <label className={styles.fieldLabel}>Full name</label>
+                    <input
+                      name="name" className={styles.input} placeholder="Your name" type="text"
+                      value={(formData && formData.fullname) || ""}
+                      onChange={(e) => setFormData((r) => ({ ...r, fullname: e.target.value }))}
+                    />
+                  </div>
+                )}
+
                 <div className={styles.field}>
-                  <label className={styles.fieldLabel}>Full name</label>
+                  <label className={styles.fieldLabel}>Email</label>
                   <input
-                    name="name" className={styles.input}
-                    placeholder="Your name"
-                    type="text"
-                    value={(formData && formData.fullname) || ""}
-                    onChange={(e) => setFormData((r) => ({ ...r, fullname: e.target.value }))}
+                    name="email" autoComplete="email" className={styles.input}
+                    placeholder="you@example.com" type="text"
+                    value={(formData && formData.email) || ""}
+                    onChange={(e) => setFormData((r) => ({ ...r, email: e.target.value }))}
                   />
                 </div>
-              )}
 
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>Email</label>
-                <input
-                  name="email" autoComplete="email" className={styles.input}
-                  placeholder="you@example.com" type="text"
-                  value={(formData && formData.email) || ""}
-                  onChange={(e) => setFormData((r) => ({ ...r, email: e.target.value }))}
-                />
-              </div>
+                {isSignUp && (
+                  <div className={styles.field}>
+                    <label className={styles.fieldLabel}>Phone number</label>
+                    <input
+                      name="phone" className={styles.input}
+                      placeholder="10-digit Indian mobile" type="text" maxLength={10}
+                      value={(formData && formData.phone) || ""}
+                      onChange={(e) => setFormData((r) => ({ ...r, phone: e.target.value }))}
+                    />
+                  </div>
+                )}
 
-              {isSignUp && (
+                {isSignUp && (
+                  <div className={styles.field}>
+                    <label className={styles.fieldLabel}>City</label>
+                    <input
+                      name="city" className={styles.input} placeholder="Indore" type="text"
+                      value={(formData && formData.city) || ""}
+                      onChange={(e) => setFormData((r) => ({ ...r, city: e.target.value }))}
+                    />
+                  </div>
+                )}
+
                 <div className={styles.field}>
-                  <label className={styles.fieldLabel}>Phone number</label>
-                  <input
-                    name="phone" className={styles.input}
-                    placeholder="10-digit Indian mobile"
-                    type="text" maxLength={10}
-                    value={(formData && formData.phone) || ""}
-                    onChange={(e) => setFormData((r) => ({ ...r, phone: e.target.value }))}
-                  />
+                  <label className={styles.fieldLabel}>Password</label>
+                  <div className={styles.passwordWrap}>
+                    <input
+                      name="password" className={styles.input}
+                      placeholder={isSignUp ? "At least 8 characters" : "Your password"}
+                      type={isPasswordVisible ? "text" : "password"}
+                      value={(formData && formData.password) || ""}
+                      onChange={(e) => setFormData((r) => ({ ...r, password: e.target.value }))}
+                    />
+                    <button
+                      type="button" className={styles.passwordToggle}
+                      onClick={() => setIsPasswordVisible((v) => !v)}
+                      aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                    >
+                      {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
-              )}
 
-              {isSignUp && (
-                <div className={styles.field}>
-                  <label className={styles.fieldLabel}>City</label>
-                  <input
-                    name="city" className={styles.input}
-                    placeholder="Indore" type="text"
-                    value={(formData && formData.city) || ""}
-                    onChange={(e) => setFormData((r) => ({ ...r, city: e.target.value }))}
-                  />
-                </div>
-              )}
-
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>Password</label>
-                <div className={styles.passwordWrap}>
-                  <input
-                    name="password" className={styles.input}
-                    placeholder={isSignUp ? "At least 8 characters" : "Your password"}
-                    type={isPasswordVisible ? "text" : "password"}
-                    value={(formData && formData.password) || ""}
-                    onChange={(e) => setFormData((r) => ({ ...r, password: e.target.value }))}
-                  />
-                  <button
-                    type="button" className={styles.passwordToggle}
-                    onClick={() => setIsPasswordVisible((v) => !v)}
-                    aria-label={isPasswordVisible ? "Hide password" : "Show password"}
-                  >
-                    {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                {!isSignUp && (
+                  <button type="button" className={styles.forgot} onClick={() => setFPModal(true)}>
+                    Forgot password?
                   </button>
-                </div>
-              </div>
+                )}
 
-              {!isSignUp && (
-                <button type="button" className={styles.forgotLink} onClick={() => setFPModal(true)}>
-                  Forgot password?
+                <button
+                  type="button" className={styles.primaryBtn}
+                  onClick={() => (isSignUp ? handleSignUp() : handleSignIn())}
+                  disabled={loading}
+                >
+                  {isSignUp ? "Create teacher account" : "Sign in"}
+                  {loading ? <Spinner size="sm" color="default" /> : <ArrowRight size={16} />}
                 </button>
-              )}
-
-              <button
-                type="button" className={styles.primaryBtn}
-                onClick={() => (isSignUp ? handleSignUp() : handleSignIn())}
-                disabled={loading}
-              >
-                {isSignUp ? "Create teacher account" : "Sign in"}
-                {loading ? <Spinner size="sm" color="default" /> : <ArrowRight size={16} />}
-              </button>
+              </div>
 
               <div className={styles.toggleRow}>
-                {isSignUp ? "Already have a teacher account?" : "New to IPM Careers as a teacher?"}
+                {isSignUp ? "Already have a teacher account?" : "New here as a teacher?"}
                 <span className={styles.toggleLink} onClick={Switch}>
                   {isSignUp ? "Sign in" : "Create account"}
                 </span>
@@ -347,29 +270,8 @@ function TeacherLogin() {
             </div>
           </div>
 
-          {/* RIGHT — Visual */}
-          <div className={styles.visualPane}>
-            <div>
-              <div className={styles.eyebrow}>For our faculty</div>
-              <div className={styles.quote}>
-                Tools built for educators who take <span className={styles.quoteHighlight}>results</span> personally.
-              </div>
-              <div className={styles.attribution}>
-                <strong>Schedule. Teach. Track.</strong>
-                Your classes, batches, and student progress — all in one place.
-              </div>
-            </div>
-
-            <div className={styles.statsRow}>
-              <div className={styles.statBlock}>
-                <div className={styles.statValue}>Zero hassle</div>
-                <div className={styles.statLabel}>scheduling, attendance, doubts</div>
-              </div>
-              <div className={styles.statBlock}>
-                <div className={styles.statValue}>1,000+</div>
-                <div className={styles.statLabel}>IIM-bound students you'll guide</div>
-              </div>
-            </div>
+          <div className={styles.footnote}>
+            <span>From the makers of AIR 1</span>
           </div>
         </div>
       </div>

@@ -1,51 +1,71 @@
-/* Teacher login — reuses the same tokens + structure as the student login,
-   different gradient and copy on the right pane. */
+/* Teacher login — same design as student login but a slightly different
+   accent color in the page-background gradient so it feels distinct. */
 
 .page {
   width: 100%;
   min-height: 100vh;
   background: var(--c-bg);
+  position: relative;
+  overflow-x: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 40px 24px;
   font-family: var(--font-display);
 }
 
+.page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 800px 600px at 85% 10%, rgba(110, 43, 115, 0.10), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 10% 90%, rgba(232, 155, 15, 0.06), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+:global(html[data-theme="dark"]) .page::before {
+  background:
+    radial-gradient(ellipse 900px 700px at 85% 10%, rgba(177, 123, 182, 0.10), transparent 60%),
+    radial-gradient(ellipse 800px 600px at 10% 90%, rgba(255, 182, 39, 0.05), transparent 60%);
+}
+
+.wrap { position: relative; z-index: 1; width: 100%; display: flex; flex-direction: column; align-items: center; }
+
 .card {
   width: 100%;
-  max-width: 1080px;
+  max-width: 620px;
   background: var(--c-surface);
   border: 1px solid var(--c-border-faint);
-  border-radius: 24px;
+  border-radius: 28px;
   box-shadow: var(--c-shadow-lg);
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 640px;
+  padding: 56px 64px;
+  position: relative;
 }
+@media (max-width: 600px) { .card { padding: 40px 28px; border-radius: 22px; } }
 
-@media (max-width: 880px) {
-  .card { grid-template-columns: 1fr; min-height: unset; }
-  .visualPane { display: none !important; }
+.logo { width: 240px; height: auto; display: block; margin: 0 auto 28px; }
+
+.formArea { transition: opacity 0.25s ease; }
+.formHidden { opacity: 0; pointer-events: none; }
+
+.eyebrow {
+  text-align: center;
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-brand-primary);
+  margin-bottom: 12px;
 }
-
-.formPane {
-  padding: 48px 56px;
-  display: flex;
-  flex-direction: column;
-  background: var(--c-surface);
-}
-@media (max-width: 880px) { .formPane { padding: 36px 28px; } }
-
-.logo { width: 140px; height: auto; margin-bottom: 36px; }
 
 .heading {
-  font-size: clamp(26px, 3.5vw, 34px);
-  font-weight: 600; line-height: 1.15;
-  letter-spacing: -0.025em;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.028em;
+  text-align: center;
   color: var(--c-text-primary);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .headingAccent {
   font-family: var(--font-accent);
@@ -53,20 +73,31 @@
   font-weight: 400;
   color: var(--c-brand-primary);
 }
-.sub { font-size: 15px; color: var(--c-text-secondary); line-height: 1.5; margin-bottom: 28px; }
 
-.form { display: flex; flex-direction: column; gap: 14px; transition: opacity 0.3s ease; }
-.formHidden { opacity: 0; pointer-events: none; }
+.sub {
+  text-align: center;
+  font-size: 14px;
+  color: var(--c-text-secondary);
+  line-height: 1.5;
+  margin-bottom: 32px;
+}
 
+.form { display: flex; flex-direction: column; gap: 14px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
-.fieldLabel { font-size: 12px; font-weight: 500; color: var(--c-text-secondary); letter-spacing: -0.005em; }
+.fieldLabel {
+  font-size: 12px; font-weight: 500;
+  color: var(--c-text-secondary);
+  letter-spacing: -0.005em;
+  padding-left: 4px;
+}
 
 .input {
-  width: 100%; height: 46px; padding: 0 16px;
-  font-family: inherit; font-size: 15px;
+  width: 100%; height: 48px; padding: 0 18px;
+  font: inherit; font-size: 15px;
   background: var(--c-surface); color: var(--c-text-primary);
-  border: 1px solid var(--c-border-strong); border-radius: 10px;
-  outline: none; transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 12px;
+  outline: none; transition: all 0.18s ease;
 }
 .input::placeholder { color: var(--c-text-tertiary); }
 .input:hover { border-color: var(--c-text-tertiary); }
@@ -74,71 +105,50 @@
 
 .passwordWrap { position: relative; }
 .passwordToggle {
-  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
   cursor: pointer; color: var(--c-text-tertiary);
   background: none; border: 0; padding: 4px;
   display: flex; align-items: center;
 }
 .passwordToggle:hover { color: var(--c-text-secondary); }
 
-.forgotLink {
-  margin-top: -2px; font-size: 13px; font-weight: 500;
-  color: var(--c-brand-primary);
-  cursor: pointer; align-self: flex-end;
-  background: none; border: 0; padding: 0;
+.forgot {
+  align-self: flex-end; font-size: 13px; font-weight: 500;
+  color: var(--c-brand-primary); cursor: pointer;
+  background: none; border: 0; padding: 0 4px; margin-top: -2px;
 }
-.forgotLink:hover { text-decoration: underline; }
+.forgot:hover { text-decoration: underline; }
 
 .primaryBtn {
-  width: 100%; height: 46px;
-  background: var(--c-brand-primary); color: var(--c-text-on-brand);
+  width: 100%; height: 50px;
+  background: var(--c-brand-primary); color: #fff;
   border: 0; border-radius: 999px;
-  font-family: inherit; font-size: 15px; font-weight: 500;
-  letter-spacing: -0.01em; cursor: pointer;
+  font: inherit; font-size: 15px; font-weight: 500;
+  letter-spacing: -0.005em; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   transition: all 0.18s cubic-bezier(0.32, 0.72, 0, 1);
-  box-shadow: var(--c-shadow-sm); margin-top: 6px;
+  margin-top: 8px; box-shadow: var(--c-shadow-sm);
 }
-.primaryBtn:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: var(--c-shadow-md); }
+.primaryBtn:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .primaryBtn:active { transform: scale(0.985); }
 .primaryBtn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+:global(html[data-theme="dark"]) .primaryBtn { color: #1D1D1F; }
 
 .toggleRow {
-  margin-top: 24px; padding-top: 20px;
-  border-top: 1px solid var(--c-border-faint);
-  font-size: 13px; color: var(--c-text-secondary); text-align: center;
+  margin-top: 28px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--c-text-secondary);
 }
-.toggleLink { color: var(--c-brand-primary); font-weight: 500; cursor: pointer; margin-left: 4px; }
+.toggleLink {
+  color: var(--c-brand-primary); font-weight: 500;
+  cursor: pointer; margin-left: 4px;
+}
 .toggleLink:hover { text-decoration: underline; }
 
-/* Teacher panel — different gradient (purple → gold accent) */
-.visualPane {
-  background: linear-gradient(135deg, #45204A 0%, #6E2B73 50%, #B17BB6 100%);
-  color: #fff; padding: 56px;
-  display: flex; flex-direction: column; justify-content: space-between;
-  position: relative; overflow: hidden;
+.footnote {
+  margin-top: 28px;
+  text-align: center;
+  font-size: 12px; color: var(--c-text-tertiary);
+  display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap;
 }
-.visualPane::before {
-  content: ""; position: absolute;
-  width: 360px; height: 360px;
-  background: radial-gradient(circle, rgba(232, 155, 15, 0.22) 0%, transparent 70%);
-  right: -110px; bottom: -110px; border-radius: 50%;
-}
-.eyebrow {
-  font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.75); position: relative; z-index: 1;
-}
-.quote {
-  font-family: var(--font-accent); font-style: italic;
-  font-size: clamp(28px, 3.4vw, 38px); line-height: 1.2;
-  letter-spacing: -0.015em; color: #fff;
-  margin: 18px 0 24px; position: relative; z-index: 1;
-}
-.quoteHighlight { color: #FFB627; }
-.attribution { font-size: 14px; color: rgba(255, 255, 255, 0.85); line-height: 1.45; position: relative; z-index: 1; }
-.attribution strong { display: block; color: #fff; font-weight: 600; font-size: 15px; letter-spacing: -0.01em; margin-bottom: 2px; }
-
-.statsRow { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; position: relative; z-index: 1; }
-.statBlock { border-top: 1px solid rgba(255, 255, 255, 0.16); padding-top: 14px; }
-.statValue { font-size: 28px; font-weight: 600; letter-spacing: -0.025em; color: #fff; line-height: 1.1; }
-.statLabel { font-size: 12px; color: rgba(255, 255, 255, 0.7); margin-top: 4px; line-height: 1.4; }
