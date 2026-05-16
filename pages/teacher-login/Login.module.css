@@ -41,7 +41,11 @@
   box-shadow: var(--c-shadow-lg);
   padding: 56px 64px;
   position: relative;
+  transition: max-width 0.35s cubic-bezier(0.32, 0.72, 0, 1);
 }
+
+/* Sign-in is shorter — make the card visually more compact too */
+.cardCompact { max-width: 480px; }
 @media (max-width: 600px) { .card { padding: 40px 28px; border-radius: 22px; } }
 
 .logo { width: 240px; height: auto; display: block; margin: 0 auto 28px; }
@@ -152,3 +156,32 @@
   font-size: 12px; color: var(--c-text-tertiary);
   display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap;
 }
+
+/* Bottom mode toggle pill — Sign in / Sign up */
+.modeToggle {
+  margin-top: 28px;
+  display: inline-flex;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-strong);
+  border-radius: 999px;
+  padding: 6px;
+  box-shadow: var(--c-shadow-sm);
+}
+.modeToggle button {
+  padding: 9px 22px;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.modeToggle button:hover { color: var(--c-text-primary); }
+.modeToggle button.active {
+  background: var(--c-brand-primary);
+  color: #fff;
+}
+:global(html[data-theme="dark"]) .modeToggle button.active { color: #1D1D1F; }

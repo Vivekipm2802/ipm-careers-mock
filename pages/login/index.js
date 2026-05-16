@@ -223,7 +223,7 @@ function Login() {
         </Modal>
 
         <div className={styles.wrap}>
-          <div className={styles.card}>
+          <div className={`${styles.card} ${!isSignUp ? styles.cardCompact : ""}`}>
             <img className={styles.logo} src="/newlog.svg" alt="IPM Careers" />
 
             <div className={styles.formArea + " " + (isChanging ? styles.formHidden : "")}>
@@ -354,6 +354,23 @@ function Login() {
                 </span>
               </div>
             </div>
+          </div>
+
+          <div className={styles.modeToggle}>
+            <button
+              type="button"
+              className={!isSignUp ? styles.active : ""}
+              onClick={() => { if (isSignUp) Switch(); }}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              className={isSignUp ? styles.active : ""}
+              onClick={() => { if (!isSignUp) Switch(); }}
+            >
+              Sign up
+            </button>
           </div>
 
           <div className={styles.footnote}>
