@@ -2249,7 +2249,7 @@ export default function Home(props) {
                 </DropdownMenu>
               </Dropdown>
 
-              <div className=" sf h-full w-full bg-white rounded-xl relative p-2 md:p-5">
+              <div className=" sf h-full w-full rounded-xl relative p-2 md:p-5" style={{ background: "var(--c-bg)" }}>
                 {slug == "configurator" && <ConfigManager></ConfigManager>}
                 {slug == "mindmap" || slug == "mindmap2" ? (
                   <div className="h-full w-full overflow-y-auto overflow-x-hidden flex flex-col-reverse md:flex-row">
