@@ -1,327 +1,380 @@
-import Notifications from '@/components/Notification';
-import { supabase } from '@/utils/supabaseClient';
+// ============================================================
+// Teacher Login — Phase 2 redesign
+// Original logic preserved (signup, signin, forgot password,
+// teacher role check, password recovery). Layout rebuilt to
+// match the student login design.
+// ============================================================
 
-import { useRouter } from 'next/router';
+import Notifications from "@/components/Notification";
+import { supabase } from "@/utils/supabaseClient";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import styles from "./Login.module.css";
+import {
+  Spinner,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+} from "@nextui-org/react";
+import axios from "axios";
+import { toast } from "react-hot-toast";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
 
-import { useEffect, useState } from 'react'
-import styles from './Login.module.css'
-import { Button, Spacer, CircularProgress, Spinner, Modal, ModalBody, ModalContent, ModalHeader, Input, ModalFooter } from '@nextui-org/react';
-import axios from 'axios';
+function TeacherLogin() {
+  const [isSignUp, setIsSignUp] = useState(true);
+  const [formData, setFormData] = useState();
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [isChanging, setIsChanging] = useState(false);
+  const [notificationText, setNotificationText] = useState();
+  const [fpModal, setFPModal] = useState(false);
+  const [fpData, setFPData] = useState();
+  const [fpUpdate, setFPUpdate] = useState();
+  const [passwordModal, setPasswordModal] = useState(false);
+  const router = useRouter();
 
-
-
-function TeacherLogin(){
-
-const [isSignUp,setIsSignUp] = useState(true);
-const [formData,setFormData] = useState();
-const [isPasswordVisible,setIsPasswordVisible] = useState();
-const [loading,setLoading] = useState(false);
-const [isChanging,setIsChanging] = useState(false);
-const [notificationText,setNotificationText] = useState();
-const [fpModal,setFPModal] = useState(false);
-const [fpData,setFPData] = useState();
-const [fpUpdate,setFPUpdate] = useState();
-const [passwordModal,setPasswordModal] = useState(false);
-const router = useRouter();
-
-function setNotification(de){
-
+  function setNotification(de) {
     setNotificationText(de);
-    setTimeout(()=>{setNotificationText()},2500);
+    setTimeout(() => { setNotificationText(); }, 2500);
   }
-  
-async function getRole(a){
-    const {data,error} = await supabase.rpc('get_user_role_by_email',{email_address:a})
-    if(data){
-        return data
-    }
-    else{
-        return null
-    }
-}
-
-async function handleSignUp(){
-    setLoading(true)
-    const { data, error } = await supabase.auth.signUp(
-        {
-          email: formData.email,
-          password: formData.password,
-        
-        options:{
-          data: {
-            full_name: formData.fullname,
-            role:"teacher",
-            city : formData.city,
-            phone:formData.phone,
-           
-            
-          }}
-        }
-      )
-  
-      if(data){
-        setLoading(false)
-        setNotification('Confirmation Email Sent',false);
-        setIsSignUp(false)
-        
-        }
-  
-        else if(error){
-            setLoading(false)
-          
-            if(error.status == 400){
-                setLoading(false)
-                setNotification('User Already Registered',true)
-            }else{
-  
-  setNotification(error.message,true)
-                
-            }
-        }
-        
-        else{
-            setLoading(false)
-        }
-  }
-function Switch(){
-
-    setIsChanging(true);
-
-    setTimeout(()=>{
-        isSignUp ? setIsSignUp(false) : setIsSignUp(true);
-        setIsChanging(false)
-    },500)
-}
-useEffect(()=>{
-
-  if(router.query.s && router.query.s == 1 ){
-    setIsSignUp(true)
-  } else if(router.query.s && router.query.s == 0 ){
-    setIsSignUp(false)
-  }
-},[router])
-
-
-async function getUser(){
-    const {data} = await supabase.auth.getUser();
-   
-    if(data && data?.user != undefined){
-        const role = await getRole(data?.user?.email);
-       if(role == "teacher"){
-        router.push('/teacher')
-       }
-       if(role == "user"){
-        router.push('/')
-       }
-       }
-
-   if(!data || data?.user == undefined){
-return null
-   }
-   
- 
-   
-}
-async function getRole(a){
-    const {data,error} = await supabase.rpc('get_user_role_by_email',{email_address:a})
-    if(data){
-        return data
-    }
-    else{
-        return null
-    }
-  }
-useEffect(()=>{
-   getUser();
-   
-},[])
-
-async function handleSignIn(){
-
-    if(formData == undefined){
-        setNotification('Empty Login Details')
-        return null
-    }
-
-    if(formData?.email == undefined){
-        setNotification('Email Empty or Invalid')
-        return null
-    }
-    if(formData?.password== undefined){
-        setNotification('Password Empty or Invalid')
-        return null
-    }
-    if(await getRole(formData?.email) != "teacher"){
-        setNotification("this account doesn't belong to a teacher")
-        return null
-    }
-    setLoading(true)
-    const {data,error} = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password:  formData.password,
-      },
-        {
-            redirectTo: '/'
-          }
-      )
-  
-    if(data && data.user && data.session){
-
-if(router.query.redirect_to != undefined){
-
-    router.push(router.query.redirect_to)
-}
-
-else{
-    router.push('/teacher')
-   
-}
-        setNotification('Logged in Successfully',false);
-       
-           
-       
-        setLoading(false)
-    }
-  
-    else if(error){
-      
-        setNotification(error.message,true);
-        
-        setLoading(false)
-    }
-  
-    
-  }
-
 
   function validateEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
-}
-
-async function forgotPassword(a){
-  if(a == null || !validateEmail(a) ){
-    setNotification('Email Empty or Invalid')
-    return null
   }
-  try {
-    const res = await axios.post("/api/resetPassword", { email: a });
-    if (res.data.success) {
-      setNotification('Reset link sent to your email. Check your inbox.')
-      setFPModal(false)
+
+  async function getRole(a) {
+    const { data, error } = await supabase.rpc("get_user_role_by_email", { email_address: a });
+    return data || null;
+  }
+
+  async function handleSignUp() {
+    setLoading(true);
+    const { data, error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          full_name: formData.fullname,
+          role: "teacher",
+          city: formData.city,
+          phone: formData.phone,
+        },
+      },
+    });
+
+    if (data) {
+      setLoading(false);
+      setNotification("Confirmation email sent");
+      setIsSignUp(false);
+    } else if (error) {
+      setLoading(false);
+      if (error.status == 400) setNotification("User already registered");
+      else setNotification(error.message);
     } else {
-      setNotification(res.data.message || 'Unable to send reset link')
+      setLoading(false);
     }
-  } catch (err) {
-    setNotification('Unable to send reset link. Please try again.')
   }
-}
 
-useEffect(() => {
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    if (event == "PASSWORD_RECOVERY") {
-     setPasswordModal(true)
-     
+  function Switch() {
+    setIsChanging(true);
+    setTimeout(() => {
+      isSignUp ? setIsSignUp(false) : setIsSignUp(true);
+      setIsChanging(false);
+    }, 250);
+  }
+
+  useEffect(() => {
+    if (router.query.s && router.query.s == 1) setIsSignUp(true);
+    else if (router.query.s && router.query.s == 0) setIsSignUp(false);
+  }, [router]);
+
+  async function getUser() {
+    const { data } = await supabase.auth.getUser();
+    if (data && data?.user != undefined) {
+      const role = await getRole(data?.user?.email);
+      if (role == "teacher") router.push("/teacher");
+      if (role == "user") router.push("/");
     }
-  })
-}, [])
+    if (!data || data?.user == undefined) return null;
+  }
+  useEffect(() => { getUser(); }, []);
 
-async function updatePassword(a){
-if(a == undefined || a?.length < 8){
-setNotification('Password Must be atleast 8 characters long')
-return null
-}
+  async function handleSignIn() {
+    if (formData == undefined) { setNotification("Please enter your details"); return null; }
+    if (formData?.email == undefined) { setNotification("Please enter your email"); return null; }
+    if (formData?.password == undefined) { setNotification("Please enter your password"); return null; }
+    if ((await getRole(formData?.email)) != "teacher") {
+      setNotification("This account isn't registered as a teacher");
+      return null;
+    }
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword(
+      { email: formData.email, password: formData.password },
+      { redirectTo: "/" }
+    );
+    if (data && data.user && data.session) {
+      if (router.query.redirect_to != undefined) router.push(router.query.redirect_to);
+      else router.push("/teacher");
+      setNotification("Welcome back");
+      setLoading(false);
+    } else if (error) {
+      setNotification(error.message);
+      setLoading(false);
+    }
+  }
 
+  async function forgotPassword(a) {
+    if (a == null || !validateEmail(a)) { setNotification("Please enter a valid email"); return null; }
+    try {
+      const res = await axios.post("/api/resetPassword", { email: a });
+      if (res.data.success) {
+        setNotification("Reset link sent. Check your inbox.");
+        setFPModal(false);
+      } else {
+        setNotification(res.data.message || "Unable to send reset link");
+      }
+    } catch (err) {
+      setNotification("Unable to send reset link. Try again.");
+    }
+  }
 
-const { data, error } = await supabase.auth
-.updateUser({ password: a })
+  useEffect(() => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event == "PASSWORD_RECOVERY") setPasswordModal(true);
+    });
+  }, []);
 
-if (data) {
-  setNotification('Password Update Now Login')
-  setPasswordModal(false)
-}
-if (error){
-  setNotification('Error updating password')
-  
-}
-}
+  async function updatePassword(a) {
+    if (a == undefined || a?.length < 8) {
+      setNotification("Password must be at least 8 characters");
+      return null;
+    }
+    const { data, error } = await supabase.auth.updateUser({ password: a });
+    if (data) { setNotification("Password updated. Sign in now."); setPasswordModal(false); }
+    if (error) setNotification("Error updating password");
+  }
 
+  return (
+    <>
+      <div className={styles.page}>
+        {notificationText && notificationText.length > 2 ? (
+          <Notifications text={notificationText} />
+        ) : ""}
 
-    return <>
-    <div className={styles.maincont}>
-    {notificationText && notificationText.length > 2 ? <Notifications text={notificationText} /> : ''}
-        
+        {/* Password Recovery Modal */}
+        <Modal
+          placement="center" className="overflow-hidden"
+          isOpen={passwordModal} backdrop="opaque"
+          onClose={() => setPasswordModal(false)}
+          isDismissable={false}
+        >
+          <ModalContent>
+            {(onClose) => (
+              <>
+                <ModalHeader>
+                  <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.015em" }}>
+                    Set a new password
+                  </h2>
+                </ModalHeader>
+                <ModalBody>
+                  <input
+                    type="password"
+                    placeholder="At least 8 characters"
+                    onChange={(e) => setFPUpdate(e.target.value)}
+                    className={styles.input}
+                  />
+                </ModalBody>
+                <ModalFooter>
+                  <button className={styles.primaryBtn} style={{ width: "auto", padding: "0 22px" }} onClick={() => updatePassword(fpUpdate)}>
+                    Update password
+                  </button>
+                </ModalFooter>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
 
+        {/* Forgot Password Modal */}
+        <Modal
+          placement="center" className="overflow-hidden"
+          isOpen={fpModal} backdrop="opaque"
+          onClose={() => setFPModal(false)}
+          isDismissable={false}
+        >
+          <ModalContent>
+            {(onClose) => (
+              <>
+                <ModalHeader>
+                  <div>
+                    <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.015em" }}>
+                      Reset your password
+                    </h2>
+                    <p style={{ fontSize: 13, color: "var(--c-text-secondary)", marginTop: 4 }}>
+                      Enter your email and we'll send you a reset link.
+                    </p>
+                  </div>
+                </ModalHeader>
+                <ModalBody>
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    onChange={(e) => setFPData(e.target.value)}
+                    className={styles.input}
+                  />
+                </ModalBody>
+                <ModalFooter>
+                  <button className={styles.primaryBtn} style={{ width: "auto", padding: "0 22px" }} onClick={() => forgotPassword(fpData)}>
+                    Send reset link
+                  </button>
+                </ModalFooter>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
 
-    <Modal placement='center' className='sf overflow-hidden' isOpen={passwordModal} backdrop='opaque' onClose={()=>{setPasswordModal(false)}} isDismissable={false}  classNames={{backdrop:"opacity-10 bg-overlay/5"}} scrollBehavior="inside">
-<ModalContent>
-{(onClose)=>(<>
-    <ModalHeader className={`flex flex-col gap-1 justify-start items-start text-black`}>
-    <h2 className='text-black'>Enter New Password</h2>
-    </ModalHeader>
-    <ModalBody> 
+        <div className={styles.card}>
 
-<Input label="New Password" placeholder='Enter New Password' onChange={(e)=>{setFPUpdate(e.target.value)}}></Input>
+          {/* LEFT — Form */}
+          <div className={styles.formPane}>
+            <img className={styles.logo} src="/newlog.svg" alt="IPM Careers" />
 
-    </ModalBody>
-    
-    <ModalFooter>
-<Button color='danger' variant='faded' onPress={()=>{setPasswordModal(false)}}>Cancel</Button>
-<Button color='primary' onPress={()=>{updatePassword(fpUpdate)}}>Update Password</Button>
+            <div className={styles.form + " " + (isChanging ? styles.formHidden : "")}>
+              <h1 className={styles.heading}>
+                {isSignUp ? (
+                  <>Join as a <span className={styles.headingAccent}>teacher.</span></>
+                ) : (
+                  <>Welcome <span className={styles.headingAccent}>back.</span></>
+                )}
+              </h1>
+              <p className={styles.sub}>
+                {isSignUp
+                  ? "Set up your teacher account to start running classes."
+                  : "Sign in to your teacher dashboard."}
+              </p>
 
-    </ModalFooter>
-     </>)}</ModalContent></Modal>
+              {isSignUp && (
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel}>Full name</label>
+                  <input
+                    name="name" className={styles.input}
+                    placeholder="Your name"
+                    type="text"
+                    value={(formData && formData.fullname) || ""}
+                    onChange={(e) => setFormData((r) => ({ ...r, fullname: e.target.value }))}
+                  />
+                </div>
+              )}
 
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Email</label>
+                <input
+                  name="email" autoComplete="email" className={styles.input}
+                  placeholder="you@example.com" type="text"
+                  value={(formData && formData.email) || ""}
+                  onChange={(e) => setFormData((r) => ({ ...r, email: e.target.value }))}
+                />
+              </div>
 
-    <Modal placement='center' className='sf overflow-hidden' isOpen={fpModal} backdrop='opaque' onClose={()=>{setFPModal(true)}} isDismissable={false}  classNames={{backdrop:"opacity-10 bg-overlay/5"}} scrollBehavior="inside">
-<ModalContent>
-{(onClose)=>(<>
-    <ModalHeader className={`flex flex-col gap-1 justify-start items-start text-black`}>
-    <h2 className='text-black'>Enter your Email to Reset Password</h2>
-    </ModalHeader>
-    <ModalBody> 
+              {isSignUp && (
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel}>Phone number</label>
+                  <input
+                    name="phone" className={styles.input}
+                    placeholder="10-digit Indian mobile"
+                    type="text" maxLength={10}
+                    value={(formData && formData.phone) || ""}
+                    onChange={(e) => setFormData((r) => ({ ...r, phone: e.target.value }))}
+                  />
+                </div>
+              )}
 
-<Input label="Your Email" placeholder='Enter your Email' onChange={(e)=>{setFPData(e.target.value)}}></Input>
+              {isSignUp && (
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel}>City</label>
+                  <input
+                    name="city" className={styles.input}
+                    placeholder="Indore" type="text"
+                    value={(formData && formData.city) || ""}
+                    onChange={(e) => setFormData((r) => ({ ...r, city: e.target.value }))}
+                  />
+                </div>
+              )}
 
-    </ModalBody>
-    
-    <ModalFooter>
-<Button color='danger' variant='faded' onPress={()=>{setFPModal(false)}}>Cancel</Button>
-<Button color='primary' onPress={()=>{forgotPassword(fpData)}}>Send Reset Link</Button>
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Password</label>
+                <div className={styles.passwordWrap}>
+                  <input
+                    name="password" className={styles.input}
+                    placeholder={isSignUp ? "At least 8 characters" : "Your password"}
+                    type={isPasswordVisible ? "text" : "password"}
+                    value={(formData && formData.password) || ""}
+                    onChange={(e) => setFormData((r) => ({ ...r, password: e.target.value }))}
+                  />
+                  <button
+                    type="button" className={styles.passwordToggle}
+                    onClick={() => setIsPasswordVisible((v) => !v)}
+                    aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                  >
+                    {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
 
-    </ModalFooter>
-     </>)}</ModalContent></Modal> 
+              {!isSignUp && (
+                <button type="button" className={styles.forgotLink} onClick={() => setFPModal(true)}>
+                  Forgot password?
+                </button>
+              )}
 
-        <div className={styles.col1 + " relative"}>
-        <img className={styles.logo} width={400} src='/newlog.svg'/>
-        <div></div>
-            <div className={styles.bgfill}></div>
-            <div className={styles.form + " " + (isChanging? styles.hid : '')}>
-       <h2 style={{color:'var(--brand-col1)'}}>{isSignUp? "Sign Up as a Teacher Now":"Login as a Teacher"}</h2>
-       <p className={styles.txt}>{isSignUp? "Already have an Account ? ":"Haven't Signed Up Yet ? "}<span className={styles.log} onClick={(e)=>{Switch() }}>{isSignUp? "Sign In":"Sign Up Now"}</span></p>
-       <Spacer y={1}></Spacer>
-    {isSignUp ?  <input name={"name"} className={styles.input} placeholder={"Enter your Full Name"} type={"text"} value={formData && formData.fullname} onChange={(e)=>{setFormData(res=>({...res,fullname:e.target.value})) }}/>:''}
-     <input name={"email"} className={styles.input} placeholder={"Enter your Email Address"} type={"text"} value={formData && formData.email} onChange={(e)=>{setFormData(res=>({...res,email:e.target.value})) }}/>
-     {isSignUp ?<input name={"phone"} className={styles.input} placeholder={"Enter your Phone Number"} type={"text"} maxLength={10} value={formData && formData.phone} onChange={(e)=>{setFormData(res=>({...res,phone:e.target.value})) }}/>:''}
-     {isSignUp ?<input name={"city"} className={styles.input} placeholder={"Enter your City"} type={"text"} value={formData && formData.city} onChange={(e)=>{setFormData(res=>({...res,city:e.target.value})) }}/>:''}
-     {/* {isSignUp ?<input name={"date"} className={styles.input} placeholder={"Enter Date of Birth"} type={"date"}  value={formData && formData.dob} onChange={(e)=>{setFormData(res=>({...res,dob:e.target.value})) }}/>:''} */}
-    <div className={styles.password}><div className={styles.tog} onClick={()=>{isPasswordVisible?setIsPasswordVisible(false):setIsPasswordVisible(true)}}>{!isPasswordVisible?<svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 9.005a4 4 0 1 1 0 8 4 4 0 0 1 0-8ZM12 5.5c4.613 0 8.596 3.15 9.701 7.564a.75.75 0 1 1-1.455.365 8.503 8.503 0 0 0-16.493.004.75.75 0 0 1-1.455-.363A10.003 10.003 0 0 1 12 5.5Z" fill="#BDC3C8"/></svg>:<svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2.22 2.22a.75.75 0 0 0-.073.976l.073.084 4.034 4.035a9.986 9.986 0 0 0-3.955 5.75.75.75 0 0 0 1.455.364 8.49 8.49 0 0 1 3.58-5.034l1.81 1.81A4 4 0 0 0 14.8 15.86l5.919 5.92a.75.75 0 0 0 1.133-.977l-.073-.084-6.113-6.114.001-.002-6.95-6.946.002-.002-1.133-1.13L3.28 2.22a.75.75 0 0 0-1.06 0ZM12 5.5c-1 0-1.97.148-2.889.425l1.237 1.236a8.503 8.503 0 0 1 9.899 6.272.75.75 0 0 0 1.455-.363A10.003 10.003 0 0 0 12 5.5Zm.195 3.51 3.801 3.8a4.003 4.003 0 0 0-3.801-3.8Z" fill="#BDC3C8"/></svg>}</div> <input name={"password"} className={styles.input} placeholder={"Enter Password"} type={isPasswordVisible ? "text" : "password"}  value={formData && formData.password} onChange={(e)=>{setFormData(res=>({...res,password:e.target.value})) }}/></div>
-<Spacer y={1}></Spacer>
-<Button color='primary' auto onClick={()=>{isSignUp?handleSignUp():handleSignIn()}} >{isSignUp? "Sign Up":"Sign In"}{loading? <><Spacer x={0.5}></Spacer><Spinner size="sm"  color={"default"} ></Spinner></>:''}</Button>
-<p className='text-blue-500 text-sm my-2 cursor-pointer hover:text-blue-700' onClick={()=>{setFPModal(true)}}>Forgot Password?</p>
-{/* <Button color='primary' onClick={()=>{getRole('officialnmn@gmail.com')}}>Get Role</Button> */}
-</div>
-<div></div>
+              <button
+                type="button" className={styles.primaryBtn}
+                onClick={() => (isSignUp ? handleSignUp() : handleSignIn())}
+                disabled={loading}
+              >
+                {isSignUp ? "Create teacher account" : "Sign in"}
+                {loading ? <Spinner size="sm" color="default" /> : <ArrowRight size={16} />}
+              </button>
 
+              <div className={styles.toggleRow}>
+                {isSignUp ? "Already have a teacher account?" : "New to IPM Careers as a teacher?"}
+                <span className={styles.toggleLink} onClick={Switch}>
+                  {isSignUp ? "Sign in" : "Create account"}
+                </span>
+              </div>
+            </div>
+          </div>
 
+          {/* RIGHT — Visual */}
+          <div className={styles.visualPane}>
+            <div>
+              <div className={styles.eyebrow}>For our faculty</div>
+              <div className={styles.quote}>
+                Tools built for educators who take <span className={styles.quoteHighlight}>results</span> personally.
+              </div>
+              <div className={styles.attribution}>
+                <strong>Schedule. Teach. Track.</strong>
+                Your classes, batches, and student progress — all in one place.
+              </div>
+            </div>
 
+            <div className={styles.statsRow}>
+              <div className={styles.statBlock}>
+                <div className={styles.statValue}>Zero hassle</div>
+                <div className={styles.statLabel}>scheduling, attendance, doubts</div>
+              </div>
+              <div className={styles.statBlock}>
+                <div className={styles.statValue}>1,000+</div>
+                <div className={styles.statLabel}>IIM-bound students you'll guide</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className={styles.col2 + " !p-0"}>
-<img className='w-full h-full object-cover' src='/coaching.webp'/>
-            
-        </div>
-    </div>
+      </div>
     </>
+  );
 }
 
 export default TeacherLogin;

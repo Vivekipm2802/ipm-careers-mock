@@ -1,180 +1,234 @@
+// ============================================================
+// Set PIN page — Phase 2 redesign
+// Token-based PIN setup for teachers. Logic preserved exactly.
+// ============================================================
+
 import Loader from "@/components/Loader";
-import {  serversupabase, supabase } from "@/utils/supabaseClient";
-
-
+import { serversupabase, supabase } from "@/utils/supabaseClient";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 
+function setPIN({ isExpired }) {
+  const [pin, setPIN] = useState();
+  const [userData, setUserData] = useState();
+  const [loading, setLoading] = useState(true);
+  const [isTokenExpired, setTokenExpired] = useState(false);
+  const inputRefs = useRef([]);
+  const [isSet, setIsSet] = useState(false);
+  const router = useRouter();
 
-const Button = ({color,children,onPress}) =>{
+  async function getUserData() {
+    const { data } = await supabase.auth.getUser();
+    if (data && data.user != undefined) { setUserData(data.user); setLoading(false); }
+    else { setUserData(undefined); setLoading(false); }
+  }
 
-    return <div className={`bg-${color} text-white font-sans font-medium rounded-lg sf px-5 py-2 cursor-pointer`} onClick={()=>{onPress()}}>{children}</div>
-}
+  useEffect(() => {
+    getUserData();
+    setTokenExpired(isExpired);
+  }, []);
 
+  function getPin(pin) {
+    return parseInt(Object.values(pin).join(""), 10) || 0;
+  }
 
-function setPIN({isExpired}){
-
-const [pin,setPIN] = useState();
-const [userData,setUserData] = useState();
-const [loading,setLoading] = useState(true);
-const [isTokenExpired,setTokenExpired] = useState(false)
-const inputRefs = useRef([]);
-const [isSet,setIsSet] = useState(false);
-
-
-
-async function getUserData(){
-    const {data} = await supabase.auth.getUser();
-    
-    if(data && data.user != undefined){
-      setUserData(data.user)
-      setLoading(false)
+  async function setPINCode() {
+    if (pin == undefined) { alert("Please enter a 4-digit PIN"); return null; }
+    const final = getPin(pin);
+    if (final == undefined || final?.toString().length !== 4) {
+      alert("Please enter a 4-digit PIN");
+      return null;
     }
-    else{
-      setUserData(undefined);
-      setLoading(false)
+    const { data, error } = await supabase.rpc("set_pin_hash", {
+      pin_arg: final.toString(),
+      email_arg: userData?.email,
+    });
+    if (data && data == "done") {
+      setIsSet(true);
+      setTimeout(() => { router.push("/teacher"); }, 1200);
     }
   }
 
-  useEffect(()=>{
-    getUserData();
-    setTokenExpired(isExpired)
-  },[])
-
-function getPin(pin){
-
-    return parseInt(Object.values(pin).join(''), 10) || 0
-}
-
-
-async function setPINCode(){
-
-if(pin == undefined){
-    alert('Please Enter 4 Digit PIN')
-return null
-}
-
-const final = getPin(pin);
-
-if (final == undefined || (final?.toString().length !== 4)) {
-    alert('Please Enter 4 Digit PIN')
-    return null;
-}
-
-console.log(final)
-
-const {data,error} = await supabase.rpc('set_pin_hash',{pin_arg:final.toString(),email_arg:userData?.email})
-if(data){
-    /* console.log(data) */
-    if(data == 'done'){
-setIsSet(true)
-setTimeout(()=>{
-    router.push('/teacher')
-},1200)
-    }
-}else{
-    console.log(error)
-}
-
-}
-const router = useRouter();
-
   const handleInputChange = (index, e) => {
-    // Allow only single-digit numbers
-    const inputValue = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
-
+    const inputValue = e.target.value.replace(/[^0-9]/g, "").slice(0, 1);
     setPIN((prevPIN) => ({ ...prevPIN, ["p" + index]: inputValue }));
-
-    // Focus on the next input if available
     const nextIndex = index + 1;
-    if (nextIndex < inputRefs.current.length) {
+    if (nextIndex < inputRefs.current.length && inputValue) {
       inputRefs.current[nextIndex].focus();
-      
     }
   };
 
-if(isTokenExpired){
+  // Shared layout shell
+  const Shell = ({ children }) => (
+    <div
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        background: "var(--c-bg)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        fontFamily: "var(--font-display)",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          background: "var(--c-surface)",
+          border: "1px solid var(--c-border-faint)",
+          borderRadius: 24,
+          boxShadow: "var(--c-shadow-lg)",
+          padding: 40,
+          textAlign: "center",
+        }}
+      >
+        <img
+          src="/newlog.svg"
+          alt="IPM Careers"
+          style={{ width: 120, height: "auto", margin: "0 auto 28px", display: "block" }}
+        />
+        {children}
+      </div>
+    </div>
+  );
 
-    return <div className="w-full font-sans h-full min-h-[100vh] bg-white text-center flex flex-col align-middle items-center justify-center">Token Expired</div>
-}
+  if (isTokenExpired) {
+    return (
+      <Shell>
+        <h2 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-text-primary)", marginBottom: 8 }}>
+          Link expired
+        </h2>
+        <p style={{ fontSize: 14, color: "var(--c-text-secondary)", lineHeight: 1.5 }}>
+          This PIN setup link has already been used or has expired. Ask an admin to send a fresh one.
+        </p>
+      </Shell>
+    );
+  }
 
-return <div className="w-full sf h-full min-h-[100vh] bg-gray-100 p-5 flex flex-row justify-center items-stretch align-middle">
-    <div className="w-full max-w-[800px] bg-white shadow-md rounded-lg p-5 flex flex-col justify-start items-center align-top">
-<img src="/newlog.svg" className="w-full max-w-[100px] my-3"/>
-
-{loading == true ? 
-<div className="flex flex-col w-full h-full justify-center align-middle items-center">
-<Loader></Loader>
-
-</div>
-:<>
-{userData != undefined? <> {isSet ? <div className="w-full h-full flex flex-col text-center justify-center align-middle items-center">
-<h2 className="text-2xl font-bold text-black">
-PIN has been set successfully
-
-</h2></div>
-
-: <>
-<div className="flex flex-col font-sans justify-center align-middle items-center w-full h-full">
-    <h2>Hi, {userData?.user_metadata?.full_name}</h2>
-    <h2>Set your PIN</h2>
-<div className="flex flex-row justify-center align-middle -mx-2">
-{Array(4)
-        .fill()
-        .map((item, index) => (
-          <input
-        
-          max={1}
-          maxLength={1}
-            key={index}
-            value={pin?.["p"+index] || ""}
-            ref={(el) => (inputRefs.current[index] = el)}
-            className="flex w-[44px] text-center h-[44px] m-2 my-5 rounded-md border-1 border-[#aaa]"
-            onChange={(e) => handleInputChange(index, e)}
-          />
-        ))}
-        
+  return (
+    <Shell>
+      {loading ? (
+        <div style={{ minHeight: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Loader />
         </div>
+      ) : userData != undefined ? (
+        isSet ? (
+          <>
+            <h2 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-text-primary)", marginBottom: 8 }}>
+              PIN set successfully
+            </h2>
+            <p style={{ fontSize: 14, color: "var(--c-text-secondary)" }}>
+              Taking you to your dashboard…
+            </p>
+          </>
+        ) : (
+          <>
+            <p style={{
+              fontSize: 11, fontWeight: 500, letterSpacing: "0.12em",
+              textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 4,
+            }}>
+              Hi, {userData?.user_metadata?.full_name}
+            </p>
+            <h2 style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.025em", color: "var(--c-text-primary)", marginBottom: 6 }}>
+              Set your <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>4-digit PIN.</span>
+            </h2>
+            <p style={{ fontSize: 14, color: "var(--c-text-secondary)", lineHeight: 1.5, marginBottom: 28 }}>
+              You'll use this PIN to verify yourself when starting a class.
+            </p>
 
-<Button color="primary" className="text-white" onPress={()=>{setPINCode()}}>SET PIN</Button>
+            <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 28 }}>
+              {Array(4).fill().map((item, index) => (
+                <input
+                  key={index}
+                  maxLength={1}
+                  value={pin?.["p" + index] || ""}
+                  ref={(el) => (inputRefs.current[index] = el)}
+                  onChange={(e) => handleInputChange(index, e)}
+                  style={{
+                    width: 56, height: 64,
+                    textAlign: "center",
+                    fontSize: 28, fontWeight: 600,
+                    color: "var(--c-text-primary)",
+                    background: "var(--c-surface)",
+                    border: "1px solid var(--c-border-strong)",
+                    borderRadius: 12,
+                    outline: "none",
+                    fontFamily: "inherit",
+                    letterSpacing: "-0.02em",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "var(--c-brand-primary)";
+                    e.target.style.boxShadow = "0 0 0 4px var(--c-brand-primary-tint)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "var(--c-border-strong)";
+                    e.target.style.boxShadow = "none";
+                  }}
+                />
+              ))}
+            </div>
 
-</div></>}</>
-:<div className="w-full">
-    <h2>Not Logged In</h2>
-    <Button color="primary" onPress={()=>{router.push(`/teacher-login?redirect_to=${router.asPath}`)}}>Login & Try Again</Button>
-    </div>}</>}
-</div>
-</div>
-
+            <button
+              onClick={() => setPINCode()}
+              style={{
+                width: "100%", height: 46,
+                background: "var(--c-brand-primary)",
+                color: "var(--c-text-on-brand)",
+                border: 0, borderRadius: 999,
+                fontFamily: "inherit", fontSize: 15, fontWeight: 500,
+                letterSpacing: "-0.01em", cursor: "pointer",
+                boxShadow: "var(--c-shadow-sm)",
+                transition: "all 0.18s ease",
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.filter = "brightness(1.08)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseOut={(e) => { e.currentTarget.style.filter = "none"; e.currentTarget.style.transform = "none"; }}
+            >
+              Set PIN
+            </button>
+          </>
+        )
+      ) : (
+        <>
+          <h2 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-text-primary)", marginBottom: 8 }}>
+            You're not signed in
+          </h2>
+          <p style={{ fontSize: 14, color: "var(--c-text-secondary)", marginBottom: 28 }}>
+            Sign in to your teacher account and try this link again.
+          </p>
+          <button
+            onClick={() => router.push(`/teacher-login?redirect_to=${router.asPath}`)}
+            style={{
+              width: "100%", height: 46,
+              background: "var(--c-brand-primary)",
+              color: "var(--c-text-on-brand)",
+              border: 0, borderRadius: 999,
+              fontFamily: "inherit", fontSize: 15, fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Sign in
+          </button>
+        </>
+      )}
+    </Shell>
+  );
 }
 
 export default setPIN;
 
-export async function getServerSideProps(context){
-    /*  const {req} = context;
-     
-    
-      console.log(req,user,error)
-   */
-   
-  
-
-  
+export async function getServerSideProps(context) {
   const token = context?.query?.token;
-  console.log(token)
-  const { data,error } = await serversupabase
-  .from('update_pin')
-  .select("*")
-  .match({ 'token': token }).is("pin_hash",null);
-  
-  
+  const { data, error } = await serversupabase
+    .from("update_pin")
+    .select("*")
+    .match({ token: token })
+    .is("pin_hash", null);
 
-  
-  
-  return { props:{
-      
-      isExpired:data != undefined && data?.length > 0 ? false : true
-  }
+  return {
+    props: {
+      isExpired: data != undefined && data?.length > 0 ? false : true,
+    },
+  };
 }
-  
-  }
