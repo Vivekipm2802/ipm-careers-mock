@@ -89,103 +89,149 @@ function Icon() {
 
 const QuestionCard = ({ answered, question, onSelect, index }) => {
   if (question == undefined) {
-    return <div>Question Undefined </div>;
+    return <div style={{ padding: 40, color: "var(--c-text-tertiary)" }}>Question unavailable</div>;
   }
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const selectedValue = answered?.filter((item) => item.id == question.id)[0]?.value || "";
+
   return (
-    <div className="font-sans w-full flex-1 justify-start align-middle items-start flex flex-col text-left">
-      <div className="w-full p-4 lg:p-8 relative">
-        <h2 className="font-medium text-md text-primary">Question {index}</h2>
-        <Divider className="my-2"></Divider>
-        <h2 className="font-bold text-2xl text-primary">
-          {question?.title}{" "}
-          {process.env.NODE_ENV == "development" ? (
-            <>Question ID {question.id}</>
-          ) : (
-            ""
+    <div className="font-sans w-full flex-1 justify-start align-middle items-start flex flex-col text-left" style={{ background: "var(--c-bg)" }}>
+      <div className="w-full relative" style={{ padding: "40px 56px 32px" }}>
+
+        <div style={{
+          fontSize: 12, fontWeight: 500,
+          letterSpacing: "0.08em", textTransform: "uppercase",
+          color: "var(--c-text-tertiary)", marginBottom: 12,
+        }}>
+          Question {index}
+          {isDevelopment && (
+            <span style={{ marginLeft: 12, opacity: 0.6 }}>{"· ID " + question.id}</span>
           )}
+        </div>
+
+        <h2 style={{
+          fontSize: 22, fontWeight: 600,
+          letterSpacing: "-0.018em", lineHeight: 1.35,
+          color: "var(--c-text-primary)", marginBottom: 18, maxWidth: "70ch",
+        }}>
+          {question?.title}
         </h2>
-        <Spacer y={4}></Spacer>
-        <div className="w-full flex flex-col">
+
+        <div className="w-full" style={{ maxWidth: "70ch", marginBottom: 24 }}>
           <ScrollShadow
-            className="font-medium text-sm qcontent overflow-y-auto max-h-[30vh] lg:max-h-[35vh]"
+            className="qcontent"
+            style={{
+              fontSize: 16, lineHeight: 1.65,
+              color: "var(--c-text-primary)",
+              maxHeight: "35vh", overflowY: "auto",
+            }}
             dangerouslySetInnerHTML={{ __html: question.question }}
-          ></ScrollShadow>
-          <Spacer y={4}></Spacer>
-          <Divider></Divider>
-          <Spacer y={4}></Spacer>
-          {question && question?.questionimage != undefined ? (
-            <img className="max-h-[30vh]" src={question?.questionimage} />
-          ) : (
-            ""
-          )}
-          <ul className="p-0">
-            {question?.type == "options" ? (
-              <>
-                <RadioGroup
-                  label={question?.label || "Select the correct option"}
-                  value={
-                    answered?.filter((item) => item.id == question.id)[0]
-                      ?.value || ""
-                  }
-                  onValueChange={(e) => {
-                    onSelect({ id: question.id, value: e });
-                  }}
-                >
-                  {question.options.map((option, index) => (
-                    <Radio
-                      className="flex flex-row items-center justify-start"
-                      value={String(index + 1)}
-                      key={index}
-                    >
-                      {option?.image != undefined ? (
+          />
+        </div>
+
+        {question?.questionimage && (
+          <img
+            src={question.questionimage}
+            alt="Question"
+            style={{
+              maxHeight: "30vh", marginBottom: 24, borderRadius: 12,
+              border: "1px solid var(--c-border-faint)",
+            }}
+          />
+        )}
+
+        {question?.type == "options" && (
+          <div className="w-full" style={{ maxWidth: 640 }}>
+            <div style={{
+              fontSize: 13, fontWeight: 500,
+              color: "var(--c-text-secondary)",
+              marginBottom: 14, letterSpacing: "-0.005em",
+            }}>
+              {question?.label || "Choose one option"}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {question.options.map((option, i) => {
+                const optionValue = String(i + 1);
+                const isSelected = selectedValue === optionValue;
+                const letter = String.fromCharCode(65 + i);
+
+                return (
+                  <button
+                    key={i}
+                    onClick={() => onSelect({ id: question.id, value: optionValue })}
+                    style={{
+                      display: "flex", alignItems: "flex-start", gap: 14,
+                      padding: "16px 18px",
+                      background: isSelected ? "var(--c-brand-primary-tint)" : "var(--c-surface)",
+                      border: "1px solid " + (isSelected ? "var(--c-brand-primary)" : "var(--c-border-soft)"),
+                      borderRadius: 14, cursor: "pointer",
+                      textAlign: "left", width: "100%",
+                      fontFamily: "inherit",
+                      transition: "all 0.18s ease",
+                    }}
+                  >
+                    <div style={{
+                      flexShrink: 0,
+                      width: 28, height: 28, borderRadius: 8,
+                      background: isSelected ? "var(--c-brand-primary)" : "var(--c-surface-muted)",
+                      color: isSelected ? "#fff" : "var(--c-text-secondary)",
+                      display: "grid", placeItems: "center",
+                      fontWeight: 600, fontSize: 13,
+                      transition: "all 0.18s ease",
+                    }}>
+                      {letter}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      {option?.image ? (
                         <img
-                          src={option?.image}
-                          className="w-auto h-full max-h-12 object-contain"
+                          src={option.image}
+                          alt={"Option " + letter}
+                          style={{ height: 64, width: "auto", objectFit: "contain" }}
                         />
                       ) : (
-                        <>
-                          <p className="text-sm">{option.title}</p>{" "}
-                          {process.env.NODE_ENV == "development" &&
-                          option.isCorrect ? (
-                            <div className="rounded-full w-1 h-1 bg-green-500"></div>
-                          ) : (
-                            ""
+                        <span style={{ fontSize: 15, lineHeight: 1.5, color: "var(--c-text-primary)" }}>
+                          {option.title}
+                          {isDevelopment && option.isCorrect && (
+                            <span style={{
+                              display: "inline-block", width: 6, height: 6,
+                              borderRadius: "50%", background: "#22c55e",
+                              marginLeft: 8, verticalAlign: "middle",
+                            }} />
                           )}
-                        </>
+                        </span>
                       )}
-                    </Radio>
-                  ))}
-                </RadioGroup>
-              </>
-            ) : (
-              <></>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {question?.type == "input" && (
+          <div className="w-full" style={{ maxWidth: 480 }}>
+            <div style={{
+              fontSize: 13, fontWeight: 500,
+              color: "var(--c-text-secondary)",
+              marginBottom: 8, letterSpacing: "-0.005em",
+            }}>
+              {question?.label || "Enter your answer"}
+            </div>
+            <Input
+              value={selectedValue}
+              onChange={(e) => onSelect({ id: question.id, value: e.target.value })}
+              placeholder="Type your answer here"
+              size="lg"
+              variant="bordered"
+            />
+            {isDevelopment && (
+              <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 8 }}>
+                Dev expected: {question?.options?.answer}
+              </div>
             )}
-            {question?.type == "input" ? (
-              <>
-                <Spacer y={4}></Spacer>
-                <Input
-                  value={
-                    answered?.filter((item) => item.id == question.id)[0]
-                      ?.value || ""
-                  }
-                  onChange={(e) => {
-                    onSelect({ id: question.id, value: e.target.value });
-                  }}
-                  placeholder="Enter your Answer Here"
-                  label="Answer"
-                ></Input>
-                {process.env.NODE_ENV == "development" ? (
-                  <>Answer : {question?.options?.answer}</>
-                ) : (
-                  ""
-                )}
-                <Spacer y={4}></Spacer>
-              </>
-            ) : (
-              ""
-            )}
-          </ul>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
