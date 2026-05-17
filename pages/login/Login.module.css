@@ -45,7 +45,7 @@
 /* The card */
 .card {
   width: 100%;
-  max-width: 620px;
+  max-width: 560px;
   background: var(--c-surface);
   border: 1px solid var(--c-border-faint);
   border-radius: 28px;
