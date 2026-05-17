@@ -854,7 +854,7 @@ const MockTest = ({
   }
 
   return (
-    <div className="w-full relative font-sans h-screen p-0 justify-center align-middle items-center overflow-hidden max-h-[100vh] flex flex-col bg-gray-200">
+    <div className="w-full relative font-sans h-screen p-0 justify-center align-middle items-center overflow-hidden max-h-[100vh] flex flex-col" style={{ background: "var(--c-bg)" }}>
       {/* <div className='fixed flex flex-col left-0 top-0 w-full h-full z-50 bg-white md:hidden justify-center items-center text-xs text-center'>
       For Best Experience Please use any device with bigger screen.<br/> This test cannot be performed on mobile display.
       
@@ -912,7 +912,7 @@ const MockTest = ({
           ></iframe>
         )}
       </DraggableModal>
-      <div className="bg-white shadow-md w-full flex-nowrap flex-1 flex flex-col overflow-hidden">
+      <div className="shadow-md w-full flex-nowrap flex-1 flex flex-col overflow-hidden" style={{ background: "var(--c-bg)" }}>
         <HeaderMock
           key={config?.title}
           calc={config?.config?.calculator_allowed ?? false}

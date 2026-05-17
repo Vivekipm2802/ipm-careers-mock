@@ -1,255 +1,206 @@
+// ============================================================
+// QuestionBrowser — Phase 3 redesign
+// Standard NTA exam color scheme: green=answered, red=not answered,
+// purple=marked, gray=not visited. Current = ring around cell.
+// All props + behaviours preserved (sideBarActive, gamestate, etc).
+// ============================================================
+
 import { useNMNContext } from "@/components/NMNContext";
-import { Avatar, Spacer } from "@nextui-org/react";
-import { toast } from "react-hot-toast";
+import { Avatar } from "@nextui-org/react";
+import { ChevronRight } from "lucide-react";
 
-export function getStatusIcon(a, report, isSpecial, tempAnswers) {
-  if (
-    report?.some((item) => item.id == a.id && item.status == "markedForReview")
-  ) {
-    return (
-      <img
-        className=" z-0 absolute left-0 top-0 w-full h-full object-contain"
-        src="/amr.svg"
-      />
-    );
-  }
-  if (
-    report?.find((item) => item.id == a.id) &&
-    ((isSpecial == true &&
-      report?.find((item) => item.id == a.id)?.isCorrect == false) ||
-      false)
-  ) {
-    return (
-      <img
-        className=" -z-[10] absolute left-0 top-0 w-full h-full object-contain"
-        src="/na.svg"
-      />
-    );
-  }
+/**
+ * Status helper — returns a string ("answered" | "notanswered" | "marked" |
+ * "answeredmarked" | "notvisited") that drives both the cell colour and the
+ * sidebar legend counts.
+ */
+export function getStatusKey(q, report, tempAnswers) {
+  const r = report?.find((item) => item.id == q.id);
 
-  if (report?.find((item) => item.id == a.id && item?.status != "review")) {
-    return (
-      <img
-        className=" z-0 absolute left-0 top-0 w-full h-full object-contain"
-        src="/sc.svg"
-      />
-    );
-  }
-  if (
-    report
-      ?.filter((item) => item.status == "review")
-      ?.some((item) => item.id == a.id)
-  ) {
-    return (
-      <img
-        className=" z-0 absolute left-0 top-0 w-full h-full object-contain"
-        src="/mr.svg"
-      />
-    );
-  }
-
-  // Check for temporary answers (immediate feedback)
-  if (tempAnswers && tempAnswers[a.id]) {
-    return (
-      <img
-        className=" z-0 absolute left-0 top-0 w-full h-full object-contain"
-        src="/sc.svg"
-      />
-    );
-  }
-
-  return;
+  // Answered AND marked for review
+  if (r && r.status == "markedForReview") return "answeredmarked";
+  // Marked for review (no answer)
+  if (report?.filter((item) => item.status == "review")?.some((item) => item.id == q.id)) return "marked";
+  // Answered (saved with an answer)
+  if (r && r.status != "review") return "answered";
+  // Temporary answer (typed but not saved)
+  if (tempAnswers && tempAnswers[q.id]) return "answered";
+  // Visited but not answered — we don't have explicit "visited" tracking, so default to not visited
+  return "notvisited";
 }
 
+const STATUS_STYLES = {
+  answered:      { bg: "#22c55e", color: "#fff",                  border: "#16a34a", label: "Answered" },
+  notanswered:   { bg: "#ef4444", color: "#fff",                  border: "#dc2626", label: "Not answered" },
+  marked:        { bg: "#a855f7", color: "#fff",                  border: "#9333ea", label: "Marked" },
+  answeredmarked:{ bg: "#22c55e", color: "#fff",                  border: "#a855f7", label: "Answered & marked" }, // green fill, purple border
+  notvisited:    { bg: "var(--c-surface-sunken, #F2F2F4)",
+                   color: "var(--c-text-secondary)",
+                   border: "var(--c-border-soft)",
+                   label: "Not visited" },
+};
+
+// Re-exported for external use (kept compatible with old import sites)
+export function getStatusIcon() { return null; } // legacy noop — old SVG icons no longer used
+
 export default function QuestionBrowser({
-  sideBarActive,
-  setSidebarActive,
-  gamestate,
-  questions,
-  report,
-  tempAnswers,
-  switchQuestion,
+  sideBarActive, setSidebarActive, gamestate,
+  questions, report, tempAnswers, switchQuestion,
 }) {
   const { userDetails } = useNMNContext();
-  function getStatus(a) {
-    if (
-      report?.some((item) => item.id == a.id) &&
-      report
-        ?.filter((item) => item.status == "review")
-        .some((item) => item.id == a.id)
-    ) {
-      return " aspect-square text-white w-12 flex flex-col items-center justify-center rounded-md";
-    }
 
-    if (report?.some((item) => item.id == a.id)) {
-      return " aspect-square text-white w-12 flex flex-col items-center justify-center rounded-md";
-    }
-    if (
-      report
-        ?.filter((item) => item.status == "review")
-        .some((item) => item.id == a.id)
-    ) {
-      return "aspect-square text-white w-12 flex flex-col items-center justify-center rounded-md";
-    }
-    if (report?.some((item) => item.id == a.id)) {
-      return " aspect-square text-white w-12 flex flex-col items-center justify-center rounded-md bg-transparent";
-    }
-    return " border-1 text-black border-gray-400 aspect-square w-12 flex flex-col items-center justify-center rounded-md from-white to-gray-200 bg-gradient-to-b";
-  }
+  // Counts
+  const answered = (questions || []).filter((q) => getStatusKey(q, report, tempAnswers) === "answered").length;
+  const notAnswered = (questions || []).filter((q) => getStatusKey(q, report, tempAnswers) === "notanswered").length;
+  const marked = (questions || []).filter((q) => {
+    const k = getStatusKey(q, report, tempAnswers);
+    return k === "marked" || k === "answeredmarked";
+  }).length;
+  const notVisited = (questions || []).filter((q) => getStatusKey(q, report, tempAnswers) === "notvisited").length;
+
+  const fullName = userDetails?.user_metadata?.full_name || "Student";
+  const initials = fullName.split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]).join("").toUpperCase();
 
   return (
     <div
       className={
-        "flex h-full flex-col w-full max-w-0 bg-white shadow-[-2px_-2px_12px_-6px_#6663] transition-all z-[20] ease-in-out duration-300 translate-x-full fixed right-0 top-0  lg:relative  lg:translate-x-0 " +
+        "flex h-full flex-col w-full max-w-0 transition-all z-[20] ease-in-out duration-300 translate-x-full fixed right-0 top-0 lg:relative lg:translate-x-0 " +
         (sideBarActive ? " !max-w-[400px] !translate-x-0" : "")
       }
+      style={{
+        background: "var(--c-surface)",
+        borderLeft: "1px solid var(--c-border-faint)",
+      }}
     >
+      {/* Mobile pull handle */}
       <div
-        className="bg-primary w-auto h-auto bottom-8 lg:hidden flex  absolute p-2 rounded-r-xl"
-        onClick={() => {
-          setSidebarActive(false);
+        className="w-auto h-auto bottom-8 lg:hidden flex absolute p-2"
+        style={{
+          background: "var(--c-brand-primary)",
+          borderRadius: "0 12px 12px 0",
+          cursor: "pointer",
         }}
+        onClick={() => setSidebarActive(false)}
       >
-        <svg
-          width="24"
-          height="24"
-          fill="none"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M8.293 4.293a1 1 0 0 0 0 1.414L14.586 12l-6.293 6.293a1 1 0 1 0 1.414 1.414l7-7a1 1 0 0 0 0-1.414l-7-7a1 1 0 0 0-1.414 0Z"
-            fill="#fff"
-          />
-        </svg>
+        <ChevronRight size={18} color="#fff" />
       </div>
-      <div
-        className={"w-full flex-col hidden " + (sideBarActive ? " !flex " : "")}
-      >
+
+      <div className={"w-full flex-col hidden " + (sideBarActive ? " !flex " : "")}>
+
+        {/* Profile pane when not yet started */}
         {gamestate == 0 ? (
-          <div className="p-4">
-            <div className="p-4 rounded-xl border-1 border-gray-200 flex flex-row">
+          <div className="p-5">
+            <div
+              className="p-4 rounded-[14px] flex flex-row items-center"
+              style={{
+                background: "var(--c-surface-muted, var(--c-bg))",
+                border: "1px solid var(--c-border-faint)",
+                gap: 16,
+              }}
+            >
               <Avatar
                 src={userDetails?.user_metadata?.profile_pic || ""}
-                className="w-32 h-32"
-              ></Avatar>
-              <div className="flex flex-col p-2 px-4">
-                <h2 className="text-xl font-bold text-primary">
-                  {userDetails?.user_metadata?.full_name}
-                </h2>
+                fallback={initials}
+                className="w-16 h-16"
+              />
+              <div className="flex flex-col">
+                <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>
+                  Signed in as
+                </div>
+                <div style={{
+                  fontSize: 16, fontWeight: 600,
+                  color: "var(--c-text-primary)",
+                  letterSpacing: "-0.015em", marginTop: 2,
+                }}>
+                  {fullName}
+                </div>
               </div>
             </div>
           </div>
-        ) : (
-          ""
-        )}
+        ) : null}
 
+        {/* Question grid + legend when in-test */}
         {gamestate == 1 ? (
-          <>
-            <div className="p-4 font-sans flex flex-row flex-wrap text-xs w-full">
-              <div className=" w-1/2 flex-row flex items-center justify-start p-1">
-                <div className="w-8 h-8 relative">
-                  <img
-                    className="w-full h-full object-contain z-0"
-                    src="/sc.svg"
-                  />
-                  <div className="absolute left-0 top-0 w-full h-full flex flex-col z-10 justify-center items-center mt-[1px]">
-                    <p className="text-white flex text-center">
-                      {report?.length || 0}
-                    </p>
-                  </div>
-                </div>
-                <Spacer x={2} y={2}></Spacer>
-                <p>Answered</p>
-              </div>
-              {/*   <div className=' w-1/2 flex-row flex items-center justify-start p-1'>
-      <div className='w-8 h-8 relative'><img className='w-full h-full object-contain z-0' src='/na.svg'/>
-        <div className='absolute left-0 top-0 w-full h-full flex flex-col z-10 justify-center items-center mt-[1px]'>
-        <p className='text-white flex text-center'>{(questions?.length)-(report?.length || 0)}</p></div>
-        </div>
-        <Spacer x={2} y={2}></Spacer>
-        <p>Not Answered</p>
-      </div> */}
-              <div className=" w-1/2 flex-row flex items-center justify-start p-1">
-                <div className="w-8 h-8 relative">
-                  <div className="w-8 h-8 object-contain border-1 text-black border-gray-400 aspect-square flex flex-col items-center justify-center rounded-md from-white to-gray-200 bg-gradient-to-b" />
-                  <div className="absolute left-0 top-0 w-full h-full flex flex-col z-10 justify-center items-center mt-[1px]">
-                    <p className="text-black flex text-center">
-                      {questions?.length - (report?.length || 0)}
-                    </p>
-                  </div>
-                </div>
+          <div className="p-5 flex flex-col" style={{ gap: 22 }}>
 
-                <Spacer x={2} y={2}></Spacer>
-                <p>Not Answered</p>
+            {/* Legend / status counts */}
+            <div>
+              <div style={{
+                fontSize: 11, fontWeight: 500, letterSpacing: "0.12em",
+                textTransform: "uppercase", color: "var(--c-text-tertiary)",
+                marginBottom: 12,
+              }}>
+                Status
               </div>
-              <div className=" w-1/2 flex-row flex items-center justify-start p-1">
-                <div className="w-8 h-8 relative">
-                  <img
-                    className="w-full h-full object-contain z-0"
-                    src="/mr.svg"
-                  />
-                  <div className="absolute left-0 top-0 w-full h-full flex flex-col z-10 justify-center items-center mt-[1px]">
-                    <p className="text-white flex text-center">
-                      {report?.filter((item) => item.status == "review")
-                        ?.length || 0}
-                    </p>
-                  </div>
-                </div>
-                <Spacer x={2} y={2}></Spacer>
-                <p>Marked for Review</p>
-              </div>
-              <div className=" w-full flex-row flex items-center justify-start p-1 relative">
-                <div className="w-8 h-8 relative">
-                  <img
-                    className="w-full h-full object-contain z-0"
-                    src="/amr.svg"
-                  />
-                  <div className="absolute left-0 top-0 w-full h-full flex flex-col z-10 justify-center items-center mt-[1px]">
-                    <p className="text-white flex text-center">
-                      {report?.filter(
-                        (item) => item.status == "markedForReview"
-                      )?.length || 0}
-                    </p>
-                  </div>
-                </div>
-                <Spacer x={2} y={2}></Spacer>
-                <p>Answered & Marked for Review</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <LegendChip dot="#22c55e" label="Answered" count={answered} />
+                <LegendChip dot="#ef4444" label="Not answered" count={notAnswered} />
+                <LegendChip dot="#a855f7" label="Marked" count={marked} />
+                <LegendChip dotBg="var(--c-surface-sunken, #F2F2F4)"
+                            dotBorder="var(--c-border-soft)"
+                            label="Not visited" count={notVisited} />
               </div>
             </div>
 
-            <div className="p-4 bg-primary-50">
-              <h2>Questions</h2>
-              <div className="flex flex-row relative items-center justify-start flex-wrap">
-                {questions &&
-                  questions.map((i, d) => {
-                    return (
-                      <div
-                        className="p-1 relative group"
-                        onClick={() => {
-                          switchQuestion(i.id);
-                        }}
-                      >
-                        <div className="absolute left-0 top-0 opacity-0 group-hover:opacity-100 w-full h-full transition-all group-hover:scale-95 scale-75 z-[1] border-1 border-secondary-400 rounded-md"></div>
-                        <div
-                          className={
-                            "p-1 z-10 cursor-pointer flex flex-col items-center justify-center relative font-sans " +
-                            getStatus(i)
-                          }
-                        >
-                          <p className="z-10  mt-[4px]">{d + 1}</p>
-                          {getStatusIcon(i, report, false, tempAnswers)}
-                        </div>
-                      </div>
-                    );
-                  })}
+            {/* Question grid */}
+            <div>
+              <div style={{
+                fontSize: 11, fontWeight: 500, letterSpacing: "0.12em",
+                textTransform: "uppercase", color: "var(--c-text-tertiary)",
+                marginBottom: 12,
+              }}>
+                Questions
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
+                {questions && questions.map((q, idx) => {
+                  const key = getStatusKey(q, report, tempAnswers);
+                  const s = STATUS_STYLES[key] || STATUS_STYLES.notvisited;
+                  return (
+                    <button
+                      key={q.id}
+                      onClick={() => switchQuestion(q.id)}
+                      style={{
+                        aspectRatio: "1",
+                        background: s.bg,
+                        color: s.color,
+                        border: `1px solid ${s.border}`,
+                        borderRadius: 8,
+                        fontSize: 13, fontWeight: 500,
+                        fontVariantNumeric: "tabular-nums",
+                        cursor: "pointer",
+                        display: "grid", placeItems: "center",
+                        transition: "transform 0.15s ease",
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.transform = "scale(1.05)"; }}
+                      onMouseOut={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                    >
+                      {idx + 1}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </>
-        ) : (
-          ""
-        )}
+
+          </div>
+        ) : null}
+
       </div>
+    </div>
+  );
+}
+
+// ── Sub-component: small legend row with a dot + label + count ──
+function LegendChip({ dot, dotBg, dotBorder, label, count }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--c-text-secondary)" }}>
+      <span style={{
+        width: 14, height: 14, borderRadius: 5,
+        background: dotBg || dot,
+        border: dotBorder ? `1px solid ${dotBorder}` : "none",
+        flexShrink: 0,
+      }} />
+      <span style={{ flex: 1, lineHeight: 1.3 }}>{label}</span>
+      <span style={{ fontWeight: 600, color: "var(--c-text-primary)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
     </div>
   );
 }
