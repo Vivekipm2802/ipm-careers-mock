@@ -772,51 +772,7 @@ const MockTest = ({
     }
     return " border-1 text-black border-gray-400 aspect-square w-12 flex flex-col items-center justify-center rounded-md from-white to-gray-200 bg-gradient-to-b";
   }
-  function getStatusIcon(a) {
-    if (
-      answered?.some((item) => item.id == a.id) &&
-      miscData
-        ?.filter((item) => item.status == "review")
-        .some((item) => item.id == a.id)
-    ) {
-      return (
-        <img
-          className=" z-0 absolute left-0 top-0 w-full h-full object-contain"
-          src="/amr.svg"
-        />
-      );
-    }
-
-    if (answered?.some((item) => item.id == a.id)) {
-      return (
-        <img
-          className=" z-0 absolute left-0 top-0 w-full h-full object-contain"
-          src="/sc.svg"
-        />
-      );
-    }
-    if (
-      miscData
-        ?.filter((item) => item.status == "review")
-        ?.some((item) => item.id == a.id)
-    ) {
-      return (
-        <img
-          className=" z-0 absolute left-0 top-0 w-full h-full object-contain"
-          src="/mr.svg"
-        />
-      );
-    }
-    if (miscData?.some((item) => item.id == a.id)) {
-      return (
-        <img
-          className=" -z-[10] absolute left-0 top-0 w-full h-full object-contain"
-          src="/na.svg"
-        />
-      );
-    }
-    return "";
-  }
+  // (Legacy getStatusIcon removed — pentagon SVG icons no longer used; status is rendered via CSS chips inside the sidebar.)
 
   if (userDetails == undefined) {
     return (
@@ -866,35 +822,62 @@ const MockTest = ({
 
   if (is_allowed == false && process.env.NODE_ENV != "development") {
     return (
-      <div className="flex flex-col w-full h-screen fixed left-0 top-0 justify-start  md:justify-center items-center p-0 md:p-8 bg-gray-50">
+      <div
+        className="flex flex-col w-full h-screen fixed left-0 top-0 justify-start md:justify-center items-center p-0 md:p-8"
+        style={{ background: "var(--c-bg)" }}
+      >
         <div className="w-full max-w-[800px]">
-          <div className="w-full h-auto overflow-hidden rounded-none md:rounded-xl shadow-md border-1 border-gray-300">
+          <div
+            className="w-full h-auto overflow-hidden rounded-none md:rounded-xl"
+            style={{ border: "1px solid var(--c-border-faint)" }}
+          >
             <img className="w-full h-full object-cover" src={data?.image} />
           </div>
-          <div className="w-full bg-white shadow-md rounded-xl p-2 my-2 text-center ">
-            <h3 className="text-xl font-semibold text-primary">
-              Test Date : {CtoLocal(data.start_time).date}{" "}
+          <div
+            className="w-full text-center my-2"
+            style={{
+              padding: 20,
+              borderRadius: 14,
+              background: "var(--c-surface)",
+              border: "1px solid var(--c-border-faint)",
+            }}
+          >
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em" }}>
+              Test Date: {CtoLocal(data.start_time).date}{" "}
               {CtoLocal(data.start_time).monthName}{" "}
-              {CtoLocal(data.start_time).year}{" "}
+              {CtoLocal(data.start_time).year}
             </h3>
-            <h3 className="text-xl font-semibold text-secondary">
-              Test Time : {CtoLocal(data.start_time).time}{" "}
-              {CtoLocal(data.start_time).amPm} Onwards
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--c-brand-primary)", letterSpacing: "-0.01em", marginTop: 4 }}>
+              Test Time: {CtoLocal(data.start_time).time}{" "}
+              {CtoLocal(data.start_time).amPm} onwards
             </h3>
             {data?.end_time && isExpired(data?.end_time) ? (
-              <>
-                <p className="p-2 rounded-xl mt-4 bg-red-50 border-1 border-red-300 text-red-600">
-                  Test Expired
-                </p>
-              </>
+              <p
+                className="mt-4"
+                style={{
+                  padding: "10px 16px", borderRadius: 12,
+                  background: "var(--c-danger-soft)",
+                  border: "1px solid var(--c-danger)",
+                  color: "var(--c-danger)", fontWeight: 500,
+                }}
+              >
+                Test Expired
+              </p>
             ) : (
               <>
-                <p className="text-sm my-2">
-                  Test is not unlocked yet ,<br /> Please check again later
-                  after the test start time
+                <p style={{ fontSize: 13, color: "var(--c-text-secondary)", margin: "12px 0", lineHeight: 1.55 }}>
+                  Test is not unlocked yet.<br /> Please check again after the test start time.
                 </p>
-                <p className="border-primary border-1 bg-primary-50 rounded-xl text-primary py-2 font-semibold">
-                  Remaining Time : {convertSeconds(remainingTime)}
+                <p
+                  style={{
+                    padding: "10px 16px", borderRadius: 12,
+                    background: "var(--c-brand-primary-tint)",
+                    border: "1px solid var(--c-brand-primary)",
+                    color: "var(--c-brand-primary)", fontWeight: 600,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  Remaining Time: {convertSeconds(remainingTime)}
                 </p>
               </>
             )}
@@ -1331,19 +1314,28 @@ const MockTest = ({
           </div>
           <div
             className={
-              "flex h-full flex-col w-full max-w-0 bg-white shadow-[-2px_-2px_12px_-6px_#6663] transition-all z-[20] ease-in-out duration-100 translate-x-full fixed right-0 top-0  lg:relative  lg:translate-x-0 " +
+              "flex h-full flex-col w-full max-w-0 transition-all z-[20] ease-in-out duration-100 translate-x-full fixed right-0 top-0 lg:relative lg:translate-x-0 " +
               (sideBarActive ? " !max-w-[400px] !translate-x-0" : "")
             }
+            style={{
+              background: "var(--c-surface)",
+              borderLeft: "1px solid var(--c-border-faint)",
+            }}
           >
             <div
-              className="bg-primary w-auto h-auto bottom-8 lg:hidden flex  absolute p-2 rounded-r-xl"
+              className="w-auto h-auto bottom-8 lg:hidden flex absolute p-2"
+              style={{
+                background: "var(--c-brand-primary)",
+                borderRadius: "0 12px 12px 0",
+                cursor: "pointer",
+              }}
               onClick={() => {
                 setSidebarActive(false);
               }}
             >
               <svg
-                width="24"
-                height="24"
+                width="18"
+                height="18"
                 fill="none"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
@@ -1360,17 +1352,64 @@ const MockTest = ({
               }
             >
               {gamestate == 0 ? (
-                <div className="p-4">
-                  <div className="p-4 rounded-xl border-1 border-gray-200 flex flex-row">
+                <div style={{ padding: 20 }}>
+                  <div
+                    style={{
+                      background: "var(--c-surface-muted, var(--c-bg))",
+                      border: "1px solid var(--c-border-faint)",
+                      borderRadius: 14,
+                      padding: 16,
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 16,
+                    }}
+                  >
                     <Avatar
                       src={userDetails?.user_metadata?.profile_pic || ""}
-                      className="w-32 h-32"
+                      fallback={(userDetails?.user_metadata?.full_name || "S").split(" ").filter(Boolean).slice(0,2).map((s)=>s[0]).join("").toUpperCase()}
+                      className="w-16 h-16"
                     ></Avatar>
-                    <div className="flex flex-col p-2 px-4">
-                      <h2 className="text-xl font-bold text-primary">
-                        {userDetails?.user_metadata?.full_name}
-                      </h2>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>
+                        Signed in as
+                      </div>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.015em", marginTop: 2 }}>
+                        {userDetails?.user_metadata?.full_name || "Student"}
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Test summary — matches Phase 7 preview side card */}
+                  <div style={{ height: 1, background: "var(--c-border-faint)", margin: "20px 0" }} />
+                  <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 14 }}>
+                    Test summary
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 13 }}>
+                    <span style={{ color: "var(--c-text-tertiary)" }}>Test name</span>
+                    <span style={{ color: "var(--c-text-primary)", fontWeight: 500 }}>{data?.[0]?.title || "—"}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 13 }}>
+                    <span style={{ color: "var(--c-text-tertiary)" }}>Total questions</span>
+                    <span style={{ color: "var(--c-text-primary)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                      {organized?.reduce((a, s) => a + (s.child?.length || 0), 0) || "—"}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 13 }}>
+                    <span style={{ color: "var(--c-text-tertiary)" }}>Sections</span>
+                    <span style={{ color: "var(--c-text-primary)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                      {organized?.length || "—"}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 13 }}>
+                    <span style={{ color: "var(--c-text-tertiary)" }}>Duration</span>
+                    <span style={{ color: "var(--c-text-primary)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                      {Math.floor((config?.config?.timeout || 0) / 60)} min
+                    </span>
+                  </div>
+                  <div style={{ height: 1, background: "var(--c-border-faint)", margin: "20px 0" }} />
+                  <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", lineHeight: 1.6 }}>
+                    Once you click &quot;I&apos;m ready to begin,&quot; the timer starts. You can&apos;t pause the test once it has started.
                   </div>
                 </div>
               ) : (

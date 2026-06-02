@@ -326,40 +326,49 @@ export default function MockTests({ enrolled = [], role = "user" }) {
         </ModalContent>
       </Modal>
       {tests != undefined ? (
-        <div className="pr-2 mt-4 overflow-hidden flex flex-col justify-start items-start flex-1 h-full  w-full text-left">
-          <h2 className="font-bold text-2xl text-primary">Mock Tests</h2>
+        <div className="pr-2 mt-4 overflow-hidden flex flex-col justify-start items-start flex-1 h-full w-full text-left">
+          <h2 style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-text-primary)" }}>Mock Tests</h2>
           <Spacer x={2}></Spacer>
           <div className="flex flex-row justify-start items-center">
-            <div className="flex flex-row p-2 rounded-xl bg-gray-200 text-sm items-center justify-start">
+            <div
+              className="flex flex-row text-sm items-center justify-start"
+              style={{
+                padding: 4,
+                borderRadius: 12,
+                background: "var(--c-surface-muted, var(--c-bg))",
+                border: "1px solid var(--c-border-faint)",
+                gap: 2,
+              }}
+            >
               <div
-                className={
-                  " rounded-xl p-2 font-sans font-medium " +
-                  (type == 0 ? "shadow-md bg-white" : "")
-                }
-                onClick={() => {
-                  setType(0);
+                style={{
+                  padding: "8px 14px", borderRadius: 8, cursor: "pointer",
+                  fontWeight: 500,
+                  background: type == 0 ? "var(--c-surface)" : "transparent",
+                  color: type == 0 ? "var(--c-text-primary)" : "var(--c-text-secondary)",
+                  boxShadow: type == 0 ? "0 1px 2px rgba(0,0,0,0.04)" : "none",
+                  border: type == 0 ? "1px solid var(--c-border-faint)" : "1px solid transparent",
+                  transition: "all 0.18s ease",
                 }}
+                onClick={() => { setType(0); }}
               >
                 By Category
               </div>
-              {isDemo ? (
-                ""
-              ) : (
-                <>
-                  {" "}
-                  <Spacer x={2}></Spacer>
-                  <div
-                    className={
-                      " rounded-xl p-2 font-sans font-medium " +
-                      (type == 1 ? "shadow-md bg-white" : "")
-                    }
-                    onClick={() => {
-                      setType(1);
-                    }}
-                  >
-                    By Courses
-                  </div>
-                </>
+              {isDemo ? "" : (
+                <div
+                  style={{
+                    padding: "8px 14px", borderRadius: 8, cursor: "pointer",
+                    fontWeight: 500,
+                    background: type == 1 ? "var(--c-surface)" : "transparent",
+                    color: type == 1 ? "var(--c-text-primary)" : "var(--c-text-secondary)",
+                    boxShadow: type == 1 ? "0 1px 2px rgba(0,0,0,0.04)" : "none",
+                    border: type == 1 ? "1px solid var(--c-border-faint)" : "1px solid transparent",
+                    transition: "all 0.18s ease",
+                  }}
+                  onClick={() => { setType(1); }}
+                >
+                  By Courses
+                </div>
               )}
             </div>
           </div>
@@ -391,17 +400,24 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                     <div className="w-full flex flex-row flex-shrink-0 scrollbar-hide overflow-x-auto items-center justify-start">
                       {categories &&
                         categories?.map((z, v) => {
+                          const isActive = v == activeCategory;
                           return (
                             <div
                               key={z.id}
-                              onClick={() => {
-                                setActiveCategory(v);
+                              onClick={() => { setActiveCategory(v); }}
+                              style={{
+                                flexShrink: 0,
+                                padding: "10px 14px",
+                                fontSize: 13, fontWeight: 500,
+                                cursor: "pointer",
+                                borderRadius: "10px 10px 0 0",
+                                margin: "0 1px",
+                                background: isActive ? "var(--c-brand-primary)" : "var(--c-surface-muted, var(--c-bg))",
+                                color: isActive ? "#fff" : "var(--c-text-secondary)",
+                                border: "1px solid var(--c-border-faint)",
+                                borderBottom: isActive ? "1px solid var(--c-brand-primary)" : "1px solid var(--c-border-faint)",
+                                transition: "all 0.18s ease",
                               }}
-                              className={
-                                "bg-gray-100 flex-shrink-0 px-3 cursor-pointer hover:brightness-90  p-2 text-sm rounded-t-lg  mx-[1px] " +
-                                (v == activeCategory &&
-                                  " !bg-gradient-purple text-white")
-                              }
                             >
                               {z?.title}
                             </div>
@@ -418,11 +434,21 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                             return (
                               <div
                                 key={z.id}
-                                className={
-                                  "bg-gray-100 flex flex-row flex-shrink-0 px-3 p-2 text-sm rounded-t-lg mx-[1px] pointer-events-none grayscale opacity-80 "
-                                }
+                                style={{
+                                  display: "flex", flexDirection: "row",
+                                  flexShrink: 0,
+                                  padding: "10px 14px",
+                                  fontSize: 13,
+                                  borderRadius: "10px 10px 0 0",
+                                  margin: "0 1px",
+                                  background: "var(--c-surface-muted, var(--c-bg))",
+                                  color: "var(--c-text-tertiary)",
+                                  border: "1px solid var(--c-border-faint)",
+                                  pointerEvents: "none",
+                                  opacity: 0.7,
+                                }}
                               >
-                                <Lock size={16} className="mr-2"></Lock>
+                                <Lock size={14} className="mr-2"></Lock>
                                 {z?.title}
                               </div>
                             );
@@ -434,10 +460,25 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                       exit={{ y: 10, opacity: 0 }}
                       animate={{ y: 0, opacity: 100 }}
                       transition={{ duration: 0.2, type: "tween" }}
-                      className="w-full p-3 border-1 bg-gray-50 rounded-b-xl overflow-y-auto"
+                      className="w-full overflow-y-auto"
+                      style={{
+                        padding: 14,
+                        background: "var(--c-surface)",
+                        border: "1px solid var(--c-border-faint)",
+                        borderRadius: "0 12px 12px 12px",
+                      }}
                     >
                       {allTests?.length == 0 && tests?.length == 0 ? (
-                        <div className="rounded-xl bg-white w-full border-gray-300 border-1 border-dashed text-gray-600 my-2 p-2 text-center ">
+                        <div
+                          className="w-full text-center my-2"
+                          style={{
+                            padding: 14, borderRadius: 12,
+                            background: "var(--c-surface-muted, var(--c-bg))",
+                            border: "1px dashed var(--c-border-soft)",
+                            color: "var(--c-text-tertiary)",
+                            fontSize: 13,
+                          }}
+                        >
                           No Test Found in this Category
                         </div>
                       ) : (
@@ -539,7 +580,16 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                               item.course == i.id ||
                               item.config?.courses?.includes(i.id),
                           ) == 0 ? (
-                            <div className="rounded-xl border-gray-300 border-1 border-dashed text-gray-600 my-2 p-2 text-center ">
+                            <div
+                              className="my-2 text-center"
+                              style={{
+                                padding: 14, borderRadius: 12,
+                                background: "var(--c-surface-muted, var(--c-bg))",
+                                border: "1px dashed var(--c-border-soft)",
+                                color: "var(--c-text-tertiary)",
+                                fontSize: 13,
+                              }}
+                            >
                               No Test Found in this Category
                             </div>
                           ) : (
@@ -602,30 +652,48 @@ const ListCard = ({
   const isHidden = !!i?.config?.hidden;
   return (
     <div
-      className={
-        "w-full bg-white rounded-md border-1 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1 " +
-        (isAdmin && isHidden
-          ? "border-orange-300 bg-orange-50"
-          : "border-gray-100")
-      }
+      className="w-full flex flex-row justify-between items-center my-1"
+      style={{
+        padding: "8px 10px",
+        borderRadius: 12,
+        background: isAdmin && isHidden ? "var(--c-warning-soft)" : "var(--c-surface)",
+        border: `1px solid ${isAdmin && isHidden ? "var(--c-warning)" : "var(--c-border-faint)"}`,
+        transition: "all 0.18s ease",
+      }}
     >
-      <div className="w-[70px] flex flex-col items-center justify-center aspect-square rounded-lg bg-gray-50">
-        <p className="text-xl text-primary font-bold">
+      <div
+        style={{
+          width: 64, height: 64,
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          borderRadius: 10,
+          background: "var(--c-surface-muted, var(--c-bg))",
+          border: "1px solid var(--c-border-faint)",
+          flexShrink: 0,
+        }}
+      >
+        <p style={{ fontSize: 18, fontWeight: 700, color: "var(--c-brand-primary)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
           {CtoLocal(i?.start_time)?.date}
         </p>
-        <p className="text-xs">{CtoLocal(i?.start_time)?.monthName}</p>
+        <p style={{ fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          {CtoLocal(i?.start_time)?.monthName}
+        </p>
       </div>
       <Spacer x={2}></Spacer>
       <div className="flex flex-col items-start justify-start flex-1 text-left">
         <div className="flex flex-row items-center gap-2">
-          <p className="font-semibold text-primary">{i?.title}</p>
+          <p style={{ fontWeight: 600, color: "var(--c-text-primary)", fontSize: 15, letterSpacing: "-0.01em" }}>{i?.title}</p>
           {isAdmin && isHidden && (
-            <span className="text-[10px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded font-medium">
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: "2px 6px",
+              borderRadius: 4, background: "var(--c-warning-soft)", color: "var(--c-warning)",
+              letterSpacing: "0.04em",
+            }}>
               HIDDEN
             </span>
           )}
         </div>
-        <p className="text-sm text-gray-500">{i?.description}</p>
+        <p style={{ fontSize: 13, color: "var(--c-text-tertiary)", marginTop: 2 }}>{i?.description}</p>
       </div>
       <div className="flex flex-row pr-2 gap-2">
         {isAdmin && onToggleVisibility && (
@@ -709,7 +777,7 @@ const ListCard = ({
                     );
                   } else if (isBefore(now, availableFrom)) {
                     return (
-                      <span className="ml-2 text-sm text-gray-500">
+                      <span className="ml-2 text-sm" style={{ color: "var(--c-text-tertiary)" }}>
                         Available from {format(startTime, "MMM dd, yyyy")}
                       </span>
                     );
@@ -718,7 +786,7 @@ const ListCard = ({
                     isAfter(now, endOfDay(parseISO(i.end_time)))
                   ) {
                     return (
-                      <span className="ml-2 text-sm text-gray-500">
+                      <span className="ml-2 text-sm" style={{ color: "var(--c-text-tertiary)" }}>
                         Test time has passed
                       </span>
                     );
