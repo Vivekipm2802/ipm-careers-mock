@@ -928,9 +928,8 @@ const MockTest = ({
         <div className="flex-1 p-0 flex flex-row justify-start items-stretch flex-nowrap overflow-hidden">
           <div className="flex flex-col items-start justify-start h-full flex-1 relative overflow-hidden">
             {gamestate === 1 ? (
-              <div className=" flex-col w-full px-6 py-2 hidden md:flex">
-                <div>Sections</div>
-                <Divider></Divider>
+              <div className=" flex-col w-full px-6 py-2 hidden md:flex" style={{ background: "var(--c-surface)", borderBottom: "1px solid var(--c-border-faint)" }}>
+                <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 8 }}>Sections</div>
                 <div className="w-full h-auto relative">
                   <ScrollShadow
                     ref={scrollRef}
@@ -956,7 +955,7 @@ const MockTest = ({
                                   );
                             }}
                             className={
-                              "text-sm mx-1 my-1 px-4 py-2 rounded-xl bg-gray-50 cursor-pointer hover:border-primary border-transparent border-1 shadow-md flex-shrink-0 " +
+                              "text-sm mx-1 my-1 px-4 py-2 rounded-full cursor-pointer flex-shrink-0 transition-all border-1 " +
                               (currentSection == d
                                 ? "bg-primary text-white "
                                 : "")
@@ -1243,90 +1242,48 @@ const MockTest = ({
 
               {gamestate == 1 ? (
                 <>
-                  <div className="p-4 font-sans flex flex-row flex-wrap text-xs w-full">
+                  <div className="font-sans flex flex-row flex-wrap text-xs w-full" style={{ padding: 16, color: "var(--c-text-secondary)" }}>
                     <div className=" w-1/2 flex-row flex items-center justify-start p-1">
-                      <div className="w-8 h-8 relative">
-                        <img
-                          className="w-full h-full object-contain z-0"
-                          src="/sc.svg"
-                        />
-                        <div className="absolute left-0 top-0 w-full h-full flex flex-col z-10 justify-center items-center mt-[1px]">
-                          <p className="text-white flex text-center">
-                            {answered?.length || 0}
-                          </p>
-                        </div>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: "#22c55e", color: "#fff", display: "grid", placeItems: "center", fontWeight: 600, fontSize: 13 }}>
+                        {answered?.length || 0}
                       </div>
                       <Spacer x={2} y={2}></Spacer>
                       <p>Answered</p>
                     </div>
                     <div className=" w-1/2 flex-row flex items-center justify-start p-1">
-                      <div className="w-8 h-8 relative">
-                        <img
-                          className="w-full h-full object-contain z-0"
-                          src="/na.svg"
-                        />
-                        <div className="absolute left-0 top-0 w-full h-full flex flex-col z-10 justify-center items-center mt-[1px]">
-                          <p className="text-white flex text-center">
-                            {(miscData?.length || 0) - (answered?.length || 0)}
-                          </p>
-                        </div>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: "#ef4444", color: "#fff", display: "grid", placeItems: "center", fontWeight: 600, fontSize: 13 }}>
+                        {(miscData?.length || 0) - (answered?.length || 0)}
                       </div>
                       <Spacer x={2} y={2}></Spacer>
                       <p>Not Answered</p>
                     </div>
                     <div className=" w-1/2 flex-row flex items-center justify-start p-1">
-                      <div className="w-8 h-8 relative">
-                        <div className="w-8 h-8 object-contain border-1 text-black border-gray-400 aspect-square flex flex-col items-center justify-center rounded-md from-white to-gray-200 bg-gradient-to-b" />
-                        <div className="absolute left-0 top-0 w-full h-full flex flex-col z-10 justify-center items-center mt-[1px]">
-                          <p className="text-black flex text-center">
-                            {questions?.length - (miscData?.length || 0)}
-                          </p>
-                        </div>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--c-bg)", color: "var(--c-text-secondary)", border: "1px solid var(--c-border-soft)", display: "grid", placeItems: "center", fontWeight: 600, fontSize: 13 }}>
+                        {questions?.length - (miscData?.length || 0)}
                       </div>
 
                       <Spacer x={2} y={2}></Spacer>
                       <p>Not Visited</p>
                     </div>
                     <div className=" w-1/2 flex-row flex items-center justify-start p-1">
-                      <div className="w-8 h-8 relative">
-                        <img
-                          className="w-full h-full object-contain z-0"
-                          src="/mr.svg"
-                        />
-                        <div className="absolute left-0 top-0 w-full h-full flex flex-col z-10 justify-center items-center mt-[1px]">
-                          <p className="text-white flex text-center">
-                            {miscData?.filter((item) => item.status == "review")
-                              ?.length || 0}
-                          </p>
-                        </div>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: "#a855f7", color: "#fff", display: "grid", placeItems: "center", fontWeight: 600, fontSize: 13 }}>
+                        {miscData?.filter((item) => item.status == "review")?.length || 0}
                       </div>
                       <Spacer x={2} y={2}></Spacer>
                       <p>Marked for Review</p>
                     </div>
                     <div className=" w-full flex-row flex items-center justify-start p-1 relative">
-                      <div className="w-8 h-8 relative">
-                        <img
-                          className="w-full h-full object-contain z-0"
-                          src="/amr.svg"
-                        />
-                        <div className="absolute left-0 top-0 w-full h-full flex flex-col z-10 justify-center items-center mt-[1px]">
-                          <p className="text-white flex text-center">
-                            {miscData?.filter((item1) =>
-                              answered
-                                ?.map((item2) => item2.id)
-                                .includes(item1.id),
-                            )?.length || 0}
-                          </p>
-                        </div>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: "#22c55e", border: "2px solid #a855f7", color: "#fff", display: "grid", placeItems: "center", fontWeight: 600, fontSize: 13 }}>
+                        {miscData?.filter((item1) => answered?.map((item2) => item2.id).includes(item1.id))?.length || 0}
                       </div>
                       <Spacer x={2} y={2}></Spacer>
                       <p>Answered & Marked for Review</p>
                     </div>
                   </div>
-                  <div className="bg-primary text-xs px-6 p-4 text-white">
+                  <div style={{ padding: "12px 24px", background: "var(--c-bg)", color: "var(--c-text-secondary)", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", borderTop: "1px solid var(--c-border-faint)", borderBottom: "1px solid var(--c-border-faint)" }}>
                     {organized[currentSection]?.title}
                   </div>
-                  <div className="p-4 bg-primary-50">
+                  <div className="p-4" style={{ background: "var(--c-bg)" }}>
                     {config?.config?.switch_questions == true ? (
                       <h2>Choose a Question</h2>
                     ) : (
@@ -1336,35 +1293,27 @@ const MockTest = ({
                       {organized &&
                         organized[currentSection]?.child.map((i, d) => {
                           return (
-                            <div
-                              className="p-1 relative group"
+                            <button
+                              key={i.id}
                               onClick={() => {
                                 (config?.config?.switch_questions ?? false)
-                                  ? (setCurrentQ(
-                                      questions.findIndex(
-                                        (item) => item.id == i.id,
-                                      ),
-                                    ),
-                                    addMiscItem({
-                                      id: i.id,
-                                      status: "pending",
-                                    }))
-                                  : toast.error(
-                                      "You cannot switch question in this test.",
-                                    );
+                                  ? (setCurrentQ(questions.findIndex((item) => item.id == i.id)), addMiscItem({ id: i.id, status: "pending" }))
+                                  : toast.error("You cannot switch question in this test.");
                               }}
+                              style={(function(){
+                                const isAns = answered?.some((a) => a.id == i.id);
+                                const isMk = miscData?.filter((m) => m.status == "review").some((m) => m.id == i.id);
+                                const isVis = miscData?.some((m) => m.id == i.id);
+                                let bg = "var(--c-bg)", col = "var(--c-text-secondary)", bd = "var(--c-border-soft)";
+                                if (isAns && isMk) { bg = "#22c55e"; col = "#fff"; bd = "#a855f7"; }
+                                else if (isAns) { bg = "#22c55e"; col = "#fff"; bd = "#16a34a"; }
+                                else if (isMk) { bg = "#a855f7"; col = "#fff"; bd = "#9333ea"; }
+                                else if (isVis) { bg = "#ef4444"; col = "#fff"; bd = "#dc2626"; }
+                                return { width: 40, height: 40, margin: 4, background: bg, color: col, border: "1px solid " + bd, borderRadius: 8, fontSize: 13, fontWeight: 500, fontVariantNumeric: "tabular-nums", cursor: "pointer", display: "grid", placeItems: "center", fontFamily: "inherit" };
+                              })()}
                             >
-                              <div className="absolute left-0 top-0 opacity-0 group-hover:opacity-100 w-full h-full transition-all group-hover:scale-95 scale-75 z-[1] border-1 border-secondary-400 rounded-md"></div>
-                              <div
-                                className={
-                                  "p-1 z-10 cursor-pointer flex flex-col items-center justify-center relative font-sans " +
-                                  getStatus(i)
-                                }
-                              >
-                                <p className="z-10  mt-[4px]">{d + 1}</p>
-                                {getStatusIcon(i)}
-                              </div>
-                            </div>
+                              {d + 1}
+                            </button>
                           );
                         })}
                     </div>
