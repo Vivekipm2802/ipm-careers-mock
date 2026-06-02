@@ -1075,38 +1075,31 @@ const MockTest = ({
                           A quick walkthrough so you know exactly what to expect inside the test. You can switch sections, mark questions for review, and revisit anything you skipped.
                         </p>
 
-                        {config?.config?.instructions ? (
-                          <div
-                            className="qcontent"
-                            style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--c-text-primary)" }}
-                            dangerouslySetInnerHTML={{ __html: config.config.instructions }}
-                          />
-                        ) : (
-                          <>
-                            <InsSection num={1} title="General instructions" />
-                            <ol className="ins-list">
-                              <li>The test contains <b>{organized?.reduce((a, s) => a + (s.child?.length || 0), 0) || "multiple"} questions</b> across <b>{organized?.length || "multiple"} section(s)</b>.</li>
-                              <li>Total time for this test is <b>{Math.floor((config?.config?.timeout || 0) / 60)} minutes</b>.</li>
-                              <li>The clock will be set at the top of your screen. The countdown timer will display the remaining time available for you to complete the test.</li>
-                              <li>When the timer reaches zero, the test will end automatically and your answers will be submitted.</li>
-                              <li>The question palette on the right side of the screen will show the status of each question.</li>
-                            </ol>
+                        {/* Phase 7.2: always render new JSX. Legacy admin HTML override
+                            (config.config.instructions) contained pentagon SVG <img> tags + hardcoded
+                            light-mode styles that broke dark mode — ignored on purpose. */}
+                        <InsSection num={1} title="General instructions" />
+                        <ol className="ins-list">
+                          <li>The test contains <b>{organized?.reduce((a, s) => a + (s.child?.length || 0), 0) || "multiple"} questions</b> across <b>{organized?.length || "multiple"} section(s)</b>.</li>
+                          <li>Total time for this test is <b>{Math.floor((config?.config?.timeout || 0) / 60)} minutes</b>.</li>
+                          <li>The clock will be set at the top of your screen. The countdown timer will display the remaining time available for you to complete the test.</li>
+                          <li>When the timer reaches zero, the test will end automatically and your answers will be submitted.</li>
+                          <li>The question palette on the right side of the screen will show the status of each question.</li>
+                        </ol>
 
-                            <InsSection num={2} title="Question types" />
-                            <ol className="ins-list">
-                              <li><b>MCQ (Multiple Choice Questions):</b> Select one option from the given choices.</li>
-                              <li><b>SA (Short Answer):</b> Type your numerical answer in the input box provided.</li>
-                            </ol>
+                        <InsSection num={2} title="Question types" />
+                        <ol className="ins-list">
+                          <li><b>MCQ (Multiple Choice Questions):</b> Select one option from the given choices.</li>
+                          <li><b>SA (Short Answer):</b> Type your numerical answer in the input box provided.</li>
+                        </ol>
 
-                            <InsSection num={3} title="Navigation" />
-                            <ol className="ins-list">
-                              <li>Click on the question number in the palette to go to that question directly.</li>
-                              <li>Use the <b>Next</b> and <b>Previous</b> buttons to navigate between questions.</li>
-                              <li>Click on the section names at the top to switch between sections.</li>
-                              <li>You can mark a question for <b>review</b> using the Mark for review button.</li>
-                            </ol>
-                          </>
-                        )}
+                        <InsSection num={3} title="Navigation" />
+                        <ol className="ins-list">
+                          <li>Click on the question number in the palette to go to that question directly.</li>
+                          <li>Use the <b>Next</b> and <b>Previous</b> buttons to navigate between questions.</li>
+                          <li>Click on the section names at the top to switch between sections.</li>
+                          <li>You can mark a question for <b>review</b> using the Mark for review button.</li>
+                        </ol>
                       </>
                     ) : ("")}
 
@@ -1127,59 +1120,52 @@ const MockTest = ({
                           How you&apos;ll be scored and how to read the question palette on the right.
                         </p>
 
-                        {config?.config?.instructions2 ? (
-                          <div
-                            className="qcontent"
-                            style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--c-text-primary)" }}
-                            dangerouslySetInnerHTML={{ __html: config.config.instructions2 }}
-                          />
-                        ) : (
-                          <>
-                            <InsSection num={1} title="Marking scheme" />
-                            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, margin: "4px 0 8px", border: "1px solid var(--c-border-faint)", borderRadius: 12, overflow: "hidden", fontSize: 13.5 }}>
-                              <thead>
-                                <tr>
-                                  <th style={insTh}>Question type</th>
-                                  <th style={{ ...insTh, textAlign: "center" }}>Correct</th>
-                                  <th style={{ ...insTh, textAlign: "center" }}>Wrong</th>
-                                  <th style={{ ...insTh, textAlign: "center" }}>Unanswered</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                <tr>
-                                  <td style={{ ...insTd, color: "var(--c-text-primary)", fontWeight: 500 }}>MCQ</td>
-                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+4</td>
-                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-danger)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>−1</td>
-                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
-                                </tr>
-                                <tr>
-                                  <td style={{ ...insTd, color: "var(--c-text-primary)", fontWeight: 500 }}>Short Answer</td>
-                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+4</td>
-                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
-                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
-                                </tr>
-                              </tbody>
-                            </table>
+                        {/* Phase 7.2: always render new JSX. Legacy admin HTML override
+                            (config.config.instructions2) was empty/whitespace for most tests, which
+                            left this page blank in dark mode — ignored on purpose. */}
+                        <InsSection num={1} title="Marking scheme" />
+                        <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, margin: "4px 0 8px", border: "1px solid var(--c-border-faint)", borderRadius: 12, overflow: "hidden", fontSize: 13.5 }}>
+                          <thead>
+                            <tr>
+                              <th style={insTh}>Question type</th>
+                              <th style={{ ...insTh, textAlign: "center" }}>Correct</th>
+                              <th style={{ ...insTh, textAlign: "center" }}>Wrong</th>
+                              <th style={{ ...insTh, textAlign: "center" }}>Unanswered</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td style={{ ...insTd, color: "var(--c-text-primary)", fontWeight: 500 }}>MCQ</td>
+                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+4</td>
+                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-danger)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>−1</td>
+                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
+                            </tr>
+                            <tr>
+                              <td style={{ ...insTd, color: "var(--c-text-primary)", fontWeight: 500 }}>Short Answer</td>
+                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+4</td>
+                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
+                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
+                            </tr>
+                          </tbody>
+                        </table>
 
-                            <InsSection num={2} title="Question palette legend" />
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", margin: "8px 0 4px" }}>
-                              <LegendCard color="gray" title="Not visited" sub="Not opened yet" />
-                              <LegendCard color="#ef4444" title="Not answered" sub="Visited, no answer" />
-                              <LegendCard color="#22c55e" title="Answered" sub="Saved with an answer" />
-                              <LegendCard color="#a855f7" title="Marked for review" sub="Want to revisit later" />
-                              <div style={{ gridColumn: "span 2" }}>
-                                <LegendCard color="#22c55e" border="#a855f7" title="Answered & marked" sub="Saved but you'd like to revisit if time permits" />
-                              </div>
-                            </div>
+                        <InsSection num={2} title="Question palette legend" />
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", margin: "8px 0 4px" }}>
+                          <LegendCard color="gray" title="Not visited" sub="Not opened yet" />
+                          <LegendCard color="#ef4444" title="Not answered" sub="Visited, no answer" />
+                          <LegendCard color="#22c55e" title="Answered" sub="Saved with an answer" />
+                          <LegendCard color="#a855f7" title="Marked for review" sub="Want to revisit later" />
+                          <div style={{ gridColumn: "span 2" }}>
+                            <LegendCard color="#22c55e" border="#a855f7" title="Answered & marked" sub="Saved but you'd like to revisit if time permits" />
+                          </div>
+                        </div>
 
-                            <InsSection num={3} title="Important notes" />
-                            <ol className="ins-list">
-                              <li>Ensure you have a stable internet connection throughout the test.</li>
-                              <li>Do not refresh the page during the test.</li>
-                              <li>Click the <b>Submit</b> button when you&apos;re done. You&apos;ll be redirected to your results page.</li>
-                            </ol>
-                          </>
-                        )}
+                        <InsSection num={3} title="Important notes" />
+                        <ol className="ins-list">
+                          <li>Ensure you have a stable internet connection throughout the test.</li>
+                          <li>Do not refresh the page during the test.</li>
+                          <li>Click the <b>Submit</b> button when you&apos;re done. You&apos;ll be redirected to your results page.</li>
+                        </ol>
                       </>
                     ) : ("")}
                   </div>
