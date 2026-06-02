@@ -27,6 +27,9 @@ export default function FooterMock({ state, isLoading, onNext, onInstruct, onPre
     gap: 6,
     transition: "all 0.18s cubic-bezier(0.32, 0.72, 0, 1)",
     border: "1px solid transparent",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+    fontFamily: "inherit",
   };
   const ghostBtn = { ...btnBase, background: "transparent", color: "var(--c-text-secondary)", borderColor: "var(--c-border-soft)" };
   const secondaryBtn = { ...btnBase, background: "var(--c-surface-sunken, var(--c-surface-muted))", color: "var(--c-text-primary)", borderColor: "var(--c-border-soft)" };
@@ -53,28 +56,38 @@ export default function FooterMock({ state, isLoading, onNext, onInstruct, onPre
               </button>
             )}
             {index == 1 && (
-              <>
-                <div className="flex flex-row items-center justify-start text-xs" style={{ color: "var(--c-text-secondary)", lineHeight: 1.5 }}>
+              <div className="flex flex-row items-center w-full" style={{ gap: 12 }}>
+                <div
+                  className="flex flex-row items-center text-xs"
+                  style={{
+                    flex: "1 1 auto",
+                    minWidth: 0,
+                    color: "var(--c-text-secondary)",
+                    lineHeight: 1.5,
+                  }}
+                >
                   <Checkbox
                     size="md" color="success"
                     className="rounded-xl mx-2"
                     isSelected={checked}
                     onValueChange={(e) => setChecked(e)}
                   />
-                  I have read and understood the instructions. All computer hardware allotted to me are in proper working condition. I declare that I am not in possession of /not wearing /not carrying any prohibited gadget like mobile phone, bluetooth devices etc. /any prohibited material with me into the Examination Hall. I agree that in case of not adhering to the instructions, I shall be liable to be debarred from this Test and/or to a disciplinary action, which may include ban from future Tests/Examinations.
+                  <span style={{ flex: 1 }}>
+                    I have read and understood the instructions. All computer hardware allotted to me are in proper working condition. I declare that I am not in possession of /not wearing /not carrying any prohibited gadget like mobile phone, bluetooth devices etc. /any prohibited material with me into the Examination Hall. I agree that in case of not adhering to the instructions, I shall be liable to be debarred from this Test and/or to a disciplinary action, which may include ban from future Tests/Examinations.
+                  </span>
                 </div>
-                <Spacer y={1} x={1} />
-                <button onClick={() => onInstruct(0)} style={{ ...ghostBtn, marginRight: 8 }}>
-                  <ArrowLeft size={14} /> Back
-                </button>
-                <Spacer y={2} x={1} />
-                <button
-                  onClick={() => { checked == true ? onStart() : toast.error("Please accept the terms before starting."); }}
-                  style={primaryBtn}
-                >
-                  I'm ready to begin <ArrowRight size={14} />
-                </button>
-              </>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  <button onClick={() => onInstruct(0)} style={ghostBtn}>
+                    <ArrowLeft size={14} /> Back
+                  </button>
+                  <button
+                    onClick={() => { checked == true ? onStart() : toast.error("Please accept the terms before starting."); }}
+                    style={primaryBtn}
+                  >
+                    I&apos;m ready to begin <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}
