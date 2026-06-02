@@ -461,62 +461,110 @@ const Game = () => {
           ></iframe>
         )}
       </DraggableModal>
-      <div className="bg-white shadow-md overflow-hidden w-full h-full lg:p-0 flex flex-row items-start justify-start">
+      <div style={{ background: "var(--c-bg)" }} className="overflow-hidden w-full h-full lg:p-0 flex flex-row items-start justify-start">
         {gamestate == 0 ? (
           <>
-            <div className="w-full h-full overflow-y-auto flex flex-col text-center justify-start items-center align-middle">
-              <div className="flex-1 p-3 sm:p-6 w-full flex flex-col items-start justify-start">
-                <h2 className="font-bold gradtext text-3xl sm:text-4xl">
-                  Hi , {userDetails.user_metadata.full_name}
-                </h2>
-                {parentData?.description && (
-                  <div className="border-1 w-full shadow-md p-4 flex flex-col items-start justify-start rounded-xl mt-4">
-                    <p className="gradtext font-bold text-2xl">
-                      Test Description :
-                    </p>
-                    <Spacer y={2}></Spacer>
-                    <div
-                      className="text-left font-sans text-xs sm:text-sm"
-                      dangerouslySetInnerHTML={{
-                        __html: parentData?.description,
-                      }}
-                    ></div>
+            <div className="w-full h-full overflow-y-auto flex flex-col justify-start items-stretch">
+              <div style={{ background: "var(--c-bg)", padding: "32px 40px 24px", flex: 1 }}>
+                <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "left" }}>
+
+                  {/* Eyebrow */}
+                  <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
+                    Before you begin
                   </div>
-                )}
-                {parentData?.objective && (
-                  <div className="border-1 w-full shadow-md p-4 flex flex-col items-start justify-start rounded-xl mt-4">
-                    <p className="gradtext font-bold text-2xl">
-                      Test Objective :
-                    </p>
-                    <Spacer y={2}></Spacer>
-                    <ScrollShadow
-                      className="text-left font-sans text-xs sm:text-sm max-h-[20vh] sm:max-h-[unset]"
-                      dangerouslySetInnerHTML={{
-                        __html: parentData?.objective,
-                      }}
-                    ></ScrollShadow>
-                  </div>
-                )}
+
+                  {/* Page title with serif accent */}
+                  <h1 style={{ margin: "0 0 10px", fontSize: 32, fontWeight: 600, letterSpacing: "-0.022em", color: "var(--c-text-primary)", lineHeight: 1.15 }}>
+                    Hi{" "}
+                    <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                      {userDetails?.user_metadata?.full_name?.split(" ")[0] || "there"}
+                    </span>
+                    , let&apos;s begin.
+                  </h1>
+                  <p style={{ fontSize: 15, lineHeight: 1.55, color: "var(--c-text-secondary)", margin: "0 0 28px", maxWidth: "56ch" }}>
+                    A quick look at what this test covers before you dive in. You can mark questions for review, switch between them, and revisit anything you skipped.
+                  </p>
+
+                  {/* Description card */}
+                  {parentData?.description && (
+                    <div style={{
+                      background: "var(--c-surface)",
+                      border: "1px solid var(--c-border-faint)",
+                      borderRadius: 16,
+                      padding: "20px 24px",
+                      marginBottom: 16,
+                    }}>
+                      <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
+                        Test description
+                      </div>
+                      <div
+                        className="qcontent"
+                        style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--c-text-primary)" }}
+                        dangerouslySetInnerHTML={{ __html: parentData.description }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Objective card */}
+                  {parentData?.objective && (
+                    <div style={{
+                      background: "var(--c-surface)",
+                      border: "1px solid var(--c-border-faint)",
+                      borderRadius: 16,
+                      padding: "20px 24px",
+                      marginBottom: 16,
+                    }}>
+                      <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
+                        Test objective
+                      </div>
+                      <ScrollShadow
+                        className="qcontent"
+                        style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--c-text-primary)", maxHeight: "30vh" }}
+                        dangerouslySetInnerHTML={{ __html: parentData.objective }}
+                      />
+                    </div>
+                  )}
+
+                </div>
               </div>
-              <div className="mt-auto sticky bottom-0 w-full bg-gray-50 p-4">
-                <Button
-                  color="default"
-                  className="mr-2 px-5 sf"
-                  onClick={() => {
-                    router.push("/");
+
+              {/* Sticky action bar */}
+              <div
+                className="sticky bottom-0 w-full"
+                style={{
+                  background: "var(--c-surface)",
+                  borderTop: "1px solid var(--c-border-faint)",
+                  padding: "14px 28px",
+                  display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10,
+                }}
+              >
+                <button
+                  onClick={() => { router.push("/"); }}
+                  style={{
+                    height: 40, padding: "0 18px", borderRadius: 999,
+                    background: "transparent",
+                    color: "var(--c-text-secondary)",
+                    border: "1px solid var(--c-border-soft)",
+                    fontSize: 13.5, fontWeight: 500,
+                    cursor: "pointer", fontFamily: "inherit",
                   }}
                 >
-                  Go Back
-                </Button>
-                <Button
-                  color="primary"
-                  className="px-5 sf from-secondary to-yellow-300 bg-gradient-to-t border-1 shadow-md shadow-yellow-400"
-                  onClick={() => {
-                    setGameState(1);
+                  Go back
+                </button>
+                <button
+                  onClick={() => { setGameState(1); }}
+                  style={{
+                    height: 40, padding: "0 18px", borderRadius: 999,
+                    background: "var(--c-brand-primary)",
+                    color: "#fff",
+                    border: "1px solid transparent",
+                    fontSize: 13.5, fontWeight: 500,
+                    cursor: "pointer", fontFamily: "inherit",
+                    display: "inline-flex", alignItems: "center", gap: 6,
                   }}
                 >
-                  Start Test
-                </Button>
+                  I&apos;m ready to begin →
+                </button>
               </div>
             </div>
           </>

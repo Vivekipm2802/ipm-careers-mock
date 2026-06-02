@@ -237,6 +237,57 @@ const QuestionCard = ({ answered, question, onSelect, index }) => {
   );
 };
 
+// ── Phase 7: instructions screen helpers ──
+const insTh = {
+  background: "var(--c-surface-muted, var(--c-bg))",
+  color: "var(--c-text-tertiary)",
+  fontSize: 11, fontWeight: 500, letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  textAlign: "left", padding: "12px 16px",
+};
+const insTd = {
+  padding: "14px 16px",
+  borderTop: "1px solid var(--c-border-faint)",
+  color: "var(--c-text-secondary)",
+};
+function InsSection({ num, title }) {
+  return (
+    <h3 style={{ margin: "28px 0 12px", fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", color: "var(--c-text-primary)", display: "flex", alignItems: "center", gap: 10 }}>
+      <span style={{
+        width: 22, height: 22, borderRadius: 6,
+        background: "var(--c-brand-primary-tint)",
+        color: "var(--c-brand-primary)",
+        display: "grid", placeItems: "center",
+        fontSize: 11, fontWeight: 700,
+      }}>{num}</span>
+      {title}
+    </h3>
+  );
+}
+function LegendCard({ color, border, title, sub }) {
+  const isGray = color === "gray";
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "10px 12px",
+      background: "var(--c-surface-muted, var(--c-bg))",
+      borderRadius: 10,
+      border: "1px solid var(--c-border-faint)",
+      fontSize: 13, color: "var(--c-text-secondary)",
+    }}>
+      <span style={{
+        width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+        background: isGray ? "var(--c-surface-sunken, var(--c-surface-muted))" : color,
+        border: isGray ? "1px solid var(--c-border-soft)" : (border ? `2px solid ${border}` : "none"),
+      }} />
+      <span style={{ lineHeight: 1.4 }}>
+        <b style={{ color: "var(--c-text-primary)", fontWeight: 600 }}>{title}</b><br />
+        {sub}
+      </span>
+    </div>
+  );
+}
+
 const MockTest = ({
   config,
   is_allowed,
@@ -997,96 +1048,182 @@ const MockTest = ({
 
             <div className="flex flex-col flex-1 overflow-hidden w-full md:pb-0 pb-24">
               {gamestate == 0 ? (
-                <div className="p-6">
-                  {insindex == 0 ? (
-                    <>
-                      <h2 className="font-bold text-xl text-primary">
-                        Instructions
-                      </h2>
-                      <div
-                        className="text-xs font-sans overflow-y-auto max-h-[70vh]"
-                        dangerouslySetInnerHTML={{
-                          __html:
-                            config?.config?.instructions ||
-                            `
-                            <div style="font-size:13px; line-height:1.8;">
-                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin-bottom:8px;">General Instructions</h3>
-                              <ol style="padding-left:20px;">
-                                <li>The test contains <b>${organized?.reduce((a, s) => a + (s.child?.length || 0), 0) || "multiple"} questions</b> across <b>${organized?.length || "multiple"} section(s)</b>.</li>
-                                <li>Total time for this test is <b>${Math.floor((config?.config?.timeout || 0) / 60)} minutes</b>.</li>
-                                <li>The clock will be set at the right top corner of your screen. The countdown timer will display the remaining time available for you to complete the test.</li>
-                                <li>When the timer reaches zero, the test will end automatically and your answers will be submitted.</li>
-                                <li>The Question Palette displayed on the right side of the screen will show the status of each question.</li>
-                              </ol>
-                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin:12px 0 8px;">Question Types</h3>
-                              <ol style="padding-left:20px;">
-                                <li><b>MCQ (Multiple Choice Questions):</b> Select one option from the given choices.</li>
-                                <li><b>SA (Short Answer):</b> Type your numerical answer in the input box provided.</li>
-                              </ol>
-                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin:12px 0 8px;">Navigation</h3>
-                              <ol style="padding-left:20px;">
-                                <li>Click on the question number in the palette to go to that question directly.</li>
-                                <li>Use <b>Next</b> and <b>Previous</b> buttons to navigate between questions.</li>
-                                <li>Click on the section names at the top to switch between sections.</li>
-                                <li>You can mark a question for <b>Review</b> using the Mark for Review button.</li>
-                              </ol>
-                            </div>`,
-                        }}
-                      ></div>
-                    </>
-                  ) : (
-                    ""
-                  )}
-                  {insindex == 1 ? (
-                    <>
-                      <div
-                        className="text-xs font-sans overflow-y-auto max-h-[70vh]"
-                        dangerouslySetInnerHTML={{
-                          __html:
-                            config?.config?.instructions2 ||
-                            `
-                            <div style="font-size:13px; line-height:1.8;">
-                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin-bottom:8px;">Marking Scheme</h3>
-                              <table style="border-collapse:collapse; width:100%; margin-bottom:12px;">
-                                <tr style="background:#f3e8ff;">
-                                  <th style="border:1px solid #d8b4fe; padding:8px; text-align:left;">Question Type</th>
-                                  <th style="border:1px solid #d8b4fe; padding:8px; text-align:center;">Correct Answer</th>
-                                  <th style="border:1px solid #d8b4fe; padding:8px; text-align:center;">Wrong Answer</th>
-                                  <th style="border:1px solid #d8b4fe; padding:8px; text-align:center;">Unanswered</th>
+                <div style={{ background: "var(--c-bg)", padding: "32px 40px 24px", overflowY: "auto", maxHeight: "calc(100vh - 200px)" }}>
+                  <div style={{ maxWidth: 760, margin: "0 auto" }}>
+
+                    {/* Step indicator */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: 8,
+                        display: "grid", placeItems: "center",
+                        fontSize: 12, fontWeight: 600,
+                        background: insindex == 0 ? "var(--c-brand-primary)" : "var(--c-surface-sunken, var(--c-surface-muted))",
+                        color: insindex == 0 ? "#fff" : "var(--c-text-tertiary)",
+                        border: insindex == 0 ? "1px solid transparent" : "1px solid var(--c-border-soft)",
+                      }}>1</div>
+                      <div style={{ flex: 1, height: 1, background: "var(--c-border-soft)" }} />
+                      <div style={{
+                        width: 28, height: 28, borderRadius: 8,
+                        display: "grid", placeItems: "center",
+                        fontSize: 12, fontWeight: 600,
+                        background: insindex == 1 ? "var(--c-brand-primary)" : "var(--c-surface-sunken, var(--c-surface-muted))",
+                        color: insindex == 1 ? "#fff" : "var(--c-text-tertiary)",
+                        border: insindex == 1 ? "1px solid transparent" : "1px solid var(--c-border-soft)",
+                      }}>2</div>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--c-text-tertiary)", letterSpacing: "0.04em", textTransform: "uppercase", marginLeft: 6 }}>
+                        Step {insindex + 1} of 2
+                      </span>
+                    </div>
+
+                    {/* ===== Page 0: General instructions ===== */}
+                    {insindex == 0 ? (
+                      <>
+                        <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
+                          Before you begin
+                        </div>
+                        <h1 style={{ margin: "0 0 10px", fontSize: 32, fontWeight: 600, letterSpacing: "-0.022em", color: "var(--c-text-primary)", lineHeight: 1.15 }}>
+                          Read the{" "}
+                          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                            instructions
+                          </span>{" "}
+                          carefully.
+                        </h1>
+                        <p style={{ fontSize: 15, lineHeight: 1.55, color: "var(--c-text-secondary)", margin: "0 0 28px", maxWidth: "56ch" }}>
+                          A quick walkthrough so you know exactly what to expect inside the test. You can switch sections, mark questions for review, and revisit anything you skipped.
+                        </p>
+
+                        {config?.config?.instructions ? (
+                          <div
+                            className="qcontent"
+                            style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--c-text-primary)" }}
+                            dangerouslySetInnerHTML={{ __html: config.config.instructions }}
+                          />
+                        ) : (
+                          <>
+                            <InsSection num={1} title="General instructions" />
+                            <ol className="ins-list">
+                              <li>The test contains <b>{organized?.reduce((a, s) => a + (s.child?.length || 0), 0) || "multiple"} questions</b> across <b>{organized?.length || "multiple"} section(s)</b>.</li>
+                              <li>Total time for this test is <b>{Math.floor((config?.config?.timeout || 0) / 60)} minutes</b>.</li>
+                              <li>The clock will be set at the top of your screen. The countdown timer will display the remaining time available for you to complete the test.</li>
+                              <li>When the timer reaches zero, the test will end automatically and your answers will be submitted.</li>
+                              <li>The question palette on the right side of the screen will show the status of each question.</li>
+                            </ol>
+
+                            <InsSection num={2} title="Question types" />
+                            <ol className="ins-list">
+                              <li><b>MCQ (Multiple Choice Questions):</b> Select one option from the given choices.</li>
+                              <li><b>SA (Short Answer):</b> Type your numerical answer in the input box provided.</li>
+                            </ol>
+
+                            <InsSection num={3} title="Navigation" />
+                            <ol className="ins-list">
+                              <li>Click on the question number in the palette to go to that question directly.</li>
+                              <li>Use the <b>Next</b> and <b>Previous</b> buttons to navigate between questions.</li>
+                              <li>Click on the section names at the top to switch between sections.</li>
+                              <li>You can mark a question for <b>review</b> using the Mark for review button.</li>
+                            </ol>
+                          </>
+                        )}
+                      </>
+                    ) : ("")}
+
+                    {/* ===== Page 1: Marking scheme + legend ===== */}
+                    {insindex == 1 ? (
+                      <>
+                        <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
+                          Page 2 of 2
+                        </div>
+                        <h1 style={{ margin: "0 0 10px", fontSize: 32, fontWeight: 600, letterSpacing: "-0.022em", color: "var(--c-text-primary)", lineHeight: 1.15 }}>
+                          Marking scheme &amp;{" "}
+                          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                            palette
+                          </span>
+                          .
+                        </h1>
+                        <p style={{ fontSize: 15, lineHeight: 1.55, color: "var(--c-text-secondary)", margin: "0 0 28px", maxWidth: "56ch" }}>
+                          How you&apos;ll be scored and how to read the question palette on the right.
+                        </p>
+
+                        {config?.config?.instructions2 ? (
+                          <div
+                            className="qcontent"
+                            style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--c-text-primary)" }}
+                            dangerouslySetInnerHTML={{ __html: config.config.instructions2 }}
+                          />
+                        ) : (
+                          <>
+                            <InsSection num={1} title="Marking scheme" />
+                            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, margin: "4px 0 8px", border: "1px solid var(--c-border-faint)", borderRadius: 12, overflow: "hidden", fontSize: 13.5 }}>
+                              <thead>
+                                <tr>
+                                  <th style={insTh}>Question type</th>
+                                  <th style={{ ...insTh, textAlign: "center" }}>Correct</th>
+                                  <th style={{ ...insTh, textAlign: "center" }}>Wrong</th>
+                                  <th style={{ ...insTh, textAlign: "center" }}>Unanswered</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td style={{ ...insTd, color: "var(--c-text-primary)", fontWeight: 500 }}>MCQ</td>
+                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+4</td>
+                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-danger)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>−1</td>
+                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
                                 </tr>
                                 <tr>
-                                  <td style="border:1px solid #e9d5ff; padding:8px;">MCQ</td>
-                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center; color:green;">+4</td>
-                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center; color:red;">-1</td>
-                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center;">0</td>
+                                  <td style={{ ...insTd, color: "var(--c-text-primary)", fontWeight: 500 }}>Short Answer</td>
+                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+4</td>
+                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
+                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
                                 </tr>
-                                <tr>
-                                  <td style="border:1px solid #e9d5ff; padding:8px;">Short Answer</td>
-                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center; color:green;">+4</td>
-                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center;">0</td>
-                                  <td style="border:1px solid #e9d5ff; padding:8px; text-align:center;">0</td>
-                                </tr>
-                              </table>
-                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin:12px 0 8px;">Question Palette Legend</h3>
-                              <ul style="padding-left:20px;">
-                                <li style="margin:4px 0;"><span style="display:inline-block;width:16px;height:16px;background:#e5e7eb;border-radius:2px;margin-right:6px;vertical-align:middle;"></span> Not Visited — You have not visited the question yet.</li>
-                                <li style="margin:4px 0;"><span style="display:inline-block;width:16px;height:16px;background:#ef4444;border-radius:2px;margin-right:6px;vertical-align:middle;"></span> Not Answered — You visited but did not answer.</li>
-                                <li style="margin:4px 0;"><span style="display:inline-block;width:16px;height:16px;background:#22c55e;border-radius:2px;margin-right:6px;vertical-align:middle;"></span> Answered — You have answered the question.</li>
-                                <li style="margin:4px 0;"><span style="display:inline-block;width:16px;height:16px;background:#a855f7;border-radius:2px;margin-right:6px;vertical-align:middle;"></span> Marked for Review — You want to revisit this question.</li>
-                              </ul>
-                              <h3 style="font-size:16px; font-weight:bold; color:#6b21a8; margin:12px 0 8px;">Important Notes</h3>
-                              <ol style="padding-left:20px;">
-                                <li>Ensure you have a stable internet connection throughout the test.</li>
-                                <li>Do not refresh the page during the test.</li>
-                                <li>Click the <b>Submit</b> button when you are done. You will be redirected to the results page.</li>
-                              </ol>
-                            </div>`,
-                        }}
-                      ></div>
-                    </>
-                  ) : (
-                    ""
-                  )}
+                              </tbody>
+                            </table>
+
+                            <InsSection num={2} title="Question palette legend" />
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", margin: "8px 0 4px" }}>
+                              <LegendCard color="gray" title="Not visited" sub="Not opened yet" />
+                              <LegendCard color="#ef4444" title="Not answered" sub="Visited, no answer" />
+                              <LegendCard color="#22c55e" title="Answered" sub="Saved with an answer" />
+                              <LegendCard color="#a855f7" title="Marked for review" sub="Want to revisit later" />
+                              <div style={{ gridColumn: "span 2" }}>
+                                <LegendCard color="#22c55e" border="#a855f7" title="Answered & marked" sub="Saved but you'd like to revisit if time permits" />
+                              </div>
+                            </div>
+
+                            <InsSection num={3} title="Important notes" />
+                            <ol className="ins-list">
+                              <li>Ensure you have a stable internet connection throughout the test.</li>
+                              <li>Do not refresh the page during the test.</li>
+                              <li>Click the <b>Submit</b> button when you&apos;re done. You&apos;ll be redirected to your results page.</li>
+                            </ol>
+                          </>
+                        )}
+                      </>
+                    ) : ("")}
+                  </div>
+
+                  {/* Inline styles for the clean ordered list */}
+                  <style jsx global>{`
+                    .ins-list { padding-left: 0; margin: 0 0 8px; list-style: none; counter-reset: ipmstep; }
+                    .ins-list > li {
+                      position: relative; padding: 10px 0 10px 32px;
+                      font-size: 14.5px; line-height: 1.6;
+                      color: var(--c-text-secondary);
+                      border-top: 1px solid var(--c-border-faint);
+                    }
+                    .ins-list > li:first-child { border-top: none; }
+                    .ins-list > li::before {
+                      counter-increment: ipmstep;
+                      content: counter(ipmstep);
+                      position: absolute; left: 0; top: 12px;
+                      width: 20px; height: 20px; border-radius: 6px;
+                      background: var(--c-surface-sunken, var(--c-surface-muted));
+                      color: var(--c-text-tertiary);
+                      font: 600 11px/20px Inter, sans-serif;
+                      text-align: center;
+                      border: 1px solid var(--c-border-faint);
+                    }
+                    .ins-list b { color: var(--c-text-primary); font-weight: 600; }
+                  `}</style>
                 </div>
               ) : (
                 ""
