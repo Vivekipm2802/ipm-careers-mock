@@ -762,7 +762,7 @@ export default function DailyLearn({ role }) {
             )}
           </div>
 
-          <div className="w-full flex-0 bg-gray-50  relative rounded-xl mt-2 p-0 overflow-auto ">
+          <div className="w-full flex-0  relative rounded-xl mt-2 p-0 overflow-auto ">
             {selectedMedia ? (
               <div className="flex flex-row items-center justify-start text-left px-4 py-2">
                 <Button
@@ -780,7 +780,7 @@ export default function DailyLearn({ role }) {
                 </Button>
               </div>
             ) : (
-              <h2 className="text-left sticky top-0 bg-gray-50 z-10 mb-2 text-lg px-4 py-2 font-bold text-primary">
+              <h2 className="text-left sticky top-0 z-10 mb-2 text-lg px-4 py-2 font-bold text-primary">
                 Select{" "}
                 {
                   mediaTypes.find((item) => item.identifier == activeMedia)
@@ -853,7 +853,7 @@ export default function DailyLearn({ role }) {
                   <Spacer x={2}></Spacer>
                   {currentMediaType == "quiz" &&
                     (allQuizQuestions[currentViewQuestionIndex] || selectedMedia)?.options?.length > 0 && (
-                      <div className="flex bg-white w-full md:w-auto rounded-xl shadow-md p-4 flex-col flex-1">
+                      <div className="flex w-full md:w-auto rounded-xl shadow-md p-4 flex-col flex-1">
                         {currentMediaOptionExist && (
                           <>
                             {currentMediaOption?.selected ==
@@ -969,7 +969,7 @@ export default function DailyLearn({ role }) {
                   {role == "admin" && (
                     <Popover className="max-h-[60vh] overflow-auto">
                       <PopoverTrigger>
-                        <div className="bg-gray-100 text-center border-1 border-dashed p-4 mb-2 rounded-xl shadow-md flex flex-row items-center justify-center">
+                        <div className=" text-center border-1 border-dashed p-4 mb-2 rounded-xl shadow-md flex flex-row items-center justify-center">
                           <Plus></Plus>
                           <Spacer x={4}></Spacer>
                           Add New{" "}
@@ -1175,7 +1175,7 @@ export default function DailyLearn({ role }) {
                         onClick={() => {
                           role == "admin" ? "" : setSelectedMedia(media);
                         }}
-                        className="bg-white [&_>svg]:w-6 [&_>svg]:h-6 p-4 mb-2 rounded-xl shadow-md flex flex-row items-center justify-start"
+                        className=" [&_>svg]:w-6 [&_>svg]:h-6 p-4 mb-2 rounded-xl shadow-md flex flex-row items-center justify-start"
                       >
                         {
                           mtypes.find(
@@ -1188,11 +1188,11 @@ export default function DailyLearn({ role }) {
                         }
                         <Spacer x={2}></Spacer>
                         <div className="text-left">
-                          <h2 className="text-left text-sm text-gray-700">
+                          <h2 className="text-left text-sm text-[color:var(--c-text-primary)]">
                             {media?.title}
                           </h2>
                           {role == "admin" && (
-                            <p className="text-xs text-gray-600 text-left">
+                            <p className="text-xs text-[color:var(--c-text-secondary)] text-left">
                               {CtoLocal(media?.created_at)?.date}{" "}
                               {CtoLocal(media?.created_at)?.monthName}{" "}
                               {CtoLocal(media?.created_at)?.year}

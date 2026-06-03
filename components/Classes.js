@@ -231,7 +231,7 @@ export default function Classes() {
 
   return (
     <div className="w-full flex flex-col h-full items-start justify-start overflow-hidden ">
-      <div className="w-full rounded-xl bg-gray-50 h-full p-4 flex flex-col items-start justify-start overflow-hidden">
+      <div className="w-full rounded-xl h-full p-4 flex flex-col items-start justify-start overflow-hidden">
         <AnimatePresence mode="popLayout">
           <motion.div
             key={view + "batches"}
@@ -251,7 +251,7 @@ export default function Classes() {
                     batches.map((i, d) => {
                       return (
                         <>
-                          <div className="w-full rounded-lg bg-white shadow-sm p-4 flex flex-row items-center justify-start">
+                          <div className="w-full rounded-lg shadow-sm p-4 flex flex-row items-center justify-start">
                             <div className="flex flex-col justify-start items-start">
                               <p className="font-bold text-lg text-primary">
                                 {i.title}{" "}
@@ -268,7 +268,7 @@ export default function Classes() {
                                 )}
                               </p>
                               {i?.description ? (
-                                <p className="text-sm text-gray-500 leading-none">
+                                <p className="text-sm text-[color:var(--c-text-tertiary)] leading-none">
                                   {i.description}
                                 </p>
                               ) : (
@@ -346,11 +346,11 @@ export default function Classes() {
                       );
                     })
                   ) : (
-                    <div className="w-full rounded-lg bg-white shadow-sm p-8 flex flex-col items-center justify-center text-center">
-                      <p className="text-lg font-semibold text-gray-700 mb-2">
+                    <div className="w-full rounded-lg shadow-sm p-8 flex flex-col items-center justify-center text-center">
+                      <p className="text-lg font-semibold text-[color:var(--c-text-primary)] mb-2">
                         No Batches Assigned
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-[color:var(--c-text-tertiary)]">
                         You are not currently enrolled in any active batches.
                         Please contact your administrator for enrollment.
                       </p>
@@ -395,7 +395,7 @@ export default function Classes() {
                     classes.map((i, d) => {
                       return (
                         <>
-                          <div className="w-full rounded-lg bg-white shadow-sm p-4 flex flex-row items-center justify-start">
+                          <div className="w-full rounded-lg shadow-sm p-4 flex flex-row items-center justify-start">
                             <div className="flex flex-col items-start justify-start">
                               {" "}
                               <p className="text-lg text-primary font-bold">
@@ -499,14 +499,14 @@ export default function Classes() {
                       );
                     })}
                   {classes == undefined || (classes?.length == 0 && !isDemo) ? (
-                    <div className="border-1 my-2 border-gray-100 bg-gray-100 rounded-xl text-gray-500 w-full p-2">
+                    <div className="border-1 my-2 border-[color:var(--c-border-faint)] rounded-xl text-[color:var(--c-text-tertiary)] w-full p-2">
                       No Class scheduled for today
                     </div>
                   ) : (
                     ""
                   )}
                   {classes == undefined || (classes?.length == 0 && isDemo) ? (
-                    <div className="border-1 my-2 border-gray-100 bg-gray-100 rounded-xl text-gray-500 w-full p-2">
+                    <div className="border-1 my-2 border-[color:var(--c-border-faint)] rounded-xl text-[color:var(--c-text-tertiary)] w-full p-2">
                       Demo class will be visible here once available
                     </div>
                   ) : (
@@ -554,8 +554,8 @@ export default function Classes() {
                       history.map((i, d) => {
                         return (
                           <>
-                            <div className="w-full rounded-lg bg-white shadow-sm p-4 flex flex-row items-center justify-start relative overflow-hidden">
-                              <div className="font-sans bg-secondary rounded-full h-full  text-black font-bold text-xs uppercase p-1  mr-4 px-4">
+                            <div className="w-full rounded-lg shadow-sm p-4 flex flex-row items-center justify-start relative overflow-hidden">
+                              <div className="font-sans bg-secondary rounded-full h-full  text-[color:var(--c-text-primary)] font-bold text-xs uppercase p-1  mr-4 px-4">
                                 <div>
                                   {/* {CtoLocal(i.start_time).date}{" "}
                                   {CtoLocal(i.start_time).monthName?.substring(

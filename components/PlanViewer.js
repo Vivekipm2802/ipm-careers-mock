@@ -200,7 +200,7 @@ export default function StudyPlanViewer({ rawData,fullData,onBack }) {
                   </Dropdown>
                 </div>
 
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-[color:var(--c-text-tertiary)]">
                   Showing Week {weekView + 1} of {weeks.length}
                 </div>
               </div>
@@ -261,7 +261,7 @@ export default function StudyPlanViewer({ rawData,fullData,onBack }) {
                 {/* Calendar header - days of week */}
                 <div className="grid grid-cols-7 gap-1 mb-2 text-center">
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                    <div key={day} className="text-xs font-semibold text-gray-500 py-2">
+                    <div key={day} className="text-xs font-semibold text-[color:var(--c-text-tertiary)] py-2">
                       {day}
                     </div>
                   ))}
@@ -289,7 +289,7 @@ export default function StudyPlanViewer({ rawData,fullData,onBack }) {
                               ? "bg-primary text-white shadow-md"
                               : isValidDay
                                 ? "hover:bg-primary-100 dark:hover:bg-primary-800"
-                                : "bg-gray-100 dark:bg-gray-800"
+                                : " dark:bg-gray-800"
                           } ${dateInfo.isToday && isValidDay ? "ring-2 ring-primary" : ""}`}
                         onClick={() => isValidDay && (setActiveDate(index),setSelectedData(rawData[weekView][index]))}
                         whileHover={isValidDay ? { scale: 1.05 } : {}}
@@ -337,8 +337,8 @@ export default function StudyPlanViewer({ rawData,fullData,onBack }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: sectionIndex * 0.1 }}
             >
-              <Card shadow="none" className="h-full border border-gray-100 dark:border-gray-700">
-                <CardHeader className="bg-gray-200 dark:bg-gray-700 p-3 font-medium">
+              <Card shadow="none" className="h-full border border-[color:var(--c-border-faint)] dark:border-gray-700">
+                <CardHeader className=" dark:bg-gray-700 p-3 font-medium">
                   {section.title}
                 </CardHeader>
                 <CardBody className="p-0">
@@ -346,7 +346,7 @@ export default function StudyPlanViewer({ rawData,fullData,onBack }) {
                     {section.child.map((item, itemIndex) => (
                       <div
                         key={`detail-item-${itemIndex}`}
-                        className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className="p-4 hover: dark:hover:bg-gray-800 transition-colors"
                       >
                         {item.content && (
                           <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
@@ -362,7 +362,7 @@ export default function StudyPlanViewer({ rawData,fullData,onBack }) {
                         )}
 
                         {item.type === "text" && item.content && (
-                          <p className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded-md">
+                          <p className="text-sm text-[color:var(--c-text-secondary)] dark:text-gray-300 dark:bg-gray-800 p-2 rounded-md">
                             {item.content}
                           </p>
                         )}
@@ -390,7 +390,7 @@ export default function StudyPlanViewer({ rawData,fullData,onBack }) {
 
                         {item.type === "html" && item.content && (
                           <div
-                            className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded-md"
+                            className="text-sm text-[color:var(--c-text-secondary)] dark:text-gray-300 dark:bg-gray-800 p-2 rounded-md"
                             dangerouslySetInnerHTML={{ __html: item.content }}
                           />
                         )}
