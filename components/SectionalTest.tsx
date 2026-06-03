@@ -173,7 +173,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
     return (
       <div className="w-full h-full flex flex-col items-center justify-center p-12">
         <AnySpinner size="lg" color="secondary" />
-        <p className="text-gray-500 mt-4">Loading sectional tests...</p>
+        <p className="text-[color:var(--c-text-tertiary)] mt-4">Loading sectional tests...</p>
       </div>
     );
   }
@@ -249,7 +249,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
 
       <div className="pr-2 mt-4 overflow-hidden flex flex-col justify-start items-start flex-1 h-full w-full text-left">
         <h2 className="font-bold text-2xl text-primary">Sectional Tests</h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-[color:var(--c-text-tertiary)] mt-1">
           Practice individual sections to sharpen your skills
         </p>
         <AnySpacerY y={4} />
@@ -262,7 +262,7 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
                 key={section.key}
                 onClick={() => setActiveSection(idx)}
                 className={
-                  "bg-gray-100 flex-shrink-0 px-4 cursor-pointer hover:brightness-90 p-2 text-sm rounded-t-lg mx-[1px] " +
+                  " flex-shrink-0 px-4 cursor-pointer hover:brightness-90 p-2 text-sm rounded-t-lg mx-[1px] " +
                   (idx === activeSection
                     ? " !bg-gradient-purple text-white font-semibold"
                     : "")
@@ -281,10 +281,10 @@ const SectionalTest = ({ enrolled = [], role = "user" }: { enrolled?: any[]; rol
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 10, opacity: 0 }}
               transition={{ duration: 0.2, type: "tween" }}
-              className="w-full p-3 border-1 bg-gray-50 rounded-b-xl overflow-y-auto flex-1"
+              className="w-full p-3 border-1  rounded-b-xl overflow-y-auto flex-1"
             >
               {filteredTests.length === 0 && filteredAllTests.length === 0 ? (
-                <div className="rounded-xl bg-white w-full border-gray-300 border-1 border-dashed text-gray-600 my-2 p-4 text-center">
+                <div className="rounded-xl  w-full border-[color:var(--c-border-soft)] border-1 border-dashed text-[color:var(--c-text-secondary)] my-2 p-4 text-center">
                   <p className="font-semibold">No tests in {currentSection.title} yet</p>
                   <p className="text-sm mt-1">
                     New tests will appear here soon
@@ -354,8 +354,8 @@ const TestCard = ({
 }) => {
   const isHidden = !!i?.config?.hidden;
   return (
-    <div className={"w-full bg-white rounded-md border-1 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1 " + (isAdmin && isHidden ? "border-orange-300 bg-orange-50" : "border-gray-100")}>
-      <div className="w-[70px] flex flex-col items-center justify-center aspect-square rounded-lg bg-gray-50">
+    <div className={"w-full  rounded-md border-1 flex flex-row justify-between py-1 px-1 shadow-sm items-center my-1 " + (isAdmin && isHidden ? "border-orange-300 bg-orange-50" : "border-[color:var(--c-border-faint)]")}>
+      <div className="w-[70px] flex flex-col items-center justify-center aspect-square rounded-lg ">
         {i?.start_time ? (
           <>
             <p className="text-xl text-primary font-bold">
@@ -378,7 +378,7 @@ const TestCard = ({
             <span className="text-[10px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded font-medium">HIDDEN</span>
           )}
         </div>
-        <p className="text-sm text-gray-500">{i?.description}</p>
+        <p className="text-sm text-[color:var(--c-text-tertiary)]">{i?.description}</p>
       </div>
       <div className="flex flex-row pr-2 gap-2">
         {isAdmin && onToggleVisibility && (
@@ -427,7 +427,7 @@ const TestCard = ({
           <Button
             size="sm"
             color="secondary"
-            className="text-black"
+            className="text-[color:var(--c-text-primary)]"
             onPress={() => toast.success("Please contact Us.")}
             endContent={<Lock size={16} />}
           >
@@ -458,7 +458,7 @@ const TestCard = ({
               );
             } else if (i?.end_time && isAfter(now, endOfDay(parseISO(i.end_time)))) {
               return (
-                <span className="text-sm text-gray-500">Test time has passed</span>
+                <span className="text-sm text-[color:var(--c-text-tertiary)]">Test time has passed</span>
               );
             }
             return null;

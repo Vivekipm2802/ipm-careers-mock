@@ -1410,7 +1410,7 @@ export default function Home(props) {
 
   if (userData == undefined || coursesLoading == true) {
     return (
-      <div className="w-full h-full min-h-[100vh] bg-white overflow-hidden flex flex-col justify-center items-center align-middle">
+      <div className="w-full h-full min-h-[100vh]  overflow-hidden flex flex-col justify-center items-center align-middle">
         <Loader></Loader>
       </div>
     );
@@ -1418,7 +1418,7 @@ export default function Home(props) {
 
   if (props?.type != "admin" && coursesEnrolled == undefined) {
     return (
-      <div className="h-screen w-full flex flex-col text-center items-center justify-center sf bg-[var(--c-bg)] align-middle p-4">
+      <div className="h-screen w-full flex flex-col text-center items-center bg-[var(--c-surface-sunken)] justify-center sf align-middle p-4">
         <Modal
           size="3xl"
           className="flex mdl flex-col gap-1 text-center items-center"
@@ -1467,7 +1467,7 @@ export default function Home(props) {
           </ModalContent>
         </Modal>
         {/* <div className='fixed w-[150%] rounded-full bg-gradient-purple left-1/2 -translate-x-1/2 -bottom-[210%] z-0 h-auto aspect-square'></div> */}
-        <div className="bg-white shadow-md w-full max-w-[1200px] rounded-lg  overflow-hidden flex flex-col-reverse md:flex-row items-stretch justify-center z-10">
+        <div className=" shadow-md w-full max-w-[1200px] rounded-lg  overflow-hidden flex flex-col-reverse md:flex-row items-stretch justify-center z-10">
           <div className="flex flex-col justify-start items-start p-8 py-8 flex-1">
             <img className={styles.logo} width={250} src="/newlog.svg" />
             <Spacer y={8}></Spacer>
@@ -1475,12 +1475,12 @@ export default function Home(props) {
               <h2 className=" font-bold gradtext text-3xl">
                 Welcome to IPM Careers!
               </h2>
-              <h3 className="text-xl text-gray-700">
+              <h3 className="text-xl text-[color:var(--c-text-primary)]">
                 Your Journey for Success begins here!!
               </h3>
             </div>
 
-            <h2 className="my-0 font-normal text-gray-600 text-md mt-4 text-left">
+            <h2 className="my-0 font-normal text-[color:var(--c-text-secondary)] text-md mt-4 text-left">
               {" "}
               Please explore our courses or{" "}
               <strong>Redeem a Course Coupon</strong>!
@@ -1537,7 +1537,7 @@ export default function Home(props) {
               </Button>
             </div>
 
-            <div className="text-gry-500 bg-gray-50 text-xs border-1 border-gry-500 border-dashed rounded-xl p-1 mt-6 font-sans pl-3">
+            <div className="text-gry-500  text-xs border-1 border-gry-500 border-dashed rounded-xl p-1 mt-6 font-sans pl-3">
               *Could not find any active course!
               <Button
                 href="https://ipmcareer.com/courses"
@@ -1551,7 +1551,7 @@ export default function Home(props) {
             </div>
           </div>
 
-          <div className="w-full md:w-2/3 bg-gray-50 relative overflow-hidden">
+          <div className="w-full md:w-2/3  relative overflow-hidden">
             <img
               src="/iphonemock.jpg"
               className="w-full scale-[1.2] origin-center  md:scale-[1] h-full object-cover object-top md:object-center"
@@ -1564,7 +1564,7 @@ export default function Home(props) {
 
   if (props?.type != "admin" && requriedInfo == false) {
     return (
-      <div className="w-full h-screen p-2 font-sans flex flex-col justify-center items-center align-middle bg-gray-100">
+      <div className="w-full h-screen p-2 font-sans flex flex-col justify-center items-center align-middle ">
         {/*  <Toaster className="sf" position="bottom-right" toastOptions={{
     duration: 2000,
 }}></Toaster> */}
@@ -1572,9 +1572,9 @@ export default function Home(props) {
           className="absolute w-full h-full left-0 top-0 opacity-60 z-0 mix-blend-multiply"
           style={{ background: 'url("/grid2.png")', backgroundSize: "800px" }}
         ></div>
-        <div className="w-full max-w-[600px] bg-white shadow-md rounded-3xl p-6 z-10  ">
+        <div className="w-full max-w-[600px]  shadow-md rounded-3xl p-6 z-10  ">
           <img src="/newlog.svg" width={250} className="mx-auto my-2" />
-          <h1 className="text-sm p-2 border-1 bg-yellow-100 rounded-md font-bold text-yellow-600 my-3 text-center">
+          <h1 className="text-sm p-2 border-1  rounded-md font-bold text-yellow-600 my-3 text-center">
             Please update these important details before you continue using our
             panel.
           </h1>
@@ -1651,7 +1651,7 @@ export default function Home(props) {
             <>
               <ModalHeader className="text-left w-full flex flex-col">
                 {activeReply.message}
-                <p className="font-medium text-sm text-gray-500">
+                <p className="font-medium text-sm text-[color:var(--c-text-tertiary)]">
                   Posted by :{" "}
                   {activeReply.user != userData.email
                     ? activeReply.user
@@ -1666,7 +1666,7 @@ export default function Home(props) {
                 {replies &&
                   filterArrayByReplyTo(replies, activeReply.id).map((i, d) => {
                     return (
-                      <div className=" w-full text-left border-1 border-gray-200 rounded-xl py-2 px-4 ">
+                      <div className=" w-full text-left border-1 border-[color:var(--c-border-faint)] rounded-xl py-2 px-4 ">
                         {i.type == "teacher" ? (
                           <p className="flex flex-row border-1 border-black rounded-full align-middle justify-start items-center w-fit px-2 py-1 text-xs ">
                             <svg
@@ -1700,7 +1700,7 @@ export default function Home(props) {
                         >
                           {d == activeExcerpt ? "Read Less..." : "Read More..."}
                         </a>
-                        <p className="text-xs text-gray-500">{i.user}</p>{" "}
+                        <p className="text-xs text-[color:var(--c-text-tertiary)]">{i.user}</p>{" "}
                         {i.user == userData.email ? (
                           <p
                             className={
@@ -1777,7 +1777,7 @@ export default function Home(props) {
               <ModalFooter>
                 <Button
                   color="primary"
-                  className="text-black"
+                  className="text-[color:var(--c-text-primary)]"
                   onPress={() => {
                     addQuestiontoDB(questionData);
                   }}
@@ -2077,7 +2077,7 @@ export default function Home(props) {
                   >
                     <div className=" absolute left-0 top-0 w-full h-full bg-primary rounded-full scale-100 group-hover:scale-150 opacity-0 group-hover:opacity-25 transition-all"></div>
                     {props?.type == "admin" ? (
-                      <div className="absolute right-0 bottom-0 w-4 h-4 z-10 bg-white rounded-full p-1">
+                      <div className="absolute right-0 bottom-0 w-4 h-4 z-10  rounded-full p-1">
                         <img
                           className="w-full h-full"
                           src="/crown.png"
@@ -2257,7 +2257,7 @@ export default function Home(props) {
                       <Dropdown className="sf">
                         <DropdownTrigger>
                           <div className="flex absolute right-4 bottom-5 flex-col align-middle justify-center items-center">
-                            <div className="rounded-full transform-gpu bg-primary p-3 hover:bg-gray-100 transition-all cursor-pointer">
+                            <div className="rounded-full transform-gpu bg-primary p-3 hover: transition-all cursor-pointer">
                               <svg
                                 width="24"
                                 height="24"
@@ -2271,7 +2271,7 @@ export default function Home(props) {
                                 />
                               </svg>
                             </div>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-[color:var(--c-text-tertiary)]">
                               Add New MindMap
                             </p>
                           </div>
@@ -2347,8 +2347,8 @@ export default function Home(props) {
                           <DropdownItem isReadOnly>
                             <Dropdown>
                               <DropdownTrigger>
-                                <div className="p-2 bg-gray-100 rounded-md">
-                                  <p className="text-xs text-gray-500">
+                                <div className="p-2  rounded-md">
+                                  <p className="text-xs text-[color:var(--c-text-tertiary)]">
                                     Select Category
                                   </p>
                                   {getTextFromKey(
@@ -2471,7 +2471,7 @@ export default function Home(props) {
                             .map((i, d) => {
                               return (
                                 <>
-                                  <div className="flex flex-row justify-between items-center align-middle p-2 relative border-b-1 border-gray-200 mr-5 my-2 px-3 sf font-bold">
+                                  <div className="flex flex-row justify-between items-center align-middle p-2 relative border-b-1 border-[color:var(--c-border-faint)] mr-5 my-2 px-3 sf font-bold">
                                     {i.title}
 
                                     {props?.type == "admin" ? (
@@ -2537,7 +2537,7 @@ export default function Home(props) {
                                         .map((z, v) => (
                                           <div
                                             className={
-                                              "w-full flex flex-row justify-between align-middle items-center cursor-pointer text-left px-5 rounded-lg my-1 py-2 bg-gray-100" +
+                                              "w-full flex flex-row justify-between align-middle items-center cursor-pointer text-left px-5 rounded-lg my-1 py-2 " +
                                               " " +
                                               (activeMind == z.id
                                                 ? "bg-primary"
@@ -2568,7 +2568,7 @@ export default function Home(props) {
                                                   className="sf text-left flex justify-start items-start"
                                                 >
                                                   <PopoverTrigger>
-                                                    <p className="text-xs m-0 p-1 bg-[var(--c-surface-sunken)] cursor-pointer hover:brightness-75 rounded-full ">
+                                                    <p className="text-xs bg-[var(--c-surface-sunken)] m-0 p-1 cursor-pointer hover:brightness-75 rounded-full ">
                                                       Update Title
                                                     </p>
                                                   </PopoverTrigger>
@@ -2616,7 +2616,7 @@ export default function Home(props) {
                                                   className="sf text-left flex justify-start items-start"
                                                 >
                                                   <PopoverTrigger>
-                                                    <p className="text-xs m-0 p-1 bg-[var(--c-surface-sunken)] cursor-pointer hover:brightness-75 rounded-full ">
+                                                    <p className="text-xs bg-[var(--c-surface-sunken)] m-0 p-1 cursor-pointer hover:brightness-75 rounded-full ">
                                                       Update URL
                                                     </p>
                                                   </PopoverTrigger>
@@ -2669,7 +2669,7 @@ export default function Home(props) {
                     ) : (
                       ""
                     )}
-                    <div className="w-full md:w-auto flex-0 md:flex-1  h-full bg-gray-100 rounded-lg overflow-y-auto">
+                    <div className="w-full md:w-auto flex-0 md:flex-1  h-full  rounded-lg overflow-y-auto">
                       {mindmaps == undefined ? <p>No Mindmap Found</p> : ""}
                       {activeMap == undefined ? (
                         <p className="w-full h-full text-center justify-center align-middle items-center flex">
@@ -2708,7 +2708,7 @@ export default function Home(props) {
                             ""
                           )}
                           <iframe
-                            className="rounded-xl border-1 border-gray-200"
+                            className="rounded-xl border-1 border-[color:var(--c-border-faint)]"
                             key={activeMind}
                             width={"100%"}
                             height={"400px"}
@@ -3050,7 +3050,7 @@ export default function Home(props) {
                                         return (
                                           <div className="flex flex-col justify-start items-start align-top">
                                             <iframe
-                                              className="rounded-lg overflow-hidden w-[150px] lg:w-[250px] m-1 lg:min-h-[5vw] aspect-video bg-[var(--c-surface-sunken)]"
+                                              className="rounded-lg overflow-hidden w-[150px] lg:w-[250px] m-1 bg-[var(--c-surface-sunken)] lg:min-h-[5vw] aspect-video"
                                               width="100%"
                                               height="100%"
                                               src={z?.video}
@@ -3060,7 +3060,7 @@ export default function Home(props) {
                                             <h2 className="font-bold">
                                               {z?.title}
                                             </h2>
-                                            <p className="text-sm text-gray-600">
+                                            <p className="text-sm text-[color:var(--c-text-secondary)]">
                                               {z?.description}
                                             </p>
                                             <div>
@@ -3206,14 +3206,14 @@ export default function Home(props) {
                                       })}
                                   {tutorials == undefined ||
                                   tutorials?.length == 0 ? (
-                                    <div className="rounded-lg p-5 overflow-hidden min-h-[10vw] border-dashed border-1 border-gray-400 lg:min-h-[5vw] flex flex-col justify-center items-center align-middle relative aspect-video w-[150px] lg:w-[250px] m-1">
+                                    <div className="rounded-lg p-5 overflow-hidden min-h-[10vw] border-dashed border-1 border-[color:var(--c-border-strong)] lg:min-h-[5vw] flex flex-col justify-center items-center align-middle relative aspect-video w-[150px] lg:w-[250px] m-1">
                                       No Video Found
                                     </div>
                                   ) : (
                                     ""
                                   )}
                                   {props?.type == "admin" ? (
-                                    <div className="rounded-lg p-5 overflow-hidden min-h-[10vw] lg:min-h-[5vw] flex bg-[var(--c-surface-sunken)] flex-col justify-center items-center align-middle relative aspect-video w-[150px] lg:w-[250px] m-1">
+                                    <div className="rounded-lg p-5 overflow-hidden min-h-[10vw] bg-[var(--c-surface-sunken)] lg:min-h-[5vw] flex flex-col justify-center items-center align-middle relative aspect-video w-[150px] lg:w-[250px] m-1">
                                       <Popover>
                                         <PopoverTrigger>
                                           <Button color="primary">
@@ -3303,7 +3303,7 @@ export default function Home(props) {
                       {props?.type == "admin" ? (
                         <Popover className="w-full sf">
                           <PopoverTrigger>
-                            <div className="w-full border-1 rounded-lg border-dashed border-gray-200 p-2 hover:border-gray-500 cursor-pointer">
+                            <div className="w-full border-1 rounded-lg border-dashed border-[color:var(--c-border-faint)] p-2 hover:border-gray-500 cursor-pointer">
                               Add New Category
                             </div>
                           </PopoverTrigger>
@@ -3363,7 +3363,7 @@ export default function Home(props) {
                 )}
                 {slug == "dbts" ? (
                   <div className="w-full h-full flex flex-col items-center justify-center">
-                    <h2 className="text-gray-600 text-xl">
+                    <h2 className="text-[color:var(--c-text-secondary)] text-xl">
                       Get Fast Video Solutions for all your Doubts on
                     </h2>
                     <h2 className="text-4xl font-bold font-sans text-primary">
@@ -3371,7 +3371,7 @@ export default function Home(props) {
                     </h2>
                     <Spacer y={4}></Spacer>
                     <Button
-                      className="bg-secondary text-black"
+                      className="bg-secondary text-[color:var(--c-text-primary)]"
                       startContent={
                         <svg
                           id="Livello_1"
@@ -3431,7 +3431,7 @@ export default function Home(props) {
                   ""
                 )}
                 {/* {slug == "mindmap2" ? <div className='w-full h-full flex flex-col justify-center align-middle items-center'>
-<h2 className='w-auto p-3 rounded-xl text-center font-bold flex flex-row bg-[var(--c-surface-muted)]'><svg className='mr-2' width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<h2 className='w-auto p-3 rounded-xl text-center font-bold bg-[var(--c-surface-sunken)] flex flex-row'><svg className='mr-2' width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M12 2C17.523 2 22 6.478 22 12C22 17.522 17.523 22 12 22C6.477 22 2 17.522 2 12C2 6.478 6.477 2 12 2ZM12 3.667C7.405 3.667 3.667 7.405 3.667 12C3.667 16.595 7.405 20.333 12 20.333C16.595 20.333 20.333 16.595 20.333 12C20.333 7.405 16.595 3.667 12 3.667ZM11.25 6C11.6295 6 11.9435 6.28233 11.9931 6.64827L12 6.75V12H15.25C15.664 12 16 12.336 16 12.75C16 13.1295 15.7177 13.4435 15.3517 13.4931L15.25 13.5H11.25C10.8705 13.5 10.5565 13.2177 10.5069 12.8517L10.5 12.75V6.75C10.5 6.336 10.836 6 11.25 6Z" fill="currentColor"/>
 </svg>
 Vocab by MindMaps will be available soon</h2>
@@ -3450,7 +3450,7 @@ Vocab by MindMaps will be available soon</h2>
                         <h2 className="font-bold text-secondary">
                           Do you have question in mind?
                         </h2>
-                        <p className="text-sm text-black">
+                        <p className="text-sm text-[color:var(--c-text-primary)]">
                           Post it Here and let others reply
                         </p>
                         <Button
@@ -3480,14 +3480,14 @@ Vocab by MindMaps will be available soon</h2>
                                       {discussion.message}
                                     </h2>
                                     <div className="flex-col sm:flex-row flex">
-                                      <p className="text-gray-500 rounded-lg border-1 p-1 text-xs border-primary mr-2">
+                                      <p className="text-[color:var(--c-text-tertiary)] rounded-lg border-1 p-1 text-xs border-primary mr-2">
                                         {formatCreatedAt(discussion.created_at)}
                                       </p>
 
-                                      <p className="text-gray-500 ">
+                                      <p className="text-[color:var(--c-text-tertiary)] ">
                                         Question by: {discussion.user}
                                       </p>
-                                      <p className="text-gray-500 ml-2">
+                                      <p className="text-[color:var(--c-text-tertiary)] ml-2">
                                         <strong>
                                           {" "}
                                           Replies:{" "}
@@ -3557,8 +3557,8 @@ Vocab by MindMaps will be available soon</h2>
            </div> */}
                                 </div>
                               </div>
-                              <div className="flex flex-row hover:text-primary cursor-pointer justify-start text-gray-500 mt-4 mb-2 text-sm">
-                                <p className="text-gray-500 rounded-lg border-1 p-1 text-xs border-primary mr-2">
+                              <div className="flex flex-row hover:text-primary cursor-pointer justify-start text-[color:var(--c-text-tertiary)] mt-4 mb-2 text-sm">
+                                <p className="text-[color:var(--c-text-tertiary)] rounded-lg border-1 p-1 text-xs border-primary mr-2">
                                   {formatCreatedAt(discussion.created_at)}
                                 </p>
                                 <svg

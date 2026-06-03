@@ -134,12 +134,12 @@ function getAllDaysOfCurrentMonth() {
 })}</div>
 </div>
 <Spacer x={2}></Spacer>
-<div className="w-full lg:w-1/3 rounded-xl from-secondary-500 to-secondary p-4 bg-gradient-to-r min-h-[200px] flex flex-col items-start justify-start text-white">
+<div className="w-full lg:w-1/3 rounded-xl bg-[var(--c-brand-primary)] p-4 bg-gradient-to-r min-h-[200px] flex flex-col items-start justify-start text-white">
 <h2 className="text-lg font-semibold">Login History</h2>
 <h2 className="text-2xl font-bold">{logins?.length ?? 0}</h2>
 <ResponsiveContainer width="100%" height="100%">
       <LineChart width={300} height={100}  data={visualizableData}>
-        <Tooltip content={<CustomToolip></CustomToolip>} className="text-black" ></Tooltip>
+        <Tooltip content={<CustomToolip></CustomToolip>} className="text-[color:var(--c-text-primary)]" ></Tooltip>
         <XAxis className="text-xs fill-white allwhite" dataKey="date" />
         
         <Line type="monotone" dataKey="count" stroke="#fff" strokeWidth={2} />
@@ -163,7 +163,7 @@ function getAllDaysOfCurrentMonth() {
 
 const CustomCard = ({count,title})=>{
 
-  return <div className="bg-gray-50 flex flex-col items-start justify-start  aspect-square m-2 flex-1 rounded-xl p-4">
+  return <div className=" flex flex-col items-start justify-start  aspect-square m-2 flex-1 rounded-xl p-4">
     <h2 className="text-lg text-primary text-left font-semibold">{title}</h2>
     <p className="w-full flex flex-col flex-1 items-center justify-center text-7xl text-secondary font-bold">{count || 0}</p>
   </div>
@@ -173,7 +173,7 @@ const CustomCard = ({count,title})=>{
 const CustomToolip = ({ active, payload, label })=>{
     if (active && payload && payload.length) {
         return (
-          <div className="custom-tooltip rounded-xl bg-white shadow-md text-gray-500 text-sm px-2 py-2">
+          <div className="custom-tooltip rounded-xl  shadow-md text-[color:var(--c-text-tertiary)] text-sm px-2 py-2">
             <p className="label">{`${label} : ${payload[0].value} Logins`}</p>
             
           

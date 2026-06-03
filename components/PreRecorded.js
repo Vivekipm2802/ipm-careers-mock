@@ -716,7 +716,7 @@ export default function PreRecorded({
           </ModalHeader>
           <ModalBody>
             {tests && tests?.some((item) => item?.vuid == selectedParent) && (
-              <div className="bg-gray-50 flex flex-row items-center justify-center p-2 rounded-xl text-center text-sm text-primary">
+              <div className=" flex flex-row items-center justify-center p-2 rounded-xl text-center text-sm text-primary">
                 {" "}
                 Assigned Test :{" "}
                 <Chip className="ml-2" size="sm" color="primary">
@@ -960,7 +960,7 @@ export default function PreRecorded({
                     <h2 className="text-2xl font-bold mb-2">
                       Homework Submitted Successfully!
                     </h2>
-                    <p className="text-gray-600">
+                    <p className="text-[color:var(--c-text-secondary)]">
                       Your homework has been received and is now being reviewed.
                       Great job!
                     </p>
@@ -1004,7 +1004,7 @@ export default function PreRecorded({
                     }}
                   />
                   {currentHomework?.file_url && (
-                    <div className="w-full flex flex-row items-center my-2 bg-gray-50 p-2 rounded-xl justify-between">
+                    <div className="w-full flex flex-row items-center my-2  p-2 rounded-xl justify-between">
                       Homework File
                       <Button
                         target="_blank"
@@ -1012,7 +1012,7 @@ export default function PreRecorded({
                         href={currentHomework?.file_url}
                         size="sm"
                         color="secondary"
-                        className="text-black"
+                        className="text-[color:var(--c-text-primary)]"
                       >
                         Download
                       </Button>
@@ -1057,7 +1057,7 @@ export default function PreRecorded({
         >
           Back to Selection
         </Button>
-        <h2 className="text-left text-xl font-normal  px-2 pt-4 lg:pt-0 text-black">
+        <h2 className="text-left text-xl font-normal  px-2 pt-4 lg:pt-0 text-[color:var(--c-text-primary)]">
           {title}
         </h2>
         <div></div>
@@ -1065,7 +1065,7 @@ export default function PreRecorded({
       <Spacer y={2}></Spacer>
       <div className="w-full h-full flex flex-row overflow-y-auto overflow-x-hidden rounded-lg">
         {vcategory?.length == 0 ? (
-          <p className="border-1 border-dashed border-gray-400 p-2 rounded-lg bg-gray-50 my-2">
+          <p className="border-1 border-dashed border-[color:var(--c-border-strong)] p-2 rounded-lg  my-2">
             No {title} Found
           </p>
         ) : (
@@ -1074,12 +1074,12 @@ export default function PreRecorded({
 
         <div
           className={
-            "bg-gray-100 fixed left-0 z-[999] h-full md:z-[1] top-0 overflow-y-auto transition-all  md:translate-x-[unset] translate-x-full max-h-full md:relative w-full md:w-[300px] lg:w-[400px] " +
+            " fixed left-0 z-[999] h-full md:z-[1] top-0 overflow-y-auto transition-all  md:translate-x-[unset] translate-x-full max-h-full md:relative w-full md:w-[300px] lg:w-[400px] " +
             (drawerActive ? " !translate-x-0 md:translate-x-[unset]" : "")
           }
         >
           <div
-            className="right-0 flex md:hidden cursor-pointer bg-white rounded-l-xl top-4 p-3 absolute z-[100]"
+            className="right-0 flex md:hidden cursor-pointer  rounded-l-xl top-4 p-3 absolute z-[100]"
             onClick={() => {
               setDrawerActive(false);
             }}
@@ -1091,9 +1091,9 @@ export default function PreRecorded({
             exit={{ x: "-100%" }}
             animate={{ x: 0 }}
             transition={{ type: "spring", bounce: 0.1, duration: 0.4 }}
-            className="w-full bg-white relative  overflow-y-auto  right-0 top-0 h-full z-[99] shadow-md"
+            className="w-full  relative  overflow-y-auto  right-0 top-0 h-full z-[99] shadow-md"
           >
-            {/*  <div className="bg-white text-primary rounded-full shadow-lg w-12 h-12 flex flex-col items-center justify-center top-4 left-4 absolute cursor-pointer hover:brightness-90" onClick={()=>{setDrawerActive(!drawerActive)}}>
+            {/*  <div className=" text-primary rounded-full shadow-lg w-12 h-12 flex flex-col items-center justify-center top-4 left-4 absolute cursor-pointer hover:brightness-90" onClick={()=>{setDrawerActive(!drawerActive)}}>
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.53 4.22a.75.75 0 0 1 0 1.06L8.81 12l6.72 6.72a.75.75 0 1 1-1.06 1.06l-7.25-7.25a.75.75 0 0 1 0-1.06l7.25-7.25a.75.75 0 0 1 1.06 0Z" fill="currentColor"/></svg>
         </div> */}
 
@@ -1107,7 +1107,7 @@ export default function PreRecorded({
                 .map((i, d) => {
                   return (
                     <div
-                      className="bg-white"
+                      className=""
                       startContent={
                         role == "admin" ? (
                           <div className="flex flex-row items-center justify-center">
@@ -1236,7 +1236,7 @@ export default function PreRecorded({
                                   isIconOnly
                                   size="sm"
                                   color="secondary"
-                                  className="text-black ml-3"
+                                  className="text-[color:var(--c-text-primary)] ml-3"
                                 >
                                   <Edit2 size={16}></Edit2>
                                 </Button>
@@ -1309,7 +1309,7 @@ export default function PreRecorded({
                         )}
                       </div>
 
-                      <div className="flex flex-col overflow-hidden  bg-gray-100">
+                      <div className="flex flex-col overflow-hidden  ">
                         <div className="flex flex-col my-0 flex-wrap">
                           {vcategory &&
                             vcategory
@@ -1326,7 +1326,7 @@ export default function PreRecorded({
                                         );
                                       }}
                                       className={
-                                        "flex-[50%] px-4 bg-white my-0 border-b-1 border-b-gray-200 p-2 sm:flex-[10%] !flex-grow-0 lg:flex-[10%] xl:flex-[10%] items-between w-full justify-start flex flex-col relative  hover:border-gray-200 border-transparent border-1 cursor-pointer transition-all duration-150 hover:bg-gray-50 " +
+                                        "flex-[50%] px-4  my-0 border-b-1 border-b-gray-200 p-2 sm:flex-[10%] !flex-grow-0 lg:flex-[10%] xl:flex-[10%] items-between w-full justify-start flex flex-col relative  hover:border-[color:var(--c-border-faint)] border-transparent border-1 cursor-pointer transition-all duration-150 hover: " +
                                         ((d == 0 &&
                                           v == 0 &&
                                           !(isDemo && d > 0)) ||
@@ -1336,7 +1336,7 @@ export default function PreRecorded({
                                           : " grayscale pointer-events-none")
                                       }
                                     >
-                                      <div className="text-gray-700 text-sm w-full flex flex-row items-center justify-between">
+                                      <div className="text-[color:var(--c-text-primary)] text-sm w-full flex flex-row items-center justify-between">
                                         <div className="flex text-left flex-col items-start justify-center">
                                           <p>{z.title}</p>
                                           <p className="text-xs">
@@ -1564,9 +1564,9 @@ export default function PreRecorded({
                                                       setDrawerActive(false);
                                                   }}
                                                   className={
-                                                    "w-full text-left overflow-hidden hover:bg-slate-50 hover:shadow-md transition-all cursor-pointer flex flex-row items-center py-4 px-3 justify-center flex-nowrap text-xs border-b-1 " +
+                                                    "w-full text-left overflow-hidden hover: hover:shadow-md transition-all cursor-pointer flex flex-row items-center py-4 px-3 justify-center flex-nowrap text-xs border-b-1 " +
                                                     (currentVideo == p.id
-                                                      ? " bg-gradient-to-r from-secondary to-yellow-400 text-black"
+                                                      ? " bg-gradient-to-r bg-[var(--c-brand-primary)] text-[color:var(--c-text-primary)]"
                                                       : "")
                                                   }
                                                 >
@@ -1766,7 +1766,7 @@ export default function PreRecorded({
                                             )
                                             .map((hmwrk, hindex) => {
                                               return (
-                                                <div className="flex flex-row items-center justify-between bg-gray-100 hover:bg-gray-50 p-4 border-b-1 py-2">
+                                                <div className="flex flex-row items-center justify-between  hover: p-4 border-b-1 py-2">
                                                   <div className="text-xs flex flex-row items-center justify-start flex-1 text-left">
                                                     <BookText
                                                       size={20}
@@ -1805,7 +1805,7 @@ export default function PreRecorded({
                                             .filter((item) => item.vuid == z.id)
                                             .map((test, testindex) => {
                                               return (
-                                                <div className="flex flex-row items-center justify-between bg-gray-100 hover:bg-gray-50 p-4 border-b-1 py-2">
+                                                <div className="flex flex-row items-center justify-between  hover: p-4 border-b-1 py-2">
                                                   <div className="text-xs flex flex-row items-center justify-start flex-1 text-left">
                                                     <Clipboard
                                                       size={20}
@@ -1857,7 +1857,7 @@ export default function PreRecorded({
                                     {role == "admin" ? (
                                       <Popover className="w-full sf">
                                         <PopoverTrigger>
-                                          <div className="w-full border-1 text-xs my-2 rounded-lg border-dashed border-gray-200 p-2 hover:border-gray-500 cursor-pointer bg-gray-300">
+                                          <div className="w-full border-1 text-xs my-2 rounded-lg border-dashed border-[color:var(--c-border-faint)] p-2 hover:border-gray-500 cursor-pointer bg-gray-300">
                                             Add New Video
                                           </div>
                                         </PopoverTrigger>
@@ -1958,9 +1958,9 @@ export default function PreRecorded({
                           {role == "admin" ? (
                             <Popover className="w-full sf">
                               <PopoverTrigger>
-                                <div className=" flex-[10%] grayscale items-center justify-center flex flex-row p-4 flex-grow-0 border-dashed border-gray-200  border-1 cursor-pointer rounded-xl transition-all duration-150 hover:bg-gray-50">
+                                <div className=" flex-[10%] grayscale items-center justify-center flex flex-row p-4 flex-grow-0 border-dashed border-[color:var(--c-border-faint)]  border-1 cursor-pointer rounded-xl transition-all duration-150 hover:">
                                   <PlusIcon className="mr-2"></PlusIcon>
-                                  <p className="text-gray-600 text-sm">
+                                  <p className="text-[color:var(--c-text-secondary)] text-sm">
                                     Add New Folder
                                   </p>
                                 </div>
@@ -2065,20 +2065,20 @@ export default function PreRecorded({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 80, opacity: 0 }}
             transition={{ duration: 0.2, type: "spring" }}
-            className="flex-1 bg-gray-50 p-4"
+            className="flex-1  p-4"
           >
             <div className="flex flex-row items-center justify-end w-full my-2 md:hidden">
               <div
                 onClick={() => {
                   setDrawerActive(true);
                 }}
-                className="  rounded-xl cursor-pointer p-2  bg-white shadow-md flex flex-row items-center justify-start"
+                className="  rounded-xl cursor-pointer p-2   shadow-md flex flex-row items-center justify-start"
               >
                 <SidebarOpen className="mr-2"></SidebarOpen> Open Modules
               </div>
             </div>
             {view == 0 && !currentVideo ? (
-              <div className="w-full h-full text-gray-500 flex flex-col items-center justify-center">
+              <div className="w-full h-full text-[color:var(--c-text-tertiary)] flex flex-col items-center justify-center">
                 <Video size={48} color="#ddd"></Video>
                 Please select a video from modules to watch
               </div>
@@ -2117,7 +2117,7 @@ export default function PreRecorded({
 
                 {/* <div className="flex flex-row items-center justify-start my-2">
 <Button startContent={<svg width="16" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.707 4.293a1 1 0 0 1 0 1.414L9.414 12l6.293 6.293a1 1 0 0 1-1.414 1.414l-7-7a1 1 0 0 1 0-1.414l7-7a1 1 0 0 1 1.414 0Z" fill="#DDE6E8"/></svg>} size="sm" color="primary" onPress={()=>{setView(0),setCurrentCategory()}}>Back to Categories</Button></div> */}
-                <div className="w-full aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                <div className="w-full aspect-video bg-[var(--c-surface-sunken)] rounded-lg overflow-hidden">
                   <iframe
                     className="rounded-lg overflow-hidden aspect-video w-full h-full"
                     width="100%"

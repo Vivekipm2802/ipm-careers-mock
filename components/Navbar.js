@@ -190,7 +190,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
         >
           <div className="flex flex-row justify-start p-2 align-bottom items-center mt-2">
             <svg
-              className="hover:bg-gray-200 transition-all cursor-pointer mr-4 rounded-full"
+              className="hover:bg-[var(--c-surface-sunken)] transition-all cursor-pointer mr-4 rounded-full"
               onClick={() => { setIsActive(false); }}
               width="24" height="24" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
             >

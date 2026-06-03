@@ -246,14 +246,14 @@ export default function Concept({ role, group, onBack }) {
                     {CtoLocal(i.created_at)?.time}{" "}
                     {CtoLocal(i.created_at)?.amPm}
                   </div>
-                  <div className="mr-2 bg-gray-200 rounded-xl p-2 text-gray-600">
+                  <div className="mr-2 bg-[var(--c-surface-sunken)] rounded-xl p-2 text-[color:var(--c-text-secondary)]">
                     {CtoLocal(i.created_at)?.date}{" "}
                     {CtoLocal(i.created_at)?.monthName}{" "}
                     {CtoLocal(i.created_at)?.year}
                   </div>
                   <div className="flex flex-col items-start justify-start">
                     <h2>{i?.name || i?.user_name || "Unknown"}</h2>
-                    <p className="text-xs text-gray-500">{i?.user}</p>
+                    <p className="text-xs text-[color:var(--c-text-tertiary)]">{i?.user}</p>
                   </div>
                   <div className="flex-1 flex flex-row items-center justify-end">
                     <p className="h-8 w-auto p-4 bg-lime-200 border-lime-500 rounded-lg flex flex-col items-center justify-center font-bold text-center text-lime-800">
@@ -284,7 +284,7 @@ export default function Concept({ role, group, onBack }) {
               );
             })
           ) : (
-            <div className="text-center text-gray-500 py-8">
+            <div className="text-center text-[color:var(--c-text-tertiary)] py-8">
               No submissions found for this test.
             </div>
           )}
@@ -915,7 +915,7 @@ export default function Concept({ role, group, onBack }) {
                           className=" cursor-grab reorder-handle"
                         ></GripVertical>
                       )}
-                      className="w-full flex flex-row items-center justify-start text-sm p-4 rounded-xl shadow-sm bg-white border-1 mb-2"
+                      className="w-full flex flex-row items-center justify-start text-sm p-4 rounded-xl shadow-sm  border-1 mb-2"
                     >
                       <div className="flex ml-2 text-xs flex-row items-center justify-start">
                         {i.title}
@@ -984,7 +984,7 @@ export default function Concept({ role, group, onBack }) {
                 ) : (
                   <>
                     {questions == undefined || questions?.length == 0 ? (
-                      <div className="p-2 border-1 border-gray-300 rounded-xl w-auto">
+                      <div className="p-2 border-1 border-[color:var(--c-border-soft)] rounded-xl w-auto">
                         No Question Found, Add
                       </div>
                     ) : (
@@ -1120,7 +1120,7 @@ export default function Concept({ role, group, onBack }) {
                         {editQuestionData != undefined &&
                           editQuestionData?.options?.map((i, d) => {
                             return (
-                              <div className="flex flex-col my-5 border-1 border-gray-300 p-5 rounded-xl">
+                              <div className="flex flex-col my-5 border-1 border-[color:var(--c-border-soft)] p-5 rounded-xl">
                                 <h2 className="font-bold text-xl">
                                   Option Number {d + 1}
                                 </h2>
@@ -1133,7 +1133,7 @@ export default function Concept({ role, group, onBack }) {
                                       updateOrAddOption2(d, e, "isCorrect");
                                     }}
                                   ></Switch>
-                                  <div className="max-w-[200px] w-full border-1 border-gray-200 rounded-xl max-h-[90px] my-5 h-full flex overflow-hidden">
+                                  <div className="max-w-[200px] w-full border-1 border-[color:var(--c-border-faint)] rounded-xl max-h-[90px] my-5 h-full flex overflow-hidden">
                                     <ImageUploader
                                       data={{ image: i?.image }}
                                       size="small"
@@ -1475,7 +1475,7 @@ export default function Concept({ role, group, onBack }) {
                           .fill()
                           .map((i, d) => {
                             return (
-                              <div className="flex flex-col my-5 border-1 border-gray-300 p-5 rounded-xl">
+                              <div className="flex flex-col my-5 border-1 border-[color:var(--c-border-soft)] p-5 rounded-xl">
                                 <h2 className="font-bold text-xl">
                                   Option Number {d + 1}
                                 </h2>
@@ -1488,7 +1488,7 @@ export default function Concept({ role, group, onBack }) {
                                       updateOrAddOption(d, e, "isCorrect");
                                     }}
                                   ></Switch>
-                                  <div className="max-w-[200px] w-full border-1 border-gray-200 rounded-xl max-h-[90px] my-5 h-full flex overflow-hidden">
+                                  <div className="max-w-[200px] w-full border-1 border-[color:var(--c-border-faint)] rounded-xl max-h-[90px] my-5 h-full flex overflow-hidden">
                                     <ImageUploader
                                       size="small"
                                       onUploadComplete={(e) => {
@@ -1741,17 +1741,17 @@ export default function Concept({ role, group, onBack }) {
           /* View 1 */
           <div
             className={
-              "h-full w-full flex flex-row justify-start items-start bg-gray-100 rounded-xl p-0 overflow-hidden"
+              "h-full w-full flex flex-row justify-start items-start  rounded-xl p-0 overflow-hidden"
             }
           >
             <div
               className={
-                "w-full absolute lg:sticky lg:top-0 lg:w-[400px] z-[1] transition-all lg:transition-none overflow-y-auto -translate-x-full lg:translate-x-0 lg:transform-none h-full bg-gray-50 overflow-hidden flex flex-col items-start justify-start " +
+                "w-full absolute lg:sticky lg:top-0 lg:w-[400px] z-[1] transition-all lg:transition-none overflow-y-auto -translate-x-full lg:translate-x-0 lg:transform-none h-full  overflow-hidden flex flex-col items-start justify-start " +
                 (drawerActive ? " !translate-x-0" : "")
               }
             >
               <div className="flex mb-0 flex-col w-full text-left justify-start align-top items-start">
-                <div className="flex  bg-gradient-to-r from-slate-50 sticky top-0 z-[99] to-slate-200 text-black font-bold p-4 flex-row items-center justify-between w-full">
+                <div className="flex  bg-gradient-to-r from-slate-50 sticky top-0 z-[99] to-slate-200 text-[color:var(--c-text-primary)] font-bold p-4 flex-row items-center justify-between w-full">
                   <Button
                     size="sm"
                     onPress={() => {
@@ -1778,7 +1778,7 @@ export default function Concept({ role, group, onBack }) {
                   {aiConceptTests.filter((t) => role === "admin" || !t.config?.hidden).map((test) => {
                     const isHidden = !!test.config?.hidden;
                     return (
-                      <div key={test.id} className={"w-full px-4 py-2 border-b border-gray-200 hover:bg-purple-50 " + (role === "admin" && isHidden ? "bg-orange-50" : "bg-white")}>
+                      <div key={test.id} className={"w-full px-4 py-2 border-b border-[color:var(--c-border-faint)] hover:bg-purple-50 " + (role === "admin" && isHidden ? "bg-orange-50" : "")}>
                         <div className="flex flex-row items-center justify-between w-full">
                           <div className="flex flex-col flex-1">
                             <div className="flex flex-row items-center gap-2">
@@ -1787,7 +1787,7 @@ export default function Concept({ role, group, onBack }) {
                                 <span className="text-[10px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded font-medium">HIDDEN</span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500">{test.description}</p>
+                            <p className="text-xs text-[color:var(--c-text-tertiary)]">{test.description}</p>
                           </div>
                           <div className="flex flex-row items-center gap-2 ml-2 flex-shrink-0">
                             {role === "admin" && (
@@ -1843,7 +1843,7 @@ export default function Concept({ role, group, onBack }) {
                 categories.map((i, d) => {
                   return (
                     <div className="flex mb-0 flex-col w-full text-left justify-start align-top items-start">
-                      <div className="flex  bg-gradient-to-r from-secondary-500 sticky top-0 z-[99] to-yellow-200 text-black font-bold p-4 flex-row items-center justify-between w-full">
+                      <div className="flex  bg-gradient-to-r sticky top-0 z-[99] text-[color:var(--c-text-primary)] font-bold p-4 flex-row items-center justify-between w-full">
                         <div className="w-full flex flex-row items-center justify-start">
                           <Star size={16}></Star> <Spacer x={2}></Spacer>{" "}
                           <h2 className="font-medium mr-5">{i.title}</h2>
@@ -1905,7 +1905,7 @@ export default function Concept({ role, group, onBack }) {
                           ""
                         )}
                       </div>
-                      <div className="w-full border-b-1 border-gray-200 bg-white"></div>
+                      <div className="w-full border-b-1 border-[color:var(--c-border-faint)] "></div>
                       <ul className="flex flex-col w-full">
                         {gamecategories &&
                           categories &&
@@ -1922,7 +1922,7 @@ export default function Concept({ role, group, onBack }) {
                                           getLevels(z.id));
                                     }}
                                     className={
-                                      "relative bg-white  p-4 py-1 w-full mb-0 border-b-1 cursor-pointer  transition-all flex flex-row text-center " +
+                                      "relative   p-4 py-1 w-full mb-0 border-b-1 cursor-pointer  transition-all flex flex-row text-center " +
                                       (selectedLevel == z.id
                                         ? " !bg-secondary-50"
                                         : "")
@@ -2046,7 +2046,7 @@ export default function Concept({ role, group, onBack }) {
                                       levelData?.length == 0) &&
                                       !levelLoading && (
                                         <div className="w-full text-center p-2">
-                                          <p className="w-full p-2 flex flex-row items-center justify-center py-2 rounded-xl shadow-md bg-gray-50 border-dashed border-1">
+                                          <p className="w-full p-2 flex flex-row items-center justify-center py-2 rounded-xl shadow-md  border-dashed border-1">
                                             <AlertOctagon
                                               size={16}
                                             ></AlertOctagon>
@@ -2070,7 +2070,7 @@ export default function Concept({ role, group, onBack }) {
                                                   getLeaderBoard(i.uuid);
                                               }}
                                               className={
-                                                `w-full flex flex-col justify-between cursor-pointer h-auto text-left shadow-sm p-3 rounded-md hover:scale-[0.995]  bg-white  transition-all hover:shadow-md ` +
+                                                `w-full flex flex-col justify-between cursor-pointer h-auto text-left shadow-sm p-3 rounded-md hover:scale-[0.995]    transition-all hover:shadow-md ` +
                                                 (activeLevel?.id == i.id
                                                   ? " border-1 border-secondary bg-secondary-50"
                                                   : "")
@@ -2487,7 +2487,7 @@ export default function Concept({ role, group, onBack }) {
                                                               }
                                                             );
                                                         }}
-                                                        className="text-black border-gray-100 to-gray-300 from-white bg-gradient-to-t shadow-md border-1 mx-2 bg-gray-100"
+                                                        className="text-[color:var(--c-text-primary)] border-[color:var(--c-border-faint)] to-gray-300 from-white bg-gradient-to-t shadow-md border-1 mx-2 "
                                                         size="sm"
                                                         isIconOnly={true}
                                                       >
@@ -2545,7 +2545,7 @@ export default function Concept({ role, group, onBack }) {
                                     {role == "admin" ? (
                                       <Popover className="flex flex-col items-start align-middle justify-start">
                                         <PopoverTrigger autoFocus={false}>
-                                          <div className="w-full my-2 flex flex-row items-center justify-center align-middle p-2 border-1 border-gray-300 rounded-xl px-5 shadow-sm bg-white cursor-pointer hover:bg-gray-200 transition-all mx-auto">
+                                          <div className="w-full my-2 flex flex-row items-center justify-center align-middle p-2 border-1 border-[color:var(--c-border-soft)] rounded-xl px-5 shadow-sm  cursor-pointer hover:bg-[var(--c-surface-sunken)] transition-all mx-auto">
                                             <svg
                                               className="mr-2"
                                               width="24"
@@ -2820,8 +2820,8 @@ export default function Concept({ role, group, onBack }) {
                     <DropdownItem isReadOnly>
                       <Dropdown>
                         <DropdownTrigger>
-                          <div className="p-2 bg-gray-100 rounded-md">
-                            <p className="text-xs text-gray-500">
+                          <div className="p-2  rounded-md">
+                            <p className="text-xs text-[color:var(--c-text-tertiary)]">
                               Select Category
                             </p>
                             {getTextFromKey(
@@ -2905,11 +2905,11 @@ export default function Concept({ role, group, onBack }) {
 
             <div
               className={
-                "flex-1 absolute z-0 left-0 top-0 w-full lg:w-auto h-full lg:relative bg-gray-100 p-0 lg:p-4 flex flex-col items-start justify-start rounded-xl overflow-y-auto overflow-x-hidden lg:!transform-none translate-x-0 "
+                "flex-1 absolute z-0 left-0 top-0 w-full lg:w-auto h-full lg:relative  p-0 lg:p-4 flex flex-col items-start justify-start rounded-xl overflow-y-auto overflow-x-hidden lg:!transform-none translate-x-0 "
               }
             >
               {!activeLevel && (
-                <div className="w-full h-full flex flex-col items-center justify-center text-gray-600">
+                <div className="w-full h-full flex flex-col items-center justify-center text-[color:var(--c-text-secondary)]">
                   <PencilIcon size={48}></PencilIcon>
                   <Spacer y={2}></Spacer>
                   <h2 className="text-md max-w-[20ch]">
@@ -2939,7 +2939,7 @@ export default function Concept({ role, group, onBack }) {
                             className=" -rotate-180"
                           ></ArrowRight>
                         }
-                        className="bg-white mb-4 shadow-md flex lg:hidden border-1 rounded-full text-black "
+                        className=" mb-4 shadow-md flex lg:hidden border-1 rounded-full text-[color:var(--c-text-primary)] "
                       >
                         Back to Modules
                       </Button>
@@ -2984,7 +2984,7 @@ export default function Concept({ role, group, onBack }) {
                                   <div className="w-3 h-3 rounded-full animate-pulse bg-secondary"></div>
                                 }
                                 endContent={<ArrowRight></ArrowRight>}
-                                className="bg-white shadow-md border-1 relative rounded-full text-black "
+                                className=" shadow-md border-1 relative rounded-full text-[color:var(--c-text-primary)] "
                               >
                                 Start Test
                               </Button>
@@ -3003,7 +3003,7 @@ export default function Concept({ role, group, onBack }) {
                                     }}
                                     size="lg"
                                     startContent={<Eye size={24}></Eye>}
-                                    className="bg-warning shadow-md border-1 relative rounded-full text-black "
+                                    className="bg-warning shadow-md border-1 relative rounded-full text-[color:var(--c-text-primary)] "
                                   >
                                     Results & Analytics
                                   </Button>
@@ -3066,7 +3066,7 @@ export default function Concept({ role, group, onBack }) {
                       <div className="flex flex-col-reverse 2xl:flex-row items-start justify-start w-full">
                         <div className="flex flex-col w-full items-start justify-start flex-1">
                           <Spacer y={2}></Spacer>
-                          <div className="w-full rounded-xl text-left bg-white shadow-sm p-4">
+                          <div className="w-full rounded-xl text-left  shadow-sm p-4">
                             <h2 className="text-2xl font-semibold text-primary">
                               Level Description
                             </h2>
@@ -3077,7 +3077,7 @@ export default function Concept({ role, group, onBack }) {
                             ></div>
                           </div>
                           <Spacer y={2}></Spacer>
-                          <div className="w-full rounded-xl text-left bg-white shadow-sm p-4">
+                          <div className="w-full rounded-xl text-left  shadow-sm p-4">
                             <h2 className="text-2xl font-semibold text-primary">
                               Level Objective
                             </h2>
@@ -3088,7 +3088,7 @@ export default function Concept({ role, group, onBack }) {
                             ></div>
                           </div>
                         </div>
-                        <div className="rounded-xl text-left bg-white shadow-sm p-4 mb-4 mt-2 ml-4">
+                        <div className="rounded-xl text-left  shadow-sm p-4 mb-4 mt-2 ml-4">
                           <h2 className="text-2xl font-bold text-primary mb-2">
                             🏆 Top Rankers
                           </h2>
