@@ -1,21 +1,11 @@
 // ============================================================
-// Concept Test Analytics page — Phase 9 redesign
-// Practical analytics matching the mock analytics layout, adapted
-// for single-section concept tests:
-//   - 5-stat header strip
-//   - Multi-test score trend (user's last 5 concept tests)
-//   - Compare with topper
-//   - Single-section table
-//   - Question palette + Time chart + Score progression
-//   - Slowest-wrong + Fastest-wrong tables
-// All existing data fetching + scoring logic preserved.
+// Concept Test Analytics — Phase 9.1
+// All widgets inlined (palette grid, time bars, score progression,
+// distribution stack). Matches the v3 preview exactly. Dark mode safe.
 // ============================================================
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useNMNContext } from "@/components/NMNContext";
-import QuestionGridConcept from "@/components/QuestionGridConcept";
-import TimeAnalysisConcept from "@/components/TimeAnalysisConcept";
-import ScoreFallConcept from "@/components/ScoreFallConcept";
 import Loader from "@/components/Loader";
 import { CtoLocal } from "@/utils/DateUtil";
 import { serversupabase, supabase } from "@/utils/supabaseClient";
@@ -87,7 +77,6 @@ const ConceptAnalytics = ({ result }) => {
     } catch (e) { /* silent */ }
   }
 
-  // ── Scoring ──
   const increment = result?.config?.increment ?? 4;
   const decrement = result?.config?.decrement ?? 1;
 
@@ -108,7 +97,15 @@ const ConceptAnalytics = ({ result }) => {
              positiveScore, negativeScore, totalScore, maxScore, accuracy };
   }, [questions, result, increment, decrement]);
 
-  // ── Time per question (from report.timestamp deltas) ──
+  function getQStatus(q) {
+    if (!result?.report) return "skipped";
+    const r = result.report.find((rep) => rep.id === q.id);
+    if (!r) return "skipped";
+    if (r.isCorrect === true) return "correct";
+    if (r.isCorrect === false) return "wrong";
+    return "skipped";
+  }
+
   const questionTimes = useMemo(() => {
     if (!result?.report || !questions) return new Map();
     const sorted = [...result.report].filter((r) => typeof r.timestamp === "number").sort((a, b) => a.timestamp - b.timestamp);
@@ -122,15 +119,15 @@ const ConceptAnalytics = ({ result }) => {
     return map;
   }, [result, questions]);
 
-  const wrongList = useMemo(() => {
-    if (!questions || !result?.report) return [];
-    return questions.map((q, idx) => {
-      const r = result.report.find((rep) => rep.id === q.id);
-      if (!r || r.isCorrect !== false) return null;
-      return { q, idx, t: questionTimes.get(q.id) || 0 };
-    }).filter(Boolean);
-  }, [questions, result, questionTimes]);
+  // ── Items as { q, idx } for inline widgets ──
+  const items = useMemo(() => {
+    if (!questions) return [];
+    return questions.map((q, idx) => ({ q, idx }));
+  }, [questions]);
 
+  const wrongList = useMemo(() => items.filter(({ q }) => getQStatus(q) === "wrong")
+                                       .map(({ q, idx }) => ({ q, idx, t: questionTimes.get(q.id) || 0 })),
+                            [items, result, questionTimes]);
   const slowestWrong = useMemo(() => [...wrongList].sort((a, b) => b.t - a.t).slice(0, 5), [wrongList]);
   const fastestWrong = useMemo(() => [...wrongList].sort((a, b) => a.t - b.t).slice(0, 5), [wrongList]);
 
@@ -144,7 +141,7 @@ const ConceptAnalytics = ({ result }) => {
 
   if (!userDetails) {
     return (
-      <div className="w-full h-screen flex flex-col justify-center items-center" style={{ background: "var(--c-bg)", color: "var(--c-text-primary)" }}>
+      <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
         <p style={{ marginBottom: 16 }}>You cannot access this without logging in</p>
         <Button as={Link} href={`/login?redirectTo=${router.asPath}`} target="_blank" color="primary">Login</Button>
       </div>
@@ -152,7 +149,7 @@ const ConceptAnalytics = ({ result }) => {
   }
   if (!questions || !result || !stats) {
     return (
-      <div className="flex flex-col justify-center items-center text-center h-screen w-full" style={{ background: "var(--c-bg)", color: "var(--c-text-primary)" }}>
+      <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
         <Loader />
         <p style={{ marginTop: 12, color: "var(--c-text-tertiary)" }}>Loading your analytics…</p>
       </div>
@@ -164,7 +161,7 @@ const ConceptAnalytics = ({ result }) => {
   return (
     <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", minHeight: "100vh", fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif", letterSpacing: "-0.01em" }}>
 
-      {/* ===== QUESTION MODAL ===== */}
+      {/* QUESTION MODAL */}
       <Modal isOpen={activeQuestion != undefined} onClose={() => setActiveQuestion(undefined)} size="2xl">
         <ModalContent>
           <ModalHeader>Question ID: {activeQuestion?.id}</ModalHeader>
@@ -174,8 +171,7 @@ const ConceptAnalytics = ({ result }) => {
             {activeQuestion?.type == "options" ? (
               <RadioGroup value={result?.report?.find((item) => item.id == activeQuestion?.id) && result?.report?.find((item) => item.id == activeQuestion?.id)?.selectedOption - 1}>
                 {activeQuestion?.options?.map((option, index) => (
-                  <Radio key={index} value={index} isDisabled
-                    color={option.isCorrect ? "success" : "danger"}>
+                  <Radio key={index} value={index} isDisabled color={option.isCorrect ? "success" : "danger"}>
                     {option.title}
                   </Radio>
                 ))}
@@ -253,7 +249,7 @@ const ConceptAnalytics = ({ result }) => {
           </Card>
         )}
 
-        {/* SECTION TABLE (single row for concept test) */}
+        {/* PERFORMANCE SUMMARY */}
         <Card title="Performance summary">
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5, border: "1px solid var(--c-border-faint)", borderRadius: 12, overflow: "hidden" }}>
             <thead>
@@ -287,7 +283,7 @@ const ConceptAnalytics = ({ result }) => {
 
         {/* QUESTION PALETTE */}
         <Card title="Question palette" meta="Click any cell to view the question + your answer">
-          <QuestionGridConcept filter={filter} questions={questions} result={result} openQuestion={(e) => setActiveQuestion(e)} />
+          <PaletteGrid items={items} getStatus={getQStatus} onClick={(q) => setActiveQuestion(q)} />
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 16, fontSize: 12, color: "var(--c-text-secondary)" }}>
             <LegendDot color="#22c55e" label="Correct" count={stats.correctCount} />
             <LegendDot color="#ef4444" label="Wrong" count={stats.wrongCount} />
@@ -296,22 +292,27 @@ const ConceptAnalytics = ({ result }) => {
         </Card>
 
         {/* TIME PER QUESTION */}
-        <Card title="Time per question" meta="Wrong answers in red">
-          <TimeAnalysisConcept filter={filter} questions={questions} report={result?.report} />
+        <Card title="Time per question" meta="Wrong answers in red · long times in amber">
+          <TimeBars items={items} getStatus={getQStatus} questionTimes={questionTimes} />
         </Card>
 
         {/* SCORE PROGRESSION */}
-        <Card title="Cumulative score progression" meta="Where you gained marks">
-          <ScoreFallConcept testData={{ score: { value: Math.max(0, stats.totalScore) }, totalScore: { value: stats.maxScore }, negativeScore: { value: stats.negativeScore } }} filter={filter} questions={questions} report={result?.report} />
+        <Card title="Cumulative score progression" meta="Where you gained marks · red dots are negative marks">
+          <ScoreProgressionChart items={items} getStatus={getQStatus} pos={increment} neg={-decrement} />
         </Card>
 
-        {/* SLOWEST / FASTEST WRONG TABLES */}
+        {/* ANSWER DISTRIBUTION (single concept) */}
+        <Card title="Answer distribution">
+          <DistRow name={testTitle} correct={stats.correctCount} wrong={stats.wrongCount} skipped={stats.skippedCount} />
+        </Card>
+
+        {/* SLOWEST / FASTEST WRONG */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} className="two-grid">
           <Card title="Slowest questions you got wrong" meta="Biggest time-leaks">
-            <WrongList list={slowestWrong} onClick={(q) => setActiveQuestion(q)} emptyMsg="No wrong answers — well done!" />
+            <WrongList list={slowestWrong} onClick={(q) => setActiveQuestion(q)} emptyMsg="No wrong answers" hideSection />
           </Card>
           <Card title="Fastest questions you got wrong" meta="Likely careless mistakes">
-            <WrongList list={fastestWrong} onClick={(q) => setActiveQuestion(q)} emptyMsg="No wrong answers — well done!" />
+            <WrongList list={fastestWrong} onClick={(q) => setActiveQuestion(q)} emptyMsg="No wrong answers" hideSection />
           </Card>
         </div>
 
@@ -328,7 +329,7 @@ const ConceptAnalytics = ({ result }) => {
 
 export default ConceptAnalytics;
 
-// ── Sub-components (same as mock analytics) ──
+// ── Shared sub-components (same as mock) ──
 function Card({ title, meta, children }) {
   return (
     <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, padding: "22px 24px", marginBottom: 16 }}>
@@ -385,11 +386,7 @@ function MockTrendChart({ history }) {
   const innerW = w - padding * 2;
   const innerH = h - 40;
   const xStep = history.length > 1 ? innerW / (history.length - 1) : 0;
-  const pts = scores.map((s, i) => ({
-    x: padding + i * xStep,
-    y: 20 + innerH - (s / maxS) * innerH,
-    score: s,
-  }));
+  const pts = scores.map((s, i) => ({ x: padding + i * xStep, y: 20 + innerH - (s / maxS) * innerH, score: s }));
   const linePath = pts.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(" ");
   const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${h} L ${pts[0].x} ${h} Z`;
   return (
@@ -397,7 +394,7 @@ function MockTrendChart({ history }) {
       <div style={{ height: 160, position: "relative" }}>
         <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: "100%", height: "100%", overflow: "visible" }}>
           <defs>
-            <linearGradient id="trendGradTest" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="trendGradT" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--c-brand-primary)" stopOpacity="0.25"/>
               <stop offset="100%" stopColor="var(--c-brand-primary)" stopOpacity="0"/>
             </linearGradient>
@@ -405,14 +402,12 @@ function MockTrendChart({ history }) {
           <line x1="0" y1="40" x2={w} y2="40" stroke="var(--c-border-faint)"/>
           <line x1="0" y1="80" x2={w} y2="80" stroke="var(--c-border-faint)"/>
           <line x1="0" y1="120" x2={w} y2="120" stroke="var(--c-border-faint)"/>
-          <path d={areaPath} fill="url(#trendGradTest)"/>
+          <path d={areaPath} fill="url(#trendGradT)"/>
           <path d={linePath} stroke="var(--c-brand-primary)" strokeWidth="2.5" fill="none"/>
           {pts.map((p, i) => (
             <g key={i}>
               <circle cx={p.x} cy={p.y} r={i === pts.length - 1 ? 6 : 5} fill="var(--c-brand-primary)" stroke={i === pts.length - 1 ? "#fff" : "none"} strokeWidth={i === pts.length - 1 ? 2 : 0}/>
-              <text x={p.x} y={p.y - 12} textAnchor="middle" fontSize="11" fill={i === pts.length - 1 ? "var(--c-brand-primary)" : "var(--c-text-secondary)"} fontWeight={i === pts.length - 1 ? "600" : "500"}>
-                {p.score}
-              </text>
+              <text x={p.x} y={p.y - 12} textAnchor="middle" fontSize="11" fill={i === pts.length - 1 ? "var(--c-brand-primary)" : "var(--c-text-secondary)"} fontWeight={i === pts.length - 1 ? "600" : "500"}>{p.score}</text>
             </g>
           ))}
         </svg>
@@ -430,22 +425,146 @@ function MockTrendChart({ history }) {
 function LegendDot({ color, gray, label, count }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-      <span style={{
-        display: "inline-block", width: 10, height: 10, borderRadius: 3,
-        background: gray ? "var(--c-surface-sunken, var(--c-surface-muted))" : color,
-        border: gray ? "1px solid var(--c-border-soft)" : "none",
-      }} />
+      <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 3, background: gray ? "var(--c-surface-sunken, var(--c-surface-muted))" : color, border: gray ? "1px solid var(--c-border-soft)" : "none" }} />
       {label} · <b style={{ color: "var(--c-text-primary)", fontVariantNumeric: "tabular-nums" }}>{count}</b>
     </span>
   );
 }
-function WrongList({ list, onClick, emptyMsg }) {
-  if (!list || list.length === 0) {
-    return (
-      <div style={{ padding: "20px 0", textAlign: "center", fontSize: 13, color: "var(--c-text-tertiary)" }}>
-        {emptyMsg}
+
+function PaletteGrid({ items, getStatus, onClick }) {
+  if (!items || items.length === 0) {
+    return <div style={{ padding: "20px 0", textAlign: "center", color: "var(--c-text-tertiary)", fontSize: 13 }}>No questions</div>;
+  }
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 6 }}>
+      {items.map(({ q, idx }) => {
+        const status = getStatus(q);
+        const styles = {
+          correct: { bg: "#22c55e", color: "#fff", border: "none" },
+          wrong: { bg: "#ef4444", color: "#fff", border: "none" },
+          skipped: { bg: "var(--c-surface-sunken, var(--c-surface-muted))", color: "var(--c-text-secondary)", border: "1px solid var(--c-border-soft)" },
+        };
+        const s = styles[status] || styles.skipped;
+        return (
+          <button key={q.id} onClick={() => onClick(q)} title={`Q ${idx + 1} · ${status}`} style={{
+            aspectRatio: "1", borderRadius: 6,
+            background: s.bg, color: s.color, border: s.border,
+            font: "600 11px/1 inherit", cursor: "pointer", fontVariantNumeric: "tabular-nums",
+          }}>{idx + 1}</button>
+        );
+      })}
+    </div>
+  );
+}
+function TimeBars({ items, getStatus, questionTimes }) {
+  if (!items || items.length === 0) {
+    return <div style={{ padding: "20px 0", textAlign: "center", color: "var(--c-text-tertiary)", fontSize: 13 }}>No data</div>;
+  }
+  const times = items.map(({ q }) => questionTimes.get(q.id) || 0);
+  const maxT = Math.max(...times, 1);
+  return (
+    <>
+      <div style={{ height: 200, display: "flex", alignItems: "flex-end", gap: 4, paddingTop: 16, borderBottom: "1px solid var(--c-border-faint)", marginBottom: 10 }}>
+        {items.map(({ q }, i) => {
+          const status = getStatus(q);
+          const t = times[i];
+          let bg = "var(--c-brand-primary)";
+          if (status === "wrong") bg = "var(--c-danger)";
+          else if (t > 180) bg = "var(--c-warning)";
+          const h = t > 0 ? (t / maxT) * 100 : 2;
+          return <div key={q.id} title={`Q ${i + 1}: ${t}s`} style={{ flex: 1, minWidth: 4, background: bg, opacity: 0.85, borderRadius: "4px 4px 0 0", height: `${h}%` }} />;
+        })}
       </div>
-    );
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
+        <span>Q 1</span>
+        {items.length > 10 && <span>Q {Math.ceil(items.length / 2)}</span>}
+        <span>Q {items.length}</span>
+      </div>
+    </>
+  );
+}
+function ScoreProgressionChart({ items, getStatus, pos, neg }) {
+  if (!items || items.length === 0) return null;
+  let running = 0;
+  const points = items.map(({ q }, i) => {
+    const status = getStatus(q);
+    let delta = 0;
+    if (status === "correct") { delta = pos; running += pos; }
+    else if (status === "wrong") { delta = neg; running += neg; }
+    return { i, score: running, delta };
+  });
+  const finalScore = running;
+  const maxAbs = Math.max(...points.map((p) => Math.abs(p.score)), 1);
+  const w = 600, h = 200;
+  const padding = 20;
+  const innerW = w - padding * 2;
+  const innerH = h - padding * 2;
+  const xStep = points.length > 1 ? innerW / (points.length - 1) : 0;
+  const yMid = padding + innerH / 2;
+  const pts = points.map((p, i) => ({
+    x: padding + i * xStep,
+    y: yMid - (p.score / maxAbs) * (innerH / 2),
+    ...p,
+  }));
+  const linePath = pts.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(" ");
+  const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${yMid} L ${pts[0].x} ${yMid} Z`;
+  return (
+    <>
+      <div style={{ height: 200, position: "relative" }}>
+        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+          <defs>
+            <linearGradient id="scoreGradT" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--c-brand-primary)" stopOpacity="0.3"/>
+              <stop offset="100%" stopColor="var(--c-brand-primary)" stopOpacity="0"/>
+            </linearGradient>
+          </defs>
+          <line x1="0" y1={padding + innerH * 0.25} x2={w} y2={padding + innerH * 0.25} stroke="var(--c-border-faint)" strokeDasharray="2 4"/>
+          <line x1="0" y1={yMid} x2={w} y2={yMid} stroke="var(--c-border-soft)"/>
+          <line x1="0" y1={padding + innerH * 0.75} x2={w} y2={padding + innerH * 0.75} stroke="var(--c-border-faint)" strokeDasharray="2 4"/>
+          <path d={areaPath} fill="url(#scoreGradT)"/>
+          <path d={linePath} stroke="var(--c-brand-primary)" strokeWidth="2.5" fill="none"/>
+          {pts.filter((p) => p.delta < 0).map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="4" fill="var(--c-danger)"/>)}
+        </svg>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 8, fontVariantNumeric: "tabular-nums" }}>
+        <span>Q 1</span>
+        <span>Final score: <b style={{ color: "var(--c-text-primary)" }}>{Math.max(0, finalScore)}</b></span>
+      </div>
+    </>
+  );
+}
+function DistRow({ name, correct, wrong, skipped }) {
+  const sum = correct + wrong + skipped;
+  if (sum === 0) return null;
+  const pc = (correct / sum) * 100;
+  const pw = (wrong / sum) * 100;
+  const ps = (skipped / sum) * 100;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1.3fr 3fr", gap: 14, alignItems: "center", padding: "12px 0" }}>
+      <div style={{ fontWeight: 500, color: "var(--c-text-primary)", fontSize: 13.5 }}>{name}</div>
+      <div style={{ height: 26, borderRadius: 6, overflow: "hidden", display: "flex", background: "var(--c-surface-sunken, var(--c-surface-muted))", border: "1px solid var(--c-border-faint)" }}>
+        {correct > 0 && <Seg color="#22c55e" pct={pc} label={`${correct} correct`} />}
+        {wrong > 0 && <Seg color="#ef4444" pct={pw} label={`${wrong} wrong`} />}
+        {skipped > 0 && <Seg muted pct={ps} label={`${skipped} skipped`} />}
+      </div>
+    </div>
+  );
+}
+function Seg({ color, muted, pct, label }) {
+  return (
+    <div style={{
+      width: `${pct}%`, height: "100%",
+      background: muted ? "var(--c-surface-muted)" : color,
+      color: muted ? "var(--c-text-tertiary)" : "#fff",
+      display: "grid", placeItems: "center",
+      fontSize: 11, fontWeight: 600, fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap", overflow: "hidden",
+    }}>{pct > 8 ? label : ""}</div>
+  );
+}
+function WrongList({ list, onClick, emptyMsg, hideSection }) {
+  if (!list || list.length === 0) {
+    return <div style={{ padding: "20px 0", textAlign: "center", fontSize: 13, color: "var(--c-text-tertiary)" }}>{emptyMsg}</div>;
   }
   return (
     <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13 }}>
@@ -491,8 +610,6 @@ const pillPrimary = { ...pillGhost, background: "var(--c-brand-primary)", color:
 
 export async function getServerSideProps(context) {
   const { data, error } = await serversupabase.from("plays").select("*,test_uuid(*)").eq("uid", context.query.uid);
-  if (data?.length === 0 || error) {
-    return { notFound: true };
-  }
+  if (data?.length === 0 || error) return { notFound: true };
   return { props: { result: data[0] } };
 }

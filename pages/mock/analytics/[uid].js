@@ -1,45 +1,32 @@
 // ============================================================
-// Mock Analytics page — Phase 9 redesign
-// Practical analytics for IPMAT aspirants:
-//   - 5-stat header strip (Score / Accuracy / Rank / Time / Without negatives)
-//   - Multi-mock score trend (user's last 5 mocks)
-//   - Compare with topper (highest scorer + top 10% avg)
-//   - Section-wise table
-//   - Question palette (existing QuestionGrid widget)
-//   - Time per question (existing TimeAnalysis widget)
-//   - Score progression (existing ScoreFall widget)
-//   - Answer distribution (existing AnswerDistributionCharts widget)
-//   - Slowest-wrong + Fastest-wrong tables (new)
-// All existing data fetching + scoring logic preserved.
+// Mock Analytics page — Phase 9.1
+// All widgets inlined to match the v3 preview exactly. No more
+// external QuestionGrid / TimeAnalysis / ScoreFall / AnswerDistribution
+// imports — those had hardcoded white backgrounds that broke dark mode.
 // ============================================================
 
-import AnswerDistributionCharts from "@/components/AnswerDistribution";
 import Loader from "@/components/Loader";
 import { useNMNContext } from "@/components/NMNContext";
-import QuestionGrid from "@/components/QuestionGrid";
-import ScoreFall from "@/components/ScoreFallChart";
-import TimeAnalysis from "@/components/TimeAnalysis";
 import { CtoLocal } from "@/utils/DateUtil";
 import { serversupabase, supabase } from "@/utils/supabaseClient";
 import {
   Modal, ModalBody, ModalContent, ModalFooter, ModalHeader,
   Button, Chip, RadioGroup, Radio,
 } from "@nextui-org/react";
-import { Printer, ArrowLeft, ArrowRight, BookOpen, Trophy, ExternalLink } from "lucide-react";
+import { Printer, ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "react-hot-toast";
 
 export default function MockAnalytics({ result }) {
   const [sections, setSections] = useState();
   const [modules, setModules] = useState();
   const [questions, setQuestions] = useState();
   const [ats, setAts] = useState({ atsRank: "—", totalRank: "—" });
-  const [filter, setFilter] = useState(0); // 0 = all sections, 1.. = section index + 1
+  const [filter, setFilter] = useState(0);
   const [activeQuestion, setActiveQuestion] = useState(undefined);
-  const [history, setHistory] = useState([]); // last 5 mocks for this user
-  const [topper, setTopper] = useState(null); // { score, name, count }
+  const [history, setHistory] = useState([]);
+  const [topper, setTopper] = useState(null);
   const [top10Avg, setTop10Avg] = useState(null);
 
   const router = useRouter();
@@ -77,22 +64,12 @@ export default function MockAnalytics({ result }) {
       getTopperData(result?.test_id?.id);
     }
   }
-
   async function getATSRank(a) {
     try {
-      const { data, error } = await supabase.rpc("get_row_rank", { uid_input: a });
-      if (data) {
-        setAts({ atsRank: data[0]?.your_rank, totalRank: data[0]?.total_ats_rank });
-      }
-      if (error) {
-        setAts({ atsRank: "—", totalRank: "—" });
-      }
-    } catch (e) {
-      setAts({ atsRank: "—", totalRank: "—" });
-    }
+      const { data } = await supabase.rpc("get_row_rank", { uid_input: a });
+      if (data) setAts({ atsRank: data[0]?.your_rank || "—", totalRank: data[0]?.total_ats_rank || "—" });
+    } catch (e) { /* silent */ }
   }
-
-  // Fetch user's last 5 mocks for the trend chart
   async function getMockHistory() {
     if (!userDetails?.id) return;
     const { data } = await supabase
@@ -101,10 +78,8 @@ export default function MockAnalytics({ result }) {
       .eq("user", userDetails.id)
       .order("created_at", { ascending: false })
       .limit(5);
-    if (data) setHistory(data.reverse()); // oldest → newest
+    if (data) setHistory(data.reverse());
   }
-
-  // Fetch top scorer + top 10% avg for the same test
   async function getTopperData(testId) {
     if (!testId) return;
     try {
@@ -150,12 +125,21 @@ export default function MockAnalytics({ result }) {
     if (c === false) return "wrong";
     return "skipped";
   }
-  function getQuestionSection(q) {
-    if (!modules || !sections) return null;
-    const mod = modules.find((m) => m.module && m.module.id === q.parent);
-    if (!mod) return null;
-    return sections.find((s) => s.id === mod.parent_sub);
-  }
+
+  // ── Flat ordered list of questions across sections (with section ref) ──
+  const flatQuestions = useMemo(() => {
+    if (!sections || !modules || !questions) return [];
+    const out = [];
+    sections.forEach((sec) => {
+      const secModules = modules.filter((m) => m.parent_sub === sec.id);
+      secModules.forEach((mod) => {
+        if (!mod.module) return;
+        const qs = questions.filter((q) => q.parent === mod.module.id).sort((a, b) => a.seq - b.seq);
+        qs.forEach((q) => out.push({ q, sec, module: mod }));
+      });
+    });
+    return out;
+  }, [sections, modules, questions]);
 
   // ── Aggregate stats per section ──
   const stats = useMemo(() => {
@@ -174,69 +158,69 @@ export default function MockAnalytics({ result }) {
           const reportItem = result.report?.find((r) => r.id === q.id);
           const isCorrect = isQuestionCorrect(q, reportItem);
           if (isCorrect === true) { score += pos; correct += 1; correctCount += 1; }
-          else if (isCorrect === false) { score += neg; negs += neg; wrong += 1; wrongCount += 1; }
+          else if (isCorrect === false) { score += neg; negs += Math.abs(neg); wrong += 1; wrongCount += 1; }
           else { skipped += 1; skippedCount += 1; }
           if (result.data?.filter((m) => m.status == "review")?.some((m) => m.id == q.id)) markedCount += 1;
         });
       });
       totalScore += score; maxScore += max;
       const attempted = correct + wrong;
-      const strikeRate = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
-      return { sec, score, max, correct, wrong, skipped, total, negs, attempted, strikeRate };
+      return { sec, score, max, correct, wrong, skipped, total, negs, attempted };
     });
     const totalQ = correctCount + wrongCount + skippedCount;
     const accuracy = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
-    const attempted = correctCount + wrongCount;
-    const overallStrike = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
     const totalNeg = perSection.reduce((s, p) => s + p.negs, 0);
-    const withoutNeg = totalScore - totalNeg;
+    const withoutNeg = totalScore + totalNeg;
     return { totalScore, maxScore, correctCount, wrongCount, skippedCount, markedCount,
-             totalQ, accuracy, overallStrike, totalNeg, withoutNeg, perSection };
+             totalQ, accuracy, totalNeg, withoutNeg, perSection };
   }, [sections, modules, questions, result]);
 
-  // ── Time per question (compute from report.at deltas) ──
+  // ── Per-question time (from report.at deltas) ──
   const questionTimes = useMemo(() => {
-    if (!result?.report || !questions) return new Map();
+    if (!result?.report) return new Map();
     const sorted = [...result.report].filter((r) => typeof r.at === "number").sort((a, b) => a.at - b.at);
     const map = new Map();
-    let prevAt = 0;
+    let prev = 0;
     sorted.forEach((r) => {
-      const t = r.at - prevAt;
+      const t = r.at - prev;
       if (t > 0 && t < 1800) map.set(r.id, t);
-      prevAt = r.at;
+      prev = r.at;
     });
     return map;
-  }, [result, questions]);
+  }, [result]);
 
-  // ── Slowest-wrong / fastest-wrong tables ──
-  const wrongList = useMemo(() => {
-    if (!questions || !result) return [];
-    const list = [];
-    questions.forEach((q, idx) => {
-      const status = getQStatus(q);
-      if (status !== "wrong") return;
-      const sec = getQuestionSection(q);
-      const t = questionTimes.get(q.id) || 0;
-      list.push({ q, idx, status, sec, t });
-    });
-    return list;
-  }, [questions, result, modules, sections, questionTimes]);
-
-  const slowestWrong = useMemo(() => [...wrongList].sort((a, b) => b.t - a.t).slice(0, 5), [wrongList]);
-  const fastestWrong = useMemo(() => [...wrongList].sort((a, b) => a.t - b.t).slice(0, 5), [wrongList]);
-
-  // ── Total time taken (in min) ──
+  // ── Total time taken ──
   const totalTimeMin = useMemo(() => {
     if (!result?.report) return 0;
     const maxAt = result.report.reduce((m, r) => (typeof r.at === "number" && r.at > m ? r.at : m), 0);
     return Math.round(maxAt / 60);
   }, [result]);
 
+  // ── Slowest / fastest wrong ──
+  const wrongList = useMemo(() => {
+    return flatQuestions
+      .map(({ q, sec }, idx) => {
+        if (getQStatus(q) !== "wrong") return null;
+        return { q, idx, sec, t: questionTimes.get(q.id) || 0 };
+      })
+      .filter(Boolean);
+  }, [flatQuestions, questionTimes, result]);
+  const slowestWrong = useMemo(() => [...wrongList].sort((a, b) => b.t - a.t).slice(0, 5), [wrongList]);
+  const fastestWrong = useMemo(() => [...wrongList].sort((a, b) => a.t - b.t).slice(0, 5), [wrongList]);
+
+  // ── Filter flat questions by selected section ──
+  const filteredFlat = useMemo(() => {
+    if (filter === 0) return flatQuestions;
+    const sec = sections?.[filter - 1];
+    if (!sec) return flatQuestions;
+    return flatQuestions.filter((f) => f.sec.id === sec.id);
+  }, [filter, flatQuestions, sections]);
+
   function printPage() { window.print(); }
 
   if (userDetails == undefined) {
     return (
-      <div className="w-full h-screen flex flex-col justify-center items-center" style={{ background: "var(--c-bg)", color: "var(--c-text-primary)" }}>
+      <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
         <p style={{ marginBottom: 16 }}>You cannot access this without logging in</p>
         <Button as={Link} href={`/login?redirectTo=${router.asPath}`} target="_blank" color="primary">Login</Button>
       </div>
@@ -244,7 +228,7 @@ export default function MockAnalytics({ result }) {
   }
   if (questions == undefined || result == undefined || stats == null) {
     return (
-      <div className="flex flex-col justify-center items-center text-center h-screen w-full" style={{ background: "var(--c-bg)", color: "var(--c-text-primary)" }}>
+      <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
         <Loader />
         <p style={{ marginTop: 12, color: "var(--c-text-tertiary)" }}>Loading your analytics…</p>
       </div>
@@ -254,7 +238,7 @@ export default function MockAnalytics({ result }) {
   return (
     <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", minHeight: "100vh", fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif", letterSpacing: "-0.01em" }}>
 
-      {/* ===== QUESTION MODAL ===== */}
+      {/* QUESTION MODAL */}
       <Modal isOpen={activeQuestion != undefined} onClose={() => setActiveQuestion(undefined)} size="2xl">
         <ModalContent>
           <ModalHeader>Question ID: {activeQuestion?.id}</ModalHeader>
@@ -264,8 +248,7 @@ export default function MockAnalytics({ result }) {
             {activeQuestion?.type == "options" ? (
               <RadioGroup value={result?.report?.find((item) => item.id == activeQuestion?.id) && result?.report?.find((item) => item.id == activeQuestion?.id)?.value - 1}>
                 {activeQuestion?.options?.map((option, index) => (
-                  <Radio key={index} value={index} isDisabled
-                    color={option.isCorrect ? "success" : "danger"}>
+                  <Radio key={index} value={index} isDisabled color={option.isCorrect ? "success" : "danger"}>
                     {option.title}
                   </Radio>
                 ))}
@@ -292,7 +275,7 @@ export default function MockAnalytics({ result }) {
 
       <div style={{ maxWidth: 1080, margin: "0 auto", padding: "32px 28px 80px" }}>
 
-        {/* ===== TOP BAR ===== */}
+        {/* TOP BAR */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, fontWeight: 600, fontSize: 14 }}>
             <img src="/newlog.svg" style={{ height: 32, width: "auto" }} />
@@ -310,7 +293,7 @@ export default function MockAnalytics({ result }) {
           </div>
         </div>
 
-        {/* ===== HEADER STRIP ===== */}
+        {/* HEADER STRIP */}
         <div style={{ marginBottom: 28 }}>
           <div style={eyebrowStyle}>Detailed analysis</div>
           <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-text-primary)", margin: "0 0 22px" }}>
@@ -325,7 +308,7 @@ export default function MockAnalytics({ result }) {
           </div>
         </div>
 
-        {/* ===== SECTION FILTER TABS ===== */}
+        {/* SECTION FILTER TABS */}
         <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 18 }}>
           <Tab label="All sections" active={filter == 0} onClick={() => setFilter(0)} />
           {sections.map((s, i) => (
@@ -333,14 +316,14 @@ export default function MockAnalytics({ result }) {
           ))}
         </div>
 
-        {/* ===== MULTI-MOCK TREND ===== */}
+        {/* MULTI-MOCK TREND */}
         {history && history.length >= 2 && (
           <Card title="Your score across last mocks" meta={`${history.length} mocks · latest on the right`}>
             <MockTrendChart history={history} />
           </Card>
         )}
 
-        {/* ===== COMPARE WITH TOPPER ===== */}
+        {/* COMPARE WITH TOPPER */}
         {(topper || top10Avg) && (
           <Card title="Your test vs. the topper" meta="Highest scorer on this exact mock">
             <div style={{ border: "1px solid var(--c-border-faint)", borderRadius: 12, overflow: "hidden", fontSize: 13 }}>
@@ -352,54 +335,56 @@ export default function MockAnalytics({ result }) {
           </Card>
         )}
 
-        {/* ===== SECTION-WISE TABLE ===== */}
+        {/* SECTION-WISE TABLE */}
         <Card title="Section-wise performance">
-          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5, border: "1px solid var(--c-border-faint)", borderRadius: 12, overflow: "hidden" }}>
-            <thead>
-              <tr>
-                <th style={th}>Section</th>
-                <th style={{ ...th, textAlign: "right" }}>Q&apos;s</th>
-                <th style={{ ...th, textAlign: "right" }}>Attempted</th>
-                <th style={{ ...th, textAlign: "right" }}>Correct</th>
-                <th style={{ ...th, textAlign: "right" }}>Wrong</th>
-                <th style={{ ...th, textAlign: "right" }}>Skipped</th>
-                <th style={{ ...th, textAlign: "right" }}>Score</th>
-                <th style={{ ...th, textAlign: "right" }}>Negative</th>
-                <th style={{ ...th, textAlign: "right" }}>Max</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.perSection.map((p, d) => (
-                <tr key={d}>
-                  <td style={{ ...td, color: "var(--c-text-primary)", fontWeight: 500 }}>{p.sec.subject?.title || "Section"}</td>
-                  <td style={tdNum}>{p.total}</td>
-                  <td style={tdNum}>{p.attempted}</td>
-                  <td style={{ ...tdNum, color: "var(--c-success)" }}>{p.correct}</td>
-                  <td style={{ ...tdNum, color: "var(--c-danger)" }}>{p.wrong}</td>
-                  <td style={{ ...tdNum, color: "var(--c-text-tertiary)" }}>{p.skipped}</td>
-                  <td style={tdNum}>{Math.max(0, p.score)}</td>
-                  <td style={{ ...tdNum, color: "var(--c-danger)" }}>{p.negs || 0}</td>
-                  <td style={{ ...tdNum, color: "var(--c-text-tertiary)" }}>{p.max}</td>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13.5, border: "1px solid var(--c-border-faint)", borderRadius: 12, overflow: "hidden" }}>
+              <thead>
+                <tr>
+                  <th style={th}>Section</th>
+                  <th style={{ ...th, textAlign: "right" }}>Q&apos;s</th>
+                  <th style={{ ...th, textAlign: "right" }}>Attempted</th>
+                  <th style={{ ...th, textAlign: "right" }}>Correct</th>
+                  <th style={{ ...th, textAlign: "right" }}>Wrong</th>
+                  <th style={{ ...th, textAlign: "right" }}>Skipped</th>
+                  <th style={{ ...th, textAlign: "right" }}>Score</th>
+                  <th style={{ ...th, textAlign: "right" }}>Negative</th>
+                  <th style={{ ...th, textAlign: "right" }}>Max</th>
                 </tr>
-              ))}
-              <tr>
-                <td style={tdTotal}>Total</td>
-                <td style={tdTotalNum}>{stats.totalQ}</td>
-                <td style={tdTotalNum}>{stats.correctCount + stats.wrongCount}</td>
-                <td style={{ ...tdTotalNum, color: "var(--c-success)" }}>{stats.correctCount}</td>
-                <td style={{ ...tdTotalNum, color: "var(--c-danger)" }}>{stats.wrongCount}</td>
-                <td style={{ ...tdTotalNum, color: "var(--c-text-tertiary)" }}>{stats.skippedCount}</td>
-                <td style={tdTotalNum}>{Math.max(0, stats.totalScore)}</td>
-                <td style={{ ...tdTotalNum, color: "var(--c-danger)" }}>{stats.totalNeg || 0}</td>
-                <td style={{ ...tdTotalNum, color: "var(--c-text-tertiary)" }}>{stats.maxScore}</td>
-              </tr>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {stats.perSection.map((p, d) => (
+                  <tr key={d}>
+                    <td style={{ ...td, color: "var(--c-text-primary)", fontWeight: 500 }}>{p.sec.subject?.title || "Section"}</td>
+                    <td style={tdNum}>{p.total}</td>
+                    <td style={tdNum}>{p.attempted}</td>
+                    <td style={{ ...tdNum, color: "var(--c-success)" }}>{p.correct}</td>
+                    <td style={{ ...tdNum, color: "var(--c-danger)" }}>{p.wrong}</td>
+                    <td style={{ ...tdNum, color: "var(--c-text-tertiary)" }}>{p.skipped}</td>
+                    <td style={tdNum}>{Math.max(0, p.score)}</td>
+                    <td style={{ ...tdNum, color: "var(--c-danger)" }}>{p.negs > 0 ? `−${p.negs}` : 0}</td>
+                    <td style={{ ...tdNum, color: "var(--c-text-tertiary)" }}>{p.max}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td style={tdTotal}>Total</td>
+                  <td style={tdTotalNum}>{stats.totalQ}</td>
+                  <td style={tdTotalNum}>{stats.correctCount + stats.wrongCount}</td>
+                  <td style={{ ...tdTotalNum, color: "var(--c-success)" }}>{stats.correctCount}</td>
+                  <td style={{ ...tdTotalNum, color: "var(--c-danger)" }}>{stats.wrongCount}</td>
+                  <td style={{ ...tdTotalNum, color: "var(--c-text-tertiary)" }}>{stats.skippedCount}</td>
+                  <td style={tdTotalNum}>{Math.max(0, stats.totalScore)}</td>
+                  <td style={{ ...tdTotalNum, color: "var(--c-danger)" }}>{stats.totalNeg > 0 ? `−${stats.totalNeg}` : 0}</td>
+                  <td style={{ ...tdTotalNum, color: "var(--c-text-tertiary)" }}>{stats.maxScore}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </Card>
 
-        {/* ===== QUESTION PALETTE ===== */}
+        {/* QUESTION PALETTE — INLINED */}
         <Card title="Question palette" meta="Click any cell to view the question + your answer">
-          <QuestionGrid openQuestion={(e) => setActiveQuestion(e)} filter={filter} sections={sections} modules={modules} questions={questions} result={result} />
+          <PaletteGrid items={filteredFlat} getStatus={getQStatus} onClick={(q) => setActiveQuestion(q)} />
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 16, fontSize: 12, color: "var(--c-text-secondary)" }}>
             <LegendDot color="#22c55e" label="Correct" count={stats.correctCount} />
             <LegendDot color="#ef4444" label="Wrong" count={stats.wrongCount} />
@@ -408,45 +393,31 @@ export default function MockAnalytics({ result }) {
           </div>
         </Card>
 
-        {/* ===== TIME PER QUESTION ===== */}
+        {/* TIME PER QUESTION — INLINED */}
         <Card title="Time per question" meta="Wrong answers in red · long times in amber">
-          <TimeAnalysis filter={filter} questions={questions} sections={sections} modules={modules} report={result?.report} />
+          <TimeBars items={filteredFlat} getStatus={getQStatus} questionTimes={questionTimes} />
         </Card>
 
-        {/* ===== SCORE PROGRESSION ===== */}
-        <Card title="Cumulative score progression" meta="Where you gained marks">
-          <ScoreFall testData={{ score: { value: Math.max(0, stats.totalScore) }, totalScore: { value: stats.maxScore }, negativeScore: { value: stats.totalNeg } }} filter={filter} questions={questions} sections={sections} modules={modules} report={result?.report} />
+        {/* SCORE PROGRESSION — INLINED */}
+        <Card title="Cumulative score progression" meta="Where you gained marks · red dots are negative marks">
+          <ScoreProgressionChart items={filteredFlat} getStatus={getQStatus} sections={sections} />
         </Card>
 
-        {/* ===== ANSWER DISTRIBUTION ===== */}
+        {/* ANSWER DISTRIBUTION — INLINED stacked bars */}
         <Card title="Answer distribution per section">
-          <AnswerDistributionCharts
-            sections={sections}
-            getQuestionCount={(idx) => stats.perSection[idx]?.total || 0}
-            getAttemptedQuestionCount={(idx) => stats.perSection[idx]?.attempted || 0}
-            getSectionalScores={(idx) => ({
-              counts: {
-                correct: stats.perSection[idx]?.correct || 0,
-                incorrect: stats.perSection[idx]?.wrong || 0,
-                unattempted: stats.perSection[idx]?.skipped || 0,
-              },
-              scores: {
-                positive: stats.perSection[idx]?.score || 0,
-                negative: stats.perSection[idx]?.negs || 0,
-                total: stats.perSection[idx]?.score || 0,
-              },
-              maxPossibleScore: stats.perSection[idx]?.max || 0,
-            })}
-          />
+          {stats.perSection.map((p, d) => (
+            <DistRow key={d} name={p.sec.subject?.title || "Section"} correct={p.correct} wrong={p.wrong} skipped={p.skipped} />
+          ))}
+          <DistRow total name="Total" correct={stats.correctCount} wrong={stats.wrongCount} skipped={stats.skippedCount} />
         </Card>
 
-        {/* ===== SLOWEST / FASTEST WRONG TABLES ===== */}
+        {/* SLOWEST / FASTEST WRONG TABLES */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} className="two-grid">
           <Card title="Slowest questions you got wrong" meta="Biggest time-leaks">
-            <WrongList list={slowestWrong} onClick={(q) => setActiveQuestion(q)} emptyMsg="No wrong answers in this filter" />
+            <WrongList list={slowestWrong} onClick={(q) => setActiveQuestion(q)} emptyMsg="No wrong answers" />
           </Card>
           <Card title="Fastest questions you got wrong" meta="Likely careless mistakes">
-            <WrongList list={fastestWrong} onClick={(q) => setActiveQuestion(q)} emptyMsg="No wrong answers in this filter" />
+            <WrongList list={fastestWrong} onClick={(q) => setActiveQuestion(q)} emptyMsg="No wrong answers" />
           </Card>
         </div>
 
@@ -530,11 +501,7 @@ function MockTrendChart({ history }) {
   const innerW = w - padding * 2;
   const innerH = h - 40;
   const xStep = history.length > 1 ? innerW / (history.length - 1) : 0;
-  const pts = scores.map((s, i) => ({
-    x: padding + i * xStep,
-    y: 20 + innerH - (s / maxS) * innerH,
-    score: s,
-  }));
+  const pts = scores.map((s, i) => ({ x: padding + i * xStep, y: 20 + innerH - (s / maxS) * innerH, score: s }));
   const linePath = pts.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(" ");
   const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${h} L ${pts[0].x} ${h} Z`;
   return (
@@ -555,9 +522,7 @@ function MockTrendChart({ history }) {
           {pts.map((p, i) => (
             <g key={i}>
               <circle cx={p.x} cy={p.y} r={i === pts.length - 1 ? 6 : 5} fill="var(--c-brand-primary)" stroke={i === pts.length - 1 ? "#fff" : "none"} strokeWidth={i === pts.length - 1 ? 2 : 0}/>
-              <text x={p.x} y={p.y - 12} textAnchor="middle" fontSize="11" fill={i === pts.length - 1 ? "var(--c-brand-primary)" : "var(--c-text-secondary)"} fontWeight={i === pts.length - 1 ? "600" : "500"}>
-                {p.score}
-              </text>
+              <text x={p.x} y={p.y - 12} textAnchor="middle" fontSize="11" fill={i === pts.length - 1 ? "var(--c-brand-primary)" : "var(--c-text-secondary)"} fontWeight={i === pts.length - 1 ? "600" : "500"}>{p.score}</text>
             </g>
           ))}
         </svg>
@@ -575,22 +540,181 @@ function MockTrendChart({ history }) {
 function LegendDot({ color, gray, label, count }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-      <span style={{
-        display: "inline-block", width: 10, height: 10, borderRadius: 3,
-        background: gray ? "var(--c-surface-sunken, var(--c-surface-muted))" : color,
-        border: gray ? "1px solid var(--c-border-soft)" : "none",
-      }} />
+      <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 3, background: gray ? "var(--c-surface-sunken, var(--c-surface-muted))" : color, border: gray ? "1px solid var(--c-border-soft)" : "none" }} />
       {label} · <b style={{ color: "var(--c-text-primary)", fontVariantNumeric: "tabular-nums" }}>{count}</b>
     </span>
   );
 }
+
+// ── INLINED WIDGETS ──
+
+function PaletteGrid({ items, getStatus, onClick }) {
+  if (!items || items.length === 0) {
+    return <div style={{ padding: "20px 0", textAlign: "center", color: "var(--c-text-tertiary)", fontSize: 13 }}>No questions in this filter</div>;
+  }
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 6 }}>
+      {items.map(({ q }, idx) => {
+        const status = getStatus(q);
+        const styles = {
+          correct: { bg: "#22c55e", color: "#fff", border: "none" },
+          wrong: { bg: "#ef4444", color: "#fff", border: "none" },
+          marked: { bg: "#a855f7", color: "#fff", border: "none" },
+          skipped: { bg: "var(--c-surface-sunken, var(--c-surface-muted))", color: "var(--c-text-secondary)", border: "1px solid var(--c-border-soft)" },
+        };
+        const s = styles[status] || styles.skipped;
+        return (
+          <button
+            key={q.id}
+            onClick={() => onClick(q)}
+            style={{
+              aspectRatio: "1", borderRadius: 6,
+              background: s.bg, color: s.color,
+              border: s.border,
+              font: "600 11px/1 inherit",
+              cursor: "pointer", fontVariantNumeric: "tabular-nums",
+            }}
+            title={`Q ${idx + 1} · ${status}`}
+          >
+            {idx + 1}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TimeBars({ items, getStatus, questionTimes }) {
+  if (!items || items.length === 0) {
+    return <div style={{ padding: "20px 0", textAlign: "center", color: "var(--c-text-tertiary)", fontSize: 13 }}>No questions in this filter</div>;
+  }
+  const times = items.map(({ q }) => questionTimes.get(q.id) || 0);
+  const maxT = Math.max(...times, 1);
+  return (
+    <>
+      <div style={{ height: 200, display: "flex", alignItems: "flex-end", gap: 4, paddingTop: 16, borderBottom: "1px solid var(--c-border-faint)", marginBottom: 10 }}>
+        {items.map(({ q }, i) => {
+          const status = getStatus(q);
+          const t = times[i];
+          let bg = "var(--c-brand-primary)";
+          if (status === "wrong") bg = "var(--c-danger)";
+          else if (t > 180) bg = "var(--c-warning)";
+          const h = t > 0 ? (t / maxT) * 100 : 2;
+          return (
+            <div key={q.id} title={`Q ${i + 1}: ${t}s`} style={{ flex: 1, minWidth: 4, background: bg, opacity: 0.85, borderRadius: "4px 4px 0 0", height: `${h}%` }} />
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
+        <span>Q 1</span>
+        {items.length > 10 && <span>Q {Math.ceil(items.length / 4)}</span>}
+        {items.length > 20 && <span>Q {Math.ceil(items.length / 2)}</span>}
+        {items.length > 30 && <span>Q {Math.ceil((3 * items.length) / 4)}</span>}
+        <span>Q {items.length}</span>
+      </div>
+    </>
+  );
+}
+
+function ScoreProgressionChart({ items, getStatus, sections }) {
+  if (!items || items.length === 0) {
+    return <div style={{ padding: "20px 0", textAlign: "center", color: "var(--c-text-tertiary)", fontSize: 13 }}>No data</div>;
+  }
+  // Build cumulative score, marking negative-mark events
+  let running = 0;
+  const points = items.map(({ q, sec }, i) => {
+    const status = getStatus(q);
+    const pos = sec.pos || 0;
+    const neg = sec.neg || 0;
+    let delta = 0;
+    if (status === "correct") { delta = pos; running += pos; }
+    else if (status === "wrong") { delta = neg; running += neg; }
+    return { i, score: running, delta, status };
+  });
+  const finalScore = running;
+  const maxAbs = Math.max(...points.map((p) => Math.abs(p.score)), 1);
+  const w = 600, h = 200;
+  const padding = 20;
+  const innerW = w - padding * 2;
+  const innerH = h - padding * 2;
+  const xStep = points.length > 1 ? innerW / (points.length - 1) : 0;
+  const yMid = padding + innerH / 2;
+  const pts = points.map((p, i) => ({
+    x: padding + i * xStep,
+    y: yMid - (p.score / maxAbs) * (innerH / 2),
+    ...p,
+  }));
+  const linePath = pts.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(" ");
+  const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${yMid} L ${pts[0].x} ${yMid} Z`;
+  return (
+    <>
+      <div style={{ height: 200, position: "relative" }}>
+        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+          <defs>
+            <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--c-brand-primary)" stopOpacity="0.3"/>
+              <stop offset="100%" stopColor="var(--c-brand-primary)" stopOpacity="0"/>
+            </linearGradient>
+          </defs>
+          <line x1="0" y1={padding + innerH * 0.25} x2={w} y2={padding + innerH * 0.25} stroke="var(--c-border-faint)" strokeDasharray="2 4"/>
+          <line x1="0" y1={yMid} x2={w} y2={yMid} stroke="var(--c-border-soft)"/>
+          <line x1="0" y1={padding + innerH * 0.75} x2={w} y2={padding + innerH * 0.75} stroke="var(--c-border-faint)" strokeDasharray="2 4"/>
+          <path d={areaPath} fill="url(#scoreGrad)"/>
+          <path d={linePath} stroke="var(--c-brand-primary)" strokeWidth="2.5" fill="none"/>
+          {pts.filter((p) => p.delta < 0).map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="4" fill="var(--c-danger)"/>
+          ))}
+        </svg>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 8, fontVariantNumeric: "tabular-nums" }}>
+        <span>Q 1</span>
+        <span>Final score: <b style={{ color: "var(--c-text-primary)" }}>{Math.max(0, finalScore)}</b></span>
+      </div>
+    </>
+  );
+}
+
+function DistRow({ name, correct, wrong, skipped, total }) {
+  const sum = correct + wrong + skipped;
+  if (sum === 0) return null;
+  const pc = (correct / sum) * 100;
+  const pw = (wrong / sum) * 100;
+  const ps = (skipped / sum) * 100;
+  return (
+    <div style={{
+      display: "grid", gridTemplateColumns: "1.3fr 3fr", gap: 14,
+      alignItems: "center", padding: "12px 0",
+      borderTop: total ? "1px solid var(--c-border-soft)" : "1px solid var(--c-border-faint)",
+      marginTop: total ? 6 : 0,
+    }}>
+      <div style={{ fontWeight: total ? 600 : 500, color: "var(--c-text-primary)", fontSize: 13.5 }}>{name}</div>
+      <div style={{ height: 26, borderRadius: 6, overflow: "hidden", display: "flex", background: "var(--c-surface-sunken, var(--c-surface-muted))", border: "1px solid var(--c-border-faint)" }}>
+        {correct > 0 && <Seg color="#22c55e" pct={pc} label={`${correct} correct`} />}
+        {wrong > 0 && <Seg color="#ef4444" pct={pw} label={`${wrong} wrong`} />}
+        {skipped > 0 && <Seg muted pct={ps} label={`${skipped} skipped`} />}
+      </div>
+    </div>
+  );
+}
+function Seg({ color, muted, pct, label }) {
+  return (
+    <div style={{
+      width: `${pct}%`,
+      height: "100%",
+      background: muted ? "var(--c-surface-muted)" : color,
+      color: muted ? "var(--c-text-tertiary)" : "#fff",
+      display: "grid", placeItems: "center",
+      fontSize: 11, fontWeight: 600, fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap", overflow: "hidden",
+    }}>
+      {pct > 8 ? label : ""}
+    </div>
+  );
+}
+
 function WrongList({ list, onClick, emptyMsg }) {
   if (!list || list.length === 0) {
-    return (
-      <div style={{ padding: "20px 0", textAlign: "center", fontSize: 13, color: "var(--c-text-tertiary)" }}>
-        {emptyMsg}
-      </div>
-    );
+    return <div style={{ padding: "20px 0", textAlign: "center", fontSize: 13, color: "var(--c-text-tertiary)" }}>{emptyMsg}</div>;
   }
   return (
     <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13 }}>
@@ -604,7 +728,7 @@ function WrongList({ list, onClick, emptyMsg }) {
       </thead>
       <tbody>
         {list.map((item) => (
-          <tr key={item.q.id} onClick={() => onClick(item.q)} style={{ cursor: "pointer" }} className="qlist-row">
+          <tr key={item.q.id} onClick={() => onClick(item.q)} style={{ cursor: "pointer" }}>
             <td style={{ ...qlistTd, color: "var(--c-text-primary)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>Q {item.idx + 1}</td>
             <td style={qlistTd}>{item.sec?.subject?.title || "—"}</td>
             <td style={{ ...qlistTd, fontVariantNumeric: "tabular-nums" }}>{formatTime(item.t)}</td>
@@ -627,7 +751,6 @@ function formatTime(seconds) {
   return `${m}m ${String(s).padStart(2, "0")}s`;
 }
 
-// ── Inline style objects ──
 const eyebrowStyle = { fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 8 };
 const th = { background: "var(--c-surface-muted, var(--c-bg))", color: "var(--c-text-tertiary)", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", textAlign: "left", padding: "12px 14px" };
 const td = { padding: 14, borderTop: "1px solid var(--c-border-faint)", color: "var(--c-text-secondary)", fontVariantNumeric: "tabular-nums" };
@@ -644,8 +767,6 @@ export async function getServerSideProps(context) {
     .from("mock_plays")
     .select("*,test_id(*)")
     .eq("uid", context.query.uid);
-  if (data?.length === 0 || error) {
-    return { notFound: true };
-  }
+  if (data?.length === 0 || error) return { notFound: true };
   return { props: { result: data[0] } };
 }
