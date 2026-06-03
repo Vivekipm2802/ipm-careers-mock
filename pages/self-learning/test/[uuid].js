@@ -266,7 +266,7 @@ if(userDetails == undefined || questions == undefined ){
     return <div className='flex flex-col justify-center align-middle items-center text-center sf h-[100vh] w-full'>Loading...</div>
 }
   return (
-    <div className="w-full sf h-screen max-h-screen  justify-center align-middle items-center overflow-hidden flex flex-col bg-primary">
+    <div className="w-full sf h-screen max-h-screen justify-center align-middle items-center overflow-hidden flex flex-col" style={{ background: "var(--c-bg)" }}>
       <HeaderMock
         key={config?.title}
         isHintAvailable={isHintAvailable}
@@ -296,60 +296,90 @@ if(userDetails == undefined || questions == undefined ){
       className='w-full mx-auto h-full rounded-2xl shadow-lg p-1 overflow-hidden' 
       ></iframe>}
     </DraggableModal>
-      <div className="bg-white shadow-md overflow-hidden w-full h-full lg:p-0 flex flex-row items-start justify-start">
+      <div style={{ background: "var(--c-bg)" }} className="overflow-hidden w-full h-full lg:p-0 flex flex-row items-start justify-start">
         {gamestate == 0 ? (
           <>
-            <div className="w-full h-full overflow-y-auto flex flex-col text-center justify-start items-center align-middle">
-             
-                <div className="flex-1 p-3 sm:p-6 w-full flex flex-col items-start justify-start">
-                  <h2 className="font-bold gradtext text-3xl sm:text-4xl">
-                    Hi , {userDetails.user_metadata.full_name}
-                  </h2>
-                  {parentData?.description && <div className='border-1 w-full shadow-md p-4 flex flex-col items-start justify-start rounded-xl mt-4'>
-                  
-                  <p className='gradtext font-bold text-2xl'>Test Description :</p>
-                  <Spacer y={2}></Spacer>
-                <div
-                 className='text-left font-sans text-xs sm:text-sm'
-                  dangerouslySetInnerHTML={{
-                    __html: parentData?.description,
-                  }}
-                ></div></div>}
-                  {parentData?.objective && <div className='border-1 w-full shadow-md p-4 flex flex-col items-start justify-start rounded-xl mt-4'>
-                  
-                    <p className='gradtext font-bold text-2xl'>Test Objective :</p>
-                    <Spacer y={2}></Spacer>
-                  <ScrollShadow
-                   className='text-left font-sans text-xs sm:text-sm max-h-[20vh] sm:max-h-[unset]'
-                    dangerouslySetInnerHTML={{
-                      __html: parentData?.objective,
-                    }}
-                  ></ScrollShadow></div>}
-
-
-                  
-                </div>
-                <div className="mt-auto sticky bottom-0 w-full bg-gray-50 p-4">
-                    <Button
-                      color="default"
-                      className="mr-2 px-5 sf"
-                      onClick={() => {
-                        router.push("/");
-                      }}
-                    >
-                      Go Back
-                    </Button>
-                    <Button
-                      color="primary"
-                      className="px-5 sf from-secondary to-yellow-300 bg-gradient-to-t border-1 shadow-md shadow-yellow-400"
-                      onClick={() => {
-                        setGameState(1);
-                      }}
-                    >
-                      Start Test
-                    </Button>
+            <div className="w-full h-full overflow-y-auto flex flex-col justify-start items-stretch">
+              <div style={{ background: "var(--c-bg)", padding: "32px 40px 24px", flex: 1 }}>
+                <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "left" }}>
+                  <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
+                    Before you begin
                   </div>
-             
+                  <h1 style={{ margin: "0 0 10px", fontSize: 32, fontWeight: 600, letterSpacing: "-0.022em", color: "var(--c-text-primary)", lineHeight: 1.15 }}>
+                    Hi{" "}
+                    <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                      {userDetails?.user_metadata?.full_name?.split(" ")[0] || "there"}
+                    </span>
+                    , let&apos;s learn.
+                  </h1>
+                  <p style={{ fontSize: 15, lineHeight: 1.55, color: "var(--c-text-secondary)", margin: "0 0 28px", maxWidth: "56ch" }}>
+                    A quick look at what this learning module covers before you dive in. You&apos;ll get hints if you need them.
+                  </p>
+
+                  {parentData?.description && (
+                    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, padding: "20px 24px", marginBottom: 16 }}>
+                      <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
+                        Test description
+                      </div>
+                      <div
+                        className="qcontent"
+                        style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--c-text-primary)" }}
+                        dangerouslySetInnerHTML={{ __html: parentData.description }}
+                      />
+                    </div>
+                  )}
+                  {parentData?.objective && (
+                    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, padding: "20px 24px", marginBottom: 16 }}>
+                      <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
+                        Test objective
+                      </div>
+                      <ScrollShadow
+                        className="qcontent"
+                        style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--c-text-primary)", maxHeight: "30vh" }}
+                        dangerouslySetInnerHTML={{ __html: parentData.objective }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div
+                className="sticky bottom-0 w-full"
+                style={{
+                  background: "var(--c-surface)",
+                  borderTop: "1px solid var(--c-border-faint)",
+                  padding: "14px 28px",
+                  display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10,
+                }}
+              >
+                <button
+                  onClick={() => { router.push("/"); }}
+                  style={{
+                    height: 40, padding: "0 18px", borderRadius: 999,
+                    background: "transparent",
+                    color: "var(--c-text-secondary)",
+                    border: "1px solid var(--c-border-soft)",
+                    fontSize: 13.5, fontWeight: 500,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}
+                >
+                  Go back
+                </button>
+                <button
+                  onClick={() => { setGameState(1); }}
+                  style={{
+                    height: 40, padding: "0 18px", borderRadius: 999,
+                    background: "var(--c-brand-primary)",
+                    color: "#fff",
+                    border: "1px solid transparent",
+                    fontSize: 13.5, fontWeight: 500,
+                    cursor: "pointer", fontFamily: "inherit",
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}
+                >
+                  Start learning →
+                </button>
+              </div>
             </div>
           </>
         ) : (
@@ -410,61 +440,38 @@ if(userDetails == undefined || questions == undefined ){
       transition={{ duration: 0.2 }}
     >
       
-      <div className="bg-white p-4 w-full h-full md:h-auto rounded-lg overflow-hidden shadow-lg">
-      <XCircle stroke='white' fill='red' className=' right-4 top-4 absolute pointer-events-auto z-[9999] cursor-pointer' size={48} onClick={()=>{setActiveExplanation(undefined)}}></XCircle>
-        {/* Modal Header */}
-        <div className="flex flex-col gap-1 justify-start items-start p-4  text-black ">
-          <h2 className="text-2xl font-bold">Explanation</h2>
+      <div style={{ background: "var(--c-surface)", borderRadius: 20, overflow: "hidden", maxWidth: 900, width: "100%", border: "1px solid var(--c-border-faint)", marginTop: 40, marginBottom: 40, position: "relative" }}>
+        <div style={{ padding: 20, borderBottom: "1px solid var(--c-border-faint)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>Explanation</h2>
+          <button onClick={() => setActiveExplanation(undefined)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--c-text-tertiary)", padding: 0 }}>
+            <XCircle size={24} />
+          </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-4 overflow-y-auto">
-          {/* Explanation Video */}
+        <div style={{ padding: 24, maxHeight: "60vh", overflowY: "auto" }}>
           {questions[activeExplanation]?.explanationvideo && (
             <iframe
-              className="rounded-lg overflow-hidden max-w-6xl mx-auto bg-gray-200 w-full aspect-video"
-              width="100%"
-              height="100%"
+              style={{ width: "100%", aspectRatio: "16/9", borderRadius: 12, marginBottom: 16, background: "var(--c-surface-muted, var(--c-bg))" }}
               src={questions[activeExplanation]?.explanationvideo}
               frameBorder="0"
               allowFullScreen
-            ></iframe>
+            />
           )}
-<div className='h-24'></div>
-          {/* Question Text */}
-          <div
-            className="text-sm font-bold [&_*]:!text-sm [&_*]:font-normal mt-4"
-            dangerouslySetInnerHTML={{
-              __html: questions[activeExplanation].question,
-            }}
-          ></div>
-
-          {/* Question Image */}
+          <div className="qcontent" style={{ fontSize: 14.5, lineHeight: 1.6, color: "var(--c-text-primary)" }}
+               dangerouslySetInnerHTML={{ __html: questions[activeExplanation].question }} />
           {questions[activeExplanation]?.questionimage && (
-            <img src={questions[activeExplanation].questionimage} className="mt-4" alt="Question" />
+            <img src={questions[activeExplanation].questionimage} style={{ marginTop: 16, borderRadius: 12, maxWidth: "100%", border: "1px solid var(--c-border-faint)" }} />
           )}
-
-          {/* Explanation Text */}
-          <div
-            className="mt-4"
-            dangerouslySetInnerHTML={{
-              __html: questions[activeExplanation].explanation,
-            }}
-          ></div>
+          <div className="qcontent" style={{ marginTop: 16, fontSize: 14.5, lineHeight: 1.6, color: "var(--c-text-secondary)" }}
+               dangerouslySetInnerHTML={{ __html: questions[activeExplanation].explanation }} />
         </div>
 
-        {/* Modal Footer */}
-        <div className="p-4 bg-gray-100">
-          <div className="w-full">
-            <h2 className="font-bold text-md text-green-500">
-              Correct Answer:{" "}
-              {
-                questions[activeExplanation].options.find((item) => item.isCorrect)?.title
-              }
-            </h2>
-            <h2 className="font-bold text-md text-blue-500">
-              Your Answer: {report[activeExplanation]?.answer}
-            </h2>
+        <div style={{ padding: 20, borderTop: "1px solid var(--c-border-faint)", background: "var(--c-surface-muted, var(--c-bg))" }}>
+          <div style={{ fontSize: 13, color: "var(--c-success)", fontWeight: 600 }}>
+            Correct answer: {questions[activeExplanation].options.find((item) => item.isCorrect)?.title}
+          </div>
+          <div style={{ fontSize: 13, color: "var(--c-brand-primary)", fontWeight: 600, marginTop: 4 }}>
+            Your answer: {report[activeExplanation]?.answer || "—"}
           </div>
         </div>
       </div>
@@ -479,133 +486,158 @@ if(userDetails == undefined || questions == undefined ){
 
 
 
-<div className={"w-full fixed sm:relative transition-all z-[9] sm:!transform-none sm:z-0 left-0 top-0 max-w-[400px] flex-1 overflow-y-auto overflow-x-hidden border-r-1 h-full flex flex-col justify-start items-start " + (drawerActive ? 'translate-x-0': '-translate-x-full')}>
-            
+<div
+            className={"w-full fixed sm:relative transition-all z-[9] sm:!transform-none sm:z-0 left-0 top-0 max-w-[400px] flex-1 overflow-y-auto overflow-x-hidden h-full flex flex-col justify-start items-start " + (drawerActive ? 'translate-x-0' : '-translate-x-full')}
+            style={{ background: "var(--c-surface)", borderRight: "1px solid var(--c-border-faint)" }}
+          >
+            <div className="flex flex-col w-full p-0 overflow-hidden relative" style={{ background: "var(--c-surface)" }}>
+              <Button size="sm" isIconOnly color="secondary" onPress={() => setDrawerActive(false)} className="absolute flex sm:hidden right top-1/2 -translate-y-1/2 z-50 rounded-r-none right-0"><ChevronLeft /></Button>
 
-            
-           
-            
-            
-            
-            <div className="flex flex-col w-full p-0 text-center bg-slate-50 overflow-hidden relative">
-            <Button size='sm' isIconOnly color='secondary' onPress={()=>{setDrawerActive(false)}} className='absolute flex sm:hidden right top-1/2 -translate-y-1/2 z-50 rounded-r-none right-0'><ChevronLeft></ChevronLeft></Button>
-
-              <div className="flex flex-row flex-wrap text-black justify-between align-middle items-center p-2 bg-white text-xs">
-                <h2 className="flex-1 font-medium text-sm">Name</h2>
-                <h2 className="flex-1 font-medium text-sm">Status</h2>
-                <h2 className="flex-1 font-medium text-sm">Intervals</h2>
-                <h2 className="flex-1 font-medium text-sm">Explanation</h2>
+              <div style={{
+                display: "flex", flexDirection: "row", padding: "12px 16px",
+                background: "var(--c-surface-muted, var(--c-bg))",
+                borderBottom: "1px solid var(--c-border-faint)",
+                fontSize: 11, fontWeight: 500, letterSpacing: "0.06em",
+                textTransform: "uppercase", color: "var(--c-text-tertiary)",
+              }}>
+                <div style={{ flex: 1 }}>Q</div>
+                <div style={{ flex: 1, textAlign: "center" }}>Status</div>
+                <div style={{ flex: 1, textAlign: "center" }}>Time</div>
+                <div style={{ flex: 1, textAlign: "right" }}>View</div>
               </div>
+
               <div className="overflow-y-auto">
-                {questions &&
-                  questions.map((i, d) => {
-                    return (
-                      <div className="flex flex-row hover:bg-slate-100 flex-wrap relative justify-between align-middle items-center p-2 text-xs">
-                        <div className='w-[90%] absolute h-[1px] bg-gray-200 bottom-0 left-1/2 -translate-x-1/2'></div>
-                        <h2 className="flex-1 gradtext font-bold">Q {d+1} </h2>
-                        <h2 className="flex-1 flex flex-row justify-center align-middle items-center">
-                          <div className='w-6 z-10 h-6 flex flex-col items-center justify-center relative'>{getStatusIcon(i,report,true)}
-                          {report.find(item=>item.id == i.id)?.isCorrect ? <Check className='z-10' color='white' size={16}></Check>:<X color='white' size={16}></X>}
-                          </div>
-                        </h2>
-                        <h2 className="flex-1 gradtext font-bold">{calculateIntervalDelta(report, questions, d, i)}s</h2>
-                        <h2 className="flex-1">
-                          <Button
-                            color="primary"
-                            
-                            size="sm"
-                            onPress={() => {
-                              setActiveExplanation(d);
-                            }}
-                            variant="light"
-                            isIconOnly
-                          >
-                            <ChevronRight></ChevronRight>
-                          </Button>
-                        </h2>
+                {questions && questions.map((i, d) => {
+                  const r = report.find((item) => item.id == i.id);
+                  const isCorrect = r?.isCorrect === true;
+                  const isWrong = r?.isCorrect === false;
+                  return (
+                    <div
+                      key={i.id || d}
+                      onClick={() => setActiveExplanation(d)}
+                      style={{
+                        display: "flex", flexDirection: "row",
+                        alignItems: "center",
+                        padding: "12px 16px",
+                        borderBottom: "1px solid var(--c-border-faint)",
+                        fontSize: 13, cursor: "pointer",
+                        transition: "background 0.15s",
+                      }}
+                    >
+                      <div style={{ flex: 1, fontWeight: 600, color: "var(--c-text-primary)", fontVariantNumeric: "tabular-nums" }}>Q {d + 1}</div>
+                      <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+                        <span style={{
+                          width: 24, height: 24, borderRadius: 6,
+                          background: isCorrect ? "#22c55e" : isWrong ? "#ef4444" : "var(--c-surface-sunken, var(--c-surface-muted))",
+                          color: "#fff",
+                          display: "grid", placeItems: "center",
+                          border: !isCorrect && !isWrong ? "1px solid var(--c-border-soft)" : "none",
+                        }}>
+                          {isCorrect && <Check size={14} />}
+                          {isWrong && <X size={14} />}
+                        </span>
                       </div>
-                    );
-                  })}
+                      <div style={{ flex: 1, textAlign: "center", color: "var(--c-text-secondary)", fontVariantNumeric: "tabular-nums" }}>
+                        {calculateIntervalDelta(report, questions, d, i)}s
+                      </div>
+                      <div style={{ flex: 1, textAlign: "right", color: "var(--c-brand-primary)" }}>
+                        <ChevronRight size={16} style={{ display: "inline" }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div className="flex bg-white flex-row justify-center items-center align-middle w-full shadow-sm p-2 rounded-lg">
-              
-              <p className="flex-1 text-center text-green-500 font-bold">
-                Correct :{" "}
-                {report.filter((item) => item.isCorrect == true)?.length}
-              </p>
-              <p className="flex-1 text-center text-red-500 font-bold">
-                Incorrect :{" "}
-                {report.filter((item) => item.isCorrect == false)?.length}
-              </p>
-            </div>
-          
-          </div>
-          <div className='flex-1 h-full flex flex-col items-start justify-start overflow-hidden'>
-          
-          <div className='flex w-full flex-col bg-gray-50 p-4'>
-            <Button onPress={()=>{setDrawerActive(true)}} className='mb-2 mr-auto flex sm:hidden' color='primary' size='sm'>Open Explanations<ChevronRight></ChevronRight></Button>
-          {report &&
-            report.filter((item) => item.isCorrect == true).length >
-              questions.length / 2 ? (
-              <p className="text-green-500">Your Test is Submitted</p>
-            ) : (
-              <p className="text-red-500 bg-red-50 border-1 border-red-200 px-2 py-2 rounded-xl flex w-full text-center justify-center items-center align-middle">
-                <svg
-                  className="rotate-45 mr-2"
-                  width="24"
-                  height="24"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                  
-                >
-                  <path
-                    d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2Zm0 5a.75.75 0 0 0-.743.648l-.007.102v3.5h-3.5a.75.75 0 0 0-.102 1.493l.102.007h3.5v3.5a.75.75 0 0 0 1.493.102l.007-.102v-3.5h3.5a.75.75 0 0 0 .102-1.493l-.102-.007h-3.5v-3.5A.75.75 0 0 0 12 7Z"
-                    fill="red"
-                  />
-                </svg>
-                Your Test is not Submitted
-              </p>
-            )}
-          <h2 className="my-3 flex flex-col align-middle justify-center items-center">
-              You scored{" "}
-              <span className=" text-5xl font-bold w-auto text-green-500">
-                {score}
-              </span>
-            </h2>
 
-{report &&
-            report.filter((item) => item.isCorrect == true).length >
-              questions.length / 2 ? (
-              <p className="font-bold text-green-600 text-2xl text-center">
-                You have successfully completed {parentData?.parent?.title}
-              </p>
-            ) : (
-              <p className="font-bold text-red-600 text-center text-sm">
-                You need to try hard and get more than 60% questions right in
-                order to complete {parentData?.parent?.title}
-              </p>
-            )}
-</div>
-<div className='w-full bg-gray-100 flex flex-col items-start justify-start flex-1 h-full overflow-y-auto p-0'>
-         {/* <Leaderboard scores={leaderboard ?? []}></Leaderboard> */}
-        
+            <div style={{
+              width: "100%",
+              padding: "14px 16px",
+              borderTop: "1px solid var(--c-border-faint)",
+              background: "var(--c-surface)",
+              display: "flex", flexDirection: "row",
+              alignItems: "center", justifyContent: "space-around",
+              fontSize: 13,
+            }}>
+              <span style={{ color: "var(--c-success)", fontWeight: 600 }}>
+                Correct: <span style={{ fontVariantNumeric: "tabular-nums" }}>{report.filter((item) => item.isCorrect == true)?.length || 0}</span>
+              </span>
+              <span style={{ color: "var(--c-danger)", fontWeight: 600 }}>
+                Wrong: <span style={{ fontVariantNumeric: "tabular-nums" }}>{report.filter((item) => item.isCorrect == false)?.length || 0}</span>
+              </span>
+            </div>
           </div>
+
+          <div className="flex-1 h-full flex flex-col items-stretch justify-start overflow-hidden">
+            <div style={{ padding: "32px 40px", background: "var(--c-bg)", flex: 1, overflowY: "auto" }}>
+              <Button onPress={() => setDrawerActive(true)} className="mb-2 mr-auto flex sm:hidden" color="primary" size="sm">Open Explanations<ChevronRight /></Button>
+
+              <div style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
+                {report && report.filter((item) => item.isCorrect == true).length > questions.length / 2 ? (
+                  <div style={{
+                    display: "inline-flex", alignItems: "center", gap: 8,
+                    padding: "8px 14px", borderRadius: 999,
+                    background: "var(--c-success-soft, #E0F2E8)",
+                    color: "var(--c-success)",
+                    border: "1px solid var(--c-success)",
+                    fontSize: 13, fontWeight: 500,
+                  }}>
+                    <Check size={14} /> Your test is submitted
+                  </div>
+                ) : (
+                  <div style={{
+                    display: "inline-flex", alignItems: "center", gap: 8,
+                    padding: "8px 14px", borderRadius: 999,
+                    background: "var(--c-danger-soft, #F8DADA)",
+                    color: "var(--c-danger)",
+                    border: "1px solid var(--c-danger)",
+                    fontSize: 13, fontWeight: 500,
+                  }}>
+                    <X size={14} /> Your test is not submitted
+                  </div>
+                )}
+
+                <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-text-tertiary)", margin: "32px 0 10px" }}>
+                  Your score
+                </div>
+                <h1 style={{ fontSize: 64, fontWeight: 600, letterSpacing: "-0.03em", color: "var(--c-text-primary)", lineHeight: 1, margin: 0, fontVariantNumeric: "tabular-nums" }}>
+                  <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>{score}</span>
+                </h1>
+
+                {report && report.filter((item) => item.isCorrect == true).length > questions.length / 2 ? (
+                  <p style={{ marginTop: 20, fontSize: 18, color: "var(--c-success)", fontWeight: 600 }}>
+                    You have successfully completed {parentData?.parent?.title}
+                  </p>
+                ) : (
+                  <p style={{ marginTop: 20, fontSize: 14, color: "var(--c-danger)", maxWidth: "50ch", marginLeft: "auto", marginRight: "auto" }}>
+                    You need to get more than 60% questions right to complete {parentData?.parent?.title}.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
              </div>
-             <div className='flex flex-row items-center justify-center w-full p-2 sticky bottom-0 bg-white border-t-1'>
-             <Button
-              className="my-2 from-secondary to-yellow-300 bg-gradient-to-b shadow-md shadow-yellow-200 border-1 border-white"
-              color="default"
-              onPress={() => {
-                router.push("/");
+             <div
+              className="flex flex-row items-center justify-center w-full sticky bottom-0"
+              style={{
+                background: "var(--c-surface)",
+                borderTop: "1px solid var(--c-border-faint)",
+                padding: "14px 28px",
               }}
-              startContent={<Home></Home>}
             >
-             
-             Go back to Dashboard
-            </Button>
+              <button
+                onClick={() => { router.push("/"); }}
+                style={{
+                  height: 40, padding: "0 18px", borderRadius: 999,
+                  background: "var(--c-brand-primary)",
+                  color: "#fff",
+                  border: "1px solid transparent",
+                  fontSize: 13.5, fontWeight: 500,
+                  cursor: "pointer", fontFamily: "inherit",
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                }}
+              >
+                <Home size={14} /> Back to dashboard
+              </button>
              </div>
             </div>
          

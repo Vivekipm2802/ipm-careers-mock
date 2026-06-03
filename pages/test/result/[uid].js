@@ -79,6 +79,13 @@ const ResultPage = ({ result, questions, leaderboard }) => {
   const attempted = correctCount + wrongCount;
   const accuracy = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
   const maxScore = totalQ * increment;
+  const positiveScore = correctCount * increment;
+  const negativeScore = wrongCount * decrement;
+  const timeTakenMin = useMemo(() => {
+    if (!report || report.length === 0) return 0;
+    const maxT = report.reduce((m, r) => (typeof r.timestamp === "number" && r.timestamp > m ? r.timestamp : m), 0);
+    return Math.round(maxT / 60);
+  }, [report]);
   const testTitle = result?.test_uuid?.parent?.title || result?.test_uuid?.title || "Concept test";
 
   function printPage() { window.print(); }
@@ -176,7 +183,7 @@ const ResultPage = ({ result, questions, leaderboard }) => {
         <div style={heroCard}>
           <div style={{ position: "absolute", top: 0, right: 0, width: 280, height: 280, background: "radial-gradient(circle, var(--c-brand-primary-tint) 0%, transparent 70%)", opacity: 0.6, transform: "translate(20%, -30%)", pointerEvents: "none" }} />
           <div style={{ position: "relative" }}>
-            <div style={eyebrowStyle}>Test result · {testTitle}</div>
+            <div style={eyebrowStyle}>Test result · Concept test · {testTitle}</div>
             <h1 style={{ fontSize: 64, fontWeight: 600, letterSpacing: "-0.03em", color: "var(--c-text-primary)", lineHeight: 1, margin: 0, fontVariantNumeric: "tabular-nums" }}>
               You scored{" "}
               <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
@@ -198,19 +205,82 @@ const ResultPage = ({ result, questions, leaderboard }) => {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
           <Kpi label="Total score" value={Math.max(0, score)} unit={`/ ${maxScore}`} sub={`+${increment} correct · −${decrement} wrong`} />
           <Kpi label="Accuracy" value={accuracy} unit="%" sub={`Of ${attempted} attempted`} />
-          <Kpi label="Questions" value={correctCount} unit={`/ ${totalQ}`} sub={`${wrongCount} wrong · ${skippedCount} skipped`} />
-          <Kpi label="Concept" value={testTitle.length > 18 ? testTitle.slice(0, 16) + "…" : testTitle} unit="" sub="Concept test" />
+          <Kpi label="Time taken" value={timeTakenMin || "—"} unit={timeTakenMin ? "min" : ""} sub={timeTakenMin ? `Avg ${Math.round((timeTakenMin * 60) / totalQ)}s / Q` : ""} />
+          <Kpi label="Without negatives" value={Math.max(0, positiveScore)} unit="" sub={negativeScore > 0 ? `+${negativeScore} from negatives` : "No negatives"} success />
         </div>
 
-        {/* === LEADERBOARD === */}
+        {/* === PERFORMANCE — single big ring === */}
+        {(() => {
+          const pct = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
+          const color = pct >= 90 ? "#1FA463" : pct >= 70 ? "var(--c-brand-primary)" : "#B66C00";
+          const dashArray = (pct / 100) * 314;
+          return (
+            <>
+              <h2 style={{ ...sectionTitle }}>Performance</h2>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
+                <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, padding: 32, maxWidth: 360, width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ width: 160, height: 160, position: "relative", marginBottom: 14 }}>
+                    <svg viewBox="0 0 120 120" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+                      <circle cx="60" cy="60" r="50" fill="none" strokeWidth="8" stroke="var(--c-border-faint)" />
+                      <circle cx="60" cy="60" r="50" fill="none" strokeWidth="8" stroke={color} strokeLinecap="round" strokeDasharray={`${dashArray} 314`} />
+                    </svg>
+                    <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 32, fontWeight: 600, color: "var(--c-text-primary)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.015em" }}>
+                      {pct}<span style={{ fontSize: 16, color: "var(--c-text-tertiary)", marginLeft: 1 }}>%</span>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em", textAlign: "center" }}>
+                    {testTitle}
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--c-text-tertiary)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
+                    {Math.max(0, score)} / {maxScore} · {correctCount} of {totalQ} correct
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })()}
+
+        {/* === TOP SCORERS — new unified design === */}
         {leaderboard && leaderboard.length > 0 && (
           <>
             <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "32px 0 16px" }}>
               <Trophy size={18} style={{ color: "var(--c-brand-gold)" }} />
               <h2 style={{ ...sectionTitle, margin: 0 }}>Top scorers</h2>
             </div>
-            <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, overflow: "hidden", marginBottom: 32 }}>
-              <Leaderboard scores={leaderboard} />
+            <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, padding: "24px 28px", marginBottom: 32 }}>
+              {leaderboard.slice(0, 10).map((row, idx) => {
+                const isYou = row?.uid === result?.uid;
+                const isGold = idx === 0;
+                return (
+                  <div key={row.uid || idx} style={{
+                    display: "grid", gridTemplateColumns: "36px 1fr 80px",
+                    padding: "10px 0", alignItems: "center",
+                    borderTop: idx === 0 ? "none" : (isYou ? "1px solid var(--c-brand-primary-soft)" : "1px solid var(--c-border-faint)"),
+                    background: isYou ? "var(--c-brand-primary-tint)" : "transparent",
+                    margin: isYou ? "0 -10px" : "0",
+                    paddingLeft: isYou ? 10 : 0,
+                    paddingRight: isYou ? 10 : 0,
+                    borderRadius: isYou ? 10 : 0,
+                  }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8,
+                      background: isGold ? "linear-gradient(135deg, var(--c-brand-gold), var(--c-brand-gold-tint))" : "var(--c-surface-muted, var(--c-bg))",
+                      color: isGold ? "#fff" : "var(--c-text-secondary)",
+                      display: "grid", placeItems: "center",
+                      fontWeight: 600, fontSize: 12,
+                      fontVariantNumeric: "tabular-nums",
+                    }}>
+                      {idx + 1}
+                    </div>
+                    <div style={{ fontSize: 14, color: "var(--c-text-primary)", fontWeight: isYou ? 600 : 500 }}>
+                      {isYou ? "You" : (row.name || "Anonymous")}
+                    </div>
+                    <div style={{ textAlign: "right", fontSize: 14, color: "var(--c-text-primary)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                      {row.score}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </>
         )}
@@ -340,11 +410,11 @@ const ResultPage = ({ result, questions, leaderboard }) => {
 export default ResultPage;
 
 // ── Sub-components ──
-function Kpi({ label, value, unit, sub }) {
+function Kpi({ label, value, unit, sub, success }) {
   return (
     <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, padding: 22 }}>
       <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 12 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-text-primary)", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", color: success ? "var(--c-success)" : "var(--c-text-primary)", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
         {value}
         {unit && <span style={{ fontSize: 14, fontWeight: 500, color: "var(--c-text-tertiary)", marginLeft: 4 }}>{unit}</span>}
       </div>

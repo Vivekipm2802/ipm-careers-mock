@@ -29,6 +29,7 @@ export default function MockResult({ result }) {
   const [activeVideo, setActiveVideo] = useState();
   const [modal, setModal] = useState(undefined);
   const [activeFilter, setActiveFilter] = useState("all");
+  const [leaderboard, setLeaderboard] = useState([]);
 
   const router = useRouter();
   const { userDetails, isRouting } = useNMNContext();
@@ -63,7 +64,22 @@ export default function MockResult({ result }) {
       .select("*")
       .in("parent", a.filter((i) => i.module).map((i) => i.module.id))
       .order("seq", { ascending: true });
-    if (data) setQuestions(data);
+    if (data) {
+      setQuestions(data);
+      getLeaderboard(result?.test_id?.id);
+    }
+  }
+  async function getLeaderboard(testId) {
+    if (!testId) return;
+    try {
+      const { data } = await supabase
+        .from("mock_plays")
+        .select("uid,score,name")
+        .eq("test_id", testId)
+        .order("score", { ascending: false })
+        .limit(10);
+      if (data) setLeaderboard(data);
+    } catch (e) { /* silent */ }
   }
   useEffect(() => {
     if (result != undefined) getSections(result?.test_id.id);
@@ -117,6 +133,7 @@ export default function MockResult({ result }) {
       let secMax = 0;
       let secCorrect = 0;
       let secTotal = 0;
+      let secNegs = 0;
       const pos = sec.pos || 0;
       const neg = sec.neg || 0;
       secModules.forEach((mod) => {
@@ -133,6 +150,7 @@ export default function MockResult({ result }) {
             correctCount += 1;
           } else if (isCorrect === false) {
             secScore += neg;
+            secNegs += Math.abs(neg);
             wrongCount += 1;
           } else {
             skippedCount += 1;
@@ -152,12 +170,14 @@ export default function MockResult({ result }) {
         max: secMax,
         correct: secCorrect,
         total: secTotal,
+        negs: secNegs,
         pct: secMax > 0 ? Math.round((Math.max(0, secScore) / secMax) * 100) : 0,
       });
     });
 
     const totalQ = correctCount + wrongCount + skippedCount;
     const accuracy = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
+    const totalNeg = perSection.reduce((s, p) => s + p.negs, 0);
 
     return {
       totalScore,
@@ -168,9 +188,17 @@ export default function MockResult({ result }) {
       markedCount,
       totalQ,
       accuracy,
+      totalNeg,
       perSection,
     };
   }, [sections, modules, questions, result]);
+
+  // Total time taken in minutes (from report.at)
+  const totalTimeMin = useMemo(() => {
+    if (!result?.report) return 0;
+    const maxAt = result.report.reduce((m, r) => (typeof r.at === "number" && r.at > m ? r.at : m), 0);
+    return Math.round(maxAt / 60);
+  }, [result]);
 
   function printPage() {
     if (window.matchMedia) {
@@ -249,7 +277,7 @@ export default function MockResult({ result }) {
         <div style={heroCard}>
           <div style={{ position: "absolute", top: 0, right: 0, width: 280, height: 280, background: "radial-gradient(circle, var(--c-brand-primary-tint) 0%, transparent 70%)", opacity: 0.6, transform: "translate(20%, -30%)", pointerEvents: "none" }} />
           <div style={{ position: "relative" }}>
-            <div style={eyebrowStyle}>Test result</div>
+            <div style={eyebrowStyle}>Test result · {stats.perSection.length > 1 ? "Full mock" : "Sectional test"}</div>
             <h1 style={{ fontSize: 64, fontWeight: 600, letterSpacing: "-0.03em", color: "var(--c-text-primary)", lineHeight: 1, margin: 0, fontVariantNumeric: "tabular-nums" }}>
               You scored{" "}
               <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
@@ -271,37 +299,105 @@ export default function MockResult({ result }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
           <Kpi label="Total score" value={Math.max(0, stats.totalScore)} unit={`/ ${stats.maxScore}`} sub={`${stats.correctCount} right · ${stats.wrongCount} wrong`} />
           <Kpi label="Accuracy" value={stats.accuracy} unit="%" sub={`Out of ${stats.totalQ} attempted`} />
-          <Kpi label="Questions" value={stats.correctCount} unit={`/ ${stats.totalQ}`} sub={`${stats.skippedCount} skipped · ${stats.markedCount} marked`} />
-          <Kpi label="Test date" value={CtoLocal(result.created_at).date} unit={CtoLocal(result.created_at).monthName?.slice(0,3)} sub={CtoLocal(result.created_at).dayName + ", " + CtoLocal(result.created_at).year} />
+          <Kpi label="Time taken" value={totalTimeMin || "—"} unit={totalTimeMin ? "min" : ""} sub={totalTimeMin ? `Avg ${Math.round((totalTimeMin * 60) / stats.totalQ)}s / Q` : ""} />
+          <Kpi label="Without negatives" value={Math.max(0, stats.totalScore + stats.totalNeg)} unit="" sub={stats.totalNeg > 0 ? `+${stats.totalNeg} from negatives` : "No negatives"} success />
         </div>
 
-        {/* === SECTION BREAKDOWN === */}
-        <h2 style={sectionTitle}>Section breakdown</h2>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(3, stats.perSection.length || 1)}, 1fr)`, gap: 12, marginBottom: 32 }}>
-          {stats.perSection.map((s, d) => {
-            const color = s.pct >= 90 ? "#1FA463" : s.pct >= 70 ? "var(--c-brand-primary)" : "#B66C00";
-            const dashArray = (s.pct / 100) * 314;
-            return (
-              <div key={d} style={sectionCard}>
-                <div style={{ width: 110, height: 110, position: "relative", marginBottom: 14 }}>
-                  <svg viewBox="0 0 120 120" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
-                    <circle cx="60" cy="60" r="50" fill="none" strokeWidth="8" stroke="var(--c-border-faint)" />
-                    <circle cx="60" cy="60" r="50" fill="none" strokeWidth="8" stroke={color} strokeLinecap="round" strokeDasharray={`${dashArray} 314`} />
-                  </svg>
-                  <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 22, fontWeight: 600, color: "var(--c-text-primary)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.015em" }}>
-                    {s.pct}<span style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginLeft: 1 }}>%</span>
+        {/* === PERFORMANCE (adaptive: single big ring for 1 section, grid for more) === */}
+        <h2 style={sectionTitle}>{stats.perSection.length === 1 ? "Performance" : "Section breakdown"}</h2>
+        {stats.perSection.length === 1 ? (
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
+            {stats.perSection.map((s, d) => {
+              const color = s.pct >= 90 ? "#1FA463" : s.pct >= 70 ? "var(--c-brand-primary)" : "#B66C00";
+              const dashArray = (s.pct / 100) * 314;
+              return (
+                <div key={d} style={{ ...sectionCard, padding: 32, maxWidth: 360, width: "100%" }}>
+                  <div style={{ width: 160, height: 160, position: "relative", marginBottom: 14 }}>
+                    <svg viewBox="0 0 120 120" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+                      <circle cx="60" cy="60" r="50" fill="none" strokeWidth="8" stroke="var(--c-border-faint)" />
+                      <circle cx="60" cy="60" r="50" fill="none" strokeWidth="8" stroke={color} strokeLinecap="round" strokeDasharray={`${dashArray} 314`} />
+                    </svg>
+                    <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 32, fontWeight: 600, color: "var(--c-text-primary)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.015em" }}>
+                      {s.pct}<span style={{ fontSize: 16, color: "var(--c-text-tertiary)", marginLeft: 1 }}>%</span>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em", textAlign: "center" }}>
+                    {s.sec.subject?.title || "Section"}
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--c-text-tertiary)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
+                    {Math.max(0, s.score)} / {s.max} · {s.correct} of {s.total} correct
                   </div>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em", textAlign: "center" }}>
-                  {s.sec.subject?.title || "Section"}
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(3, stats.perSection.length)}, 1fr)`, gap: 12, marginBottom: 32 }}>
+            {stats.perSection.map((s, d) => {
+              const color = s.pct >= 90 ? "#1FA463" : s.pct >= 70 ? "var(--c-brand-primary)" : "#B66C00";
+              const dashArray = (s.pct / 100) * 314;
+              return (
+                <div key={d} style={sectionCard}>
+                  <div style={{ width: 110, height: 110, position: "relative", marginBottom: 14 }}>
+                    <svg viewBox="0 0 120 120" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+                      <circle cx="60" cy="60" r="50" fill="none" strokeWidth="8" stroke="var(--c-border-faint)" />
+                      <circle cx="60" cy="60" r="50" fill="none" strokeWidth="8" stroke={color} strokeLinecap="round" strokeDasharray={`${dashArray} 314`} />
+                    </svg>
+                    <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 22, fontWeight: 600, color: "var(--c-text-primary)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.015em" }}>
+                      {s.pct}<span style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginLeft: 1 }}>%</span>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em", textAlign: "center" }}>
+                    {s.sec.subject?.title || "Section"}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
+                    {Math.max(0, s.score)} / {s.max}
+                  </div>
                 </div>
-                <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
-                  {Math.max(0, s.score)} / {s.max}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* === TOP SCORERS — only when leaderboard data exists === */}
+        {leaderboard && leaderboard.length > 0 && (
+          <>
+            <h2 style={sectionTitle}>🏆 Top scorers</h2>
+            <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, padding: "24px 28px", marginBottom: 32 }}>
+              {leaderboard.slice(0, 10).map((row, idx) => {
+                const isYou = row?.uid === result?.uid;
+                const isGold = idx === 0;
+                return (
+                  <div key={row.uid || idx} style={{
+                    display: "grid", gridTemplateColumns: "36px 1fr 80px",
+                    padding: "10px 0", alignItems: "center",
+                    borderTop: idx === 0 ? "none" : (isYou ? "1px solid var(--c-brand-primary-soft)" : "1px solid var(--c-border-faint)"),
+                    background: isYou ? "var(--c-brand-primary-tint)" : "transparent",
+                    margin: isYou ? "0 -10px" : "0",
+                    paddingLeft: isYou ? 10 : 0,
+                    paddingRight: isYou ? 10 : 0,
+                    borderRadius: isYou ? 10 : 0,
+                  }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8,
+                      background: isGold ? "linear-gradient(135deg, var(--c-brand-gold), var(--c-brand-gold-tint))" : "var(--c-surface-muted, var(--c-bg))",
+                      color: isGold ? "#fff" : "var(--c-text-secondary)",
+                      display: "grid", placeItems: "center",
+                      fontWeight: 600, fontSize: 12,
+                      fontVariantNumeric: "tabular-nums",
+                    }}>{idx + 1}</div>
+                    <div style={{ fontSize: 14, color: "var(--c-text-primary)", fontWeight: isYou ? 600 : 500 }}>
+                      {isYou ? "You" : (row.name || "Anonymous")}
+                    </div>
+                    <div style={{ textAlign: "right", fontSize: 14, color: "var(--c-text-primary)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                      {row.score}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {/* === TEST INFO STRIP === */}
         <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, padding: "24px 28px", marginBottom: 32, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
@@ -381,13 +477,13 @@ export default function MockResult({ result }) {
 }
 
 // ── Sub-components ──
-function Kpi({ label, value, unit, sub }) {
+function Kpi({ label, value, unit, sub, success }) {
   return (
     <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, padding: 22 }}>
       <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 12 }}>
         {label}
       </div>
-      <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-text-primary)", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", color: success ? "var(--c-success)" : "var(--c-text-primary)", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
         {value}
         {unit && <span style={{ fontSize: 14, fontWeight: 500, color: "var(--c-text-tertiary)", marginLeft: 4 }}>{unit}</span>}
       </div>
