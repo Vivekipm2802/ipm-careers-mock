@@ -1,312 +1,337 @@
-import React, { useState } from "react";
+// ============================================================
+// Concept Test Result page — Phase 8 redesign
+// Premium scoring summary matching the mock result layout:
+// hero, KPIs, question review, leaderboard. All data fetching
+// and scoring logic preserved from the original file.
+// ============================================================
+
+import React, { useState, useMemo } from "react";
 import { Button } from "@nextui-org/react";
-import HeaderMock from "../components/HeaderMock";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { serversupabase } from "@/utils/supabaseClient";
 import { motion } from "framer-motion";
 import {
-  Check,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Home,
+  Play,
+  Printer,
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  BarChart3,
+  Trophy,
   XCircle,
+  Home,
 } from "lucide-react";
 import Leaderboard from "../components/Leaderboard2";
-import { getStatusIcon } from "../components/QuestionBrowser";
 
 const ResultPage = ({ result, questions, leaderboard }) => {
-  function calculateIntervalDelta(report, questions, d, i) {
+  const [activeExplanation, setActiveExplanation] = useState(undefined);
+  const [activeVideo, setActiveVideo] = useState();
+  const [activeFilter, setActiveFilter] = useState("all");
+  const router = useRouter();
+
+  function calculateIntervalDelta(report, qs, d, i) {
     if (d === 0) {
-      // Render header at the top
-      const testTitle =
-        result?.test_uuid?.parent?.title || result?.test_uuid?.title;
       return report?.find((item) => item.id === i.id)?.timestamp ?? 0;
     } else if (d === 1) {
-      const currentTimestamp =
-        report?.find((item) => item.id === i.id)?.timestamp ?? 0;
-      const previousTimestamp =
-        report?.find((item) => item.id === questions[d - 1]?.id)?.timestamp ??
-        0;
-      return currentTimestamp - previousTimestamp;
+      const current = report?.find((item) => item.id === i.id)?.timestamp ?? 0;
+      const previous = report?.find((item) => item.id === qs[d - 1]?.id)?.timestamp ?? 0;
+      return current - previous;
     } else {
-      const currentInterval =
-        (report?.find((item) => item.id === i.id)?.timestamp ?? 0) -
-        (report?.find((item) => item.id === questions[d - 1]?.id)?.timestamp ??
-          0);
-      const previousInterval =
-        (report?.find((item) => item.id === questions[d - 1]?.id)?.timestamp ??
-          0) -
-        (report?.find((item) => item.id === questions[d - 2]?.id)?.timestamp ??
-          0);
-      return currentInterval - previousInterval;
+      const ci = (report?.find((item) => item.id === i.id)?.timestamp ?? 0) -
+                 (report?.find((item) => item.id === qs[d - 1]?.id)?.timestamp ?? 0);
+      const pi = (report?.find((item) => item.id === qs[d - 1]?.id)?.timestamp ?? 0) -
+                 (report?.find((item) => item.id === qs[d - 2]?.id)?.timestamp ?? 0);
+      return ci - pi;
     }
   }
-  const [drawerActive, setDrawerActive] = useState(false);
-  const [activeExplanation, setActiveExplanation] = useState(undefined);
 
   if (!result || !questions) {
     return (
-      <div className="flex flex-col justify-center align-middle items-center text-center sf h-[100vh] w-full">
-        Loading...
+      <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", height: "100vh", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
+        Loading…
       </div>
     );
   }
 
   const report = result.report || [];
-  // Calculate score by replaying the report in order, matching [slug].js logic
   const increment = result?.config?.increment ?? 4;
   const decrement = result?.config?.decrement ?? 1;
-  let score = 0;
-  if (Array.isArray(report)) {
-    // Sort report by timestamp if available, fallback to original order
-    const sortedReport = [...report].sort((a, b) => {
-      if (typeof a.timestamp === "number" && typeof b.timestamp === "number") {
-        return a.timestamp - b.timestamp;
-      }
-      return 0;
-    });
-    sortedReport.forEach((item) => {
-      if (item.isCorrect === true) {
-        score += increment;
-      } else if (item.isCorrect === false) {
-        score -= decrement;
-      }
-    });
-  }
+  const score = useMemo(() => {
+    let s = 0;
+    if (Array.isArray(report)) {
+      const sorted = [...report].sort((a, b) => {
+        if (typeof a.timestamp === "number" && typeof b.timestamp === "number") return a.timestamp - b.timestamp;
+        return 0;
+      });
+      sorted.forEach((item) => {
+        if (item.isCorrect === true) s += increment;
+        else if (item.isCorrect === false) s -= decrement;
+      });
+    }
+    return s;
+  }, [report, increment, decrement]);
+
   const correctCount = report.filter((item) => item.isCorrect === true).length;
-  const incorrectCount = report.filter(
-    (item) => item.isCorrect === false
-  ).length;
+  const wrongCount = report.filter((item) => item.isCorrect === false).length;
+  const totalQ = questions.length;
+  const skippedCount = Math.max(0, totalQ - correctCount - wrongCount);
+  const attempted = correctCount + wrongCount;
+  const accuracy = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
+  const maxScore = totalQ * increment;
+  const testTitle = result?.test_uuid?.parent?.title || result?.test_uuid?.title || "Concept test";
+
+  function printPage() { window.print(); }
+
+  function getStatusLocal(q) {
+    const r = report.find((item) => item.id === q.id);
+    if (!r) return "skipped";
+    if (r.isCorrect === true) return "correct";
+    if (r.isCorrect === false) return "wrong";
+    return "skipped";
+  }
 
   return (
-    <div className="w-full sf h-screen max-h-screen justify-center align-middle items-center overflow-hidden flex flex-col bg-primary">
-      <HeaderMock
-        title={result?.test_uuid?.parent?.title || result?.test_uuid?.title}
-        questions={questions}
-      />
-      {/* Explanation Modal */}
-      {/* Backdrop */}
+    <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", minHeight: "100vh", fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif", letterSpacing: "-0.01em" }}>
+      {/* === EXPLANATION MODAL === */}
       {activeExplanation !== undefined && (
         <motion.div
-          className="fixed  bg-black bg-opacity-50 z-40 pointer-events-none"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          key={"Modal2"}
+          className="fixed inset-0 pointer-events-none"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          style={{ background: "rgba(0,0,0,0.55)", zIndex: 40 }}
+          key="modal-backdrop"
         />
       )}
-      {/* Modal */}
       {activeExplanation !== undefined && (
         <motion.div
-          key={"Modal"}
-          className="fixed inset-0 z-50 w-full flex justify-center items-start overflow-y-auto pointer-events-auto"
+          key="modal-content"
+          className="fixed inset-0 flex justify-center items-start overflow-y-auto"
+          style={{ zIndex: 50, padding: "40px 20px" }}
           initial={{ opacity: 0, y: "10%" }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: "10%" }}
           transition={{ duration: 0.2 }}
         >
-          <div className="bg-white p-4 w-full h-full md:h-auto rounded-lg overflow-hidden shadow-lg">
-            <XCircle
-              stroke="white"
-              fill="red"
-              className="right-4 top-4 absolute pointer-events-auto z-[9999] cursor-pointer"
-              size={48}
-              onClick={() => setActiveExplanation(undefined)}
-            />
-            {/* Modal Header */}
-            <div className="flex flex-col gap-1 justify-start items-start p-4 text-black">
-              <h2 className="text-2xl font-bold">Explanation</h2>
+          <div style={{ background: "var(--c-surface)", borderRadius: 20, overflow: "hidden", maxWidth: 900, width: "100%", border: "1px solid var(--c-border-faint)" }}>
+            <div style={{ padding: 20, borderBottom: "1px solid var(--c-border-faint)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600, color: "var(--c-text-primary)", margin: 0 }}>Explanation</h2>
+              <button onClick={() => setActiveExplanation(undefined)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--c-text-tertiary)" }}>
+                <XCircle size={24} />
+              </button>
             </div>
-            {/* Modal Body */}
-            <div className="p-4 overflow-y-auto">
-              {/* Explanation Video */}
+            <div style={{ padding: 24, maxHeight: "70vh", overflowY: "auto" }}>
               {questions[activeExplanation]?.explanationvideo && (
                 <iframe
-                  className="rounded-lg overflow-hidden max-w-6xl mx-auto bg-gray-200 w-full aspect-video"
-                  width="100%"
-                  height="100%"
+                  style={{ width: "100%", aspectRatio: "16/9", borderRadius: 12, marginBottom: 16, background: "var(--c-surface-muted, var(--c-bg))" }}
                   src={questions[activeExplanation]?.explanationvideo}
                   frameBorder="0"
                   allowFullScreen
-                ></iframe>
-              )}
-              <div className="h-24"></div>
-              {/* Question Text */}
-              <div
-                className="text-sm font-bold [&_*]:!text-sm [&_*]:font-normal mt-4"
-                dangerouslySetInnerHTML={{
-                  __html: questions[activeExplanation]?.question,
-                }}
-              ></div>
-              {/* Question Image */}
-              {questions[activeExplanation]?.questionimage && (
-                <img
-                  src={questions[activeExplanation].questionimage}
-                  className="mt-4"
-                  alt="Question"
                 />
               )}
-              {/* Explanation Text */}
-              <div
-                className="mt-4"
-                dangerouslySetInnerHTML={{
-                  __html: questions[activeExplanation]?.explanation,
-                }}
-              ></div>
+              <div className="qcontent" style={{ fontSize: 14.5, lineHeight: 1.6, color: "var(--c-text-primary)" }}
+                   dangerouslySetInnerHTML={{ __html: questions[activeExplanation]?.question }} />
+              {questions[activeExplanation]?.questionimage && (
+                <img src={questions[activeExplanation].questionimage} style={{ marginTop: 16, borderRadius: 12, maxWidth: "100%", border: "1px solid var(--c-border-faint)" }} />
+              )}
+              <div className="qcontent" style={{ marginTop: 16, fontSize: 14.5, lineHeight: 1.6, color: "var(--c-text-secondary)" }}
+                   dangerouslySetInnerHTML={{ __html: questions[activeExplanation]?.explanation }} />
             </div>
-            {/* Modal Footer */}
-            <div className="p-4 bg-gray-100">
-              <div className="w-full">
-                <h2 className="font-bold text-md text-green-500">
-                  Correct Answer:{" "}
-                  {Array.isArray(questions[activeExplanation]?.options)
-                    ? questions[activeExplanation].options.find(
-                        (item) => item.isCorrect
-                      )?.title ?? "N/A"
-                    : "N/A"}
-                </h2>
-                <h2 className="font-bold text-md text-blue-500">
-                  Your Answer: {report[activeExplanation]?.answer ?? "N/A"}
-                </h2>
+            <div style={{ padding: 20, borderTop: "1px solid var(--c-border-faint)", background: "var(--c-surface-muted, var(--c-bg))" }}>
+              <div style={{ fontSize: 13, color: "var(--c-success)", fontWeight: 600 }}>
+                Correct answer: {Array.isArray(questions[activeExplanation]?.options)
+                  ? questions[activeExplanation].options.find((item) => item.isCorrect)?.title ?? "N/A"
+                  : "N/A"}
+              </div>
+              <div style={{ fontSize: 13, color: "var(--c-brand-primary)", fontWeight: 600, marginTop: 4 }}>
+                Your answer: {report[activeExplanation]?.answer ?? "—"}
               </div>
             </div>
           </div>
         </motion.div>
       )}
 
-      <div className="bg-white shadow-md overflow-hidden w-full h-full lg:p-0 flex flex-row items-start justify-start">
-        {/* Left: Question Breakdown */}
-        <div
-          className={
-            "w-full fixed sm:relative transition-all z-[9] sm:!transform-none sm:z-0 left-0 top-0 max-w-[400px] flex-1 overflow-y-auto overflow-x-hidden border-r-1 h-full flex flex-col justify-start items-start " +
-            (drawerActive ? "translate-x-0" : "-translate-x-full")
-          }
-        >
-          <div className="flex flex-col w-full p-0 text-center bg-slate-50 overflow-hidden relative">
-            <Button
-              size="sm"
-              isIconOnly
-              color="secondary"
-              onPress={() => setDrawerActive(false)}
-              className="absolute flex sm:hidden right top-1/2 -translate-y-1/2 z-50 rounded-r-none right-0"
-            >
-              <ChevronLeft />
-            </Button>
-            <div className="flex flex-row flex-wrap text-black justify-between align-middle items-center p-2 bg-white text-xs">
-              <h2 className="flex-1 font-medium text-sm">Name</h2>
-              <h2 className="flex-1 font-medium text-sm">Status</h2>
-              <h2 className="flex-1 font-medium text-sm">Intervals</h2>
-              <h2 className="flex-1 font-medium text-sm">Explanation</h2>
-            </div>
-            <div className="overflow-y-auto">
-              {questions &&
-                questions.map((i, d) => (
-                  <div
-                    key={i.id}
-                    className="flex flex-row hover:bg-slate-100 flex-wrap relative justify-between align-middle items-center p-2 text-xs"
-                  >
-                    <div className="w-[90%] absolute h-[1px] bg-gray-200 bottom-0 left-1/2 -translate-x-1/2"></div>
-                    <h2 className="flex-1 gradtext font-bold">Q {d + 1} </h2>
-                    <h2 className="flex-1 flex flex-row justify-center align-middle items-center">
-                      <div className="w-6 z-10 h-6 flex flex-col items-center justify-center relative">
-                        {getStatusIcon(i, report, true)}
-                        {report.find((item) => item.id === i.id)?.isCorrect ? (
-                          <Check className="z-10" color="white" size={16} />
-                        ) : (
-                          <X color="white" size={16} />
-                        )}
-                      </div>
-                    </h2>
-                    <h2 className="flex-1 gradtext font-bold">
-                      {calculateIntervalDelta(report, questions, d, i)}s
-                    </h2>
-                    <h2 className="flex-1">
-                      <Button
-                        color="primary"
-                        size="sm"
-                        onPress={() => setActiveExplanation(d)}
-                        variant="light"
-                        isIconOnly
-                      >
-                        <ChevronRight />
-                      </Button>
-                    </h2>
-                  </div>
-                ))}
-            </div>
+      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "32px 28px 80px" }}>
+
+        {/* === TOP ACTION BAR === */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32, flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontWeight: 600, fontSize: 14 }}>
+            <img src="/newlog.svg" style={{ height: 32, width: "auto" }} />
           </div>
-          <div className="flex bg-white flex-row justify-center items-center align-middle w-full shadow-sm p-2 rounded-lg">
-            <p className="flex-1 text-center text-green-500 font-bold">
-              Correct :{" "}
-              {report.filter((item) => item.isCorrect === true).length}
-            </p>
-            <p className="flex-1 text-center text-red-500 font-bold">
-              Incorrect :{" "}
-              {report.filter((item) => item.isCorrect === false).length}
-            </p>
-          </div>
-        </div>
-        {/* Right: Score, Message, Leaderboard */}
-        <div className="flex-1 h-full flex flex-col items-start justify-start overflow-hidden">
-          <div className="flex w-full flex-col bg-gray-50 p-4">
-            <Button
-              onPress={() => setDrawerActive(true)}
-              className="mb-2 mr-auto flex sm:hidden"
-              color="primary"
-              size="sm"
-            >
-              Open Explanations
-              <ChevronRight />
-            </Button>
-            {report &&
-            report.filter((item) => item.isCorrect === true).length >
-              questions.length / 2 ? (
-              <p className="text-green-500 text-center">
-                Your Test is Submitted
-              </p>
-            ) : (
-              <></>
-            )}
-            <h2 className="my-3 flex flex-col align-middle justify-center items-center">
-              You scored{" "}
-              <span className="text-5xl font-bold w-auto text-green-500">
-                {score}
-              </span>
-            </h2>
-            {
-              <p className="font-bold text-green-600 text-2xl text-center">
-                You have successfully completed{" "}
-                {result?.test_uuid?.parent?.title || result?.test_uuid?.title}
-              </p>
-            }
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <button onClick={() => router.push("/")} style={pillGhost}>
+              <Home size={14} /> Back to dashboard
+            </button>
+            <button onClick={() => printPage()} style={pillGhost}>
+              <Printer size={14} /> Print
+            </button>
             {result?.uid && (
-              <Button
-                as={Link}
-                href={`/test/analytics/${result?.uid}`}
-                size="lg"
-                className="from-primary-500 to-primary-700 bg-gradient-to-r mx-auto text-white mt-4"
-                target="_blank"
-              >
-                View Analysis
-              </Button>
+              <button onClick={() => router.push(`/test/analytics/${result.uid}`)} style={pillPrimary}>
+                <BarChart3 size={14} /> View detailed analysis <ArrowRight size={14} />
+              </button>
             )}
           </div>
-          <div className="w-full bg-gray-100 flex flex-col items-start justify-start flex-1 h-full overflow-y-auto p-0">
-            <Leaderboard scores={leaderboard ?? []} />
-          </div>
-          <div className="flex flex-row items-center justify-center w-full p-2 sticky bottom-0 bg-white border-t-1">
-            <Button
-              className="my-2 from-secondary to-yellow-300 bg-gradient-to-b shadow-md shadow-yellow-200 border-1 border-white"
-              color="default"
-              as={Link}
-              href="/"
-              startContent={<Home />}
-            >
-              Go back to Dashboard
-            </Button>
+        </div>
+
+        {/* === HERO SCORE === */}
+        <div style={heroCard}>
+          <div style={{ position: "absolute", top: 0, right: 0, width: 280, height: 280, background: "radial-gradient(circle, var(--c-brand-primary-tint) 0%, transparent 70%)", opacity: 0.6, transform: "translate(20%, -30%)", pointerEvents: "none" }} />
+          <div style={{ position: "relative" }}>
+            <div style={eyebrowStyle}>Test result · {testTitle}</div>
+            <h1 style={{ fontSize: 64, fontWeight: 600, letterSpacing: "-0.03em", color: "var(--c-text-primary)", lineHeight: 1, margin: 0, fontVariantNumeric: "tabular-nums" }}>
+              You scored{" "}
+              <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                {Math.max(0, score)}
+              </span>
+            </h1>
+            <div style={{ marginTop: 14, fontSize: 15, color: "var(--c-text-secondary)", display: "flex", flexWrap: "wrap", gap: "6px 14px" }}>
+              <span>out of {maxScore}</span>
+              <span style={{ color: "var(--c-text-tertiary)" }}>·</span>
+              <span>{accuracy}% accuracy</span>
+              <span style={{ color: "var(--c-text-tertiary)" }}>·</span>
+              <span>{correctCount} of {totalQ} correct</span>
+            </div>
           </div>
         </div>
+        <div style={{ height: 16 }} />
+
+        {/* === KPI ROW === */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
+          <Kpi label="Total score" value={Math.max(0, score)} unit={`/ ${maxScore}`} sub={`+${increment} correct · −${decrement} wrong`} />
+          <Kpi label="Accuracy" value={accuracy} unit="%" sub={`Of ${attempted} attempted`} />
+          <Kpi label="Questions" value={correctCount} unit={`/ ${totalQ}`} sub={`${wrongCount} wrong · ${skippedCount} skipped`} />
+          <Kpi label="Concept" value={testTitle.length > 18 ? testTitle.slice(0, 16) + "…" : testTitle} unit="" sub="Concept test" />
+        </div>
+
+        {/* === LEADERBOARD === */}
+        {leaderboard && leaderboard.length > 0 && (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "32px 0 16px" }}>
+              <Trophy size={18} style={{ color: "var(--c-brand-gold)" }} />
+              <h2 style={{ ...sectionTitle, margin: 0 }}>Top scorers</h2>
+            </div>
+            <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, overflow: "hidden", marginBottom: 32 }}>
+              <Leaderboard scores={leaderboard} />
+            </div>
+          </>
+        )}
+
+        {/* === QUESTION REVIEW === */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "32px 0 16px", flexWrap: "wrap", gap: 10 }}>
+          <h2 style={{ ...sectionTitle, margin: 0 }}>Question-by-question review</h2>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <FilterPill label="All" count={totalQ} active={activeFilter === "all"} onClick={() => setActiveFilter("all")} />
+            <FilterPill label="Correct" count={correctCount} active={activeFilter === "correct"} onClick={() => setActiveFilter("correct")} />
+            <FilterPill label="Wrong" count={wrongCount} active={activeFilter === "wrong"} onClick={() => setActiveFilter("wrong")} />
+            <FilterPill label="Skipped" count={skippedCount} active={activeFilter === "skipped"} onClick={() => setActiveFilter("skipped")} />
+          </div>
+        </div>
+
+        <div style={{ borderRadius: 14, overflow: "hidden", border: "1px solid var(--c-border-faint)" }}>
+          {questions.map((q, d) => {
+            const status = getStatusLocal(q);
+            if (activeFilter !== "all" && activeFilter !== status) return null;
+            const r = report.find((item) => item.id === q.id);
+            const correctIdx = Array.isArray(q.options) ? q.options.findIndex((o) => o?.isCorrect) : -1;
+            const chosenIdx = r ? (typeof r.value === "number" ? r.value - 1 : null) : null;
+            const interval = calculateIntervalDelta(report, questions, d, q);
+            const hasExplanation = q?.explanation && q?.explanation !== "<p><strong>Write your Explanation Here...</strong></p>";
+            const hasVideo = q?.explanationvideo;
+
+            const sStyles = {
+              correct: { bg: "var(--c-success-soft, #E0F2E8)", color: "var(--c-success)", label: `Correct · +${increment}` },
+              wrong: { bg: "var(--c-danger-soft, #F8DADA)", color: "var(--c-danger)", label: `Wrong · −${decrement}` },
+              skipped: { bg: "var(--c-surface-sunken, var(--c-surface-muted))", color: "var(--c-text-tertiary)", label: "Skipped · 0" },
+            };
+            const sStyle = sStyles[status];
+
+            return (
+              <div key={q.id} style={{ background: "var(--c-surface)", borderTop: d === 0 ? "none" : "1px solid var(--c-border-faint)", padding: 24 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--c-surface-sunken, var(--c-surface-muted))", color: "var(--c-text-secondary)", display: "grid", placeItems: "center", fontWeight: 600, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                    {d + 1}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 999, background: sStyle.bg, color: sStyle.color }}>
+                    {sStyle.label}
+                  </div>
+                  {interval > 0 && (
+                    <div style={{ fontSize: 11, color: "var(--c-text-tertiary)", fontFamily: "monospace" }}>
+                      {interval}s
+                    </div>
+                  )}
+                  <div style={{ marginLeft: "auto", fontSize: 11, color: "var(--c-text-tertiary)", fontFamily: "monospace" }}>
+                    Q#{q.id}
+                  </div>
+                </div>
+
+                {q.title && <p style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.5, color: "var(--c-text-primary)", margin: "0 0 8px", maxWidth: "70ch" }}>{q.title}</p>}
+                <div className="qcontent" style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-text-primary)", margin: "0 0 18px", maxWidth: "70ch" }} dangerouslySetInnerHTML={{ __html: q.question }} />
+                {q.questionimage && <img src={q.questionimage} style={{ maxHeight: 200, marginBottom: 16, borderRadius: 12, border: "1px solid var(--c-border-faint)" }} />}
+
+                {Array.isArray(q.options) && q.options.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+                    {q.options.map((opt, i) => {
+                      const isCorrect = i === correctIdx;
+                      const isChosen = chosenIdx !== null && i === chosenIdx;
+                      const isChosenWrong = isChosen && !isCorrect;
+                      const letter = String.fromCharCode(65 + i);
+                      return (
+                        <div key={i} style={{
+                          display: "flex", alignItems: "flex-start", gap: 12,
+                          padding: "12px 16px",
+                          background: isCorrect ? "var(--c-success-soft, #E0F2E8)" : isChosenWrong ? "var(--c-danger-soft, #F8DADA)" : "var(--c-surface-muted, var(--c-bg))",
+                          border: `1px solid ${isCorrect ? "var(--c-success)" : isChosenWrong ? "var(--c-danger)" : "var(--c-border-faint)"}`,
+                          borderRadius: 12, fontSize: 14,
+                          color: isCorrect || isChosenWrong ? "var(--c-text-primary)" : "var(--c-text-secondary)",
+                          textDecoration: isChosenWrong ? "line-through" : "none",
+                          textDecorationColor: isChosenWrong ? "var(--c-danger)" : "transparent",
+                        }}>
+                          <span style={{
+                            flexShrink: 0, width: 24, height: 24, borderRadius: 6,
+                            background: isCorrect ? "var(--c-success)" : isChosenWrong ? "var(--c-danger)" : "var(--c-surface)",
+                            color: isCorrect || isChosenWrong ? "#fff" : "var(--c-text-secondary)",
+                            display: "grid", placeItems: "center", fontWeight: 600, fontSize: 12,
+                            border: isCorrect || isChosenWrong ? "1px solid transparent" : "1px solid var(--c-border-soft)",
+                          }}>
+                            {letter}
+                          </span>
+                          <span style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: opt?.title || "" }} />
+                          {(isCorrect || isChosenWrong) && (
+                            <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 500, color: isCorrect ? "var(--c-success)" : "var(--c-danger)", textDecoration: "none", whiteSpace: "nowrap" }}>
+                              {isCorrect && isChosen ? "Correct · Your choice" : isCorrect ? "Correct answer" : "Your choice"}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {(hasExplanation || hasVideo) && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 14, borderTop: "1px solid var(--c-border-faint)", flexWrap: "wrap" }}>
+                    {hasVideo && (
+                      activeVideo === q.id ? (
+                        <iframe className="aspect-video w-full max-w-[500px] rounded-xl" src={q.explanationvideo} style={{ background: "var(--c-surface-muted, var(--c-bg))" }} />
+                      ) : (
+                        <button onClick={() => setActiveVideo(q.id)} style={pillGhost}>
+                          <span style={{ display: "inline-grid", placeItems: "center", width: 22, height: 22, borderRadius: "50%", background: "var(--c-brand-primary)", color: "#fff" }}>
+                            <Play size={12} fill="#fff" />
+                          </span>
+                          Watch video solution
+                        </button>
+                      )
+                    )}
+                    {hasExplanation && (
+                      <button onClick={() => setActiveExplanation(d)} style={pillGhost}>
+                        <BookOpen size={14} /> Read written solution
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
       </div>
     </div>
   );
@@ -314,46 +339,87 @@ const ResultPage = ({ result, questions, leaderboard }) => {
 
 export default ResultPage;
 
+// ── Sub-components ──
+function Kpi({ label, value, unit, sub }) {
+  return (
+    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, padding: 22 }}>
+      <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 12 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-text-primary)", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
+        {value}
+        {unit && <span style={{ fontSize: 14, fontWeight: 500, color: "var(--c-text-tertiary)", marginLeft: 4 }}>{unit}</span>}
+      </div>
+      <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 6 }}>{sub}</div>
+    </div>
+  );
+}
+function FilterPill({ label, count, active, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      height: 32, padding: "0 12px", borderRadius: 999,
+      background: active ? "var(--c-brand-primary)" : "var(--c-surface)",
+      border: `1px solid ${active ? "transparent" : "var(--c-border-soft)"}`,
+      color: active ? "#fff" : "var(--c-text-secondary)",
+      fontFamily: "inherit", fontSize: 12, fontWeight: 500,
+      cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
+      whiteSpace: "nowrap",
+    }}>
+      {label}
+      <span style={{
+        background: active ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.06)",
+        padding: "1px 6px", borderRadius: 8, fontSize: 11, fontVariantNumeric: "tabular-nums",
+      }}>{count}</span>
+    </button>
+  );
+}
+
+// ── Shared inline style objects ──
+const eyebrowStyle = {
+  fontSize: 11, fontWeight: 500, letterSpacing: "0.14em",
+  textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10,
+};
+const sectionTitle = {
+  fontSize: 20, fontWeight: 600, letterSpacing: "-0.018em",
+  margin: "0 0 16px", color: "var(--c-text-primary)",
+};
+const heroCard = {
+  background: "var(--c-surface)",
+  border: "1px solid var(--c-border-faint)",
+  borderRadius: 24, padding: "40px 44px", marginBottom: 16,
+  position: "relative", overflow: "hidden",
+};
+const pillGhost = {
+  height: 36, padding: "0 14px", borderRadius: 999,
+  background: "transparent", color: "var(--c-text-secondary)",
+  border: "1px solid var(--c-border-soft)",
+  fontSize: 13, fontWeight: 500, cursor: "pointer",
+  display: "inline-flex", alignItems: "center", gap: 6,
+  fontFamily: "inherit", whiteSpace: "nowrap",
+  transition: "all 0.18s ease",
+};
+const pillPrimary = {
+  ...pillGhost, background: "var(--c-brand-primary)", color: "#fff", border: "1px solid transparent",
+};
+
 export async function getServerSideProps(context) {
-  // Fetch result by uid
   const { data, error } = await serversupabase
     .from("plays")
     .select("*,test_uuid(*)")
     .eq("uid", context.query.uid);
-
-  if (!data || data.length === 0 || error) {
-    return { notFound: true };
-  }
-
+  if (!data || data.length === 0 || error) return { notFound: true };
   const result = data[0];
-
-  // Fetch questions for the test
   let questions = [];
   if (result?.test_uuid?.id) {
     const { data: qData } = await serversupabase
-      .from("questions")
-      .select("*")
-      .eq("parent", result.test_uuid.id);
+      .from("questions").select("*").eq("parent", result.test_uuid.id);
     questions = qData || [];
   }
-
-  // Fetch leaderboard for the test
   let leaderboard = [];
   if (result?.test_uuid?.uuid) {
     const { data: lbData } = await serversupabase
-      .from("plays")
-      .select("id,created_at,score,user,name,isPassed,test_uuid")
+      .from("plays").select("id,created_at,score,user,name,isPassed,test_uuid")
       .eq("test_uuid", result.test_uuid.uuid)
-      .order("score", { ascending: false })
-      .limit(20);
+      .order("score", { ascending: false }).limit(20);
     leaderboard = lbData || [];
   }
-
-  return {
-    props: {
-      result,
-      questions,
-      leaderboard,
-    },
-  };
+  return { props: { result, questions, leaderboard } };
 }

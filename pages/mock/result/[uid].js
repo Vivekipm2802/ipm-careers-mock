@@ -1,330 +1,635 @@
+// ============================================================
+// Mock Result page — Phase 8 redesign
+// Premium scoring summary: hero score, KPI row, section rings,
+// test info strip, question-by-question review with section blocks.
+// All existing data fetching and scoring logic preserved.
+// ============================================================
+
 import Loader from "@/components/Loader";
 import { useNMNContext } from "@/components/NMNContext";
 import { CtoLocal } from "@/utils/DateUtil";
-import { serversupabase, supabase } from "@/utils/supabaseClient"
-import { Button, CircularProgress, Divider, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Spacer } from "@nextui-org/react";
-import { Play } from "lucide-react";
+import { serversupabase, supabase } from "@/utils/supabaseClient";
+import {
+  Button,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+} from "@nextui-org/react";
+import { Play, Printer, ArrowLeft, ArrowRight, BookOpen, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react"
-import { toast } from "react-hot-toast";
+import { useEffect, useMemo, useState } from "react";
 
-export default function MockResult({result}){
+export default function MockResult({ result }) {
+  const [sections, setSections] = useState();
+  const [modules, setModules] = useState();
+  const [questions, setQuestions] = useState();
+  const [activeVideo, setActiveVideo] = useState();
+  const [modal, setModal] = useState(undefined);
+  const [activeFilter, setActiveFilter] = useState("all");
 
+  const router = useRouter();
+  const { userDetails, isRouting } = useNMNContext();
 
-  const [sections,setSections] = useState();
-  const [modules,setModules] =useState();
-  const [questions,setQuestions] = useState();
-  const [activeVideo,setActiveVideo] = useState()
-  const [modal,setModal] = useState(undefined)
-
-
-  const {userDetails,isRouting} = useNMNContext()
-  async function getSections(a){
-
-    const {data,error} = await supabase.from('mock_groups').select('*,subject(*)').eq('test',a).order('seq',{ascending:true})
-  if(data){
-    
-    // Keep only subject-level groups.
-    // Criteria: type==='subject' (AI-generated tests)
-    //   OR: subject is set AND no module FK (old-format tests where type may be absent)
-    // Explicitly exclude module-level rows (they have a module FK set).
-    const subjectGroups = data.filter(s =>
-      s.type === 'subject' ||
-      (s.subject != null && s.module == null)
-    );
-    setSections(subjectGroups)
-   getModules(data)
+  async function getSections(a) {
+    const { data, error } = await supabase
+      .from("mock_groups")
+      .select("*,subject(*)")
+      .eq("test", a)
+      .order("seq", { ascending: true });
+    if (data) {
+      const subjectGroups = data.filter(
+        (s) => s.type === "subject" || (s.subject != null && s.module == null),
+      );
+      setSections(subjectGroups);
+      getModules(data);
+    }
   }
-  else{
-   
-    /* router.push('/login') */
+  async function getModules(a) {
+    const { data, error } = await supabase
+      .from("mock_groups")
+      .select("*,module(*)")
+      .in("parent_sub", a.map((i) => i.id));
+    if (data) {
+      setModules(data);
+      getQuestions(data);
+    }
   }
+  async function getQuestions(a) {
+    const { data, error } = await supabase
+      .from("mock_questions")
+      .select("*")
+      .in("parent", a.filter((i) => i.module).map((i) => i.module.id))
+      .order("seq", { ascending: true });
+    if (data) setQuestions(data);
   }
-  
-  
-  async function getModules(a){
-  
-    const {data,error} = await supabase.from('mock_groups').select('*,module(*)').in('parent_sub',a.map(i=>i.id))
-  if(data){
-    
-    setModules(data)
-   getQuestions(data)
-  }
-  else{
-   
-    /* router.push('/login') */
-  }
-  }
-  async function getQuestions(a){
+  useEffect(() => {
+    if (result != undefined) getSections(result?.test_id.id);
+  }, []);
 
-    const {data,error} = await supabase.from('mock_questions').select('*').in('parent',a.filter(i=>i.module).map(i=>i.module.id)).order('seq',{ascending:true})
-if(data){
-    
-    setQuestions(data)
-    /* if(data.length == 0){
-        router.push('/404')
-    } */
-}
-else{
-  
-}
-}
-useEffect(()=>{
-  if(result != undefined){
-  getSections(result?.test_id.id)}
-},[])
-function getStatus(a){
-
-const answered = result.report;
-const miscData = result.data;
-
-  if(answered?.some(item=>item.id == a.id) && miscData?.filter(item=>item.status == "review").some(item=>item.id == a.id)){
-    return 'Answered & Marked for Review'
-  }
-
-  if(answered?.some(item=>item.id == a.id)){
-    return 'Answered'
-  }
-  if(miscData?.filter(item=>item.status == "review")?.some(item=>item.id == a.id)){
-    return 'Marked for Review'
-  }
-  if(miscData?.some(item=>item.id == a.id)){
-    return 'Not Answered'
-  }
-  return ''
-}
-const table = [
-  {
-    key:'Participant Name',
-    value:result?.name
-  },
-  {
-    key:'Test Center Name',
-    value:'IPM Careers Online Portal'
-  },
-  {
-    key:'Test Date',
-    value:`${CtoLocal(result.created_at).dayName}, ${CtoLocal(result.created_at).date} ${CtoLocal(result.created_at).monthName}, ${CtoLocal(result.created_at).year}`
-  },
-  
-  {
-    key:'Subject',
-    value:result.test_id.title
-  },
-]
-function printPage() {
-  if (window.matchMedia) {
-      const mediaQueryList = window.matchMedia('print');
-      mediaQueryList.addListener(function(mql) {
-          if (!mql.matches) {
-              console.log('Print dialog closed');
-          }
-      });
-  }
-  window.print();
-}
-const router = useRouter()
-if(userDetails == undefined){
-  return <div className="w-full h-screen justify-center items-center flex flex-col ">You cannot access this without logging in 
-<Button className="border-green-700 bg-teal-600 text-white border-1 shadow-md rounded-md" as={Link} href={`/login?redirectTo=${router.asPath}`} target="_blank">Login</Button>
-
-  </div>
-}
-if(questions == undefined || result == undefined ){
-  return <div className='flex flex-col relative justify-center align-middle items-center text-center font-sans h-screen w-full'>
-   <Loader></Loader>
-    Loading...</div>
-}
-
-
-
-return <div className="p-2 md:p-4 lg:p-6">
-  <Modal isOpen={modal != undefined} onClose={()=>{setModal(undefined)}}>
-<ModalContent>
-
-<ModalHeader>Solution </ModalHeader>
-  <ModalBody>
-    {modal?.explanationimage &&<img className="w-full h-full aspect-video max-w-lg" src={modal?.explanationimage}/>}
-    <div dangerouslySetInnerHTML={{__html:modal?.explanation}}></div>
-  </ModalBody>
-  <ModalFooter><Button color="danger" variant="flat" onPress={()=>{setModal(undefined)}}>Close</Button></ModalFooter>
-</ModalContent>
-
-  </Modal>
-  <div className="w-full flex flex-row items-center justify-end">
-    
-  <Button className="border-green-700 bg-teal-600 text-white border-1 shadow-md rounded-md" isLoading={isRouting} onPress={()=>{router.push(`/mock/analytics/${router.query.uid}`)}}>View Analysis</Button>
-  <Spacer x={2}></Spacer>
-  <Button className=" border-green-700 bg-teal-600 text-white border-1 shadow-md rounded-md" onPress={()=>{printPage()}}>Print</Button>
-  </div>
-  <Spacer y={4}></Spacer>
-<div className="border-1 border-yellow-500 bg-yellow-50 p-2 flex flex-col items-start justify-start">
-<div className="bg-white w-[90%] my-2 p-4 ">
-<img src="/newlog.svg" className="w-[300px]"/></div>
-<div className="border-1 border-neutral-400 flex flex-col w-full max-w-[500px]">
-   {table && table.map((i,d)=>{
-    return <div className="flex flex-col lg:flex-row items-stretch flex-nowrap w-full text-sm py-1 px-2">
-     
-      <><div className="flex-1 font-bold p-1 px-2 border-1 border-neutral-400 mr-1">{i.key}</div><div className="flex-1 p-1 px-2 border-1 border-neutral-400">{i.value}</div></>
-     
-    </div>
-   })}</div>
-   <Spacer y={4}></Spacer>
-<p className="text-xs">
-Note :</p>
-<p className="text-xs">1. Options shown in green color with a tick icon are correct.</p>
-<p className="text-xs">2. Chosen option on the right of the question indicates the option selected by the candidate.</p>
-    </div>
-    <Spacer y={4}></Spacer>
-
-<div className="flex flex-col justify-start items-center border-transparent mb-4 p-4 bg-white border-1 border-neutral-200 rounded-xl shadow-md">
-  <div className="w-full flex flex-col md:flex-row items-center justify-start">
-{sections && sections.map((i,d)=>{
-        return <div className=" text-white flex-[20%] flex-grow-0 text-center flex flex-col justify-center items-center">
-        {modules && modules.filter(item=>item.parent_sub == i.id).flatMap((z,v)=>{
-        return <CircularProgress label={i.subject?.title || 'Section'} strokeWidth={3} color="red-500"  classNames={{
-          svg: "w-36 h-36 drop-shadow-md",
-          indicator: "stroke-secondary",
-            label: "text-xs text-black",
-          }} value={ (
-            questions && questions
-            .filter((item) => item.parent === z.module.id)
-            .sort((a, b) => a.seq - b.seq)
-            .reduce((sum, question) => {
-              const reportItem = result.report.find((item) => item.id === question.id);
-              if (!reportItem) return sum; // Skip if no matching report item
-          
-              const reportValue = reportItem.value - 1;
-              const isCorrect = question.type === "options"
-                ? question.options.findIndex((option) => option.isCorrect) === reportValue
-                : question.options.answer.replace(/\s/g, '') == reportItem.value.replace(/\s/g, '');
-          
-              return isCorrect ? sum + i.pos : sum + i.neg;
-            }, 0)/
-            questions
-            .filter(item => item.parent === z.module.id)
-            .reduce((sum, n) => sum + i.pos, 0))*100}></CircularProgress>})}
-
-
-        <div className=" text-black">
-        {modules && modules.filter(item=>item.parent_sub == i.id).flatMap((z,v)=>{
-          return <> 
-          {questions && questions
-  .filter((item) => item.parent === z.module.id)
-  .sort((a, b) => a.seq - b.seq)
-  .reduce((sum, question) => {
-    const reportItem = result.report.find((item) => item.id == question.id);
-    if (!reportItem ?? false ) return sum; // Skip if no matching report item
-
+  // ── Per-question scoring helper ──
+  function isQuestionCorrect(q, reportItem) {
+    if (!reportItem) return null; // not attempted
     const reportValue = reportItem.value - 1;
-    const isCorrect = question.type === "options"
-      ? question?.options?.findIndex((option) => option?.isCorrect) == reportValue
-      : question?.options?.answer.trim() == reportItem.value.trim();
+    if (q.type === "options") {
+      const correctIdx = q?.options?.findIndex((o) => o?.isCorrect);
+      return correctIdx === reportValue;
+    }
+    if (q.type === "input") {
+      return (
+        (q?.options?.answer || "").toString().replace(/\s/g, "") ===
+        (reportItem.value || "").toString().replace(/\s/g, "")
+      );
+    }
+    return null;
+  }
 
-    return isCorrect ? sum + i.pos : sum + i.neg;
-  }, 0)
-           }
-           
-           /{questions
-            .filter(item => item.parent === z.module.id)
-            .reduce((sum, n) => sum + i.pos, 0)}</>})}</div>
-            {/* <div className="flex flex-col p-2 text-neutral-500 font-semibold text-xs items-start justify-start text-center ">{i.subject?.title || 'Section'}</div> */}
-            
-            
-            
-            </div>})}
-            
+  function getQStatus(q) {
+    if (!result) return "skipped";
+    const answered = result.report?.find((r) => r.id == q.id);
+    const isMarked = result.data
+      ?.filter((m) => m.status == "review")
+      ?.some((m) => m.id == q.id);
+    if (!answered) return isMarked ? "marked" : "skipped";
+    const correct = isQuestionCorrect(q, answered);
+    if (correct === true) return "correct";
+    if (correct === false) return "wrong";
+    return "skipped";
+  }
 
-            
+  // ── Aggregate stats (memoised) ──
+  const stats = useMemo(() => {
+    if (!sections || !modules || !questions || !result) return null;
 
-</div></div>
+    let totalScore = 0;
+    let maxScore = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let skippedCount = 0;
+    let markedCount = 0;
+    const perSection = [];
 
-    <div className="p-2 px-2 bg-neutral-600">
-      {sections && sections.map((i,d)=>{
-        return <div className="bg-neutral-500 text-white"><div className="flex flex-col p-2 text-white font-semibold text-xs items-start justify-start text-left w-full ">Section : {i.subject?.title || 'Section'}</div>
-        
-        <div className="bg-gray-50 text-black">
-        {modules && modules.filter(item=>item.parent_sub == i.id).map((z,v)=>{
-          return <> 
-          {questions && questions.filter(item=>item.parent == z.module.id).sort((a, b) => a.seq - b.seq).map((n,b)=>{
-            return <><div className="p-4 flex flex-col lg:flex-row items-start justify-between">
-<div className="flex-1  p-2">
+    sections.forEach((sec) => {
+      const secModules = modules.filter((m) => m.parent_sub === sec.id);
+      let secScore = 0;
+      let secMax = 0;
+      let secCorrect = 0;
+      let secTotal = 0;
+      const pos = sec.pos || 0;
+      const neg = sec.neg || 0;
+      secModules.forEach((mod) => {
+        if (!mod.module) return;
+        const qs = questions.filter((q) => q.parent === mod.module.id);
+        qs.forEach((q) => {
+          secTotal += 1;
+          secMax += pos;
+          const reportItem = result.report?.find((r) => r.id === q.id);
+          const isCorrect = isQuestionCorrect(q, reportItem);
+          if (isCorrect === true) {
+            secScore += pos;
+            secCorrect += 1;
+            correctCount += 1;
+          } else if (isCorrect === false) {
+            secScore += neg;
+            wrongCount += 1;
+          } else {
+            skippedCount += 1;
+          }
+          if (
+            result.data?.filter((m) => m.status == "review")?.some((m) => m.id == q.id)
+          ) {
+            markedCount += 1;
+          }
+        });
+      });
+      totalScore += secScore;
+      maxScore += secMax;
+      perSection.push({
+        sec,
+        score: secScore,
+        max: secMax,
+        correct: secCorrect,
+        total: secTotal,
+        pct: secMax > 0 ? Math.round((Math.max(0, secScore) / secMax) * 100) : 0,
+      });
+    });
 
-<div className="flex flex-row items-center justify-start">
-  <h2 className="text-sm font-bold">Q.{b+1} : {n.seq} {n.id}</h2>
-  
-  <Spacer x={4}></Spacer><div>
-{n.title}
-<div className="text-xs" dangerouslySetInnerHTML={{__html:n.question}}></div>
-{n?.questionimage ? <img className="max-h-[200px] w-auto object-contain" src={n.questionimage}/>:''}</div>
-</div>
+    const totalQ = correctCount + wrongCount + skippedCount;
+    const accuracy = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
 
-<Spacer y={4}></Spacer>
-<div className="flex flex-row items-center justify-start">
-  <h2 className="text-sm font-bold">Ans.</h2>
-  <Spacer x={4}></Spacer>
-{n?.type == "options" ? 
-<div>
-  {n && n?.options?.map((f,ind)=>{
-    return <div className={"flex flex-row items-center justify-start " + ((ind) == n?.options?.findIndex(item=>item?.isCorrect == true) ? '!text-green-600':'text-red-500')}><strong>{ind+1} : </strong><div dangerouslySetInnerHTML={{__html:f?.title}}></div></div>
-  })}
-</div>
-:''}
-{n?.type == "input" ? 
-<div>
-<p className={" text-sm " + (result.report.find(item=>item.id == n.id)?.value.toString().replace(/\s/g, '') == n?.options?.answer.toString().replace(/\s/g, '') ? 'text-green-600':'text-red-500' )}>Your Answer : {result.report.find(item=>item.id == n.id)?.value}</p>
-  <p className="text-green-600 text-sm">Correct Answer : {n?.options?.answer}</p>
-</div>
-:''}
-</div>
-</div>
-<div className="bg-slate-200 w-full max-w-[350px] text-xs p-2">
+    return {
+      totalScore,
+      maxScore,
+      correctCount,
+      wrongCount,
+      skippedCount,
+      markedCount,
+      totalQ,
+      accuracy,
+      perSection,
+    };
+  }, [sections, modules, questions, result]);
 
-  <p><strong>Question ID</strong> : {n.id}</p>
-  <p><strong>Status</strong> : {getStatus(n)}</p>
-  {n.type == "options" ? <>
-  <p><strong>Chosen Option</strong> : {result?.report.find(item=>item?.id == n?.id)?.value}</p>
-  <p><strong>Correct Option</strong> : {n?.options?.findIndex(item=>item?.isCorrect == true)+1}</p>
-  </>:''}
-</div>
+  function printPage() {
+    if (window.matchMedia) {
+      const mql = window.matchMedia("print");
+      mql.addListener(function (m) {
+        if (!m.matches) console.log("Print dialog closed");
+      });
+    }
+    window.print();
+  }
 
-            </div>
-            <div className="p-4 flex flex-col">
+  if (userDetails == undefined) {
+    return (
+      <div className="w-full h-screen flex flex-col justify-center items-center" style={{ background: "var(--c-bg)", color: "var(--c-text-primary)" }}>
+        <p style={{ marginBottom: 16 }}>You cannot access this without logging in</p>
+        <Button as={Link} href={`/login?redirectTo=${router.asPath}`} target="_blank" color="primary">
+          Login
+        </Button>
+      </div>
+    );
+  }
+  if (questions == undefined || result == undefined || stats == null) {
+    return (
+      <div className="flex flex-col justify-center items-center text-center h-screen w-full" style={{ background: "var(--c-bg)", color: "var(--c-text-primary)" }}>
+        <Loader />
+        <p style={{ marginTop: 12, color: "var(--c-text-tertiary)" }}>Loading your result…</p>
+      </div>
+    );
+  }
 
-            {n?.video != undefined && n?.video?.length > 2 && <>
-              Explanation & Solution:
-              <Spacer y={4}></Spacer>
-              
-            {activeVideo == b  ?    <iframe className="w-full print:hidden aspect-video h-auto max-w-[500px] bg-neutral-500 rounded-xl" src={n.video}></iframe> : <div className="w-full flex flex-col items-center justify-center print:hidden aspect-video h-auto max-w-[500px] bg-neutral-200 rounded-xl"><Button color="primary" endContent={<Play size={16}></Play>} onPress={()=>{setActiveVideo(b)}}>View Solution</Button></div>}</> }
-            
-            {((n?.explanation && n?.explanation != '<p><strong>Write your Explanation Here...</strong></p>') || n?.explanationimage ) && <div className="my-4 px-4">
-            <Divider className="max-w-md my-4"></Divider>
-              <Button className=" bg-gradient-purple text-white border-1 border-white shadow-[2px_2px_10px_-2px] shadow-primary/50" size="sm" onPress={()=>{setModal(n)}}>View Written Solution</Button></div>}
-            
-            </div>
-            <Divider></Divider>
-            </>
+  return (
+    <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", minHeight: "100vh", fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif", letterSpacing: "-0.01em" }}>
+      {/* Solution Modal */}
+      <Modal isOpen={modal != undefined} onClose={() => setModal(undefined)} size="2xl">
+        <ModalContent>
+          <ModalHeader>Solution</ModalHeader>
+          <ModalBody>
+            {modal?.explanationimage && (
+              <img className="w-full h-full aspect-video max-w-lg" src={modal?.explanationimage} />
+            )}
+            <div dangerouslySetInnerHTML={{ __html: modal?.explanation }}></div>
+          </ModalBody>
+          <ModalFooter>
+            <Button color="danger" variant="flat" onPress={() => setModal(undefined)}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
-          })}
-          </>
-        })}</div>
+      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "32px 28px 80px" }}>
+
+        {/* === TOP ACTION BAR === */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32, flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, fontWeight: 600, fontSize: 14 }}>
+            <img src="/newlog.svg" style={{ height: 32, width: "auto" }} />
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <button onClick={() => router.push("/")} style={pillGhost}>
+              <ArrowLeft size={14} /> Back to dashboard
+            </button>
+            <button onClick={() => printPage()} style={pillGhost}>
+              <Printer size={14} /> Print
+            </button>
+            <button
+              onClick={() => router.push(`/mock/analytics/${router.query.uid}`)}
+              style={pillPrimary}
+              disabled={isRouting}
+            >
+              <BarChart3 size={14} /> View detailed analysis <ArrowRight size={14} />
+            </button>
+          </div>
         </div>
-      })}
+
+        {/* === HERO SCORE === */}
+        <div style={heroCard}>
+          <div style={{ position: "absolute", top: 0, right: 0, width: 280, height: 280, background: "radial-gradient(circle, var(--c-brand-primary-tint) 0%, transparent 70%)", opacity: 0.6, transform: "translate(20%, -30%)", pointerEvents: "none" }} />
+          <div style={{ position: "relative" }}>
+            <div style={eyebrowStyle}>Test result</div>
+            <h1 style={{ fontSize: 64, fontWeight: 600, letterSpacing: "-0.03em", color: "var(--c-text-primary)", lineHeight: 1, margin: 0, fontVariantNumeric: "tabular-nums" }}>
+              You scored{" "}
+              <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                {Math.max(0, stats.totalScore)}
+              </span>
+            </h1>
+            <div style={{ marginTop: 14, fontSize: 15, color: "var(--c-text-secondary)", display: "flex", flexWrap: "wrap", gap: "6px 14px" }}>
+              <span>out of {stats.maxScore}</span>
+              <span style={{ color: "var(--c-text-tertiary)" }}>·</span>
+              <span>{stats.accuracy}% accuracy</span>
+              <span style={{ color: "var(--c-text-tertiary)" }}>·</span>
+              <span>Submitted {CtoLocal(result.created_at).date} {CtoLocal(result.created_at).monthName} {CtoLocal(result.created_at).year}</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ height: 16 }} />
+
+        {/* === KPI ROW === */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
+          <Kpi label="Total score" value={Math.max(0, stats.totalScore)} unit={`/ ${stats.maxScore}`} sub={`${stats.correctCount} right · ${stats.wrongCount} wrong`} />
+          <Kpi label="Accuracy" value={stats.accuracy} unit="%" sub={`Out of ${stats.totalQ} attempted`} />
+          <Kpi label="Questions" value={stats.correctCount} unit={`/ ${stats.totalQ}`} sub={`${stats.skippedCount} skipped · ${stats.markedCount} marked`} />
+          <Kpi label="Test date" value={CtoLocal(result.created_at).date} unit={CtoLocal(result.created_at).monthName?.slice(0,3)} sub={CtoLocal(result.created_at).dayName + ", " + CtoLocal(result.created_at).year} />
+        </div>
+
+        {/* === SECTION BREAKDOWN === */}
+        <h2 style={sectionTitle}>Section breakdown</h2>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(3, stats.perSection.length || 1)}, 1fr)`, gap: 12, marginBottom: 32 }}>
+          {stats.perSection.map((s, d) => {
+            const color = s.pct >= 90 ? "#1FA463" : s.pct >= 70 ? "var(--c-brand-primary)" : "#B66C00";
+            const dashArray = (s.pct / 100) * 314;
+            return (
+              <div key={d} style={sectionCard}>
+                <div style={{ width: 110, height: 110, position: "relative", marginBottom: 14 }}>
+                  <svg viewBox="0 0 120 120" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+                    <circle cx="60" cy="60" r="50" fill="none" strokeWidth="8" stroke="var(--c-border-faint)" />
+                    <circle cx="60" cy="60" r="50" fill="none" strokeWidth="8" stroke={color} strokeLinecap="round" strokeDasharray={`${dashArray} 314`} />
+                  </svg>
+                  <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 22, fontWeight: 600, color: "var(--c-text-primary)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.015em" }}>
+                    {s.pct}<span style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginLeft: 1 }}>%</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em", textAlign: "center" }}>
+                  {s.sec.subject?.title || "Section"}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
+                  {Math.max(0, s.score)} / {s.max}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* === TEST INFO STRIP === */}
+        <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, padding: "24px 28px", marginBottom: 32, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
+          <InfoCol k="Participant" v={result?.name || userDetails?.user_metadata?.full_name || "—"} />
+          <InfoCol k="Test centre" v="IPM Careers Online Portal" />
+          <InfoCol k="Test date" v={`${CtoLocal(result.created_at).dayName}, ${CtoLocal(result.created_at).date} ${CtoLocal(result.created_at).monthName}, ${CtoLocal(result.created_at).year}`} />
+          <InfoCol k="Test name" v={result.test_id.title} />
+        </div>
+
+        {/* === QUESTION REVIEW === */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "32px 0 16px", flexWrap: "wrap", gap: 10 }}>
+          <h2 style={{ ...sectionTitle, margin: 0 }}>Question-by-question review</h2>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <FilterPill label="All" count={stats.totalQ} active={activeFilter === "all"} onClick={() => setActiveFilter("all")} />
+            <FilterPill label="Correct" count={stats.correctCount} active={activeFilter === "correct"} onClick={() => setActiveFilter("correct")} />
+            <FilterPill label="Wrong" count={stats.wrongCount} active={activeFilter === "wrong"} onClick={() => setActiveFilter("wrong")} />
+            <FilterPill label="Skipped" count={stats.skippedCount} active={activeFilter === "skipped"} onClick={() => setActiveFilter("skipped")} />
+          </div>
+        </div>
+
+        {sections && sections.map((sec, d) => {
+          const secModules = modules?.filter((m) => m.parent_sub === sec.id) || [];
+          const secStats = stats.perSection.find((p) => p.sec.id === sec.id);
+
+          // Collect all questions in this section across modules with global numbering
+          let qIndex = 0;
+          const cards = [];
+          secModules.forEach((mod) => {
+            if (!mod.module) return;
+            const qs = (questions || []).filter((q) => q.parent === mod.module.id).sort((a, b) => a.seq - b.seq);
+            qs.forEach((q) => {
+              qIndex += 1;
+              const status = getQStatus(q);
+              if (activeFilter !== "all" && activeFilter !== status) return;
+              const correctIdx = q?.options?.findIndex((o) => o?.isCorrect);
+              const reportItem = result.report?.find((r) => r.id === q.id);
+              const chosenIdx = reportItem ? reportItem.value - 1 : null;
+              cards.push(
+                <QuestionCard
+                  key={q.id}
+                  q={q}
+                  index={qIndex}
+                  status={status}
+                  pos={sec.pos || 0}
+                  neg={sec.neg || 0}
+                  correctIdx={correctIdx}
+                  chosenIdx={chosenIdx}
+                  inputValue={reportItem?.value}
+                  activeVideo={activeVideo}
+                  setActiveVideo={setActiveVideo}
+                  setModal={setModal}
+                />
+              );
+            });
+          });
+
+          if (cards.length === 0) return null;
+
+          return (
+            <div key={sec.id} style={{ marginBottom: 28 }}>
+              <div style={sectionStrip}>
+                {sec.subject?.title || "Section"}
+                {secStats && (
+                  <span style={sectionStripBadge}>
+                    {Math.max(0, secStats.score)} / {secStats.max} · {secStats.pct}%
+                  </span>
+                )}
+              </div>
+              {cards}
+            </div>
+          );
+        })}
+
+      </div>
     </div>
-</div>
+  );
 }
 
+// ── Sub-components ──
+function Kpi({ label, value, unit, sub }) {
+  return (
+    <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, padding: 22 }}>
+      <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 12 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-text-primary)", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
+        {value}
+        {unit && <span style={{ fontSize: 14, fontWeight: 500, color: "var(--c-text-tertiary)", marginLeft: 4 }}>{unit}</span>}
+      </div>
+      <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 6 }}>{sub}</div>
+    </div>
+  );
+}
 
-export async function getServerSideProps(context){
+function InfoCol({ k, v }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 6 }}>{k}</div>
+      <div style={{ fontSize: 14, fontWeight: 500, color: "var(--c-text-primary)", letterSpacing: "-0.005em" }}>{v}</div>
+    </div>
+  );
+}
 
+function FilterPill({ label, count, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        height: 32, padding: "0 12px", borderRadius: 999,
+        background: active ? "var(--c-brand-primary)" : "var(--c-surface)",
+        border: `1px solid ${active ? "transparent" : "var(--c-border-soft)"}`,
+        color: active ? "#fff" : "var(--c-text-secondary)",
+        fontFamily: "inherit", fontSize: 12, fontWeight: 500,
+        cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+      <span style={{
+        background: active ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.06)",
+        padding: "1px 6px", borderRadius: 8,
+        fontSize: 11, fontVariantNumeric: "tabular-nums",
+      }}>
+        {count}
+      </span>
+    </button>
+  );
+}
 
-    const {data,error} = await serversupabase.from('mock_plays').select('*,test_id(*)').eq('uid',context.query.uid)
-    if(data && data?.length > 0){}
-    
-    if(data?.length == 0 || error){
-      return {notFound:true}
-    }
-    
-      return {props:{result:data[0]}}
-    }
+function QuestionCard({ q, index, status, pos, neg, correctIdx, chosenIdx, inputValue, activeVideo, setActiveVideo, setModal }) {
+  const statusStyles = {
+    correct: { bg: "var(--c-success-soft, #E0F2E8)", color: "var(--c-success)", label: `Correct · +${pos}` },
+    wrong: { bg: "var(--c-danger-soft, #F8DADA)", color: "var(--c-danger)", label: `Wrong · ${neg >= 0 ? "+" : ""}${neg}` },
+    skipped: { bg: "var(--c-surface-sunken, var(--c-surface-muted))", color: "var(--c-text-tertiary)", label: "Skipped · 0" },
+    marked: { bg: "var(--c-brand-primary-tint)", color: "var(--c-brand-primary)", label: "Marked · 0" },
+  };
+  const sStyle = statusStyles[status] || statusStyles.skipped;
+
+  return (
+    <div style={qCard}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--c-surface-sunken, var(--c-surface-muted))", color: "var(--c-text-secondary)", display: "grid", placeItems: "center", fontWeight: 600, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+          {index}
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 999, background: sStyle.bg, color: sStyle.color }}>
+          {sStyle.label}
+        </div>
+        <div style={{ marginLeft: "auto", fontSize: 11, color: "var(--c-text-tertiary)", fontFamily: "monospace" }}>
+          Q#{q.id}
+        </div>
+      </div>
+
+      {q.title && <p style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.5, color: "var(--c-text-primary)", margin: "0 0 8px", maxWidth: "70ch" }}>{q.title}</p>}
+      <div className="qcontent" style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-text-primary)", margin: "0 0 18px", maxWidth: "70ch" }} dangerouslySetInnerHTML={{ __html: q.question }} />
+      {q.questionimage && <img src={q.questionimage} style={{ maxHeight: 200, marginBottom: 16, borderRadius: 12, border: "1px solid var(--c-border-faint)" }} />}
+
+      {q.type === "options" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+          {q.options?.map((opt, i) => {
+            const isCorrect = i === correctIdx;
+            const isChosen = i === chosenIdx;
+            const isChosenWrong = isChosen && !isCorrect;
+            const letter = String.fromCharCode(65 + i);
+            return (
+              <div key={i} style={{
+                display: "flex", alignItems: "flex-start", gap: 12,
+                padding: "12px 16px",
+                background: isCorrect ? "var(--c-success-soft, #E0F2E8)" : isChosenWrong ? "var(--c-danger-soft, #F8DADA)" : "var(--c-surface-muted, var(--c-bg))",
+                border: `1px solid ${isCorrect ? "var(--c-success)" : isChosenWrong ? "var(--c-danger)" : "var(--c-border-faint)"}`,
+                borderRadius: 12,
+                fontSize: 14,
+                color: isCorrect || isChosenWrong ? "var(--c-text-primary)" : "var(--c-text-secondary)",
+                textDecoration: isChosenWrong ? "line-through" : "none",
+                textDecorationColor: isChosenWrong ? "var(--c-danger)" : "transparent",
+              }}>
+                <span style={{
+                  flexShrink: 0,
+                  width: 24, height: 24, borderRadius: 6,
+                  background: isCorrect ? "var(--c-success)" : isChosenWrong ? "var(--c-danger)" : "var(--c-surface)",
+                  color: isCorrect || isChosenWrong ? "#fff" : "var(--c-text-secondary)",
+                  display: "grid", placeItems: "center",
+                  fontWeight: 600, fontSize: 12,
+                  border: isCorrect || isChosenWrong ? "1px solid transparent" : "1px solid var(--c-border-soft)",
+                }}>
+                  {letter}
+                </span>
+                <span style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: opt?.title || "" }} />
+                {(isCorrect || isChosenWrong) && (
+                  <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 500, color: isCorrect ? "var(--c-success)" : "var(--c-danger)", textDecoration: "none", whiteSpace: "nowrap" }}>
+                    {isCorrect && isChosen ? "Correct · Your choice" : isCorrect ? "Correct answer" : "Your choice"}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {q.type === "input" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+          <div style={{
+            padding: "12px 16px", borderRadius: 12,
+            background: status === "correct" ? "var(--c-success-soft, #E0F2E8)" : status === "wrong" ? "var(--c-danger-soft, #F8DADA)" : "var(--c-surface-muted, var(--c-bg))",
+            border: `1px solid ${status === "correct" ? "var(--c-success)" : status === "wrong" ? "var(--c-danger)" : "var(--c-border-faint)"}`,
+            fontSize: 14,
+            color: "var(--c-text-primary)",
+          }}>
+            <span style={{ color: "var(--c-text-tertiary)", marginRight: 8 }}>Your answer:</span>
+            {inputValue ?? <span style={{ color: "var(--c-text-tertiary)" }}>—</span>}
+          </div>
+          <div style={{ padding: "12px 16px", borderRadius: 12, background: "var(--c-success-soft, #E0F2E8)", border: "1px solid var(--c-success)", fontSize: 14, color: "var(--c-text-primary)" }}>
+            <span style={{ color: "var(--c-success)", fontWeight: 500, marginRight: 8 }}>Correct answer:</span>
+            {q?.options?.answer}
+          </div>
+        </div>
+      )}
+
+      {/* Solution actions */}
+      {((q.video && q.video.length > 2) ||
+        (q.explanation && q.explanation !== "<p><strong>Write your Explanation Here...</strong></p>") ||
+        q.explanationimage) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 14, borderTop: "1px solid var(--c-border-faint)", flexWrap: "wrap" }}>
+          {q.video && q.video.length > 2 && (
+            activeVideo === q.id ? (
+              <iframe className="aspect-video w-full max-w-[500px] rounded-xl" src={q.video} style={{ background: "var(--c-surface-muted, var(--c-bg))" }} />
+            ) : (
+              <button onClick={() => setActiveVideo(q.id)} style={pillGhost}>
+                <span style={{ display: "inline-grid", placeItems: "center", width: 22, height: 22, borderRadius: "50%", background: "var(--c-brand-primary)", color: "#fff" }}>
+                  <Play size={12} fill="#fff" />
+                </span>
+                Watch video solution
+              </button>
+            )
+          )}
+          {((q.explanation && q.explanation !== "<p><strong>Write your Explanation Here...</strong></p>") || q.explanationimage) && (
+            <button onClick={() => setModal(q)} style={pillGhost}>
+              <BookOpen size={14} /> Read written solution
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Shared inline style objects ──
+const eyebrowStyle = {
+  fontSize: 11, fontWeight: 500, letterSpacing: "0.14em",
+  textTransform: "uppercase", color: "var(--c-text-tertiary)",
+  marginBottom: 10,
+};
+const sectionTitle = {
+  fontSize: 20, fontWeight: 600, letterSpacing: "-0.018em",
+  margin: "0 0 16px",
+  color: "var(--c-text-primary)",
+};
+const heroCard = {
+  background: "var(--c-surface)",
+  border: "1px solid var(--c-border-faint)",
+  borderRadius: 24,
+  padding: "40px 44px",
+  marginBottom: 16,
+  position: "relative",
+  overflow: "hidden",
+};
+const sectionCard = {
+  background: "var(--c-surface)",
+  border: "1px solid var(--c-border-faint)",
+  borderRadius: 18,
+  padding: 24,
+  display: "flex", flexDirection: "column",
+  alignItems: "center",
+};
+const sectionStrip = {
+  background: "var(--c-surface-muted, var(--c-bg))",
+  border: "1px solid var(--c-border-faint)",
+  borderRadius: "14px 14px 0 0",
+  padding: "14px 20px",
+  fontSize: 13, fontWeight: 600,
+  color: "var(--c-text-primary)",
+  letterSpacing: "-0.005em",
+  borderBottom: "none",
+  display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+};
+const sectionStripBadge = {
+  background: "var(--c-surface)",
+  border: "1px solid var(--c-border-soft)",
+  borderRadius: 999,
+  padding: "2px 8px",
+  fontSize: 11,
+  color: "var(--c-text-tertiary)",
+  fontWeight: 500,
+  letterSpacing: 0,
+  fontVariantNumeric: "tabular-nums",
+};
+const qCard = {
+  background: "var(--c-surface)",
+  border: "1px solid var(--c-border-faint)",
+  borderTop: "none",
+  padding: 24,
+};
+const pillGhost = {
+  height: 36, padding: "0 14px", borderRadius: 999,
+  background: "transparent",
+  color: "var(--c-text-secondary)",
+  border: "1px solid var(--c-border-soft)",
+  fontSize: 13, fontWeight: 500, cursor: "pointer",
+  display: "inline-flex", alignItems: "center", gap: 6,
+  fontFamily: "inherit", whiteSpace: "nowrap",
+  transition: "all 0.18s ease",
+};
+const pillPrimary = {
+  ...pillGhost,
+  background: "var(--c-brand-primary)",
+  color: "#fff",
+  border: "1px solid transparent",
+};
+
+export async function getServerSideProps(context) {
+  const { data, error } = await serversupabase
+    .from("mock_plays")
+    .select("*,test_id(*)")
+    .eq("uid", context.query.uid);
+  if (data && data.length > 0) {
+    // ok
+  }
+  if (data?.length === 0 || error) {
+    return { notFound: true };
+  }
+  return { props: { result: data[0] } };
+}
