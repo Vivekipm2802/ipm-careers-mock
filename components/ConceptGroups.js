@@ -127,12 +127,12 @@ const Selector = ({ type, onSelect, role, title }) => {
       : [];
     const levels = levelsData || [];
 
-    // 5. Get user's plays
+    // 5. Get user's plays (plays.user is stored as email, not user ID)
     let plays = [];
-    if (userDetails?.id) {
+    if (userDetails?.email) {
       const { data: playsData } = await supabase
         .from("plays").select("test_uuid, score, isPassed, created_at, user")
-        .eq("user", userDetails.id)
+        .eq("user", userDetails.email)
         .order("created_at", { ascending: false });
       plays = playsData || [];
     }
@@ -147,7 +147,7 @@ const Selector = ({ type, onSelect, role, title }) => {
       levelByUuid[l.uuid] = { level: l, mCat, cat, group: grp };
     });
 
-    // Compute per-group stats
+    // Compute per-group stats (hybrid: coverage + pass rate)
     const stats = {};
     groupsData.forEach(g => {
       const groupCats = categories.filter(c => c.parent === g.id);
@@ -161,15 +161,24 @@ const Selector = ({ type, onSelect, role, title }) => {
       const questionCount = groupLevels.reduce((s, l) => s + (l.questions?.length || 0), 0);
       const groupLevelUuids = groupLevels.map(l => l.uuid).filter(Boolean);
       const groupPlays = plays.filter(p => groupLevelUuids.includes(p.test_uuid));
-      const masteredTests = groupPlays.filter(p => p.isPassed).length;
+      // Phase 12 Ship E: hybrid progress — coverage (distinct attempted / total) and pass rate
+      const attemptedUuids = new Set(groupPlays.map(p => p.test_uuid));
+      const attemptedTests = attemptedUuids.size;
+      const passedPlays = groupPlays.filter(p => p.isPassed).length;
+      const coverage = totalTests > 0 ? Math.round((attemptedTests / totalTests) * 100) : 0;
+      const passRate = groupPlays.length > 0 ? Math.round((passedPlays / groupPlays.length) * 100) : 0;
       const lastPlay = groupPlays[0]; // sorted desc
 
       stats[g.id] = {
         topicCount,
         totalTests,
         questionCount,
-        masteredTests,
-        progressPct: totalTests > 0 ? Math.round((masteredTests / totalTests) * 100) : 0,
+        attemptedTests,
+        totalAttempts: groupPlays.length,
+        passedPlays,
+        coverage,    // % of tests you've touched at least once
+        passRate,    // % of your attempts that passed
+        progressPct: coverage, // primary number shown in bar = coverage
         lastPracticedAt: lastPlay?.created_at || null,
       };
     });
@@ -579,18 +588,18 @@ function SectionRow({ group, stats, sectionType, barColor, isLast, role, onSelec
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {/* Progress bar — coverage as bar, pass rate as sub-text */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
         <div style={{
           display: "flex", justifyContent: "space-between",
           fontSize: 12, color: "var(--c-text-secondary)", fontWeight: 500,
         }}>
-          <span>Your progress</span>
+          <span>Coverage</span>
           <span style={{
             color: isStarted ? "var(--c-text-primary)" : "var(--c-text-tertiary)",
             fontWeight: 600, fontVariantNumeric: "tabular-nums",
           }}>
-            {isStarted ? `${stats.progressPct}%` : "Not started"}
+            {isStarted ? `${stats.coverage}%` : "Not started"}
           </span>
         </div>
         <div style={{
@@ -600,11 +609,20 @@ function SectionRow({ group, stats, sectionType, barColor, isLast, role, onSelec
         }}>
           <div style={{
             height: "100%", borderRadius: 999,
-            width: `${Math.max(isStarted ? 2 : 0, stats.progressPct)}%`,
+            width: `${Math.max(isStarted ? 2 : 0, stats.coverage)}%`,
             background: barColor,
             transition: "width 0.4s ease",
           }} />
         </div>
+        {isStarted && (
+          <div style={{
+            fontSize: 11, color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums",
+            display: "flex", justifyContent: "space-between",
+          }}>
+            <span>{stats.attemptedTests} / {stats.totalTests} tests</span>
+            <span>{stats.passRate}% pass rate</span>
+          </div>
+        )}
       </div>
 
       {/* CTA + admin */}

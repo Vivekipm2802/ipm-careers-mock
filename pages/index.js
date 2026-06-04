@@ -2855,18 +2855,28 @@ export default function Home(props) {
                     type={"concept"}
                   >
                     {({ group, clearSelection }) => (
-                      props?.type === "admin" ? (
-                        <Concept
-                          group={group}
-                          onBack={() => { clearSelection(); }}
-                          role={props?.type || "user"}
-                        ></Concept>
-                      ) : (
-                        <ConceptTestStudent
-                          group={group}
-                          onBack={() => { clearSelection(); }}
-                        />
-                      )
+                      <ConceptTestStudent
+                        group={group}
+                        onBack={() => { clearSelection(); }}
+                        role={props?.type || "user"}
+                      />
+                    )}
+                  </ConceptGroups>
+                ) : (
+                  ""
+                )}
+                {slug == "play-admin" && props?.type === "admin" ? (
+                  <ConceptGroups
+                    title="Manage Concept Tests"
+                    role={props?.type}
+                    type={"concept"}
+                  >
+                    {({ group, clearSelection }) => (
+                      <Concept
+                        group={group}
+                        onBack={() => { clearSelection(); }}
+                        role={props?.type || "user"}
+                      ></Concept>
                     )}
                   </ConceptGroups>
                 ) : (

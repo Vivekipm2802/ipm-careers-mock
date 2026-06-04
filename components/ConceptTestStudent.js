@@ -13,18 +13,19 @@ import { useRouter } from "next/router";
 import { ArrowLeft, ChevronRight, Trophy, X } from "lucide-react";
 import { CircularProgress } from "@nextui-org/react";
 
-export default function ConceptTestStudent({ group, onBack }) {
+export default function ConceptTestStudent({ group, onBack, role }) {
   const [categories, setCategories] = useState();
   const [gamecategories, setGameCategories] = useState();
+  const [testCountByMCat, setTestCountByMCat] = useState({}); // mCatId -> levels count
   const [loading, setLoading] = useState(true);
   const [activeLevel, setActiveLevel] = useState(null); // selected m_category (difficulty sub-level)
   const [levelData, setLevelData] = useState(null);
-  const [plays, setPlays] = useState({});
-  const [leaderboard, setLeaderboard] = useState([]);
+  const [plays, setPlays] = useState({}); // test_uuid -> { uid, score, isPassed }
   const [sectionFilter, setSectionFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const { userDetails } = useNMNContext();
   const router = useRouter();
+  const isAdmin = role === "admin";
 
   useEffect(() => {
     if (!group) return;
@@ -35,12 +36,26 @@ export default function ConceptTestStudent({ group, onBack }) {
         supabase.from("m_categories").select("*").order("created_at", { ascending: true }),
       ]);
       if (cRes.data) setCategories(cRes.data);
-      if (gcRes.data) setGameCategories(gcRes.data);
+      if (gcRes.data) {
+        setGameCategories(gcRes.data);
+        // Fetch test counts per m_category (so card badge can say "3 tests" not "3 levels")
+        const mCatIds = gcRes.data.map(m => m.id);
+        if (mCatIds.length > 0) {
+          const { data: levelsForCount } = await supabase
+            .from("levels").select("id, parent").in("parent", mCatIds);
+          if (levelsForCount) {
+            const counts = {};
+            levelsForCount.forEach(l => { counts[l.parent] = (counts[l.parent] || 0) + 1; });
+            setTestCountByMCat(counts);
+          }
+        }
+      }
       setLoading(false);
-      // Fetch user's plays for all levels
-      if (userDetails?.id) {
+      // Phase 12 Ship E: fetch user's plays using email (not id)
+      if (userDetails?.email) {
         const { data: playsData } = await supabase
-          .from("plays").select("test_uuid, score, isPassed").eq("user", userDetails.id);
+          .from("plays").select("uid, test_uuid, score, isPassed")
+          .eq("user", userDetails.email);
         if (playsData) {
           const m = {};
           playsData.forEach((p) => { m[p.test_uuid] = p; });
@@ -186,11 +201,14 @@ export default function ConceptTestStudent({ group, onBack }) {
       }}>
         {categories.map((cat) => {
           const subs = gamecategories ? gamecategories.filter((g) => g.parent === cat.id) : [];
+          // Total tests across all m_categories under this topic
+          const testCount = subs.reduce((s, m) => s + (testCountByMCat[m.id] || 0), 0);
           return (
             <TopicCard
               key={cat.id}
               cat={cat}
               subs={subs}
+              testCount={testCount}
               onOpen={() => subs.length > 0 && openLevel(subs[0])}
             />
           );
@@ -203,8 +221,12 @@ export default function ConceptTestStudent({ group, onBack }) {
           <LevelDrawer
             mCat={activeLevel}
             levels={levelData}
+            plays={plays}
+            isAdmin={isAdmin}
             onClose={closeDrawer}
             onStart={(testUuid) => router.push(`/test/${testUuid}`)}
+            onViewResult={(playUid) => router.push(`/test/result/${playUid}`)}
+            onPreview={(testUuid) => router.push(`/test/${testUuid}?preview=true`)}
             userDetails={userDetails}
           />
         )}
@@ -214,13 +236,14 @@ export default function ConceptTestStudent({ group, onBack }) {
 }
 
 // ── Topic card ──
-function TopicCard({ cat, subs, onOpen }) {
+function TopicCard({ cat, subs, testCount, onOpen }) {
   const state = "untouched"; // TODO: compute from plays
   const pct = 0;
   const numColor = "var(--c-brand-primary)";
   const cardBg = "var(--c-surface)";
   const cardBorder = "var(--c-border-faint)";
   const hasContent = subs && subs.length > 0;
+  const displayCount = testCount > 0 ? testCount : subs.length;
 
   return (
     <button
@@ -290,7 +313,7 @@ function TopicCard({ cat, subs, onOpen }) {
           border: `1px solid ${hasContent ? "var(--c-brand-primary-soft)" : "var(--c-border-faint)"}`,
           fontVariantNumeric: "tabular-nums",
         }}>
-          {hasContent ? (subs.length === 1 ? "1 level" : `${subs.length} levels`) : "Soon"}
+          {hasContent ? (displayCount === 1 ? "1 test" : `${displayCount} tests`) : "Soon"}
         </span>
       </div>
 
@@ -302,7 +325,7 @@ function TopicCard({ cat, subs, onOpen }) {
         {cat.title}
       </h3>
       <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginBottom: 12 }}>
-        {hasContent ? "Tap to browse difficulty levels" : "No tests available yet"}
+        {hasContent ? "Tap to browse tests" : "No tests available yet"}
       </div>
 
       <div style={{
@@ -312,7 +335,7 @@ function TopicCard({ cat, subs, onOpen }) {
         fontSize: 12, width: "100%",
       }}>
         <span style={{ color: "var(--c-text-tertiary)" }}>
-          {hasContent ? "Multiple levels inside" : "Coming soon"}
+          {hasContent ? (displayCount > 1 ? `${displayCount} tests inside` : "1 test inside") : "Coming soon"}
         </span>
         <span style={{ color: numColor, fontWeight: 600 }}>
           {hasContent ? (state === "mastered" ? "Review →" : state === "in-progress" ? "Continue →" : "Start →") : ""}
@@ -398,7 +421,7 @@ function DrawerOverlay({ open, onClose, children }) {
 }
 
 // ── Level drawer content ──
-function LevelDrawer({ mCat, levels, onClose, onStart, userDetails }) {
+function LevelDrawer({ mCat, levels, plays, isAdmin, onClose, onStart, onViewResult, onPreview, userDetails }) {
   return (
     <>
       <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--c-border-faint)", position: "relative" }}>
@@ -434,28 +457,42 @@ function LevelDrawer({ mCat, levels, onClose, onStart, userDetails }) {
           </div>
         )}
         {levels && levels.length > 0 && levels.map((level) => {
-          // Time can be stored either in seconds (>=60 typically) or minutes (<60).
-          // Treat values < 200 as minutes; treat >=200 as seconds (convert).
+          // Time handling: treat <200 as minutes, >=200 as seconds
           const rawTime = Number(level.time) || 0;
           const minutes = rawTime > 0 ? (rawTime >= 200 ? Math.floor(rawTime / 60) : rawTime) : 0;
-          // Detect difficulty band from title for the colored side strip
+          // Difficulty band from title
           const t = (level.title || "").toLowerCase();
           const diffBand = /easy/.test(t) ? "easy" : (/moderate|medium/.test(t) ? "moderate" : (/diff|hard/.test(t) ? "difficult" : null));
           const stripColor = diffBand === "easy" ? "var(--c-success)" : diffBand === "difficult" ? "var(--c-danger)" : "var(--c-brand-primary)";
+          // Phase 12 Ship E: detect completed state
+          const play = plays && level.uuid ? plays[level.uuid] : null;
+          const completed = !!play;
+          const passed = play && play.isPassed === true;
+
+          const handleClick = () => {
+            if (completed && !isAdmin) {
+              // Non-admin who has played → go to result
+              if (play.uid) onViewResult(play.uid);
+            } else {
+              // Untouched OR admin → start (admins can always retake)
+              onStart(level.uuid || level.id);
+            }
+          };
+
           return (
             <div
               key={level.id}
-              onClick={() => onStart(level.uuid || level.id)}
+              onClick={handleClick}
               style={{
                 background: "var(--c-surface)",
-                border: "1px solid var(--c-border-faint)",
+                border: `1px solid ${completed ? (passed ? "var(--c-success)" : "var(--c-warning)") : "var(--c-border-faint)"}`,
                 borderRadius: 14, padding: "14px 16px",
                 marginBottom: 12, cursor: "pointer",
                 transition: "all 0.18s",
                 display: "flex", alignItems: "center", gap: 14,
               }}
-              onMouseOver={(e) => e.currentTarget.style.borderColor = "var(--c-brand-primary)"}
-              onMouseOut={(e) => e.currentTarget.style.borderColor = "var(--c-border-faint)"}
+              onMouseOver={(e) => { if (!completed) e.currentTarget.style.borderColor = "var(--c-brand-primary)"; }}
+              onMouseOut={(e) => { if (!completed) e.currentTarget.style.borderColor = "var(--c-border-faint)"; }}
             >
               {diffBand && (
                 <div style={{
@@ -464,8 +501,21 @@ function LevelDrawer({ mCat, levels, onClose, onStart, userDetails }) {
                 }} />
               )}
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em" }}>
-                  {level.title}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em" }}>
+                    {level.title}
+                  </span>
+                  {completed && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 600, letterSpacing: "0.04em",
+                      padding: "3px 8px", borderRadius: 999,
+                      background: passed ? "var(--c-success-soft, #E0F2E8)" : "var(--c-warning-soft, #FBEED2)",
+                      color: passed ? "var(--c-success)" : "var(--c-warning)",
+                      textTransform: "uppercase",
+                    }}>
+                      {passed ? "✓ Passed" : "Attempted"}
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {level.questions && level.questions.length > 0 && (
@@ -474,9 +524,38 @@ function LevelDrawer({ mCat, levels, onClose, onStart, userDetails }) {
                   {minutes > 0 && (
                     <span>· <b style={{ color: "var(--c-text-secondary)", fontWeight: 600 }}>{minutes}</b> min</span>
                   )}
+                  {completed && typeof play.score === "number" && (
+                    <span>· You scored <b style={{ color: "var(--c-text-secondary)", fontWeight: 600 }}>{play.score}</b></span>
+                  )}
                 </div>
               </div>
-              <ChevronRight size={16} style={{ color: "var(--c-text-tertiary)", flexShrink: 0 }} />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                {/* Phase 12 Ship E: admin gets a Preview button too */}
+                {isAdmin && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onPreview(level.uuid || level.id); }}
+                    style={{
+                      height: 26, padding: "0 10px", borderRadius: 999,
+                      background: "var(--c-surface-muted, var(--c-bg))",
+                      color: "var(--c-text-secondary)",
+                      border: "1px solid var(--c-border-soft)",
+                      fontSize: 11, fontWeight: 500, cursor: "pointer",
+                      fontFamily: "inherit", whiteSpace: "nowrap",
+                    }}
+                    title="Open in preview mode — no play will be recorded"
+                  >
+                    ⊙ Preview
+                  </button>
+                )}
+                <div style={{
+                  fontSize: 12, fontWeight: 600,
+                  color: completed && !isAdmin ? "var(--c-brand-primary)" : "var(--c-text-tertiary)",
+                  display: "flex", alignItems: "center", gap: 2,
+                }}>
+                  {completed && !isAdmin ? "View result" : (isAdmin && completed ? "Re-attempt" : "Start")}
+                  <ChevronRight size={14} />
+                </div>
+              </div>
             </div>
           );
         })}

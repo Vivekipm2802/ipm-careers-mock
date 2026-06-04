@@ -56,6 +56,7 @@ const Game = () => {
   const [drawerActive, setDrawerActive] = useState(false);
   const [calculatorActive, setCalculatorActive] = useState(false);
   const [submitted, setSubmitted] = useState();
+  const [existingPlay, setExistingPlay] = useState(null); // Phase 12 Ship E
   const [loading, setLoading] = useState(true);
   const [allowed, setAllowed] = useState(false);
   const { userDetails } = useNMNContext();
@@ -63,6 +64,10 @@ const Game = () => {
   const router = useRouter();
 
   async function submitScore(a) {
+    // Phase 12 Ship E: skip the save in preview mode (admin reviewing the test)
+    if (router.query.preview === "true") {
+      return;
+    }
     const { data, error } = await supabase
       .from("plays")
       .insert({
@@ -74,21 +79,36 @@ const Game = () => {
     if (data && data.length != 0) {
       setSubmitted(data[0]);
       getLeaderboard(parentData?.uuid);
+      // Phase 12 Ship E: redirect to the unified result page after 1.5s
+      // so the student sees the score animation, then lands on the polished result page
+      const newPlayUid = data[0]?.uid;
+      if (newPlayUid) {
+        setTimeout(() => { router.push(`/test/result/${newPlayUid}`); }, 1500);
+      }
     }
   }
 
   async function checkMultiple(uid) {
+    // Phase 12 Ship E: admin override — preview=true bypasses the single-shot check
+    if (router.query.preview === "true") {
+      setAllowed(true);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
+    // Phase 12 Ship E: also fetch the existing play uid so we can offer "View result"
     const { data, error } = await serversupabase
       .from("plays")
-      .select("id")
+      .select("uid,created_at,isPassed")
       .eq("test_uuid", router.query.slug)
-      .eq("isPassed", true)
-      .eq("user", uid);
+      .eq("user", uid)
+      .order("created_at", { ascending: false })
+      .limit(1);
 
     setLoading(false);
     if (data && data?.length > 0) {
+      setExistingPlay(data[0]);
       setAllowed(false);
       return;
     } else {
@@ -371,17 +391,61 @@ const Game = () => {
 
   if (allowed == false && !loading) {
     return (
-      <div className="w-full h-screen flex flex-col items-center justify-center">
-        <h2>You have already attempted this test.</h2>
-        <Button
-          size="sm"
-          color="secondary"
-          onPress={() => {
-            router.push("/");
-          }}
-        >
-          Go Back
-        </Button>
+      <div
+        className="w-full h-screen flex flex-col items-center justify-center"
+        style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", textAlign: "center", padding: 24 }}
+      >
+        <div style={{
+          fontSize: 11, fontWeight: 500, letterSpacing: "0.14em",
+          textTransform: "uppercase", color: "var(--c-text-tertiary)",
+          marginBottom: 10,
+        }}>
+          Already attempted
+        </div>
+        <h1 style={{
+          fontSize: 28, fontWeight: 600, letterSpacing: "-0.022em",
+          color: "var(--c-text-primary)", margin: "0 0 10px", lineHeight: 1.2,
+        }}>
+          You&apos;ve already taken this{" "}
+          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+            test
+          </span>.
+        </h1>
+        <p style={{
+          fontSize: 14.5, color: "var(--c-text-secondary)",
+          margin: "0 0 28px", maxWidth: "44ch", lineHeight: 1.55,
+        }}>
+          Concept tests are single-shot — your earlier attempt is saved. You can review your result and analytics below.
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          {existingPlay?.uid && (
+            <button
+              onClick={() => router.push(`/test/result/${existingPlay.uid}`)}
+              style={{
+                height: 42, padding: "0 22px", borderRadius: 999,
+                background: "var(--c-brand-primary)", color: "#fff",
+                border: "none", fontSize: 13.5, fontWeight: 500,
+                cursor: "pointer", fontFamily: "inherit",
+                display: "inline-flex", alignItems: "center", gap: 6,
+              }}
+            >
+              View result →
+            </button>
+          )}
+          <button
+            onClick={() => router.push("/")}
+            style={{
+              height: 42, padding: "0 22px", borderRadius: 999,
+              background: "transparent",
+              color: "var(--c-text-secondary)",
+              border: "1px solid var(--c-border-soft)",
+              fontSize: 13.5, fontWeight: 500,
+              cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            Back to dashboard
+          </button>
+        </div>
       </div>
     );
   }
