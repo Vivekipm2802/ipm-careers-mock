@@ -282,14 +282,15 @@ function TopicCard({ cat, subs, onOpen }) {
           </div>
         </div>
         <span style={{
-          fontSize: 10, fontWeight: 500, letterSpacing: "0.06em",
-          textTransform: "uppercase", padding: "4px 9px",
+          fontSize: 11, fontWeight: 600, letterSpacing: "-0.005em",
+          padding: "4px 10px",
           borderRadius: 999,
-          background: "var(--c-brand-primary-tint)",
-          color: "var(--c-brand-primary)",
-          border: "1px solid var(--c-brand-primary-soft)",
+          background: hasContent ? "var(--c-brand-primary-tint)" : "var(--c-surface-muted)",
+          color: hasContent ? "var(--c-brand-primary)" : "var(--c-text-tertiary)",
+          border: `1px solid ${hasContent ? "var(--c-brand-primary-soft)" : "var(--c-border-faint)"}`,
+          fontVariantNumeric: "tabular-nums",
         }}>
-          Topic
+          {hasContent ? (subs.length === 1 ? "1 level" : `${subs.length} levels`) : "Soon"}
         </span>
       </div>
 
