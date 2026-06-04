@@ -83,7 +83,7 @@ export default function ConceptTestStudent({ group, onBack }) {
   const totalTopics = categories.length;
 
   return (
-    <div style={{ width: "100%", padding: "12px 4px 60px" }}>
+    <div style={{ width: "100%", padding: "12px 4px 60px", textAlign: "left" }}>
       {/* ── Top action bar with Back button ── */}
       <div style={{ display: "flex", alignItems: "center", marginBottom: 24 }}>
         <button
@@ -142,7 +142,7 @@ export default function ConceptTestStudent({ group, onBack }) {
           marginRight: 6,
         }}>Topics</span>
         <FilterPill label="All" count={totalTopics} active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
-        <FilterPill label="Untouched" count={0} active={statusFilter === "untouched"} onClick={() => setStatusFilter("untouched")} />
+        <FilterPill label="Untouched" count={totalTopics} active={statusFilter === "untouched"} onClick={() => setStatusFilter("untouched")} />
         <FilterPill label="In progress" count={0} active={statusFilter === "in-progress"} onClick={() => setStatusFilter("in-progress")} />
         <FilterPill label="Mastered" count={0} active={statusFilter === "mastered"} onClick={() => setStatusFilter("mastered")} />
       </div>
@@ -185,21 +185,13 @@ export default function ConceptTestStudent({ group, onBack }) {
         gap: 14,
       }}>
         {categories.map((cat) => {
-          const { levels } = categoryMastery(cat.id);
-          const easy = levels.find((l) => /easy/i.test(l.title));
-          const moderate = levels.find((l) => /moderate/i.test(l.title) || /medium/i.test(l.title));
-          const difficult = levels.find((l) => /diff|hard/i.test(l.title));
-          const totalLevels = levels.length;
+          const subs = gamecategories ? gamecategories.filter((g) => g.parent === cat.id) : [];
           return (
             <TopicCard
               key={cat.id}
               cat={cat}
-              levels={levels}
-              easy={easy}
-              moderate={moderate}
-              difficult={difficult}
-              totalLevels={totalLevels}
-              onOpenLevel={openLevel}
+              subs={subs}
+              onOpen={() => subs.length > 0 && openLevel(subs[0])}
             />
           );
         })}
@@ -222,32 +214,45 @@ export default function ConceptTestStudent({ group, onBack }) {
 }
 
 // ── Topic card ──
-function TopicCard({ cat, levels, easy, moderate, difficult, totalLevels, onOpenLevel }) {
-  // Placeholder mastery state — would be computed from real plays data
+function TopicCard({ cat, subs, onOpen }) {
   const state = "untouched"; // TODO: compute from plays
   const pct = 0;
-  const ringColor = state === "mastered" ? "url(#gradGreen)" : state === "warning" ? "url(#gradWarn)" : "url(#gradPurple)";
-  const numColor = state === "mastered" ? "var(--c-success)" : state === "warning" ? "var(--c-warning)" : "var(--c-brand-primary)";
-  const cardBg = state === "mastered"
-    ? "linear-gradient(135deg, var(--c-success-soft) 0%, var(--c-surface) 100%)"
-    : "var(--c-surface)";
-  const cardBorder = state === "mastered" ? "var(--c-success)" : state === "warning" ? "var(--c-warning)" : "var(--c-border-faint)";
+  const numColor = "var(--c-brand-primary)";
+  const cardBg = "var(--c-surface)";
+  const cardBorder = "var(--c-border-faint)";
+  const hasContent = subs && subs.length > 0;
 
   return (
-    <div
+    <button
+      onClick={onOpen}
+      disabled={!hasContent}
       style={{
         background: cardBg,
         border: `1px solid ${cardBorder}`,
         borderRadius: 18,
         padding: "20px 22px 16px",
         display: "flex", flexDirection: "column",
-        minHeight: 210, cursor: "pointer",
+        minHeight: 200,
+        cursor: hasContent ? "pointer" : "default",
+        opacity: hasContent ? 1 : 0.6,
         transition: "all 0.18s ease",
+        fontFamily: "inherit",
+        textAlign: "left",
+        width: "100%",
       }}
-      onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 30px -10px rgba(106, 77, 255, 0.15)"; }}
-      onMouseOut={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+      onMouseOver={(e) => {
+        if (!hasContent) return;
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "0 10px 30px -10px rgba(106, 77, 255, 0.18)";
+        e.currentTarget.style.borderColor = "var(--c-brand-primary-soft)";
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.borderColor = cardBorder;
+      }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, width: "100%" }}>
         {/* Variant C ring */}
         <div style={{ width: 72, height: 72, position: "relative" }}>
           <svg viewBox="0 0 60 60" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
@@ -256,10 +261,10 @@ function TopicCard({ cat, levels, easy, moderate, difficult, totalLevels, onOpen
               <circle
                 cx="30" cy="30" r="25"
                 fill="none" strokeWidth="6"
-                stroke={ringColor}
+                stroke="url(#gradPurple)"
                 strokeLinecap="round"
                 strokeDasharray={`${(pct / 100) * 157} 157`}
-                style={{ filter: `drop-shadow(0 0 6px rgba(106, 77, 255, 0.3))` }}
+                style={{ filter: "drop-shadow(0 0 6px rgba(106, 77, 255, 0.3))" }}
               />
             )}
           </svg>
@@ -270,7 +275,9 @@ function TopicCard({ cat, levels, easy, moderate, difficult, totalLevels, onOpen
               color: pct > 0 ? numColor : "var(--c-text-tertiary)",
               lineHeight: 1, letterSpacing: "-0.01em",
             }}>
-              {pct > 0 ? <>{pct}<span style={{ fontFamily: "Inter, sans-serif", fontSize: 9, color: "var(--c-text-tertiary)", marginLeft: 1, fontStyle: "normal" }}>%</span></> : "—"}
+              {pct > 0
+                ? <>{pct}<span style={{ fontFamily: "Inter, sans-serif", fontSize: 9, color: "var(--c-text-tertiary)", marginLeft: 1, fontStyle: "normal" }}>%</span></>
+                : "—"}
             </span>
           </div>
         </div>
@@ -294,33 +301,23 @@ function TopicCard({ cat, levels, easy, moderate, difficult, totalLevels, onOpen
         {cat.title}
       </h3>
       <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginBottom: 12 }}>
-        {totalLevels > 0 ? `${totalLevels} difficulty level${totalLevels !== 1 ? "s" : ""}` : "No levels yet"}
-      </div>
-
-      {/* Difficulty chips */}
-      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 12 }}>
-        {easy && <DiffChip label="Easy" onClick={() => onOpenLevel(easy)} />}
-        {moderate && <DiffChip label="Moderate" onClick={() => onOpenLevel(moderate)} />}
-        {difficult && <DiffChip label="Difficult" onClick={() => onOpenLevel(difficult)} />}
-        {!easy && !moderate && !difficult && levels.length > 0 && levels.map((l) => (
-          <DiffChip key={l.id} label={l.title} onClick={() => onOpenLevel(l)} />
-        ))}
+        {hasContent ? "Tap to browse difficulty levels" : "No tests available yet"}
       </div>
 
       <div style={{
         marginTop: "auto",
         paddingTop: 12, borderTop: "1px solid var(--c-border-faint)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        fontSize: 12,
+        fontSize: 12, width: "100%",
       }}>
         <span style={{ color: "var(--c-text-tertiary)" }}>
-          <b style={{ color: "var(--c-text-primary)", fontWeight: 600 }}>{totalLevels}</b> levels available
+          {hasContent ? "Multiple levels inside" : "Coming soon"}
         </span>
         <span style={{ color: numColor, fontWeight: 600 }}>
-          {state === "untouched" ? "Start →" : state === "mastered" ? "Review →" : "Continue →"}
+          {hasContent ? (state === "mastered" ? "Review →" : state === "in-progress" ? "Continue →" : "Start →") : ""}
         </span>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -435,31 +432,53 @@ function LevelDrawer({ mCat, levels, onClose, onStart, userDetails }) {
             No tests in this level yet.
           </div>
         )}
-        {levels && levels.length > 0 && levels.map((level) => (
-          <div
-            key={level.id}
-            onClick={() => onStart(level.uuid || level.id)}
-            style={{
-              background: "var(--c-surface)",
-              border: "1px solid var(--c-border-faint)",
-              borderRadius: 14, padding: "14px 16px",
-              marginBottom: 12, cursor: "pointer",
-              transition: "all 0.18s",
-              display: "flex", flexDirection: "column", gap: 4,
-            }}
-            onMouseOver={(e) => e.currentTarget.style.borderColor = "var(--c-brand-primary)"}
-            onMouseOut={(e) => e.currentTarget.style.borderColor = "var(--c-border-faint)"}
-          >
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em" }}>
-              {level.title}
+        {levels && levels.length > 0 && levels.map((level) => {
+          // Time can be stored either in seconds (>=60 typically) or minutes (<60).
+          // Treat values < 200 as minutes; treat >=200 as seconds (convert).
+          const rawTime = Number(level.time) || 0;
+          const minutes = rawTime > 0 ? (rawTime >= 200 ? Math.floor(rawTime / 60) : rawTime) : 0;
+          // Detect difficulty band from title for the colored side strip
+          const t = (level.title || "").toLowerCase();
+          const diffBand = /easy/.test(t) ? "easy" : (/moderate|medium/.test(t) ? "moderate" : (/diff|hard/.test(t) ? "difficult" : null));
+          const stripColor = diffBand === "easy" ? "var(--c-success)" : diffBand === "difficult" ? "var(--c-danger)" : "var(--c-brand-primary)";
+          return (
+            <div
+              key={level.id}
+              onClick={() => onStart(level.uuid || level.id)}
+              style={{
+                background: "var(--c-surface)",
+                border: "1px solid var(--c-border-faint)",
+                borderRadius: 14, padding: "14px 16px",
+                marginBottom: 12, cursor: "pointer",
+                transition: "all 0.18s",
+                display: "flex", alignItems: "center", gap: 14,
+              }}
+              onMouseOver={(e) => e.currentTarget.style.borderColor = "var(--c-brand-primary)"}
+              onMouseOut={(e) => e.currentTarget.style.borderColor = "var(--c-border-faint)"}
+            >
+              {diffBand && (
+                <div style={{
+                  flexShrink: 0, width: 6, height: 36, borderRadius: 3,
+                  background: stripColor,
+                }} />
+              )}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em" }}>
+                  {level.title}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {level.questions && level.questions.length > 0 && (
+                    <span><b style={{ color: "var(--c-text-secondary)", fontWeight: 600 }}>{level.questions.length}</b> questions</span>
+                  )}
+                  {minutes > 0 && (
+                    <span>· <b style={{ color: "var(--c-text-secondary)", fontWeight: 600 }}>{minutes}</b> min</span>
+                  )}
+                </div>
+              </div>
+              <ChevronRight size={16} style={{ color: "var(--c-text-tertiary)", flexShrink: 0 }} />
             </div>
-            <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", display: "flex", gap: 10 }}>
-              {level.questions && <span>{level.questions.length} questions</span>}
-              {level.time && <span>· {Math.floor(level.time / 60)} min</span>}
-              {level.difficulty && <span>· {level.difficulty}</span>}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div style={{ padding: "14px 24px", borderTop: "1px solid var(--c-border-faint)" }}>
