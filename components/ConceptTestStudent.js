@@ -72,17 +72,21 @@ export default function ConceptTestStudent({ group, onBack, role }) {
     return { levels: subs };
   }
 
-  // ── When user clicks a difficulty chip, open drawer + fetch levels ──
+  // ── When user clicks a topic, open drawer + fetch the levels (tests) for it ──
   async function openLevel(mCat) {
     setActiveLevel(mCat);
     setLevelData(null);
-    setLeaderboard([]);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("levels")
       .select("*,questions!questions_parent_fkey(id)")
       .eq("parent", mCat.id)
       .order("created_at", { ascending: true });
-    if (data) setLevelData(data);
+    if (error) {
+      console.error("Failed to load levels:", error);
+      setLevelData([]); // empty array → drawer shows "No tests" instead of infinite spinner
+      return;
+    }
+    setLevelData(data || []);
   }
   function closeDrawer() { setActiveLevel(null); setLevelData(null); }
 
