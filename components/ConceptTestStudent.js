@@ -17,6 +17,7 @@ export default function ConceptTestStudent({ group, onBack, role }) {
   const [categories, setCategories] = useState();
   const [gamecategories, setGameCategories] = useState();
   const [testCountByMCat, setTestCountByMCat] = useState({}); // mCatId -> levels count
+  const [levelsByMCat, setLevelsByMCat] = useState({});       // mCatId -> [{ id, uuid }]
   const [loading, setLoading] = useState(true);
   const [activeLevel, setActiveLevel] = useState(null); // selected m_category (difficulty sub-level)
   const [levelData, setLevelData] = useState(null);
@@ -31,39 +32,103 @@ export default function ConceptTestStudent({ group, onBack, role }) {
     if (!group) return;
     (async () => {
       setLoading(true);
-      const [cRes, gcRes] = await Promise.all([
-        supabase.from("categories").select("*").eq("parent", group),
-        supabase.from("m_categories").select("*").order("created_at", { ascending: true }),
+      // Step 1: fetch categories for this collection (fast — only ones we care about)
+      const { data: catData } = await supabase
+        .from("categories").select("*").eq("parent", group);
+      if (catData) setCategories(catData);
+      if (!catData || catData.length === 0) {
+        setLoading(false);
+        return;
+      }
+      const catIds = catData.map(c => c.id);
+
+      // Step 2: fetch m_categories + plays in parallel (m_categories now filtered by parent)
+      const playsPromise = userDetails?.email
+        ? supabase.from("plays")
+            .select("uid, test_uuid, score, isPassed")
+            .eq("user", userDetails.email)
+        : Promise.resolve({ data: [] });
+
+      const [gcRes, playsRes] = await Promise.all([
+        supabase.from("m_categories").select("*").in("parent", catIds).order("created_at", { ascending: true }),
+        playsPromise,
       ]);
-      if (cRes.data) setCategories(cRes.data);
-      if (gcRes.data) {
-        setGameCategories(gcRes.data);
-        // Fetch test counts per m_category (so card badge can say "3 tests" not "3 levels")
+      if (gcRes.data) setGameCategories(gcRes.data);
+
+      // Process plays
+      if (playsRes.data) {
+        const m = {};
+        playsRes.data.forEach((p) => { m[p.test_uuid] = p; });
+        setPlays(m);
+      }
+
+      // Step 3: fetch levels (tests) for these m_categories
+      if (gcRes.data && gcRes.data.length > 0) {
         const mCatIds = gcRes.data.map(m => m.id);
-        if (mCatIds.length > 0) {
-          const { data: levelsForCount } = await supabase
-            .from("levels").select("id, parent").in("parent", mCatIds);
-          if (levelsForCount) {
-            const counts = {};
-            levelsForCount.forEach(l => { counts[l.parent] = (counts[l.parent] || 0) + 1; });
-            setTestCountByMCat(counts);
-          }
+        const { data: levelsData } = await supabase
+          .from("levels").select("id, uuid, parent").in("parent", mCatIds);
+        if (levelsData) {
+          const counts = {};
+          const byMCat = {};
+          levelsData.forEach(l => {
+            counts[l.parent] = (counts[l.parent] || 0) + 1;
+            if (!byMCat[l.parent]) byMCat[l.parent] = [];
+            byMCat[l.parent].push({ id: l.id, uuid: l.uuid });
+          });
+          setTestCountByMCat(counts);
+          setLevelsByMCat(byMCat);
         }
       }
       setLoading(false);
-      // Phase 12 Ship E: fetch user's plays using email (not id)
-      if (userDetails?.email) {
-        const { data: playsData } = await supabase
-          .from("plays").select("uid, test_uuid, score, isPassed")
-          .eq("user", userDetails.email);
-        if (playsData) {
-          const m = {};
-          playsData.forEach((p) => { m[p.test_uuid] = p; });
-          setPlays(m);
-        }
-      }
     })();
   }, [group, userDetails]);
+
+  // ── Per-topic progress (memoized) ──
+  const topicProgressMap = useMemo(() => {
+    const map = {};
+    if (!categories || !gamecategories) return map;
+    categories.forEach(cat => {
+      const subs = gamecategories.filter(g => g.parent === cat.id);
+      let testCount = 0;
+      let attemptedCount = 0;
+      let passedCount = 0;
+      subs.forEach(m => {
+        const levels = levelsByMCat[m.id] || [];
+        testCount += levels.length;
+        levels.forEach(l => {
+          if (l.uuid && plays[l.uuid]) {
+            attemptedCount++;
+            if (plays[l.uuid].isPassed) passedCount++;
+          }
+        });
+      });
+      const pct = testCount > 0 ? Math.round((attemptedCount / testCount) * 100) : 0;
+      let state = "untouched";
+      if (attemptedCount > 0) {
+        if (passedCount === testCount && testCount > 0) state = "mastered";
+        else state = "in-progress";
+      }
+      map[cat.id] = { testCount, attemptedCount, passedCount, pct, state };
+    });
+    return map;
+  }, [categories, gamecategories, levelsByMCat, plays]);
+
+  // ── Counts for filter pills ──
+  const statusCounts = useMemo(() => {
+    const c = { all: 0, untouched: 0, "in-progress": 0, mastered: 0 };
+    Object.values(topicProgressMap).forEach(p => {
+      c.all++;
+      c[p.state]++;
+    });
+    return c;
+  }, [topicProgressMap]);
+
+  // ── Filtered categories ──
+  const visibleCategories = useMemo(() => {
+    if (!categories) return [];
+    if (statusFilter === "all") return categories;
+    return categories.filter(cat => topicProgressMap[cat.id]?.state === statusFilter);
+  }, [categories, statusFilter, topicProgressMap]);
 
   // ── Per-category mastery calculation ──
   function categoryMastery(catId) {
@@ -160,10 +225,10 @@ export default function ConceptTestStudent({ group, onBack, role }) {
           textTransform: "uppercase", color: "var(--c-text-tertiary)",
           marginRight: 6,
         }}>Topics</span>
-        <FilterPill label="All" count={totalTopics} active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
-        <FilterPill label="Untouched" count={totalTopics} active={statusFilter === "untouched"} onClick={() => setStatusFilter("untouched")} />
-        <FilterPill label="In progress" count={0} active={statusFilter === "in-progress"} onClick={() => setStatusFilter("in-progress")} />
-        <FilterPill label="Mastered" count={0} active={statusFilter === "mastered"} onClick={() => setStatusFilter("mastered")} />
+        <FilterPill label="All" count={statusCounts.all} active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
+        <FilterPill label="Untouched" count={statusCounts.untouched} active={statusFilter === "untouched"} onClick={() => setStatusFilter("untouched")} />
+        <FilterPill label="In progress" count={statusCounts["in-progress"]} active={statusFilter === "in-progress"} onClick={() => setStatusFilter("in-progress")} />
+        <FilterPill label="Mastered" count={statusCounts.mastered} active={statusFilter === "mastered"} onClick={() => setStatusFilter("mastered")} />
       </div>
 
       {/* ── Empty state ── */}
@@ -203,20 +268,35 @@ export default function ConceptTestStudent({ group, onBack, role }) {
         gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
         gap: 14,
       }}>
-        {categories.map((cat) => {
+        {visibleCategories.map((cat) => {
           const subs = gamecategories ? gamecategories.filter((g) => g.parent === cat.id) : [];
-          // Total tests across all m_categories under this topic
-          const testCount = subs.reduce((s, m) => s + (testCountByMCat[m.id] || 0), 0);
+          const progress = topicProgressMap[cat.id] || { testCount: 0, attemptedCount: 0, pct: 0, state: "untouched" };
           return (
             <TopicCard
               key={cat.id}
               cat={cat}
               subs={subs}
-              testCount={testCount}
+              testCount={progress.testCount}
+              attemptedCount={progress.attemptedCount}
+              progressPct={progress.pct}
+              progressState={progress.state}
               onOpen={() => subs.length > 0 && openLevel(subs[0])}
             />
           );
         })}
+        {/* Empty filtered state */}
+        {visibleCategories.length === 0 && categories.length > 0 && (
+          <div style={{
+            gridColumn: "1 / -1",
+            padding: "32px 28px", borderRadius: 16,
+            background: "var(--c-surface-muted, var(--c-bg))",
+            border: "1px dashed var(--c-border-soft)",
+            color: "var(--c-text-tertiary)", fontSize: 14,
+            textAlign: "center",
+          }}>
+            No topics in this category. Try a different filter.
+          </div>
+        )}
       </div>
 
       {/* ── Drawer for level detail ── */}
@@ -240,12 +320,23 @@ export default function ConceptTestStudent({ group, onBack, role }) {
 }
 
 // ── Topic card ──
-function TopicCard({ cat, subs, testCount, onOpen }) {
-  const state = "untouched"; // TODO: compute from plays
-  const pct = 0;
-  const numColor = "var(--c-brand-primary)";
-  const cardBg = "var(--c-surface)";
-  const cardBorder = "var(--c-border-faint)";
+function TopicCard({ cat, subs, testCount, attemptedCount, progressPct, progressState, onOpen }) {
+  const state = progressState || "untouched";
+  const pct = progressPct || 0;
+  const numColor =
+    state === "mastered" ? "var(--c-success)" :
+    state === "in-progress" ? "var(--c-brand-primary)" :
+    "var(--c-text-tertiary)";
+  const ringStroke =
+    state === "mastered" ? "url(#gradGreen)" :
+    "url(#gradPurple)";
+  const cardBg = state === "mastered"
+    ? "linear-gradient(135deg, var(--c-success-soft, #E0F2E8) 0%, var(--c-surface) 100%)"
+    : "var(--c-surface)";
+  const cardBorder =
+    state === "mastered" ? "var(--c-success)" :
+    state === "in-progress" ? "var(--c-brand-primary-soft)" :
+    "var(--c-border-faint)";
   const hasContent = subs && subs.length > 0;
   const displayCount = testCount > 0 ? testCount : subs.length;
 
@@ -288,10 +379,10 @@ function TopicCard({ cat, subs, testCount, onOpen }) {
               <circle
                 cx="30" cy="30" r="25"
                 fill="none" strokeWidth="6"
-                stroke="url(#gradPurple)"
+                stroke={ringStroke}
                 strokeLinecap="round"
                 strokeDasharray={`${(pct / 100) * 157} 157`}
-                style={{ filter: "drop-shadow(0 0 6px rgba(106, 77, 255, 0.3))" }}
+                style={{ filter: state === "mastered" ? "drop-shadow(0 0 6px rgba(31, 164, 99, 0.35))" : "drop-shadow(0 0 6px rgba(106, 77, 255, 0.3))" }}
               />
             )}
           </svg>
@@ -299,7 +390,7 @@ function TopicCard({ cat, subs, testCount, onOpen }) {
             <span style={{
               fontFamily: "'Instrument Serif', serif",
               fontStyle: "italic", fontSize: 26, fontWeight: 400,
-              color: pct > 0 ? numColor : "var(--c-text-tertiary)",
+              color: numColor,
               lineHeight: 1, letterSpacing: "-0.01em",
             }}>
               {pct > 0
@@ -312,9 +403,19 @@ function TopicCard({ cat, subs, testCount, onOpen }) {
           fontSize: 11, fontWeight: 600, letterSpacing: "-0.005em",
           padding: "4px 10px",
           borderRadius: 999,
-          background: hasContent ? "var(--c-brand-primary-tint)" : "var(--c-surface-muted)",
-          color: hasContent ? "var(--c-brand-primary)" : "var(--c-text-tertiary)",
-          border: `1px solid ${hasContent ? "var(--c-brand-primary-soft)" : "var(--c-border-faint)"}`,
+          background:
+            state === "mastered" ? "var(--c-success-soft, #E0F2E8)" :
+            state === "in-progress" ? "var(--c-brand-primary-tint)" :
+            hasContent ? "var(--c-surface-muted)" : "var(--c-surface-muted)",
+          color:
+            state === "mastered" ? "var(--c-success)" :
+            state === "in-progress" ? "var(--c-brand-primary)" :
+            hasContent ? "var(--c-text-secondary)" : "var(--c-text-tertiary)",
+          border: `1px solid ${
+            state === "mastered" ? "var(--c-success)" :
+            state === "in-progress" ? "var(--c-brand-primary-soft)" :
+            "var(--c-border-faint)"
+          }`,
           fontVariantNumeric: "tabular-nums",
         }}>
           {hasContent ? (displayCount === 1 ? "1 test" : `${displayCount} tests`) : "Soon"}
@@ -329,7 +430,10 @@ function TopicCard({ cat, subs, testCount, onOpen }) {
         {cat.title}
       </h3>
       <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginBottom: 12 }}>
-        {hasContent ? "Tap to browse tests" : "No tests available yet"}
+        {!hasContent ? "No tests available yet"
+          : state === "mastered" ? "✓ All tests completed"
+          : state === "in-progress" ? `${attemptedCount} of ${displayCount} attempted`
+          : "Tap to browse tests"}
       </div>
 
       <div style={{
@@ -339,7 +443,10 @@ function TopicCard({ cat, subs, testCount, onOpen }) {
         fontSize: 12, width: "100%",
       }}>
         <span style={{ color: "var(--c-text-tertiary)" }}>
-          {hasContent ? (displayCount > 1 ? `${displayCount} tests inside` : "1 test inside") : "Coming soon"}
+          {!hasContent ? "Coming soon"
+            : state === "in-progress" ? `${displayCount - attemptedCount} ${displayCount - attemptedCount === 1 ? "test" : "tests"} left`
+            : displayCount > 1 ? `${displayCount} tests inside`
+            : "1 test inside"}
         </span>
         <span style={{ color: numColor, fontWeight: 600 }}>
           {hasContent ? (state === "mastered" ? "Review →" : state === "in-progress" ? "Continue →" : "Start →") : ""}
