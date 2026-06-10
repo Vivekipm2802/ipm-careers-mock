@@ -93,9 +93,21 @@ const Selector = ({ type, onSelect, role, title }) => {
   const router = useRouter();
 
   async function loadEverything() {
-    // 1. Get all groups
-    const { data: groupsData } = await supabase
-      .from("test_groups").select("*").eq("type", type);
+    // 1. Fetch groups + user's plays in parallel (plays doesn't depend on groups)
+    const playsPromise = userDetails?.email
+      ? supabase.from("plays")
+          .select("test_uuid, score, isPassed, created_at, user")
+          .eq("user", userDetails.email)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] });
+
+    const [groupsRes, playsRes] = await Promise.all([
+      supabase.from("test_groups").select("*").eq("type", type),
+      playsPromise,
+    ]);
+    const groupsData = groupsRes.data;
+    let plays = playsRes.data || [];
+
     if (!groupsData) {
       setLoading(false);
       return;
@@ -108,33 +120,36 @@ const Selector = ({ type, onSelect, role, title }) => {
       return;
     }
 
-    // 2. Get all categories for these groups
+    // 2. Categories for these groups
     const { data: categoriesData } = await supabase
-      .from("categories").select("*").in("parent", groupIds);
+      .from("categories").select("id, parent").in("parent", groupIds);
     const categories = categoriesData || [];
 
-    // 3. Get all m_categories
+    // 3. m_categories
     const categoryIds = categories.map(c => c.id);
     const mCategoriesData = categoryIds.length > 0
-      ? (await supabase.from("m_categories").select("*").in("parent", categoryIds)).data
+      ? (await supabase.from("m_categories").select("id, parent").in("parent", categoryIds)).data
       : [];
     const mCategories = mCategoriesData || [];
 
-    // 4. Get all levels with their question counts
+    // 4. Levels — light query (title needed for Continue card)
     const mCatIds = mCategories.map(m => m.id);
     const levelsData = mCatIds.length > 0
-      ? (await supabase.from("levels").select("*,questions!questions_parent_fkey(id)").in("parent", mCatIds)).data
+      ? (await supabase.from("levels").select("uuid, parent, title").in("parent", mCatIds)).data
       : [];
     const levels = levelsData || [];
 
-    // 5. Get user's plays (plays.user is stored as email, not user ID)
-    let plays = [];
-    if (userDetails?.email) {
-      const { data: playsData } = await supabase
-        .from("plays").select("test_uuid, score, isPassed, created_at, user")
-        .eq("user", userDetails.email)
-        .order("created_at", { ascending: false });
-      plays = playsData || [];
+    // Diagnostic — helps debug if level lookups fail
+    if (typeof window !== "undefined" && plays.length > 0) {
+      const allLevelUuids = new Set(levels.map(l => l.uuid).filter(Boolean));
+      const matched = plays.filter(p => allLevelUuids.has(p.test_uuid)).length;
+      console.log(`[Concept Tests] ${plays.length} plays, ${levels.length} levels, ${matched} plays matched levels`);
+      if (matched === 0 && plays.length > 0 && levels.length > 0) {
+        console.warn("[Concept Tests] No plays matched any levels — possible uuid mismatch", {
+          samplePlayUuid: plays[0]?.test_uuid,
+          sampleLevelUuid: levels[0]?.uuid,
+        });
+      }
     }
 
     // Build lookup: levelUuid -> { level, mCat, cat, group }
@@ -158,7 +173,7 @@ const Selector = ({ type, onSelect, role, title }) => {
 
       const topicCount = groupCats.length;
       const totalTests = groupLevels.length;
-      const questionCount = groupLevels.reduce((s, l) => s + (l.questions?.length || 0), 0);
+      const questionCount = 0; // Dropped — not worth the join cost; if needed, fetch lazily
       const groupLevelUuids = groupLevels.map(l => l.uuid).filter(Boolean);
       const groupPlays = plays.filter(p => groupLevelUuids.includes(p.test_uuid));
       // Phase 12 Ship E: hybrid progress — coverage (distinct attempted / total) and pass rate
@@ -189,6 +204,10 @@ const Selector = ({ type, onSelect, role, title }) => {
     const startedCatIds = new Set();
     const passedCatIds = new Set();
     const playsPerCat = {}; // catId -> [plays]
+    // Phase 12 Ship E.4 fallback: also count "orphan" plays (those whose test_uuid
+    // doesn't match any of our fetched levels). Treat each unique orphan test_uuid
+    // as a separate "topic" so the stats reflect activity.
+    const orphanUuids = new Set();
     plays.forEach(p => {
       const info = levelByUuid[p.test_uuid];
       if (info?.cat) {
@@ -196,8 +215,12 @@ const Selector = ({ type, onSelect, role, title }) => {
         if (p.isPassed) passedCatIds.add(info.cat.id);
         if (!playsPerCat[info.cat.id]) playsPerCat[info.cat.id] = [];
         playsPerCat[info.cat.id].push(p);
+      } else if (p.test_uuid) {
+        orphanUuids.add(p.test_uuid);
       }
     });
+    // If lookup failed for everything, fall back to counting unique test_uuids
+    const startedCount = startedCatIds.size > 0 ? startedCatIds.size : orphanUuids.size;
     // Weak: cats with ≥2 plays and pass rate < 50%
     let weakCount = 0;
     Object.entries(playsPerCat).forEach(([catId, catPlays]) => {
@@ -217,7 +240,7 @@ const Selector = ({ type, onSelect, role, title }) => {
     }
 
     setOverallStats({
-      topicsStarted: startedCatIds.size,
+      topicsStarted: startedCount,
       masteredTopics: passedCatIds.size,
       weakTopics: weakCount,
       streak,
@@ -229,11 +252,21 @@ const Selector = ({ type, onSelect, role, title }) => {
       const info = levelByUuid[mostRecent.test_uuid];
       if (info) {
         setContinueCard({
-          levelTitle: info.level.title,
+          levelTitle: info.level.title || "Concept test",
           levelUuid: info.level.uuid,
           categoryTitle: info.cat?.title,
           groupTitle: info.group?.title,
           groupId: info.group?.id,
+          score: mostRecent.score,
+          isPassed: mostRecent.isPassed,
+          practicedAt: mostRecent.created_at,
+        });
+      } else if (mostRecent.test_uuid) {
+        // Fallback: we have a play but can't resolve the level metadata.
+        // Still show the Continue card so the student can resume.
+        setContinueCard({
+          levelTitle: "Your last test",
+          levelUuid: mostRecent.test_uuid,
           score: mostRecent.score,
           isPassed: mostRecent.isPassed,
           practicedAt: mostRecent.created_at,
@@ -583,7 +616,7 @@ function SectionRow({ group, stats, sectionType, barColor, isLast, role, onSelec
         </div>
         <div style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", marginTop: 2 }}>
           {stats.topicCount} {stats.topicCount === 1 ? "topic" : "topics"}
-          {stats.questionCount > 0 && ` · ${stats.questionCount.toLocaleString()} questions`}
+          {stats.totalTests > 0 && ` · ${stats.totalTests} ${stats.totalTests === 1 ? "test" : "tests"}`}
           {stats.lastPracticedAt && ` · Last practiced ${timeAgo(stats.lastPracticedAt)}`}
         </div>
       </div>

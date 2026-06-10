@@ -105,7 +105,9 @@ export default function ConceptTestStudent({ group, onBack, role }) {
       const pct = testCount > 0 ? Math.round((attemptedCount / testCount) * 100) : 0;
       let state = "untouched";
       if (attemptedCount > 0) {
-        if (passedCount === testCount && testCount > 0) state = "mastered";
+        // "Mastered" = all tests attempted (regardless of pass/fail).
+        // Pass rate is a separate quality signal we surface elsewhere.
+        if (attemptedCount === testCount && testCount > 0) state = "mastered";
         else state = "in-progress";
       }
       map[cat.id] = { testCount, attemptedCount, passedCount, pct, state };

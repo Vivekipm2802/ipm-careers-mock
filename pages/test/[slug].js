@@ -57,6 +57,7 @@ const Game = () => {
   const [calculatorActive, setCalculatorActive] = useState(false);
   const [submitted, setSubmitted] = useState();
   const [existingPlay, setExistingPlay] = useState(null); // Phase 12 Ship E
+  const [submitting, setSubmitting] = useState(false);    // Phase 12 Ship E.4: overlay during submit
   const [loading, setLoading] = useState(true);
   const [allowed, setAllowed] = useState(false);
   const { userDetails } = useNMNContext();
@@ -66,6 +67,8 @@ const Game = () => {
   async function submitScore(a) {
     // Phase 12 Ship E: skip the save in preview mode (admin reviewing the test)
     if (router.query.preview === "true") {
+      setSubmitting(false);
+      router.push("/");
       return;
     }
     const { data, error } = await supabase
@@ -77,14 +80,20 @@ const Game = () => {
       })
       .select();
     if (data && data.length != 0) {
-      setSubmitted(data[0]);
-      getLeaderboard(parentData?.uuid);
-      // Phase 12 Ship E: redirect to the unified result page after 1.5s
-      // so the student sees the score animation, then lands on the polished result page
+      // Phase 12 Ship E.4: redirect IMMEDIATELY to the unified result page
+      // No flash of the old inline view, no setTimeout delay
       const newPlayUid = data[0]?.uid;
       if (newPlayUid) {
-        setTimeout(() => { router.push(`/test/result/${newPlayUid}`); }, 1500);
+        router.push(`/test/result/${newPlayUid}`);
+        return;
       }
+      // Fallback: if uid missing for some reason, show the inline result view
+      setSubmitted(data[0]);
+      getLeaderboard(parentData?.uuid);
+      setSubmitting(false);
+    } else {
+      // Submission failed — let user see error
+      setSubmitting(false);
     }
   }
 
@@ -133,7 +142,8 @@ const Game = () => {
   }, [gamestate, restart, timeDuration]);
 
   const handleComplete = () => {
-    setGameState(2);
+    // Phase 12 Ship E.4: show clean overlay instead of flashing the old inline view
+    setSubmitting(true);
     submitScore(report);
   };
 
@@ -385,6 +395,50 @@ const Game = () => {
     return (
       <div className="flex flex-col justify-center align-middle items-center text-center sf h-[100vh] w-full">
         Loading...
+      </div>
+    );
+  }
+
+  // Phase 12 Ship E.4: clean overlay while submitting (replaces the flash of old inline view)
+  if (submitting) {
+    return (
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "var(--c-bg)", color: "var(--c-text-primary)",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        textAlign: "center", padding: 24,
+        fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+      }}>
+        <div style={{
+          width: 60, height: 60, marginBottom: 24,
+          borderRadius: "50%",
+          border: "3px solid var(--c-border-faint)",
+          borderTopColor: "var(--c-brand-primary)",
+          animation: "ipm-spin 0.8s linear infinite",
+        }} />
+        <div style={{
+          fontSize: 11, fontWeight: 500, letterSpacing: "0.14em",
+          textTransform: "uppercase", color: "var(--c-text-tertiary)",
+          marginBottom: 10,
+        }}>
+          Submitting
+        </div>
+        <h1 style={{
+          fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em",
+          color: "var(--c-text-primary)", margin: "0 0 8px",
+        }}>
+          Saving your{" "}
+          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+            result
+          </span>…
+        </h1>
+        <p style={{ fontSize: 13.5, color: "var(--c-text-secondary)", margin: 0, maxWidth: "40ch", lineHeight: 1.5 }}>
+          Just a moment while we record your answers. You&apos;ll be redirected to your result page.
+        </p>
+        <style jsx global>{`
+          @keyframes ipm-spin { to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }
