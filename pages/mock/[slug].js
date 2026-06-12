@@ -310,6 +310,7 @@ const MockTest = ({
   const [calculatorActive, setCalculatorActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitModal, setSubmitModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false); // Phase 13 Ship A: clean submitting overlay
   const [gamestate, setGameState] = useState(0);
   const [questions, setQuestions] = useState(previewQuestions || undefined);
   const [organized, setOrganized] = useState();
@@ -497,6 +498,8 @@ const MockTest = ({
   async function submitScore(a, b) {
     const r = toast.loading("Submitting Test");
 
+    // Phase 13 Ship A: clean overlay instead of gamestate==2 inline flash
+    setSubmitting(true);
     setLoading(true);
     try {
       // Try server-side API route first (bypasses RLS)
@@ -512,8 +515,6 @@ const MockTest = ({
       );
       if (apiRes.data?.data) {
         toast.success("Test Submitted Successfully");
-        setLoading(false);
-        setGameState(2);
         router.push(`/mock/result/${apiRes.data.data.uid}`);
         toast.remove(r);
         return;
@@ -534,20 +535,20 @@ const MockTest = ({
         .select();
       if (data && data.length > 0) {
         toast.success("Test Submitted Successfully");
-        setLoading(false);
-        setGameState(2);
         router.push(`/mock/result/${data[0].uid}`);
         toast.remove(r);
       } else {
         toast.error(
           error?.message || "Unable to Submit Test. Please try again.",
         );
+        setSubmitting(false);
         setLoading(false);
         setGameState(1);
         toast.remove(r);
       }
     } catch (err2) {
       toast.error("Unable to Submit Test. Please try again.");
+      setSubmitting(false);
       setLoading(false);
       setGameState(1);
       toast.remove(r);
@@ -887,48 +888,159 @@ const MockTest = ({
     );
   }
 
+  // Phase 13 Ship A: clean overlay while submitting (replaces the flash of the old inline gamestate==2 view)
+  if (submitting) {
+    return (
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "var(--c-bg)", color: "var(--c-text-primary)",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        textAlign: "center", padding: 24,
+        fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+      }}>
+        <div style={{
+          width: 60, height: 60, marginBottom: 24,
+          borderRadius: "50%",
+          border: "3px solid var(--c-border-faint)",
+          borderTopColor: "var(--c-brand-primary)",
+          animation: "ipm-spin 0.8s linear infinite",
+        }} />
+        <div style={{
+          fontSize: 11, fontWeight: 500, letterSpacing: "0.14em",
+          textTransform: "uppercase", color: "var(--c-text-tertiary)",
+          marginBottom: 10,
+        }}>
+          Submitting
+        </div>
+        <h1 style={{
+          fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em",
+          color: "var(--c-text-primary)", margin: "0 0 8px",
+        }}>
+          Saving your{" "}
+          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+            result
+          </span>…
+        </h1>
+        <p style={{ fontSize: 13.5, color: "var(--c-text-secondary)", margin: 0, maxWidth: "42ch", lineHeight: 1.5 }}>
+          Just a moment while we record your answers across all sections. You&apos;ll be redirected to your result page.
+        </p>
+        <style jsx global>{`
+          @keyframes ipm-spin { to { transform: rotate(360deg); } }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full relative font-sans h-screen p-0 justify-center align-middle items-center overflow-hidden max-h-[100vh] flex flex-col" style={{ background: "var(--c-bg)" }}>
       {/* <div className='fixed flex flex-col left-0 top-0 w-full h-full z-50 bg-white md:hidden justify-center items-center text-xs text-center'>
       For Best Experience Please use any device with bigger screen.<br/> This test cannot be performed on mobile display.
       
     </div> */}
-      <Modal
-        isOpen={submitModal}
-        onClose={() => {
-          setSubmitModal(false);
-        }}
-      >
-        <ModalContent>
-          <ModalHeader>Are you sure you want to submit test?</ModalHeader>
-          <ModalBody>
-            You have answered {answered?.length ?? 0} questions out of total{" "}
-            {questions?.length} questions
-          </ModalBody>
-          <ModalFooter className="flex flex-row justify-start">
-            <Button
-              color="danger"
-              size="sm"
-              onPress={() => {
-                setSubmitModal(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              color="default"
-              className="from-primary border-1 border-white shadow-md shadow-primary-400 to-primary-600 bg-gradient-to-r text-white"
-              onPress={() => {
-                submitScore(answered || [], miscData || []);
-                setSubmitModal(false);
-              }}
-            >
-              Confirm
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      {/* Phase 13 Ship A: redesigned submit confirmation modal (brand-aligned, matches Concept Tests) */}
+      {submitModal && (
+        <div
+          onClick={() => setSubmitModal(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9998,
+            background: "rgba(0, 0, 0, 0.55)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24,
+            fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--c-surface)",
+              borderRadius: 20,
+              maxWidth: 480, width: "100%",
+              padding: "28px 28px 24px",
+              border: "1px solid var(--c-border-faint)",
+              boxShadow: "0 24px 64px -12px rgba(0, 0, 0, 0.3)",
+            }}
+          >
+            <div style={{
+              fontSize: 11, fontWeight: 500, letterSpacing: "0.14em",
+              textTransform: "uppercase", color: "var(--c-text-tertiary)",
+              marginBottom: 10,
+            }}>
+              Ready to submit?
+            </div>
+            <h2 style={{
+              margin: "0 0 8px",
+              fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em",
+              color: "var(--c-text-primary)", lineHeight: 1.2,
+            }}>
+              Submit your{" "}
+              <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                mock
+              </span>?
+            </h2>
+            <p style={{
+              margin: "0 0 22px",
+              fontSize: 14, lineHeight: 1.55,
+              color: "var(--c-text-secondary)",
+            }}>
+              You&apos;ve answered{" "}
+              <b style={{ color: "var(--c-text-primary)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                {answered?.length ?? 0}
+              </b>
+              {" "}of{" "}
+              <b style={{ color: "var(--c-text-primary)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                {questions?.length}
+              </b>
+              {" "}questions across all sections. Once submitted, you can&apos;t change your answers.
+            </p>
+            <div style={{
+              padding: "12px 14px",
+              background: "var(--c-warning-soft, #FBEED2)",
+              border: "1px solid var(--c-warning, #B66C00)",
+              borderRadius: 12,
+              fontSize: 12.5, color: "var(--c-warning, #B66C00)",
+              marginBottom: 22, lineHeight: 1.5,
+            }}>
+              ⓘ Review your section navigator on the right before submitting — make sure you&apos;ve flagged or attempted every question you wanted to.
+            </div>
+            <div style={{
+              display: "flex", gap: 10, justifyContent: "flex-end",
+              flexWrap: "wrap",
+            }}>
+              <button
+                onClick={() => setSubmitModal(false)}
+                style={{
+                  height: 42, padding: "0 20px", borderRadius: 999,
+                  background: "transparent",
+                  color: "var(--c-text-secondary)",
+                  border: "1px solid var(--c-border-soft)",
+                  fontSize: 13.5, fontWeight: 500,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setSubmitModal(false);
+                  submitScore(answered || [], miscData || []);
+                }}
+                style={{
+                  height: 42, padding: "0 22px", borderRadius: 999,
+                  background: "var(--c-brand-primary)",
+                  color: "#fff",
+                  border: "1px solid transparent",
+                  fontSize: 13.5, fontWeight: 500,
+                  cursor: "pointer", fontFamily: "inherit",
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                }}
+              >
+                Yes, submit →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <DraggableModal
         handleModal={() => setCalculatorActive(false)}
         closeable={false}
@@ -1215,18 +1327,7 @@ const MockTest = ({
                 ""
               )}
 
-              {gamestate == 2 ? (
-                <>
-                  <div className="w-full h-full text-center flex flex-col justify-center align-middle items-center">
-                    <h2 className="text-2xl text-center text-primary px-6 w-full">
-                      Your Responses have been submitted and now you are being
-                      redirected to results page.
-                    </h2>
-                  </div>
-                </>
-              ) : (
-                ""
-              )}
+              {/* Phase 13 Ship A: removed inline gamestate==2 view — handled by submitting overlay (early return) for a clean transition */}
             </div>
 
             <div
