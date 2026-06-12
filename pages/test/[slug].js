@@ -504,43 +504,107 @@ const Game = () => {
     );
   }
   return (
-    <div className="w-full sf h-screen max-h-screen  justify-center align-middle items-center overflow-hidden flex flex-col bg-primary">
-      <Modal
-        isOpen={confirmModal}
-        onClose={() => {
-          setConfirmModal(false);
-        }}
-      >
-        <ModalContent>
-          <ModalHeader>Are you sure you want to submit test?</ModalHeader>
-          <ModalBody>
-            You have answered {report?.length ?? 0} questions out of total{" "}
-            {questions?.length} questions
-          </ModalBody>
-          <ModalFooter className="flex flex-row justify-start">
-            <Button
-              color="danger"
-              size="sm"
-              onPress={() => {
-                setConfirmModal(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              color="default"
-              className="from-primary border-1 border-white shadow-md shadow-primary-400 to-primary-600 bg-gradient-to-r text-white"
-              onPress={() => {
-                setConfirmModal(false);
-                handleComplete();
-              }}
-            >
-              Confirm
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+    <div className="w-full sf h-screen max-h-screen justify-center align-middle items-center overflow-hidden flex flex-col" style={{ background: "var(--c-bg)" }}>
+      {/* Phase 12 Ship E.5: redesigned submit confirmation modal */}
+      {confirmModal && (
+        <div
+          onClick={() => setConfirmModal(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9998,
+            background: "rgba(0, 0, 0, 0.55)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24,
+            fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--c-surface)",
+              borderRadius: 20,
+              maxWidth: 460, width: "100%",
+              padding: "28px 28px 24px",
+              border: "1px solid var(--c-border-faint)",
+              boxShadow: "0 24px 64px -12px rgba(0, 0, 0, 0.3)",
+            }}
+          >
+            <div style={{
+              fontSize: 11, fontWeight: 500, letterSpacing: "0.14em",
+              textTransform: "uppercase", color: "var(--c-text-tertiary)",
+              marginBottom: 10,
+            }}>
+              Ready to submit?
+            </div>
+            <h2 style={{
+              margin: "0 0 8px",
+              fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em",
+              color: "var(--c-text-primary)", lineHeight: 1.2,
+            }}>
+              Submit your{" "}
+              <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                test
+              </span>?
+            </h2>
+            <p style={{
+              margin: "0 0 22px",
+              fontSize: 14, lineHeight: 1.55,
+              color: "var(--c-text-secondary)",
+            }}>
+              You&apos;ve answered{" "}
+              <b style={{ color: "var(--c-text-primary)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                {report?.length ?? 0}
+              </b>
+              {" "}of{" "}
+              <b style={{ color: "var(--c-text-primary)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                {questions?.length}
+              </b>
+              {" "}questions. Once submitted, you can&apos;t change your answers — concept tests are single-attempt.
+            </p>
+            <div style={{
+              padding: "12px 14px",
+              background: "var(--c-warning-soft, #FBEED2)",
+              border: "1px solid var(--c-warning, #B66C00)",
+              borderRadius: 12,
+              fontSize: 12.5, color: "var(--c-warning, #B66C00)",
+              marginBottom: 22, lineHeight: 1.5,
+            }}>
+              ⓘ Make sure you&apos;re happy with your answers — you can&apos;t retake this test once submitted.
+            </div>
+            <div style={{
+              display: "flex", gap: 10, justifyContent: "flex-end",
+              flexWrap: "wrap",
+            }}>
+              <button
+                onClick={() => setConfirmModal(false)}
+                style={{
+                  height: 42, padding: "0 20px", borderRadius: 999,
+                  background: "transparent",
+                  color: "var(--c-text-secondary)",
+                  border: "1px solid var(--c-border-soft)",
+                  fontSize: 13.5, fontWeight: 500,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setConfirmModal(false); handleComplete(); }}
+                style={{
+                  height: 42, padding: "0 22px", borderRadius: 999,
+                  background: "var(--c-brand-primary)",
+                  color: "#fff",
+                  border: "1px solid transparent",
+                  fontSize: 13.5, fontWeight: 500,
+                  cursor: "pointer", fontFamily: "inherit",
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                }}
+              >
+                Yes, submit →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <HeaderMock
         key={config?.title}

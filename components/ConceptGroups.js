@@ -93,7 +93,8 @@ const Selector = ({ type, onSelect, role, title }) => {
   const router = useRouter();
 
   async function loadEverything() {
-    // 1. Fetch groups + user's plays in parallel (plays doesn't depend on groups)
+    // Phase 12 Ship E.5: collapse the 4-query category chain into ONE nested Supabase query.
+    // Plus fetch plays in parallel. Net: 2 round trips instead of 5.
     const playsPromise = userDetails?.email
       ? supabase.from("plays")
           .select("test_uuid, score, isPassed, created_at, user")
@@ -101,12 +102,30 @@ const Selector = ({ type, onSelect, role, title }) => {
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [] });
 
-    const [groupsRes, playsRes] = await Promise.all([
-      supabase.from("test_groups").select("*").eq("type", type),
-      playsPromise,
-    ]);
-    const groupsData = groupsRes.data;
+    // Nested select: test_groups → categories → m_categories → levels in one round trip
+    const treePromise = supabase
+      .from("test_groups")
+      .select(`
+        *,
+        categories!categories_parent_fkey(
+          id,
+          parent,
+          m_categories!m_categories_parent_fkey(
+            id,
+            parent,
+            levels!levels_parent_fkey(
+              uuid,
+              parent,
+              title
+            )
+          )
+        )
+      `)
+      .eq("type", type);
+
+    const [treeRes, playsRes] = await Promise.all([treePromise, playsPromise]);
     let plays = playsRes.data || [];
+    const groupsData = treeRes.data;
 
     if (!groupsData) {
       setLoading(false);
@@ -120,24 +139,50 @@ const Selector = ({ type, onSelect, role, title }) => {
       return;
     }
 
-    // 2. Categories for these groups
-    const { data: categoriesData } = await supabase
-      .from("categories").select("id, parent").in("parent", groupIds);
-    const categories = categoriesData || [];
+    // Flatten the nested structure into the same flat arrays the rest of the code expects.
+    // If the nested query failed to resolve relations (e.g., the FK names differ), fall back
+    // to the old sequential approach.
+    let categories = [];
+    let mCategories = [];
+    let levels = [];
+    let nestedFailed = false;
 
-    // 3. m_categories
-    const categoryIds = categories.map(c => c.id);
-    const mCategoriesData = categoryIds.length > 0
-      ? (await supabase.from("m_categories").select("id, parent").in("parent", categoryIds)).data
-      : [];
-    const mCategories = mCategoriesData || [];
+    groupsData.forEach(g => {
+      const cats = Array.isArray(g.categories) ? g.categories : null;
+      if (!cats) { nestedFailed = true; return; }
+      cats.forEach(c => {
+        categories.push({ id: c.id, parent: c.parent ?? g.id });
+        const mcats = Array.isArray(c.m_categories) ? c.m_categories : [];
+        mcats.forEach(m => {
+          mCategories.push({ id: m.id, parent: m.parent ?? c.id });
+          const lvls = Array.isArray(m.levels) ? m.levels : [];
+          lvls.forEach(l => {
+            levels.push({ uuid: l.uuid, parent: l.parent ?? m.id, title: l.title });
+          });
+        });
+      });
+    });
 
-    // 4. Levels — light query (title needed for Continue card)
-    const mCatIds = mCategories.map(m => m.id);
-    const levelsData = mCatIds.length > 0
-      ? (await supabase.from("levels").select("uuid, parent, title").in("parent", mCatIds)).data
-      : [];
-    const levels = levelsData || [];
+    // Fallback: if the nested query didn't include relations (FK name mismatch),
+    // do the original 3-step sequence
+    if (nestedFailed || categories.length === 0) {
+      console.warn("[Concept Tests] Nested query didn't return relations, falling back");
+      const { data: catsData } = await supabase
+        .from("categories").select("id, parent").in("parent", groupIds);
+      categories = catsData || [];
+      const categoryIds = categories.map(c => c.id);
+      if (categoryIds.length > 0) {
+        const { data: mCatsData } = await supabase
+          .from("m_categories").select("id, parent").in("parent", categoryIds);
+        mCategories = mCatsData || [];
+        const mCatIds = mCategories.map(m => m.id);
+        if (mCatIds.length > 0) {
+          const { data: levelsData } = await supabase
+            .from("levels").select("uuid, parent, title").in("parent", mCatIds);
+          levels = levelsData || [];
+        }
+      }
+    }
 
     // Diagnostic — helps debug if level lookups fail
     if (typeof window !== "undefined" && plays.length > 0) {
