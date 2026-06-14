@@ -237,21 +237,21 @@ export const NMNContextProvider = ({ children }) => {
       ],
     },
     {
-      title: "Concept & Mock Tests",
+      title: "Tests",
       subtitle: "Master topics and prepare yourself for exams",
       isExpanded: true,
       demo: true,
       icon: <Target size={22} />,
       items: [
         {
-          title: "Concept Tests",
+          title: "Concept",
           type: "user",
           action: "play",
           id: 5,
           icon: <Target size={20} />,
         },
         {
-          title: "Mock Tests",
+          title: "Full Mocks",
           type: "user",
           action: "mocks",
           id: 5,
@@ -272,7 +272,7 @@ export const NMNContextProvider = ({ children }) => {
           icon: <Sparkles size={20} />,
         },
         {
-          title: "Sectional Test",
+          title: "Sectional",
           type: "user",
           action: "sectional-tests",
           id: 6,
@@ -284,7 +284,7 @@ export const NMNContextProvider = ({ children }) => {
       ],
     },
     {
-      title: "Learn Daily",
+      title: "Daily Learn",
       isExpanded: false,
       demo: true,
       icon: <CalendarDays size={20} />,
@@ -302,7 +302,7 @@ export const NMNContextProvider = ({ children }) => {
     },
 
     {
-      title: "DoubtsPad",
+      title: "Doubts",
       demo: true,
       subtitle: "Explore knowledge with vibrant mind maps.",
       isExpanded: false,
@@ -319,7 +319,7 @@ export const NMNContextProvider = ({ children }) => {
     },
 
     {
-      title: "Self Learning",
+      title: "Videos",
       demo: true,
       subtitle: "Unlock Knowledge at Your Fingertips",
       isExpanded: false,
@@ -352,7 +352,7 @@ export const NMNContextProvider = ({ children }) => {
       ],
     },
     {
-      title: "Previous Year Papers",
+      title: "PYQ Papers",
       demo: true,
       subtitle: "Learn via Previous year questions",
       icon: <FileText size={22} />,

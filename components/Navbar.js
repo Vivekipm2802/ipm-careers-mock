@@ -22,13 +22,14 @@ import { Lock } from 'lucide-react';
 
 // Section grouping — parent titles → display section
 const SECTIONS = [
+  // Phase 16 Ship A: shorter labels (Option C) — titles match the new ones in NMNContext.js navitems.
   {
     label: 'Study',
-    titles: ['Dashboard', 'Classes', 'Concept & Mock Tests', 'Learn Daily'],
+    titles: ['Dashboard', 'Classes', 'Tests', 'Daily Learn'],
   },
   {
     label: 'Resources',
-    titles: ['DoubtsPad', 'Self Learning', 'Previous Year Papers'],
+    titles: ['Doubts', 'Videos', 'PYQ Papers'],
   },
   {
     label: 'You',
