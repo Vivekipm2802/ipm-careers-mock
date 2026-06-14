@@ -42,7 +42,6 @@ import {
   ArrowRight,
   Clock,
   Bell,
-  RotateCcw,
 } from "lucide-react";
 
 // NextUI Modal type-fix
@@ -370,6 +369,7 @@ const SectionalTest = ({
         fontFamily: FONT,
         padding: "24px 28px 36px",
         color: "var(--c-text-primary)",
+        textAlign: "left", // Phase 14 Ship A.2: parent container in pages/index.js applies text-align: center, override here
       }}
     >
       {/* ===== Attempts modal (kept for legacy "View attempts" flow) ===== */}
@@ -904,9 +904,11 @@ function TestRow({
       </button>
     );
   } else if (status.kind === "attempted") {
+    // Phase 14 Ship A.2: sectional tests are single-shot — link to latest result, not reattempt
     action = (
-      <button
-        onClick={openAttempts}
+      <Link
+        href={`/mock/result/${status.latestPlay.uid}`}
+        target="_blank"
         style={{
           height: 36,
           padding: "0 16px",
@@ -922,10 +924,11 @@ function TestRow({
           gap: 6,
           cursor: "pointer",
           flexShrink: 0,
+          textDecoration: "none",
         }}
       >
-        <RotateCcw size={14} /> Reattempt
-      </button>
+        <ChartBarIncreasing size={14} /> View Result
+      </Link>
     );
   } else if (status.kind === "live" || status.kind === "available") {
     action = (
