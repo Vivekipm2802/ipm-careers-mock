@@ -16,7 +16,6 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Spinner,
 } from "@nextui-org/react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
@@ -345,7 +344,19 @@ const SectionalTest = ({
           fontFamily: FONT,
         }}
       >
-        <Spinner color="default" />
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            border: "3px solid var(--c-border-faint)",
+            borderTopColor: "var(--c-brand-primary)",
+            animation: "ipm-sectional-spin 0.8s linear infinite",
+          }}
+        />
+        <style jsx global>{`
+          @keyframes ipm-sectional-spin { to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }
