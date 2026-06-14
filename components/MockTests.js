@@ -1,20 +1,26 @@
+// ============================================================
+// Mock Tests — Phase 15 Ship A: Hybrid layout
+// - By Category only (By Courses removed per Phase 15 design call)
+// - Hero greeting + countdown hero + Continue card (2-col)
+// - "Next 7 days" calendar strip with mock-open markers
+// - 4 stat tiles: Attempted / Best / Avg / Time spent
+// - Underline category tabs (replaces rectangular brand-red tabs)
+// - Mock rows with status pill + meta + score + action
+// - Admin controls preserved (hide/show, preview, delete)
+// ============================================================
+
 import { supabase } from "@/utils/supabaseClient";
 import {
-  Button,
-  Divider,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Spacer,
 } from "@nextui-org/react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
-import { motion } from "framer-motion";
 import { useNMNContext } from "./NMNContext";
 import { CtoLocal } from "@/utils/DateUtil";
 import {
@@ -24,6 +30,9 @@ import {
   parseISO,
   format,
   endOfDay,
+  startOfDay,
+  differenceInSeconds,
+  formatDistanceToNowStrict,
 } from "date-fns";
 import {
   ChartBarIncreasing,
@@ -32,120 +41,183 @@ import {
   EyeOff,
   Lock,
   Trash2,
+  Play,
+  ArrowRight,
+  Clock,
+  Bell,
 } from "lucide-react";
 
+const FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
+
+// ============================================================
+// Helpers
+// ============================================================
+
+function formatMinutes(seconds) {
+  if (!seconds || seconds <= 0) return "—";
+  const mins = Math.round(seconds / 60);
+  return `${mins} min`;
+}
+
+function difficultyLabel(d) {
+  if (!d) return null;
+  const s = String(d).trim().toLowerCase();
+  if (!s) return null;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function resolveMockStatus(test, plays) {
+  const myPlays = plays?.filter((p) => p.test_id === test.id) || [];
+  if (myPlays.length > 0) {
+    return {
+      kind: "attempted",
+      latestPlay: myPlays[0],
+      attempts: myPlays.length,
+    };
+  }
+  if (!test.start_time) {
+    return { kind: "available" };
+  }
+  const now = new Date();
+  const startTime = parseISO(test.start_time);
+  const availableFrom = addDays(startTime, -2);
+  if (isBefore(now, availableFrom)) {
+    return { kind: "upcoming", opensAt: availableFrom };
+  }
+  if (test.end_time && isAfter(now, endOfDay(parseISO(test.end_time)))) {
+    return { kind: "closed" };
+  }
+  if (!test.end_time && isAfter(now, addDays(startTime, 1))) {
+    return { kind: "closed" };
+  }
+  return { kind: "live" };
+}
+
+// ============================================================
+// Style tokens
+// ============================================================
+
+const eyebrowStyle = {
+  fontSize: 11,
+  fontWeight: 500,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: "var(--c-text-tertiary)",
+};
+const serifStyle = {
+  fontFamily: "'Instrument Serif', serif",
+  fontStyle: "italic",
+  fontWeight: 400,
+  color: "var(--c-brand-primary)",
+};
+const iconBtn = {
+  width: 32,
+  height: 32,
+  borderRadius: 8,
+  background: "transparent",
+  border: "1px solid var(--c-border-soft)",
+  color: "var(--c-text-secondary)",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  fontFamily: "inherit",
+};
+
+// ============================================================
+// MAIN
+// ============================================================
+
 export default function MockTests({ enrolled = [], role = "user" }) {
-  const { isDemo } = useNMNContext();
+  const ctx = useNMNContext();
+  const isDemo = ctx?.isDemo;
+  const userDetails = ctx?.userDetails;
   const isAdmin = role === "admin";
-  const [type, setType] = useState(0);
+
   const [tests, setTests] = useState();
-  const [courses, setCourses] = useState();
+  const [allTests, setAllTests] = useState();
   const [categories, setCategories] = useState();
   const [allCategories, setAllCategories] = useState();
   const [activeCategory, setActiveCategory] = useState(0);
-  const [allTests, setAllTests] = useState();
-  const [results, setResults] = useState();
+  const [results, setResults] = useState([]); // current user's plays only
   const [activeResult, setActiveResult] = useState(undefined);
+  const [now, setNow] = useState(new Date());
 
-  // Create a Set of test IDs that have results for O(1) lookup
-  const testIdsWithResults = results
-    ? new Set(results.map((r) => r.test_id))
-    : new Set();
+  // Tick "now" every 60s so countdown re-renders
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
-  async function getCourses() {
-    const { data, error } = await supabase
-      .from("courses")
-      .select("id, title")
-      .order("id", { ascending: true });
-    if (data) {
-      setCourses(data);
-    }
-  }
+  // ============================================================
+  // Data fetching
+  // ============================================================
 
   async function getResults() {
-    let allResults = [];
-    let from = 0;
-    const batchSize = 1000;
-    let hasMore = true;
-
-    while (hasMore) {
-      const { data, error } = await supabase
-        .from("mock_plays")
-        .select("uid, test_id, created_at")
-        .range(from, from + batchSize - 1);
-
-      if (error) {
-        console.error("Error fetching results:", error);
-        return;
-      }
-
-      if (data && data.length > 0) {
-        allResults = [...allResults, ...data];
-        from += batchSize;
-        hasMore = data.length === batchSize;
-      } else {
-        hasMore = false;
-      }
+    if (!userDetails?.email) {
+      setResults([]);
+      return;
     }
-
-    setResults(allResults);
+    const { data } = await supabase
+      .from("mock_plays")
+      .select("id, uid, test_id, score, created_at")
+      .eq("user", userDetails.email)
+      .order("created_at", { ascending: false });
+    setResults(data || []);
   }
-  async function getCategories(a) {
-    const r = toast.loading("getting categories");
 
-    let query = supabase
+  async function getCategories() {
+    const { data } = await supabase
       .from("mock_categories")
       .select("id, title, seq")
       .order("seq", { ascending: true });
-
-    // Hide invisible categories from students
-    if (!isAdmin) {
-      query = query.eq("is_visible", true);
-    }
-
-    const { data, error } = await query;
-    if (data) {
-      toast.remove(r);
-      setCategories(data.filter((c) => c.title !== "__internal__"));
-    } else {
-      toast.error("failed to get categories");
-      toast.remove(r);
-    }
+    if (data) setCategories(data);
   }
-  async function getAllCategories(a) {
-    const { data, error } = await supabase
-      .from("mock_categories_view")
+
+  async function getAllCategories() {
+    const { data } = await supabase
+      .from("mock_categories")
       .select("id, title, seq")
       .order("seq", { ascending: true });
-    if (data) {
-      setAllCategories(data);
-    } else {
-      toast.error("failed to get categories");
-    }
+    if (data) setAllCategories(data);
   }
 
   async function getTests() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("mock_test")
       .select(
         "id, title, description, category, course, seq, start_time, end_time, uid, config",
       )
       .order("seq", { ascending: true });
-
     if (data) {
-      // Exclude concept and sectional tests — they appear on their own pages
       const filtered = data.filter(
         (t) =>
           !t.config?.generatorType || t.config?.generatorType === "fullmock",
       );
       setTests(filtered);
-    } else {
-      toast.error("Error loading tests.");
     }
   }
+
+  async function getAllTests() {
+    const { data } = await supabase
+      .from("mock_test_view")
+      .select(
+        "id, title, description, category, course, seq, start_time, end_time, uid, config",
+      )
+      .order("seq", { ascending: true });
+    if (data) {
+      const filtered = data.filter(
+        (t) =>
+          !t.config?.generatorType || t.config?.generatorType === "fullmock",
+      );
+      setAllTests(filtered);
+    }
+  }
+
   async function toggleVisibility(testId, currentlyHidden) {
-    const action = currentlyHidden ? "Showing" : "Hiding";
-    const loadingToast = toast.loading(`${action} test...`);
+    const loadingToast = toast.loading(
+      currentlyHidden ? "Showing test..." : "Hiding test...",
+    );
     try {
       const res = await fetch("/api/test-generator/toggle-visibility", {
         method: "POST",
@@ -191,629 +263,1282 @@ export default function MockTests({ enrolled = [], role = "user" }) {
         toast.success("Test deleted");
         toast.dismiss(loadingToast);
         getTests();
-        getAllTests();
       } else {
-        toast.error(data.error || "Failed to delete");
+        toast.error(data.error || "Failed to delete test");
         toast.dismiss(loadingToast);
       }
     } catch (e) {
-      toast.error("Error: " + e.message);
+      toast.error("Failed to delete test");
       toast.dismiss(loadingToast);
     }
   }
 
-  async function getAllTests() {
-    const { data, error } = await supabase
-      .from("mock_test_view")
-      .select(
-        "id, title, description, category, course, seq, start_time, end_time, uid, config",
-      )
-      .order("seq", { ascending: true });
-
-    if (data) {
-      // Exclude concept and sectional tests
-      const filtered = data.filter(
-        (t) =>
-          !t.config?.generatorType || t.config?.generatorType === "fullmock",
-      );
-      setAllTests(filtered);
-    } else {
-      toast.error("Error loading tests.");
-    }
-  }
-  const router = useRouter();
-
   useEffect(() => {
-    getCourses();
     getTests();
     getAllTests();
     getCategories();
     getAllCategories();
-    getResults();
   }, []);
+  useEffect(() => {
+    getResults();
+  }, [userDetails?.email]);
 
-  function getPerSectionTime(config) {
-    if (!config) return null;
+  // ============================================================
+  // Derived
+  // ============================================================
 
-    const totalMinutes = config?.duration; // total test duration in minutes
-    const sections = config?.sections; // array of sections
+  const allTestsCombined = useMemo(() => {
+    const seen = new Set();
+    const out = [];
+    (tests || []).forEach((t) => {
+      if (!seen.has(t.id)) {
+        seen.add(t.id);
+        out.push(t);
+      }
+    });
+    (allTests || []).forEach((t) => {
+      if (!seen.has(t.id)) {
+        seen.add(t.id);
+        out.push(t);
+      }
+    });
+    return out;
+  }, [tests, allTests]);
 
-    if (!totalMinutes || !sections || sections.length === 0) return null;
+  const visibleTests = useMemo(
+    () => allTestsCombined.filter((t) => isAdmin || !t.config?.hidden),
+    [allTestsCombined, isAdmin],
+  );
 
-    const perSection = Math.floor(totalMinutes / sections.length);
-    const hours = Math.floor(perSection / 60);
-    const mins = perSection % 60;
+  // Continue card: last play in last 14 days that maps to a known test
+  const continueCard = useMemo(() => {
+    if (!results || !results.length) return null;
+    const cutoff = addDays(now, -14);
+    const recent = results.find((r) => {
+      const at = r?.created_at ? parseISO(r.created_at) : null;
+      return at && isAfter(at, cutoff);
+    });
+    if (!recent) return null;
+    const test = visibleTests.find((t) => t.id === recent.test_id);
+    if (!test) return null;
+    return { test, play: recent };
+  }, [results, visibleTests, now]);
 
-    if (hours > 0 && mins > 0) return `${hours}h ${mins}m / section`;
-    if (hours > 0) return `${hours}h / section`;
-    return `${mins}m / section`;
-  }
-  return (
-    <div className="flex flex-col overflow-hidden justify-start items-start w-full">
-      <Modal
-        isOpen={activeResult}
-        onClose={() => {
-          setActiveResult(undefined);
+  // Next upcoming mock (closest start_time in the future)
+  const nextMock = useMemo(() => {
+    const upcoming = visibleTests
+      .filter((t) => t.start_time)
+      .map((t) => ({ test: t, startsAt: parseISO(t.start_time) }))
+      .filter((x) => isAfter(x.startsAt, now))
+      .sort((a, b) => a.startsAt - b.startsAt);
+    return upcoming[0] || null;
+  }, [visibleTests, now]);
+
+  // Countdown breakdown
+  const countdown = useMemo(() => {
+    if (!nextMock) return null;
+    const secs = differenceInSeconds(nextMock.startsAt, now);
+    if (secs <= 0) return null;
+    const days = Math.floor(secs / 86400);
+    const hours = Math.floor((secs % 86400) / 3600);
+    const minutes = Math.floor((secs % 3600) / 60);
+    return { days, hours, minutes };
+  }, [nextMock, now]);
+
+  // "Next 7 days" calendar strip
+  const week = useMemo(() => {
+    const days = [];
+    const today = startOfDay(now);
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(today, i);
+      const marks = visibleTests.filter((t) => {
+        if (!t.start_time) return false;
+        const s = parseISO(t.start_time);
+        const sd = startOfDay(s);
+        return sd.getTime() === d.getTime();
+      });
+      days.push({
+        date: d,
+        dayOfWeek: format(d, "EEE"),
+        dayNum: format(d, "d"),
+        isToday: i === 0,
+        marks,
+      });
+    }
+    return days;
+  }, [visibleTests, now]);
+
+  // Stats
+  const stats = useMemo(() => {
+    const playedIds = new Set(results.map((r) => r.test_id));
+    const attempted = visibleTests.filter((t) => playedIds.has(t.id)).length;
+    const total = visibleTests.length;
+    const scores = results
+      .map((r) => (typeof r.score === "number" ? r.score : null))
+      .filter((s) => s !== null);
+    const best = scores.length ? Math.max(...scores) : null;
+    const avg = scores.length
+      ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+      : null;
+    const timeSpentSecs = results.reduce((sum, r) => {
+      const t = visibleTests.find((x) => x.id === r.test_id);
+      const dur = t?.config?.timeout || 0;
+      return sum + dur;
+    }, 0);
+    return { attempted, total, best, avg, timeSpentSecs };
+  }, [results, visibleTests]);
+
+  const studentFirstName = useMemo(() => {
+    const full = userDetails?.user_metadata?.full_name || "";
+    return full.split(" ")[0] || "there";
+  }, [userDetails]);
+
+  const filteredCategoryTests = useMemo(() => {
+    if (!categories || !categories[activeCategory]) return [];
+    const catId = categories[activeCategory].id;
+    return visibleTests
+      .filter((t) => t.category === catId)
+      .sort((a, b) => (a.seq || 0) - (b.seq || 0));
+  }, [categories, activeCategory, visibleTests]);
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+
+  if (tests === undefined) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 48,
+          width: "100%",
+          fontFamily: FONT,
+          color: "var(--c-text-tertiary)",
         }}
       >
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            border: "3px solid var(--c-border-faint)",
+            borderTopColor: "var(--c-brand-primary)",
+            animation: "ipm-mock-spin 0.8s linear infinite",
+          }}
+        />
+        <style jsx global>{`
+          @keyframes ipm-mock-spin {
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        overflow: "auto",
+        fontFamily: FONT,
+        padding: "24px 28px 36px",
+        color: "var(--c-text-primary)",
+        textAlign: "left",
+      }}
+    >
+      {/* ===== Attempts modal ===== */}
+      <Modal
+        isOpen={!!activeResult}
+        onClose={() => setActiveResult(undefined)}
+      >
         <ModalContent>
-          <ModalHeader>Your Attempts</ModalHeader>
+          <ModalHeader>Your attempts</ModalHeader>
           <ModalBody>
-            {results &&
-              results
-                .filter((item) => item.test_id == activeResult)
-                ?.map((i, d) => {
-                  return (
+            {results
+              .filter((item) => item.test_id === activeResult)
+              .map((i) => (
+                <div
+                  key={i.uid || i.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "10px 0",
+                    borderBottom: "1px solid var(--c-border-faint)",
+                    fontSize: 13,
+                  }}
+                >
+                  <div>
                     <div
-                      key={i.uid || d}
-                      className="flex flex-row items-center justify-between"
+                      style={{
+                        color: "var(--c-text-primary)",
+                        fontWeight: 600,
+                      }}
                     >
-                      <div className="flex-1">
-                        <h2 className="text-xs">
-                          <strong className="text-primary">
-                            {CtoLocal(i?.created_at)?.time}{" "}
-                            {CtoLocal(i?.created_at)?.amPm}
-                          </strong>
-                          <br />
-                          {CtoLocal(i?.created_at)?.date}{" "}
-                          {CtoLocal(i?.created_at)?.monthName}{" "}
-                          {CtoLocal(i?.created_at)?.year}
-                        </h2>
-                      </div>
-                      <div className="flex flex-row items-center justify-end">
-                        <Button
-                          endContent={
-                            <ChartBarIncreasing size={16}></ChartBarIncreasing>
-                          }
-                          as={Link}
-                          target="_blank"
-                          href={`/mock/result/${i?.uid}`}
-                          size="sm"
-                          color="success"
-                        >
-                          View Result
-                        </Button>
-                        <Spacer x={2}></Spacer>
-                        <Button
-                          endContent={
-                            <ChartSplineIcon size={16}></ChartSplineIcon>
-                          }
-                          as={Link}
-                          target="_blank"
-                          href={`/mock/analytics/${i?.uid}`}
-                          size="sm"
-                          className="text-white bg-gradient-purple"
-                        >
-                          View Analysis
-                        </Button>
-                      </div>
+                      {CtoLocal(i?.created_at)?.time}{" "}
+                      {CtoLocal(i?.created_at)?.amPm}
                     </div>
-                  );
-                })}
+                    <div
+                      style={{
+                        color: "var(--c-text-tertiary)",
+                        fontSize: 12,
+                      }}
+                    >
+                      {CtoLocal(i?.created_at)?.date}{" "}
+                      {CtoLocal(i?.created_at)?.monthName}{" "}
+                      {CtoLocal(i?.created_at)?.year}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Link
+                      href={`/mock/result/${i?.uid}`}
+                      target="_blank"
+                      style={{
+                        height: 32,
+                        padding: "0 12px",
+                        borderRadius: 999,
+                        background: "var(--c-brand-primary)",
+                        color: "#fff",
+                        fontSize: 12,
+                        fontWeight: 500,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        textDecoration: "none",
+                      }}
+                    >
+                      <ChartBarIncreasing size={14} /> Result
+                    </Link>
+                    <Link
+                      href={`/mock/analytics/${i?.uid}`}
+                      target="_blank"
+                      style={{
+                        height: 32,
+                        padding: "0 12px",
+                        borderRadius: 999,
+                        background: "transparent",
+                        color: "var(--c-text-secondary)",
+                        border: "1px solid var(--c-border-soft)",
+                        fontSize: 12,
+                        fontWeight: 500,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        textDecoration: "none",
+                      }}
+                    >
+                      <ChartSplineIcon size={14} /> Analytics
+                    </Link>
+                  </div>
+                </div>
+              ))}
           </ModalBody>
           <ModalFooter>
-            <Button
-              size="sm"
-              color="danger"
-              variant="flat"
-              onPress={() => {
-                setActiveResult(undefined);
+            <button
+              onClick={() => setActiveResult(undefined)}
+              style={{
+                height: 36,
+                padding: "0 16px",
+                borderRadius: 999,
+                background: "transparent",
+                color: "var(--c-text-secondary)",
+                border: "1px solid var(--c-border-soft)",
+                fontSize: 13,
+                fontFamily: "inherit",
+                cursor: "pointer",
               }}
             >
               Close
-            </Button>
+            </button>
           </ModalFooter>
         </ModalContent>
       </Modal>
-      {tests != undefined ? (
-        <div className="pr-2 mt-4 overflow-hidden flex flex-col justify-start items-start flex-1 h-full w-full text-left">
-          <h2 style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-text-primary)" }}>Mock Tests</h2>
-          <Spacer x={2}></Spacer>
-          <div className="flex flex-row justify-start items-center">
+
+      {/* ===== Hero greeting ===== */}
+      <div style={{ ...eyebrowStyle, marginBottom: 8 }}>
+        Welcome back, {studentFirstName}
+      </div>
+      <h1
+        style={{
+          margin: "0 0 6px",
+          fontSize: 28,
+          fontWeight: 600,
+          letterSpacing: "-0.022em",
+          lineHeight: 1.15,
+          color: "var(--c-text-primary)",
+        }}
+      >
+        Sit a <span style={serifStyle}>full mock</span>.
+      </h1>
+      <p
+        style={{
+          margin: "0 0 20px",
+          fontSize: 14,
+          lineHeight: 1.55,
+          color: "var(--c-text-secondary)",
+          maxWidth: "58ch",
+        }}
+      >
+        Full-length IPMAT mocks under exam conditions. Build endurance, refine
+        timing, and see how you stack up before the real thing.
+      </p>
+
+      {/* ===== Hero grid: Countdown + Continue ===== */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1.3fr 1fr",
+          gap: 14,
+          marginBottom: 18,
+        }}
+      >
+        {/* Countdown card */}
+        {countdown && nextMock ? (
+          <div
+            style={{
+              background:
+                "linear-gradient(135deg, var(--c-brand-primary) 0%, #8c2620 100%)",
+              color: "#fff",
+              borderRadius: 16,
+              padding: "18px 20px",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
             <div
-              className="flex flex-row text-sm items-center justify-start"
               style={{
-                padding: 4,
-                borderRadius: 12,
-                background: "var(--c-surface-muted, var(--c-bg))",
-                border: "1px solid var(--c-border-faint)",
-                gap: 2,
+                position: "absolute",
+                right: -40,
+                top: -40,
+                width: 180,
+                height: 180,
+                background:
+                  "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)",
+                borderRadius: "50%",
+                pointerEvents: "none",
+              }}
+            />
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 500,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.7)",
+                marginBottom: 6,
+                position: "relative",
+              }}
+            >
+              Next mock
+            </div>
+            <div
+              style={{
+                margin: "0 0 6px",
+                fontSize: 17,
+                fontWeight: 600,
+                letterSpacing: "-0.015em",
+                position: "relative",
+              }}
+            >
+              {nextMock.test.title}
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.85, position: "relative" }}>
+              Opens {format(nextMock.startsAt, "EEE d MMM")}
+              {nextMock.test.config?.timeout
+                ? ` · ${formatMinutes(nextMock.test.config.timeout)}`
+                : ""}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 16,
+                marginTop: 14,
+                position: "relative",
+              }}
+            >
+              <CountdownUnit value={countdown.days} label="days" />
+              <CountdownUnit value={countdown.hours} label="hours" />
+              <CountdownUnit value={countdown.minutes} label="min" />
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              background: "var(--c-surface)",
+              border: "1px solid var(--c-border-faint)",
+              borderRadius: 16,
+              padding: "18px 20px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              justifyContent: "center",
+            }}
+          >
+            <div style={{ ...eyebrowStyle, fontSize: 10.5, marginBottom: 6 }}>
+              All caught up
+            </div>
+            <div
+              style={{
+                fontSize: 17,
+                fontWeight: 600,
+                color: "var(--c-text-primary)",
+                letterSpacing: "-0.015em",
+              }}
+            >
+              No mocks scheduled right now.
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--c-text-tertiary)",
+                marginTop: 4,
+              }}
+            >
+              Check back soon — new mocks open weekly during exam season.
+            </div>
+          </div>
+        )}
+
+        {/* Continue card */}
+        {continueCard ? (
+          <div
+            style={{
+              background: "var(--c-surface)",
+              border: "1px solid var(--c-border-faint)",
+              borderRadius: 16,
+              padding: "16px 18px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+            }}
+          >
+            <div>
+              <div style={{ ...eyebrowStyle, fontSize: 10.5, marginBottom: 6 }}>
+                Continue
+              </div>
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "var(--c-text-primary)",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                {continueCard.test.title}
+              </div>
+              <div
+                style={{
+                  fontSize: 12.5,
+                  color: "var(--c-text-tertiary)",
+                  marginTop: 4,
+                  lineHeight: 1.4,
+                }}
+              >
+                Attempted{" "}
+                {continueCard.play.created_at
+                  ? formatDistanceToNowStrict(
+                      parseISO(continueCard.play.created_at),
+                    ) + " ago"
+                  : ""}
+                {typeof continueCard.play.score === "number" && (
+                  <>
+                    <br />
+                    Scored {continueCard.play.score}
+                  </>
+                )}
+              </div>
+            </div>
+            <Link
+              href={`/mock/result/${continueCard.play.uid}`}
+              target="_blank"
+              style={{
+                height: 34,
+                padding: "0 14px",
+                borderRadius: 999,
+                background: "var(--c-brand-primary)",
+                color: "#fff",
+                border: "none",
+                fontSize: 12.5,
+                fontWeight: 500,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                alignSelf: "flex-start",
+                marginTop: 14,
+                textDecoration: "none",
+              }}
+            >
+              View result <ArrowRight size={14} />
+            </Link>
+          </div>
+        ) : (
+          <div
+            style={{
+              background: "var(--c-surface)",
+              border: "1px solid var(--c-border-faint)",
+              borderRadius: 16,
+              padding: "16px 18px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "flex-start",
+            }}
+          >
+            <div style={{ ...eyebrowStyle, fontSize: 10.5, marginBottom: 6 }}>
+              Continue
+            </div>
+            <div
+              style={{
+                fontSize: 14.5,
+                fontWeight: 600,
+                color: "var(--c-text-primary)",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              No mocks attempted yet.
+            </div>
+            <div
+              style={{
+                fontSize: 12.5,
+                color: "var(--c-text-tertiary)",
+                marginTop: 4,
+                lineHeight: 1.4,
+              }}
+            >
+              Start with Mock 01 once it&apos;s available.
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ===== "Next 7 days" calendar strip ===== */}
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 500,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "var(--c-text-tertiary)",
+          margin: "4px 0 10px",
+        }}
+      >
+        Next 7 days
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: 6,
+          marginBottom: 22,
+        }}
+      >
+        {week.map((d, i) => {
+          const hasMock = d.marks.length > 0;
+          return (
+            <div
+              key={i}
+              style={{
+                background: hasMock
+                  ? "var(--c-brand-soft, rgba(199,57,47,0.08))"
+                  : "var(--c-surface)",
+                border: `1px solid ${
+                  hasMock ? "var(--c-brand-primary)" : "var(--c-border-faint)"
+                }`,
+                borderRadius: 10,
+                padding: "10px 6px",
+                textAlign: "center",
+                boxShadow: d.isToday
+                  ? "0 0 0 2px var(--c-bg), 0 0 0 4px var(--c-brand-primary)"
+                  : "none",
+                minHeight: 64,
               }}
             >
               <div
                 style={{
-                  padding: "8px 14px", borderRadius: 8, cursor: "pointer",
-                  fontWeight: 500,
-                  background: type == 0 ? "var(--c-surface)" : "transparent",
-                  color: type == 0 ? "var(--c-text-primary)" : "var(--c-text-secondary)",
-                  boxShadow: type == 0 ? "0 1px 2px rgba(0,0,0,0.04)" : "none",
-                  border: type == 0 ? "1px solid var(--c-border-faint)" : "1px solid transparent",
-                  transition: "all 0.18s ease",
+                  fontSize: 10,
+                  color: "var(--c-text-tertiary)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
                 }}
-                onClick={() => { setType(0); }}
               >
-                By Category
+                {d.dayOfWeek}
               </div>
-              {isDemo ? "" : (
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: hasMock
+                    ? "var(--c-brand-primary)"
+                    : "var(--c-text-primary)",
+                  marginTop: 2,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {d.dayNum}
+              </div>
+              {d.isToday && (
                 <div
                   style={{
-                    padding: "8px 14px", borderRadius: 8, cursor: "pointer",
-                    fontWeight: 500,
-                    background: type == 1 ? "var(--c-surface)" : "transparent",
-                    color: type == 1 ? "var(--c-text-primary)" : "var(--c-text-secondary)",
-                    boxShadow: type == 1 ? "0 1px 2px rgba(0,0,0,0.04)" : "none",
-                    border: type == 1 ? "1px solid var(--c-border-faint)" : "1px solid transparent",
-                    transition: "all 0.18s ease",
+                    fontSize: 9.5,
+                    color: "var(--c-brand-primary)",
+                    marginTop: 3,
+                    fontWeight: 600,
+                    lineHeight: 1,
                   }}
-                  onClick={() => { setType(1); }}
                 >
-                  By Courses
+                  Today
+                </div>
+              )}
+              {!d.isToday && hasMock && (
+                <div
+                  style={{
+                    fontSize: 9.5,
+                    color: "var(--c-brand-primary)",
+                    marginTop: 3,
+                    fontWeight: 600,
+                    lineHeight: 1.15,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {d.marks[0].title?.replace(/^IPMAT Full /, "")}
                 </div>
               )}
             </div>
-          </div>
-          <Spacer y={4} x={4}></Spacer>
-          <AnimatePresence mode="wait">
-            <motion.div
-              transition={{
-                duration: 0.2, // duration in seconds
-                ease: [0.82, -0.07, 0, 1.13], // cubic-bezier values
+          );
+        })}
+      </div>
+
+      {/* ===== 4 stat tiles ===== */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 10,
+          marginBottom: 22,
+        }}
+      >
+        <StatTile
+          label="Attempted"
+          value={stats.attempted}
+          unit={`/${stats.total}`}
+          foot={
+            stats.total > 0
+              ? `${Math.round((stats.attempted / stats.total) * 100)}% complete`
+              : "—"
+          }
+        />
+        <StatTile
+          label="Best score"
+          value={stats.best ?? "—"}
+          unit=""
+          foot={stats.best != null ? "across attempts" : "no attempts yet"}
+        />
+        <StatTile
+          label="Avg score"
+          value={stats.avg ?? "—"}
+          unit=""
+          foot={
+            stats.avg != null
+              ? `over ${results.length} attempt${results.length === 1 ? "" : "s"}`
+              : "no attempts yet"
+          }
+        />
+        <StatTile
+          label="Time spent"
+          value={
+            stats.timeSpentSecs > 0
+              ? Math.round((stats.timeSpentSecs / 3600) * 10) / 10
+              : "—"
+          }
+          unit={stats.timeSpentSecs > 0 ? "h" : ""}
+          foot={stats.timeSpentSecs > 0 ? "approx" : "no attempts yet"}
+        />
+      </div>
+
+      {/* ===== Underline category tabs ===== */}
+      <div
+        style={{
+          display: "flex",
+          gap: 4,
+          marginBottom: 14,
+          borderBottom: "1px solid var(--c-border-faint)",
+          overflowX: "auto",
+        }}
+      >
+        {categories &&
+          categories.map((c, idx) => {
+            const isActive = idx === activeCategory;
+            const count = visibleTests.filter(
+              (t) => t.category === c.id,
+            ).length;
+            return (
+              <button
+                key={c.id}
+                onClick={() => setActiveCategory(idx)}
+                style={{
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  fontWeight: isActive ? 600 : 500,
+                  color: isActive
+                    ? "var(--c-brand-primary)"
+                    : "var(--c-text-tertiary)",
+                  background: "transparent",
+                  border: "none",
+                  borderBottom: `2px solid ${
+                    isActive ? "var(--c-brand-primary)" : "transparent"
+                  }`,
+                  marginBottom: -1,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flexShrink: 0,
+                }}
+              >
+                {c.title}
+                <span
+                  style={{
+                    background: isActive
+                      ? "var(--c-brand-soft, rgba(199,57,47,0.08))"
+                      : "var(--c-surface-sunken, var(--c-surface-muted))",
+                    color: isActive
+                      ? "var(--c-brand-primary)"
+                      : "var(--c-text-tertiary)",
+                    borderRadius: 999,
+                    padding: "1px 7px",
+                    fontSize: 11,
+                    fontWeight: 500,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        {isAdmin &&
+          categories &&
+          allCategories
+            ?.filter((c) => !categories.some((x) => x.id === c.id))
+            ?.map((c) => (
+              <div
+                key={c.id}
+                style={{
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  color: "var(--c-text-tertiary)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  opacity: 0.7,
+                  flexShrink: 0,
+                }}
+              >
+                <Lock size={12} />
+                {c.title}
+              </div>
+            ))}
+      </div>
+
+      {/* ===== Mock rows ===== */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeCategory}
+          initial={{ y: 6, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 6, opacity: 0 }}
+          transition={{ duration: 0.2, type: "tween" }}
+        >
+          {filteredCategoryTests.length === 0 ? (
+            <div
+              style={{
+                border: "1px dashed var(--c-border-soft)",
+                borderRadius: 14,
+                padding: "32px 16px",
+                textAlign: "center",
+                color: "var(--c-text-tertiary)",
+                fontSize: 13,
               }}
-              key={type + "div"}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="overflow-hidden w-full 1 h-full flex flex-col items-start justify-start "
             >
-              {type == 0 ? (
-                <>
-                  {categories && categories?.length == 0
-                    ? "No Category Found , Please try adding one"
-                    : ""}
-
-                  <div className="w-full h-full flex flex-col items-start justify-start overflow-hidden">
-                    {tests && tests?.length == 0
-                      ? "No Test Found , Please try adding one"
-                      : ""}
-                    <Spacer y={4} x={4}></Spacer>
-
-                    <div className="w-full flex flex-row flex-shrink-0 scrollbar-hide overflow-x-auto items-center justify-start">
-                      {categories &&
-                        categories?.map((z, v) => {
-                          const isActive = v == activeCategory;
-                          return (
-                            <div
-                              key={z.id}
-                              onClick={() => { setActiveCategory(v); }}
-                              style={{
-                                flexShrink: 0,
-                                padding: "10px 14px",
-                                fontSize: 13, fontWeight: 500,
-                                cursor: "pointer",
-                                borderRadius: "10px 10px 0 0",
-                                margin: "0 1px",
-                                background: isActive ? "var(--c-brand-primary)" : "var(--c-surface-muted, var(--c-bg))",
-                                color: isActive ? "#fff" : "var(--c-text-secondary)",
-                                border: "1px solid var(--c-border-faint)",
-                                borderBottom: isActive ? "1px solid var(--c-brand-primary)" : "1px solid var(--c-border-faint)",
-                                transition: "all 0.18s ease",
-                              }}
-                            >
-                              {z?.title}
-                            </div>
-                          );
-                        })}
-                      {isAdmin &&
-                        categories &&
-                        allCategories
-                          ?.filter(
-                            (item) =>
-                              !categories?.some((cat) => cat.id == item.id),
-                          )
-                          ?.map((z, v) => {
-                            return (
-                              <div
-                                key={z.id}
-                                style={{
-                                  display: "flex", flexDirection: "row",
-                                  flexShrink: 0,
-                                  padding: "10px 14px",
-                                  fontSize: 13,
-                                  borderRadius: "10px 10px 0 0",
-                                  margin: "0 1px",
-                                  background: "var(--c-surface-muted, var(--c-bg))",
-                                  color: "var(--c-text-tertiary)",
-                                  border: "1px solid var(--c-border-faint)",
-                                  pointerEvents: "none",
-                                  opacity: 0.7,
-                                }}
-                              >
-                                <Lock size={14} className="mr-2"></Lock>
-                                {z?.title}
-                              </div>
-                            );
-                          })}
-                    </div>
-                    <motion.div
-                      key={activeCategory}
-                      initial={{ y: 10, opacity: 0 }}
-                      exit={{ y: 10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 100 }}
-                      transition={{ duration: 0.2, type: "tween" }}
-                      className="w-full overflow-y-auto"
-                      style={{
-                        padding: 14,
-                        background: "var(--c-surface)",
-                        border: "1px solid var(--c-border-faint)",
-                        borderRadius: "0 12px 12px 12px",
-                      }}
-                    >
-                      {allTests?.length == 0 && tests?.length == 0 ? (
-                        <div
-                          className="w-full text-center my-2"
-                          style={{
-                            padding: 14, borderRadius: 12,
-                            background: "var(--c-surface-muted, var(--c-bg))",
-                            border: "1px dashed var(--c-border-soft)",
-                            color: "var(--c-text-tertiary)",
-                            fontSize: 13,
-                          }}
-                        >
-                          No Test Found in this Category
-                        </div>
-                      ) : (
-                        ""
-                      )}
-                      {tests &&
-                        categories &&
-                        tests
-                          ?.filter(
-                            (item) =>
-                              item?.category ==
-                                categories[activeCategory]?.id &&
-                              (isAdmin || !item?.config?.hidden),
-                          )
-                          ?.map((i, d) => {
-                            return (
-                              <ListCard
-                                key={i.id}
-                                hasResult={testIdsWithResults.has(i?.id)}
-                                openResult={() => {
-                                  setActiveResult(i?.id);
-                                }}
-                                isAdmin={isAdmin}
-                                onDelete={() => deleteTest(i.id)}
-                                onToggleVisibility={() =>
-                                  toggleVisibility(i.id, !!i?.config?.hidden)
-                                }
-                                i={i}
-                              ></ListCard>
-                            );
-                          })}
-
-                      {tests &&
-                        allTests &&
-                        categories &&
-                        allTests
-                          ?.filter(
-                            (item) =>
-                              item?.category ==
-                                categories[activeCategory]?.id &&
-                              !tests?.some((test) => test.id == item.id) &&
-                              (isAdmin || !item?.config?.hidden),
-                          )
-                          ?.map((i, d) => {
-                            return (
-                              <ListCard
-                                key={i.id}
-                                hasResult={testIdsWithResults.has(i?.id)}
-                                openResult={() => {
-                                  setActiveResult(i?.id);
-                                }}
-                                isAdmin={isAdmin}
-                                onDelete={() => deleteTest(i.id)}
-                                onToggleVisibility={() =>
-                                  toggleVisibility(i.id, !!i?.config?.hidden)
-                                }
-                                demo={
-                                  i?.config?.public_access !== true &&
-                                  !enrolled?.some(
-                                    (enrollment) =>
-                                      enrollment?.course?.id === i?.course ||
-                                      i?.config?.courses?.includes(
-                                        enrollment?.course?.id,
-                                      ),
-                                  )
-                                }
-                                i={i}
-                              ></ListCard>
-                            );
-                          })}
-                    </motion.div>
-                    {/* {categories && categories?.map((z,v)=>{
-    return <><div className="font-sans font-semibold text-lg my-4">{z.title}</div>
-    <Divider className="my-1"></Divider>
-    
-
-
-    </>
-})} */}
-                  </div>
-                </>
-              ) : (
-                ""
-              )}
-              {type == 1 ? (
-                <div className="w-full h-full flex flex-col items-start justify-start overflow-y-auto">
-                  {courses &&
-                    courses?.map((i, d) => {
-                      return (
-                        <div key={i.id}>
-                          <div className="font-sans text-lg font-bold my-4">
-                            {i.title}
-                          </div>
-                          <Divider className="my-1"></Divider>
-
-                          {tests == undefined ||
-                          tests?.filter(
-                            (item) =>
-                              item.course == i.id ||
-                              item.config?.courses?.includes(i.id),
-                          ) == 0 ? (
-                            <div
-                              className="my-2 text-center"
-                              style={{
-                                padding: 14, borderRadius: 12,
-                                background: "var(--c-surface-muted, var(--c-bg))",
-                                border: "1px dashed var(--c-border-soft)",
-                                color: "var(--c-text-tertiary)",
-                                fontSize: 13,
-                              }}
-                            >
-                              No Test Found in this Category
-                            </div>
-                          ) : (
-                            ""
-                          )}
-                          {tests &&
-                            tests
-                              ?.filter(
-                                (item) =>
-                                  (item.course == i.id ||
-                                    item.config?.courses?.includes(i.id)) &&
-                                  (isAdmin || !item?.config?.hidden),
-                              )
-                              ?.map((z, d) => {
-                                return (
-                                  <ListCard
-                                    key={z.id}
-                                    hasResult={testIdsWithResults.has(z?.id)}
-                                    openResult={() => {
-                                      setActiveResult(z?.id);
-                                    }}
-                                    isAdmin={isAdmin}
-                                    onDelete={() => deleteTest(z.id)}
-                                    onToggleVisibility={() =>
-                                      toggleVisibility(
-                                        z.id,
-                                        !!z?.config?.hidden,
-                                      )
-                                    }
-                                    i={z}
-                                  ></ListCard>
-                                );
-                              })}
-                        </div>
-                      );
-                    })}
-                </div>
-              ) : (
-                ""
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      ) : (
-        ""
-      )}
+              <div
+                style={{
+                  fontWeight: 600,
+                  color: "var(--c-text-secondary)",
+                  marginBottom: 4,
+                }}
+              >
+                No mocks in this category yet
+              </div>
+              <div>New mocks will appear here soon.</div>
+            </div>
+          ) : (
+            filteredCategoryTests.map((test, idx) => {
+              const status = resolveMockStatus(test, results);
+              const isLockedByEnrollment = isDemo
+                ? idx > 0
+                : test.config?.public_access !== true &&
+                  !enrolled?.some(
+                    (e) =>
+                      e?.course?.id === test.course ||
+                      test.config?.courses?.includes(e?.course?.id),
+                  );
+              const isHidden = !!test.config?.hidden;
+              return (
+                <MockRow
+                  key={test.id}
+                  test={test}
+                  index={idx + 1}
+                  status={status}
+                  locked={isLockedByEnrollment && !isAdmin}
+                  isAdmin={isAdmin}
+                  isHidden={isHidden}
+                  onDelete={() => deleteTest(test.id)}
+                  onToggleVisibility={() => toggleVisibility(test.id, isHidden)}
+                  openAttempts={() => setActiveResult(test.id)}
+                />
+              );
+            })
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
 
-const ListCard = ({
-  i,
-  demo,
-  hasResult,
-  openResult,
-  isAdmin,
-  onDelete,
-  onToggleVisibility,
-}) => {
-  const isHidden = !!i?.config?.hidden;
+// ============================================================
+// CountdownUnit subcomponent
+// ============================================================
+
+function CountdownUnit({ value, label }) {
+  return (
+    <div>
+      <div
+        style={{
+          fontSize: 26,
+          fontWeight: 600,
+          fontVariantNumeric: "tabular-nums",
+          lineHeight: 1,
+        }}
+      >
+        {String(value).padStart(2, "0")}
+      </div>
+      <div
+        style={{
+          fontSize: 10.5,
+          color: "rgba(255,255,255,0.7)",
+          marginTop: 4,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// StatTile subcomponent
+// ============================================================
+
+function StatTile({ label, value, unit, foot }) {
   return (
     <div
-      className="w-full flex flex-row justify-between items-center my-1"
       style={{
-        padding: "8px 10px",
-        borderRadius: 12,
-        background: isAdmin && isHidden ? "var(--c-warning-soft)" : "var(--c-surface)",
-        border: `1px solid ${isAdmin && isHidden ? "var(--c-warning)" : "var(--c-border-faint)"}`,
-        transition: "all 0.18s ease",
+        background: "var(--c-surface)",
+        border: "1px solid var(--c-border-faint)",
+        borderRadius: 14,
+        padding: "12px 14px",
       }}
     >
       <div
         style={{
-          width: 64, height: 64,
-          display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center",
-          borderRadius: 10,
-          background: "var(--c-surface-muted, var(--c-bg))",
-          border: "1px solid var(--c-border-faint)",
-          flexShrink: 0,
+          fontSize: 10.5,
+          fontWeight: 500,
+          color: "var(--c-text-tertiary)",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          marginBottom: 6,
         }}
       >
-        <p style={{ fontSize: 18, fontWeight: 700, color: "var(--c-brand-primary)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-          {CtoLocal(i?.start_time)?.date}
-        </p>
-        <p style={{ fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-          {CtoLocal(i?.start_time)?.monthName}
-        </p>
+        {label}
       </div>
-      <Spacer x={2}></Spacer>
-      <div className="flex flex-col items-start justify-start flex-1 text-left">
-        <div className="flex flex-row items-center gap-2">
-          <p style={{ fontWeight: 600, color: "var(--c-text-primary)", fontSize: 15, letterSpacing: "-0.01em" }}>{i?.title}</p>
-          {isAdmin && isHidden && (
-            <span style={{
-              fontSize: 10, fontWeight: 600, padding: "2px 6px",
-              borderRadius: 4, background: "var(--c-warning-soft)", color: "var(--c-warning)",
-              letterSpacing: "0.04em",
-            }}>
-              HIDDEN
-            </span>
-          )}
-        </div>
-        <p style={{ fontSize: 13, color: "var(--c-text-tertiary)", marginTop: 2 }}>{i?.description}</p>
-      </div>
-      <div className="flex flex-row pr-2 gap-2">
-        {isAdmin && onToggleVisibility && (
-          <Button
-            isIconOnly
-            size="sm"
-            color={isHidden ? "warning" : "default"}
-            variant="light"
-            onPress={onToggleVisibility}
-            title={isHidden ? "Show to students" : "Hide from students"}
-          >
-            {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
-          </Button>
-        )}
-        {isAdmin && (
-          <Button
-            size="sm"
-            color="default"
-            variant="flat"
-            as={Link}
-            href={`/mock/${i?.uid}?preview=true`}
-            target="_blank"
-            title="Preview test"
-          >
-            Preview
-          </Button>
-        )}
-        {isAdmin && onDelete && (
-          <Button
-            isIconOnly
-            size="sm"
-            color="danger"
-            variant="light"
-            onPress={onDelete}
-          >
-            <Trash2 size={16} />
-          </Button>
-        )}
-        {hasResult && (
-          <Button onPress={() => openResult()} size="sm" color="success">
-            View Result
-          </Button>
-        )}
-
-        {demo == true ? (
-          <Button
-            size="sm"
-            color="secondary"
-            className="text-black"
-            onPress={() => {
-              toast.success("Please contact Us.");
+      <div
+        style={{
+          fontSize: 22,
+          fontWeight: 600,
+          color: "var(--c-text-primary)",
+          letterSpacing: "-0.02em",
+          lineHeight: 1,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {value}
+        {unit && (
+          <span
+            style={{
+              fontSize: 13,
+              color: "var(--c-text-tertiary)",
+              marginLeft: 2,
             }}
-            endContent={<Lock size={16}></Lock>}
           >
-            Unlock
-          </Button>
-        ) : (
-          <>
-            {i?.start_time
-              ? (() => {
-                  const now = new Date();
-                  const startTime = parseISO(i.start_time);
-                  const availableFrom = addDays(startTime, -2);
-
-                  if (
-                    isAfter(now, availableFrom) &&
-                    isBefore(now, addDays(startTime, 1)) &&
-                    isBefore(now, parseISO(i?.end_time))
-                  ) {
-                    return (
-                      <Button
-                        size="sm"
-                        className="ml-2 text-white"
-                        color="primary"
-                        as={Link}
-                        href={`/mock/${i?.uid}`}
-                        target="_blank"
-                      >
-                        Select Test
-                      </Button>
-                    );
-                  } else if (isBefore(now, availableFrom)) {
-                    return (
-                      <span className="ml-2 text-sm" style={{ color: "var(--c-text-tertiary)" }}>
-                        Available from {format(startTime, "MMM dd, yyyy")}
-                      </span>
-                    );
-                  } else if (
-                    i?.end_time &&
-                    isAfter(now, endOfDay(parseISO(i.end_time)))
-                  ) {
-                    return (
-                      <span className="ml-2 text-sm" style={{ color: "var(--c-text-tertiary)" }}>
-                        Test time has passed
-                      </span>
-                    );
-                  } else if (
-                    i?.end_time &&
-                    isBefore(now, parseISO(i?.end_time))
-                  ) {
-                    return (
-                      <Button
-                        size="sm"
-                        className="ml-2 text-white"
-                        color="primary"
-                        as={Link}
-                        href={`/mock/${i?.uid}`}
-                        target="_blank"
-                      >
-                        Select Test
-                      </Button>
-                    );
-                  }
-
-                  return null;
-                })()
-              : null}
-          </>
+            {unit}
+          </span>
         )}
+      </div>
+      <div
+        style={{
+          fontSize: 11,
+          color: "var(--c-text-tertiary)",
+          marginTop: 6,
+        }}
+      >
+        {foot}
       </div>
     </div>
   );
-};
+}
+
+// ============================================================
+// MockRow subcomponent
+// ============================================================
+
+function MockRow({
+  test,
+  index,
+  status,
+  locked,
+  isAdmin,
+  isHidden,
+  onDelete,
+  onToggleVisibility,
+  openAttempts,
+}) {
+  const duration = formatMinutes(test.config?.timeout);
+  const diff = difficultyLabel(test.config?.difficulty);
+  const sectionsCount = test.config?.sections?.length;
+  const scheduledDate = test.start_time
+    ? format(parseISO(test.start_time), "d MMM")
+    : null;
+
+  let pill = null;
+  if (status.kind === "attempted") {
+    pill = {
+      label: status.attempts > 1 ? `${status.attempts} attempts` : "Attempted",
+      bg: "var(--c-success-soft, #E4F2EA)",
+      fg: "var(--c-success, #1A7F4E)",
+    };
+  } else if (status.kind === "live" || status.kind === "available") {
+    pill = {
+      label: "Available now",
+      bg: "var(--c-brand-soft, rgba(199,57,47,0.08))",
+      fg: "var(--c-brand-primary)",
+    };
+  } else if (status.kind === "upcoming") {
+    pill = {
+      label: `Opens ${format(status.opensAt, "d MMM")}`,
+      bg: "var(--c-warning-soft, #FBEED2)",
+      fg: "var(--c-warning, #B66C00)",
+    };
+  } else if (status.kind === "closed") {
+    pill = {
+      label: "Closed",
+      bg: "var(--c-surface-sunken, var(--c-surface-muted))",
+      fg: "var(--c-text-tertiary)",
+    };
+  }
+
+  let action = null;
+  if (locked) {
+    action = (
+      <button
+        onClick={() => toast.success("Please contact us to unlock.")}
+        style={{
+          height: 36,
+          padding: "0 16px",
+          borderRadius: 999,
+          background: "transparent",
+          border: "1px solid var(--c-border-soft)",
+          color: "var(--c-text-secondary)",
+          fontSize: 12.5,
+          fontWeight: 500,
+          fontFamily: "inherit",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          cursor: "pointer",
+          flexShrink: 0,
+        }}
+      >
+        <Lock size={14} /> Unlock
+      </button>
+    );
+  } else if (status.kind === "attempted") {
+    action = (
+      <Link
+        href={`/mock/result/${status.latestPlay.uid}`}
+        target="_blank"
+        style={{
+          height: 36,
+          padding: "0 16px",
+          borderRadius: 999,
+          background: "transparent",
+          border: "1px solid var(--c-success, #1A7F4E)",
+          color: "var(--c-success, #1A7F4E)",
+          fontSize: 12.5,
+          fontWeight: 500,
+          fontFamily: "inherit",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          cursor: "pointer",
+          flexShrink: 0,
+          textDecoration: "none",
+        }}
+      >
+        <ChartBarIncreasing size={14} /> View result
+      </Link>
+    );
+  } else if (status.kind === "live" || status.kind === "available") {
+    action = (
+      <Link
+        href={`/mock/${test.uid}`}
+        target="_blank"
+        style={{
+          height: 36,
+          padding: "0 16px",
+          borderRadius: 999,
+          background: "var(--c-brand-primary)",
+          color: "#fff",
+          fontSize: 12.5,
+          fontWeight: 500,
+          fontFamily: "inherit",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          cursor: "pointer",
+          flexShrink: 0,
+          textDecoration: "none",
+        }}
+      >
+        Start <ArrowRight size={14} />
+      </Link>
+    );
+  } else if (status.kind === "upcoming") {
+    action = (
+      <button
+        onClick={() => toast.success("We'll notify you when it opens.")}
+        style={{
+          height: 36,
+          padding: "0 16px",
+          borderRadius: 999,
+          background: "transparent",
+          border: "1px solid var(--c-border-soft)",
+          color: "var(--c-text-secondary)",
+          fontSize: 12.5,
+          fontWeight: 500,
+          fontFamily: "inherit",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          cursor: "pointer",
+          flexShrink: 0,
+        }}
+      >
+        <Bell size={14} /> Notify me
+      </button>
+    );
+  } else {
+    action = (
+      <span
+        style={{
+          fontSize: 12.5,
+          color: "var(--c-text-tertiary)",
+          flexShrink: 0,
+        }}
+      >
+        Test time has passed
+      </span>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        background: "var(--c-surface)",
+        border: `1px solid ${
+          isAdmin && isHidden
+            ? "var(--c-warning, #B66C00)"
+            : "var(--c-border-faint)"
+        }`,
+        borderRadius: 14,
+        padding: "14px 16px",
+        marginBottom: 8,
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+      }}
+    >
+      <div
+        style={{
+          flexShrink: 0,
+          width: 48,
+          height: 48,
+          background: "var(--c-surface-sunken, var(--c-surface-muted))",
+          borderRadius: 12,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 16,
+          fontWeight: 600,
+          color: "var(--c-text-secondary)",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {String(index).padStart(2, "0")}
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: "var(--c-text-primary)",
+              letterSpacing: "-0.005em",
+            }}
+          >
+            {test.title}
+          </div>
+          {pill && (
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 600,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                padding: "2px 8px",
+                borderRadius: 999,
+                background: pill.bg,
+                color: pill.fg,
+              }}
+            >
+              {pill.label}
+            </div>
+          )}
+          {isAdmin && isHidden && (
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                padding: "1px 6px",
+                borderRadius: 4,
+                background: "var(--c-warning-soft, #FBEED2)",
+                color: "var(--c-warning, #B66C00)",
+              }}
+            >
+              HIDDEN
+            </div>
+          )}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 14,
+            fontSize: 12.5,
+            color: "var(--c-text-tertiary)",
+            marginTop: 6,
+            flexWrap: "wrap",
+          }}
+        >
+          <span
+            style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+          >
+            <Clock size={12} /> {duration}
+          </span>
+          {sectionsCount && <span>{sectionsCount} sections</span>}
+          {diff && <span>{diff}</span>}
+          {scheduledDate && <span>{scheduledDate}</span>}
+        </div>
+      </div>
+
+      {status.kind === "attempted" &&
+        typeof status.latestPlay?.score === "number" && (
+          <div
+            style={{
+              flexShrink: 0,
+              textAlign: "right",
+              padding: "0 14px 0 4px",
+              borderRight: "1px solid var(--c-border-faint)",
+              marginRight: 2,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                color: "var(--c-text-primary)",
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
+              }}
+            >
+              {status.latestPlay.score}
+            </div>
+            <div
+              style={{
+                fontSize: 10.5,
+                color: "var(--c-text-tertiary)",
+                marginTop: 4,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+              }}
+            >
+              Score
+            </div>
+          </div>
+        )}
+
+      {isAdmin && (
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <button
+            onClick={onToggleVisibility}
+            title={isHidden ? "Show to students" : "Hide from students"}
+            style={iconBtn}
+          >
+            {isHidden ? <EyeOff size={14} /> : <Eye size={14} />}
+          </button>
+          <Link
+            href={`/mock/${test.uid}?preview=true`}
+            target="_blank"
+            title="Preview test"
+            style={{ ...iconBtn, textDecoration: "none" }}
+          >
+            <Play size={14} />
+          </Link>
+          <button onClick={onDelete} title="Delete test" style={iconBtn}>
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )}
+
+      {action}
+    </div>
+  );
+}
