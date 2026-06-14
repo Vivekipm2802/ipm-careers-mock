@@ -380,9 +380,12 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     const avg = scores.length
       ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
       : null;
+    // Phase 15 Ship A.1: coerce timeout to Number — was hitting string concat
+    // for tests where config.timeout was stored as a string ("7200" not 7200),
+    // producing "07200720072007200..." that overflowed to scientific notation.
     const timeSpentSecs = results.reduce((sum, r) => {
       const t = visibleTests.find((x) => x.id === r.test_id);
-      const dur = t?.config?.timeout || 0;
+      const dur = Number(t?.config?.timeout) || 0;
       return sum + dur;
     }, 0);
     return { attempted, total, best, avg, timeSpentSecs };
@@ -565,7 +568,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
       </div>
       <h1
         style={{
-          margin: "0 0 6px",
+          margin: "0 0 18px",
           fontSize: 28,
           fontWeight: 600,
           letterSpacing: "-0.022em",
@@ -575,30 +578,19 @@ export default function MockTests({ enrolled = [], role = "user" }) {
       >
         Sit a <span style={serifStyle}>full mock</span>.
       </h1>
-      <p
-        style={{
-          margin: "0 0 20px",
-          fontSize: 14,
-          lineHeight: 1.55,
-          color: "var(--c-text-secondary)",
-          maxWidth: "58ch",
-        }}
-      >
-        Full-length IPMAT mocks under exam conditions. Build endurance, refine
-        timing, and see how you stack up before the real thing.
-      </p>
 
-      {/* ===== Hero grid: Countdown + Continue ===== */}
+      {/* ===== Hero grid: Countdown + Continue. Collapses when both empty (Ship A.1). ===== */}
+      {(countdown && nextMock) || continueCard ? (
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1.3fr 1fr",
+          gridTemplateColumns: (countdown && nextMock) && continueCard ? "1.3fr 1fr" : "1fr",
           gap: 14,
           marginBottom: 18,
         }}
       >
         {/* Countdown card */}
-        {countdown && nextMock ? (
+        {countdown && nextMock && (
           <div
             style={{
               background:
@@ -666,46 +658,10 @@ export default function MockTests({ enrolled = [], role = "user" }) {
               <CountdownUnit value={countdown.minutes} label="min" />
             </div>
           </div>
-        ) : (
-          <div
-            style={{
-              background: "var(--c-surface)",
-              border: "1px solid var(--c-border-faint)",
-              borderRadius: 16,
-              padding: "18px 20px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              justifyContent: "center",
-            }}
-          >
-            <div style={{ ...eyebrowStyle, fontSize: 10.5, marginBottom: 6 }}>
-              All caught up
-            </div>
-            <div
-              style={{
-                fontSize: 17,
-                fontWeight: 600,
-                color: "var(--c-text-primary)",
-                letterSpacing: "-0.015em",
-              }}
-            >
-              No mocks scheduled right now.
-            </div>
-            <div
-              style={{
-                fontSize: 13,
-                color: "var(--c-text-tertiary)",
-                marginTop: 4,
-              }}
-            >
-              Check back soon — new mocks open weekly during exam season.
-            </div>
-          </div>
         )}
 
         {/* Continue card */}
-        {continueCard ? (
+        {continueCard && (
           <div
             style={{
               background: "var(--c-surface)",
@@ -778,47 +734,13 @@ export default function MockTests({ enrolled = [], role = "user" }) {
               View result <ArrowRight size={14} />
             </Link>
           </div>
-        ) : (
-          <div
-            style={{
-              background: "var(--c-surface)",
-              border: "1px solid var(--c-border-faint)",
-              borderRadius: 16,
-              padding: "16px 18px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "flex-start",
-            }}
-          >
-            <div style={{ ...eyebrowStyle, fontSize: 10.5, marginBottom: 6 }}>
-              Continue
-            </div>
-            <div
-              style={{
-                fontSize: 14.5,
-                fontWeight: 600,
-                color: "var(--c-text-primary)",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              No mocks attempted yet.
-            </div>
-            <div
-              style={{
-                fontSize: 12.5,
-                color: "var(--c-text-tertiary)",
-                marginTop: 4,
-                lineHeight: 1.4,
-              }}
-            >
-              Start with Mock 01 once it&apos;s available.
-            </div>
-          </div>
         )}
       </div>
+      ) : null}
 
-      {/* ===== "Next 7 days" calendar strip ===== */}
+      {/* ===== "Next 7 days" calendar strip — only render when there's at least one mock in the window (Ship A.1). ===== */}
+      {week.some((d) => d.marks.length > 0) && (
+      <>
       <div
         style={{
           fontSize: 11,
@@ -916,6 +838,8 @@ export default function MockTests({ enrolled = [], role = "user" }) {
           );
         })}
       </div>
+      </>
+      )}
 
       {/* ===== 4 stat tiles ===== */}
       <div
