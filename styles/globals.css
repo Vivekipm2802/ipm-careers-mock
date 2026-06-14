@@ -219,6 +219,9 @@ html, body {
   margin: 0;
   font-family: 'Inter', Poppins, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
     Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  /* Phase 15 Ship A.3: kill page-level horizontal scroll across whole app —
+     no dashboard view should produce horizontal scroll on the body. */
+  overflow-x: hidden;
 }
 
 body { background-color: white; }
