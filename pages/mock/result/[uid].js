@@ -432,7 +432,12 @@ export default function MockResult({ result }) {
               qIndex += 1;
               const status = getQStatus(q);
               if (activeFilter !== "all" && activeFilter !== status) return;
-              const correctIdx = q?.options?.findIndex((o) => o?.isCorrect);
+              // Phase 14 Ship A.2: guard findIndex — SA/input questions store options as an object {answer},
+              // not an array, so optional chaining alone wasn't enough. Without this guard the result page
+              // crashes with "n.findIndex is not a function" on any test with non-MCQ questions.
+              const correctIdx = Array.isArray(q?.options)
+                ? q.options.findIndex((o) => o?.isCorrect)
+                : -1;
               const reportItem = result.report?.find((r) => r.id === q.id);
               const chosenIdx = reportItem ? reportItem.value - 1 : null;
               cards.push(
