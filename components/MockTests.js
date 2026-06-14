@@ -447,11 +447,15 @@ export default function MockTests({ enrolled = [], role = "user" }) {
       style={{
         width: "100%",
         height: "100%",
-        overflow: "auto",
+        // Phase 15 Ship A.2: vertical scroll only — horizontal scroll was
+        // exposing the global orange scrollbar styling and pushing the page wide.
+        overflowY: "auto",
+        overflowX: "hidden",
         fontFamily: FONT,
         padding: "24px 28px 36px",
         color: "var(--c-text-primary)",
         textAlign: "left",
+        boxSizing: "border-box",
       }}
     >
       {/* ===== Attempts modal ===== */}
@@ -890,6 +894,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
 
       {/* ===== Underline category tabs ===== */}
       <div
+        className="scrollbar-hide"
         style={{
           display: "flex",
           gap: 4,
