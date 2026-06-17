@@ -10,6 +10,9 @@
 
 .left{
     /* Phase 16 Ship C: width is now controlled inline from DefaultLayout.js (76px collapsed / 350px expanded). */
+    /* Phase 16 Ship C.1: flex-shrink: 0 prevents sibling pages with wide content (Mock Tests
+       category tabs, etc.) from squeezing the sidebar narrower than its set width. */
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -24,15 +27,15 @@
     top: 20px;
     left: 0;
     width: 100%;
-    
+
     height: 80px;
 }
 .right{
     flex: 1;
-   
+    /* Phase 16 Ship C.1: min-width: 0 lets the right column shrink/clip if its content
+       is too wide, instead of pushing the sibling sidebar to shrink. */
+    min-width: 0;
     text-align: center;
-  
-    
 }
 
 /* .gamecontainer {

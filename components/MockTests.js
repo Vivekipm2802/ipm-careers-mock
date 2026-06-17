@@ -583,12 +583,13 @@ export default function MockTests({ enrolled = [], role = "user" }) {
         Sit a <span style={serifStyle}>full mock</span>.
       </h1>
 
-      {/* ===== Hero grid: Countdown + Continue. Collapses when both empty (Ship A.1). ===== */}
-      {(countdown && nextMock) || continueCard ? (
+      {/* ===== Hero grid: Countdown (always) + Continue (when available).
+           Phase 15 Ship A.4: countdown is always rendered so the hybrid layout
+           stays consistent — empty state shows when there's no upcoming mock. ===== */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: (countdown && nextMock) && continueCard ? "1.3fr 1fr" : "1fr",
+          gridTemplateColumns: continueCard ? "1.3fr 1fr" : "1fr",
           gap: 14,
           marginBottom: 18,
         }}
@@ -660,6 +661,84 @@ export default function MockTests({ enrolled = [], role = "user" }) {
               <CountdownUnit value={countdown.days} label="days" />
               <CountdownUnit value={countdown.hours} label="hours" />
               <CountdownUnit value={countdown.minutes} label="min" />
+            </div>
+          </div>
+        )}
+
+        {/* Phase 15 Ship A.4: empty state when no upcoming mock — keeps the layout consistent */}
+        {!(countdown && nextMock) && (
+          <div
+            style={{
+              background:
+                "linear-gradient(135deg, var(--c-brand-primary) 0%, #8c2620 100%)",
+              color: "#fff",
+              borderRadius: 16,
+              padding: "18px 20px",
+              position: "relative",
+              overflow: "hidden",
+              opacity: 0.96,
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                right: -40,
+                top: -40,
+                width: 180,
+                height: 180,
+                background:
+                  "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)",
+                borderRadius: "50%",
+                pointerEvents: "none",
+              }}
+            />
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 500,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.7)",
+                marginBottom: 6,
+                position: "relative",
+              }}
+            >
+              Next mock
+            </div>
+            <div
+              style={{
+                margin: "0 0 6px",
+                fontSize: 17,
+                fontWeight: 600,
+                letterSpacing: "-0.015em",
+                position: "relative",
+              }}
+            >
+              No upcoming mocks scheduled
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                opacity: 0.85,
+                position: "relative",
+                lineHeight: 1.4,
+              }}
+            >
+              New mocks open weekly during exam season. Check back soon, or take an
+              available one below.
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 16,
+                marginTop: 14,
+                position: "relative",
+                opacity: 0.55,
+              }}
+            >
+              <CountdownUnit value={0} label="days" />
+              <CountdownUnit value={0} label="hours" />
+              <CountdownUnit value={0} label="min" />
             </div>
           </div>
         )}
@@ -740,11 +819,8 @@ export default function MockTests({ enrolled = [], role = "user" }) {
           </div>
         )}
       </div>
-      ) : null}
 
-      {/* ===== "Next 7 days" calendar strip — only render when there's at least one mock in the window (Ship A.1). ===== */}
-      {week.some((d) => d.marks.length > 0) && (
-      <>
+      {/* ===== "Next 7 days" calendar strip — always rendered (Phase 15 Ship A.4 restored from A.1). ===== */}
       <div
         style={{
           fontSize: 11,
@@ -842,8 +918,6 @@ export default function MockTests({ enrolled = [], role = "user" }) {
           );
         })}
       </div>
-      </>
-      )}
 
       {/* ===== 4 stat tiles ===== */}
       <div
