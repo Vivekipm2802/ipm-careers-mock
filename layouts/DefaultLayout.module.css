@@ -9,9 +9,7 @@
 }
 
 .left{
-   
-    width: 350px;
-   
+    /* Phase 16 Ship C: width is now controlled inline from DefaultLayout.js (76px collapsed / 350px expanded). */
     display: flex;
     flex-direction: column;
     position: relative;

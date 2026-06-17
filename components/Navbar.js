@@ -56,6 +56,8 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
   const {
     setProfileModal, setCoursesModal, setRedeemActive,
     userDetails, ctxSlug, setCTXSlug, sk, setSK, isDemo,
+    // Phase 16 Ship C: collapsible sidebar
+    sidebarCollapsed,
   } = useNMNContext();
 
   function convertToWebP(url) {
@@ -289,7 +291,72 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
         <div className="flex flex-1 h-full bg-transparent cursor-pointer" onClick={() => { setIsActive(false); }}></div>
       </div>
 
-      {/* ── Desktop sidebar — sections with labels ─────────────── */}
+      {/* ── Desktop sidebar — COLLAPSED MODE (icon-only with hover tooltip) ───── */}
+      {sidebarCollapsed && (
+        <div className="hidden lg:flex w-full flex-col items-stretch flex-nowrap max-h-[70vh] overflow-y-auto overflow-x-visible mt-[100px] pt-2 px-0">
+          {SECTIONS.map((section, secIdx) => {
+            const items = sectionItems[section.label] || [];
+            if (items.length === 0) return null;
+            return (
+              <div key={section.label}>
+                {/* Section divider line (no label) */}
+                {secIdx > 0 && (
+                  <div style={{ height: 1, background: 'var(--c-border-faint)', margin: '6px 14px' }} />
+                )}
+                {items.map((parent) => {
+                  // Find first user-facing sub-item to navigate to when this parent icon is clicked.
+                  const firstSub = parent.items?.find((s) => {
+                    if (s.type === 'admin' && !showAdminItems) return false;
+                    if (isDemo && s.demo === false) return false;
+                    return true;
+                  });
+                  // Active when any of this parent's items matches current ctxSlug.
+                  const isParentActive = parent.items?.some((s) => s.action === ctxSlug);
+                  const locked = isDemo && parent.demo === false;
+                  return (
+                    <div
+                      key={parent.title}
+                      onClick={() => {
+                        if (locked) {
+                          toast.error('Purchase a Course to Unlock');
+                          return;
+                        }
+                        if (firstSub) setCTXSlug(firstSub.action);
+                      }}
+                      title={parent.title}
+                      style={{
+                        position: 'relative',
+                        margin: '3px 10px',
+                        padding: '11px 0',
+                        borderRadius: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: isParentActive ? 'var(--c-brand-primary)' : 'var(--c-text-secondary)',
+                        background: isParentActive ? 'var(--c-brand-primary-tint)' : 'transparent',
+                        cursor: locked ? 'not-allowed' : 'pointer',
+                        opacity: locked ? 0.6 : 1,
+                        transition: 'background 0.15s ease, color 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isParentActive) e.currentTarget.style.background = 'var(--c-surface-muted)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isParentActive) e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      {locked ? <Lock size={20} /> : (parent.icon || null)}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Desktop sidebar — EXPANDED MODE (sections with labels) ─────────────── */}
+      {!sidebarCollapsed && (
       <div className="hidden lg:flex w-full flex-col flex-nowrap max-h-[70vh] overflow-y-auto p-1">
         {SECTIONS.map((section) => {
           const items = sectionItems[section.label] || [];
@@ -327,6 +394,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
           );
         })}
       </div>
+      )}
     </nav>
   );
 };

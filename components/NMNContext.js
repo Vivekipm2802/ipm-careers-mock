@@ -28,6 +28,29 @@ export const NMNContextProvider = ({ children }) => {
   const [sideBarContent, setSideBarContent] = useState(<p>Content</p>);
   const [isRouting, setIsRouting] = useState(false);
 
+  // Phase 16 Ship C: collapsible desktop sidebar (icon-only by default, click toggle to expand).
+  // Persisted in localStorage so the choice sticks across pages + sessions.
+  const [sidebarCollapsed, setSidebarCollapsedState] = useState(true);
+  useEffect(() => {
+    try {
+      const stored = typeof window !== "undefined"
+        ? window.localStorage.getItem("ipm-sidebar-collapsed")
+        : null;
+      if (stored !== null) {
+        setSidebarCollapsedState(stored === "true");
+      }
+    } catch (_e) { /* ignore */ }
+  }, []);
+  const setSidebarCollapsed = (v) => {
+    setSidebarCollapsedState(v);
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("ipm-sidebar-collapsed", String(v));
+      }
+    } catch (_e) { /* ignore */ }
+  };
+  const toggleSidebar = () => setSidebarCollapsed(!sidebarCollapsed);
+
   const payments = [
     {
       title: "Cash",
@@ -432,6 +455,10 @@ console.log(t)
         setIsRouting,
         reportActive,
         setReportActive,
+        // Phase 16 Ship C
+        sidebarCollapsed,
+        setSidebarCollapsed,
+        toggleSidebar,
       }}
     >
       {children}

@@ -11,6 +11,8 @@ function DefaultLayout(props){
   const {
     sideBar, setSideBar, sideBarContent, navitems, userCourses,
     isDemo, reportActive, setReportActive,
+    // Phase 16 Ship C: collapsible sidebar state
+    sidebarCollapsed, toggleSidebar,
   } = useNMNContext();
 
   const accordian = navitems;
@@ -63,30 +65,85 @@ function DefaultLayout(props){
         {sideBarContent}
       </div>
 
+      {/* Phase 16 Ship C: sidebar width is dynamic — 76px collapsed, 350px expanded. Smooth transition. */}
       <div
         className={styles.left + " " + styles.gamecontainer + " shadow-xl px-2"}
         style={{
           background: 'var(--c-surface)',
           borderRight: '1px solid var(--c-border-faint)',
+          width: sidebarCollapsed ? 76 : 350,
+          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        <img className={styles.logo + " px-6"} width={300} src='/newlog.svg' alt="IPM Careers" />
+        {/* Collapse-mode logo (just the mark) vs expanded logo (full wordmark) */}
+        {sidebarCollapsed ? (
+          <div
+            className={styles.logo + " flex items-center justify-center"}
+            style={{ width: '100%', height: 80, position: 'absolute', top: 20, left: 0 }}
+          >
+            <div
+              style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: 'var(--c-brand-primary)',
+                color: 'white',
+                display: 'grid', placeItems: 'center',
+                fontWeight: 700, fontSize: 14,
+              }}
+            >
+              IPM
+            </div>
+          </div>
+        ) : (
+          <img className={styles.logo + " px-6"} width={300} src='/newlog.svg' alt="IPM Careers" />
+        )}
+
+        {/* Toggle button — hangs off the right edge of the sidebar */}
+        <button
+          onClick={toggleSidebar}
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="hidden lg:flex"
+          style={{
+            position: 'absolute',
+            top: 38,
+            right: -12,
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            background: 'var(--c-surface)',
+            border: '1px solid var(--c-border-soft)',
+            color: 'var(--c-text-secondary)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 20,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+            transition: 'all 0.15s ease',
+            fontSize: 14,
+            lineHeight: 1,
+            padding: 0,
+          }}
+        >
+          {sidebarCollapsed ? '›' : '‹'}
+        </button>
+
         <Navbar
           currentSlug={props?.currentSlug}
           changePage={(e) => { props?.changePage ? props.changePage(e) : ''; }}
           accordian={accordian}
           type={props.type || "user"}
         />
-        <div
-          className="lg:block hidden w-full absolute text-center p-2"
-          style={{
-            bottom: 5,
-            fontSize: 12,
-            color: 'var(--c-text-tertiary)',
-          }}
-        >
-          © 2024 IPM Careers. All rights reserved
-        </div>
+        {!sidebarCollapsed && (
+          <div
+            className="lg:block hidden w-full absolute text-center p-2"
+            style={{
+              bottom: 5,
+              fontSize: 12,
+              color: 'var(--c-text-tertiary)',
+            }}
+          >
+            © 2024 IPM Careers. All rights reserved
+          </div>
+        )}
       </div>
 
       <div className={`${styles.right} p-2`} style={{ background: 'var(--c-bg)' }}>
