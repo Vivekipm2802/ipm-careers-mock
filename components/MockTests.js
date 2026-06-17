@@ -572,7 +572,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
       </div>
       <h1
         style={{
-          margin: "0 0 18px",
+          margin: "0 0 6px",
           fontSize: 28,
           fontWeight: 600,
           letterSpacing: "-0.022em",
@@ -582,6 +582,19 @@ export default function MockTests({ enrolled = [], role = "user" }) {
       >
         Sit a <span style={serifStyle}>full mock</span>.
       </h1>
+      {/* Phase 15 Ship A.4: lead paragraph restored to match the approved hybrid preview. */}
+      <p
+        style={{
+          margin: "0 0 20px",
+          fontSize: 14,
+          lineHeight: 1.55,
+          color: "var(--c-text-secondary)",
+          maxWidth: "58ch",
+        }}
+      >
+        Full-length IPMAT mocks under exam conditions. Build endurance, refine
+        timing, and see how you stack up before the real thing.
+      </p>
 
       {/* ===== Hero grid: Countdown (always) + Continue (when available).
            Phase 15 Ship A.4: countdown is always rendered so the hybrid layout
