@@ -273,11 +273,12 @@ const Selector = ({ type, onSelect, role, title }) => {
     return counts;
   }, [visibleGroups]);
 
-  // Phase 19 Ship C: filter remaining packs by selectedTopic
+  // Phase 19 Ship C.1: "All packs" grid now includes EVERY visible pack
+  // (the featured one at top is a spotlight, not a removal — students were
+  // confused when the featured pack went missing from the list below).
   const remainingPacks = useMemo(() => {
-    const rest = visibleGroups.slice(1);
-    if (!selectedTopic) return rest;
-    return rest.filter((g) => g.topic === selectedTopic);
+    if (!selectedTopic) return visibleGroups;
+    return visibleGroups.filter((g) => g.topic === selectedTopic);
   }, [visibleGroups, selectedTopic]);
 
   const stats = useMemo(() => {
