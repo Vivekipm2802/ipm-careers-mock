@@ -1,11 +1,11 @@
 // ============================================================
-// VideoGroups — Phase 19 Ship B: refined library design
-// Matches self-learning-refined.html:
-// - Hero greeting "Watch and *learn*." with italic-serif accent
-// - Hero row: Featured pack card (cinematic, 1.5fr) + 3 KpiCard stat tiles stacked (1fr)
-// - "All packs" 3-column rich card grid with real thumbnail images from video_groups.image
-// - Each card: thumbnail + duration/badge + title + description + meta + Access button
-// - Admin controls preserved (Add/Edit/Delete/Hide via popovers)
+// VideoGroups — Phase 19 Ship C: + Explore by topic tiles + filter
+// Builds on Ship B:
+// - Adds 4 gradient topic tiles (Quant/Verbal/Logical/PI Prep) between hero row + All packs
+// - Clicking a tile filters the All packs grid to that topic
+// - Active tile shows brand-coloured ring + "Clear filter" link appears in the All packs row
+// - Adds Topic dropdown to Add/Edit pack popover forms
+// Requires SQL: alter table video_groups add column if not exists topic text;
 // ============================================================
 
 import { supabase } from "@/utils/supabaseClient";
@@ -76,6 +76,42 @@ const serifStyle = {
   color: "var(--c-brand-primary)",
 };
 
+// Phase 19 Ship C: Topic categorization for video packs
+const TOPICS = [
+  {
+    key: "quant",
+    label: "Quant",
+    full: "Quantitative Ability",
+    gradient: "linear-gradient(135deg, #4C2B91 0%, #7C3AED 60%, #A78BFA 100%)",
+    accent: "#A78BFA",
+    icon: "𝒙²",
+  },
+  {
+    key: "verbal",
+    label: "Verbal",
+    full: "Verbal Ability",
+    gradient: "linear-gradient(135deg, #14532D 0%, #16A34A 60%, #4ADE80 100%)",
+    accent: "#4ADE80",
+    icon: "Aa",
+  },
+  {
+    key: "logical",
+    label: "Logical",
+    full: "Logical Reasoning",
+    gradient: "linear-gradient(135deg, #7C2D12 0%, #EA580C 60%, #FB923C 100%)",
+    accent: "#FB923C",
+    icon: "◇",
+  },
+  {
+    key: "pi",
+    label: "PI Prep",
+    full: "Personal Interview",
+    gradient: "linear-gradient(135deg, #7F1D1D 0%, #DC2626 60%, #F87171 100%)",
+    accent: "#F87171",
+    icon: "✦",
+  },
+];
+
 // ============================================================
 // Selector — main view
 // ============================================================
@@ -91,6 +127,8 @@ const Selector = ({ type, onSelect, role, title }) => {
   const [courses, setCourses] = useState();
   const [editGroupdata, setEditGroupData] = useState();
   const [batches, setBatches] = useState();
+  // Phase 19 Ship C: filter by topic
+  const [selectedTopic, setSelectedTopic] = useState(null);
 
   // ----------------------------------------------------------
   // Data fetching
@@ -149,6 +187,7 @@ const Selector = ({ type, onSelect, role, title }) => {
     };
     if (a.course_id) insertData.course_id = a.course_id;
     if (a.batch_id) insertData.batch_id = a.batch_id;
+    if (a.topic) insertData.topic = a.topic; // Phase 19 Ship C
 
     const { data, error } = await supabase
       .from("video_groups")
@@ -191,6 +230,7 @@ const Selector = ({ type, onSelect, role, title }) => {
     if (a.image !== undefined) updateData.image = a.image;
     if (a.course_id !== undefined) updateData.course_id = a.course_id;
     if (a.batch_id !== undefined) updateData.batch_id = a.batch_id;
+    if (a.topic !== undefined) updateData.topic = a.topic; // Phase 19 Ship C
 
     const { data, error } = await supabase
       .from("video_groups")
@@ -223,9 +263,22 @@ const Selector = ({ type, onSelect, role, title }) => {
     return visibleGroups[0] || null;
   }, [visibleGroups]);
 
-  const remainingPacks = useMemo(() => {
-    return visibleGroups.slice(1);
+  // Phase 19 Ship C: per-topic pack counts (used by topic tiles)
+  const topicCounts = useMemo(() => {
+    const counts = {};
+    TOPICS.forEach((t) => (counts[t.key] = 0));
+    visibleGroups.forEach((g) => {
+      if (g.topic && counts[g.topic] !== undefined) counts[g.topic]++;
+    });
+    return counts;
   }, [visibleGroups]);
+
+  // Phase 19 Ship C: filter remaining packs by selectedTopic
+  const remainingPacks = useMemo(() => {
+    const rest = visibleGroups.slice(1);
+    if (!selectedTopic) return rest;
+    return rest.filter((g) => g.topic === selectedTopic);
+  }, [visibleGroups, selectedTopic]);
 
   const stats = useMemo(() => {
     const total = visibleGroups.length;
@@ -381,6 +434,48 @@ const Selector = ({ type, onSelect, role, title }) => {
         </div>
       )}
 
+      {/* ===== Phase 19 Ship C: Explore by topic ===== */}
+      {visibleGroups.length > 0 && (
+        <>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--c-text-tertiary)",
+              margin: "4px 0 12px",
+            }}
+          >
+            Explore by topic
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 10,
+              marginBottom: 32,
+            }}
+          >
+            {TOPICS.map((t) => {
+              const count = topicCounts[t.key] || 0;
+              const isActive = selectedTopic === t.key;
+              return (
+                <TopicTile
+                  key={t.key}
+                  topic={t}
+                  count={count}
+                  active={isActive}
+                  onClick={() => {
+                    setSelectedTopic(isActive ? null : t.key);
+                  }}
+                />
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {/* ===== All packs heading + grid ===== */}
       <div
         style={{
@@ -399,16 +494,40 @@ const Selector = ({ type, onSelect, role, title }) => {
             color: "var(--c-text-primary)",
           }}
         >
-          All <span style={{ color: "var(--c-text-tertiary)" }}>packs</span>
+          {selectedTopic
+            ? (TOPICS.find((t) => t.key === selectedTopic)?.full || "Filtered") + " "
+            : "All "}
+          <span style={{ color: "var(--c-text-tertiary)" }}>packs</span>
         </h2>
-        <span
-          style={{
-            fontSize: 12.5,
-            color: "var(--c-text-tertiary)",
-          }}
-        >
-          {visibleGroups.length} {visibleGroups.length === 1 ? "pack" : "packs"} available
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {selectedTopic && (
+            <button
+              onClick={() => setSelectedTopic(null)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--c-brand-primary)",
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                padding: 0,
+              }}
+            >
+              Clear filter ×
+            </button>
+          )}
+          <span
+            style={{
+              fontSize: 12.5,
+              color: "var(--c-text-tertiary)",
+            }}
+          >
+            {remainingPacks.length}{" "}
+            {remainingPacks.length === 1 ? "pack" : "packs"}
+            {selectedTopic ? " in this topic" : " available"}
+          </span>
+        </div>
       </div>
 
       {visibleGroups.length === 0 ? (
@@ -517,6 +636,23 @@ const Selector = ({ type, onSelect, role, title }) => {
                       {c.title}
                     </SelectItem>
                   ))}
+              </Select>
+              {/* Phase 19 Ship C: Topic dropdown */}
+              <Select
+                className="my-2"
+                size="sm"
+                label="Topic"
+                placeholder="Select topic (optional)"
+                selectedKeys={groupData?.topic ? [groupData.topic] : []}
+                onSelectionChange={(e) =>
+                  setGroupData((res) => ({ ...res, topic: e.anchorKey }))
+                }
+              >
+                {TOPICS.map((t) => (
+                  <SelectItem key={t.key} value={t.key}>
+                    {t.full}
+                  </SelectItem>
+                ))}
               </Select>
               {type == "lvideo" && (
                 <Select
@@ -784,6 +920,126 @@ function StatTile({ label, value, unit, sub, icon }) {
           }}
         >
           {sub}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// TopicTile — Phase 19 Ship C: gradient tile for Explore by topic
+// ============================================================
+
+function TopicTile({ topic, count, active, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        position: "relative",
+        borderRadius: 16,
+        padding: "18px 18px 16px",
+        cursor: "pointer",
+        color: "white",
+        background: topic.gradient,
+        minHeight: 124,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        overflow: "hidden",
+        transition: "transform 0.18s ease, box-shadow 0.18s ease",
+        boxShadow: active
+          ? `0 0 0 3px var(--c-bg, #FAFAF7), 0 0 0 5px ${topic.accent}, 0 8px 24px -8px ${topic.accent}66`
+          : "0 1px 2px rgba(0,0,0,0.04)",
+        transform: active ? "translateY(-2px)" : "translateY(0)",
+      }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.transform = "translateY(0)";
+      }}
+    >
+      {/* Decorative blob */}
+      <div
+        style={{
+          position: "absolute",
+          right: -30,
+          top: -30,
+          width: 120,
+          height: 120,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(255,255,255,0.15), transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+      {/* Head */}
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          zIndex: 1,
+        }}
+      >
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            background: "rgba(255,255,255,0.22)",
+            backdropFilter: "blur(8px)",
+            borderRadius: 10,
+            display: "grid",
+            placeItems: "center",
+            fontWeight: 700,
+            fontSize: 13,
+            border: "1px solid rgba(255,255,255,0.16)",
+          }}
+        >
+          {topic.icon}
+        </div>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            background: "rgba(0,0,0,0.22)",
+            backdropFilter: "blur(8px)",
+            padding: "3px 9px",
+            borderRadius: 999,
+            fontSize: 10.5,
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+          }}
+        >
+          {count} {count === 1 ? "pack" : "packs"}
+        </div>
+      </div>
+
+      {/* Foot */}
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <h3
+          style={{
+            margin: 0,
+            fontSize: 17,
+            fontWeight: 700,
+            letterSpacing: "-0.012em",
+          }}
+        >
+          {topic.label}
+        </h3>
+        <div
+          style={{
+            fontSize: 11.5,
+            opacity: 0.86,
+            marginTop: 3,
+          }}
+        >
+          {count === 0
+            ? "No packs yet"
+            : active
+            ? "Click again to clear"
+            : "Click to explore"}
         </div>
       </div>
     </div>
@@ -1077,6 +1333,26 @@ function PackCard({
                           {c.title}
                         </SelectItem>
                       ))}
+                  </Select>
+                  {/* Phase 19 Ship C: Topic dropdown */}
+                  <Select
+                    className="my-2"
+                    size="sm"
+                    label="Topic"
+                    placeholder="Select topic (optional)"
+                    selectedKeys={editGroupdata?.topic ? [editGroupdata.topic] : []}
+                    onSelectionChange={(e) =>
+                      setEditGroupData((res) => ({
+                        ...res,
+                        topic: e.anchorKey,
+                      }))
+                    }
+                  >
+                    {TOPICS.map((t) => (
+                      <SelectItem key={t.key} value={t.key}>
+                        {t.full}
+                      </SelectItem>
+                    ))}
                   </Select>
                   {type == "lvideo" && (
                     <Select
