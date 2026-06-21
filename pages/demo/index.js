@@ -2461,18 +2461,9 @@ export default function Home(props) {
 
               {slug == "dashboard" ? (
                 <div className="flex flex-col w-full h-full">
-                  <div className="flex flex-col md:flex-row w-full items-stretch justify-center align-middle py-2 md:py-5">
-                    <div className="w-full md:w-full text-left text-2xl font-bold  relative mr-5">
-                      <h2>
-                        Hi{" "}
-                        {userData?.user_metadata?.full_name || "Unknown User"},
-                      </h2>
-                      <p className="text-primary">
-                        Welcome to IPM Careers Study Panel
-                      </p>
-                    </div>
-                  </div>
-
+                  {/* Phase 20.6: dropped the duplicate "Hi {Name}, Welcome to
+                      IPM Careers Study Panel" greeting — the Dashboard component
+                      now has its own hero ("Welcome back, ..."). */}
                   <Dashboard userData={userData}></Dashboard>
                 </div>
               ) : (
