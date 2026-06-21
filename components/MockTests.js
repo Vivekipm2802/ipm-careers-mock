@@ -1100,9 +1100,14 @@ export default function MockTests({ enrolled = [], role = "user" }) {
           ) : (
             filteredCategoryTests.map((test, idx) => {
               const status = resolveMockStatus(test, results);
+              // Phase 20.2: respect config.public_access for demo users too.
+              // Previous logic (`isDemo ? idx > 0`) only ever unlocked the first
+              // test in the list and ignored the admin's "Public access" toggle,
+              // so a mock marked free-for-demo still rendered locked.
+              const isPublic = test.config?.public_access === true;
               const isLockedByEnrollment = isDemo
-                ? idx > 0
-                : test.config?.public_access !== true &&
+                ? !isPublic
+                : !isPublic &&
                   !enrolled?.some(
                     (e) =>
                       e?.course?.id === test.course ||

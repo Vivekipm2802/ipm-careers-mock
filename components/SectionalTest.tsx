@@ -790,9 +790,14 @@ const SectionalTest = ({
           ) : (
             filteredTests.map((test: any, idx: number) => {
               const status = resolveStatus(test, results);
+              // Phase 20.2: respect config.public_access for demo users too.
+              // Previous logic (`isDemo ? idx > 0`) only ever unlocked the first
+              // test and ignored the admin's "Public access" toggle, so a test
+              // marked free-for-demo still rendered locked.
+              const isPublic = test.config?.public_access === true;
               const isLockedByEnrollment = isDemo
-                ? idx > 0
-                : test.config?.public_access !== true &&
+                ? !isPublic
+                : !isPublic &&
                   !enrolled?.some(
                     (enrollment: any) =>
                       enrollment?.course?.id === test.course ||
