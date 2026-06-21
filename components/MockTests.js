@@ -167,19 +167,32 @@ export default function MockTests({ enrolled = [], role = "user" }) {
   }
 
   async function getCategories() {
+    // Phase 20.4: select * so we get the hidden flag (column may be `hidden`
+    // or live inside `config.hidden` — we filter on both below).
     const { data } = await supabase
       .from("mock_categories")
-      .select("id, title, seq")
+      .select("*")
       .order("seq", { ascending: true });
-    if (data) setCategories(data);
+    if (data) {
+      const visible = isAdmin
+        ? data
+        : data.filter((c) => !c.hidden && !c.config?.hidden);
+      setCategories(visible);
+    }
   }
 
   async function getAllCategories() {
+    // Phase 20.4: same hidden-aware select for the admin's category index
     const { data } = await supabase
       .from("mock_categories")
-      .select("id, title, seq")
+      .select("*")
       .order("seq", { ascending: true });
-    if (data) setAllCategories(data);
+    if (data) {
+      const visible = isAdmin
+        ? data
+        : data.filter((c) => !c.hidden && !c.config?.hidden);
+      setAllCategories(visible);
+    }
   }
 
   async function getTests() {
