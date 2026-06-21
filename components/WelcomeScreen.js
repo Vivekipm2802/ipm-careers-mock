@@ -424,11 +424,10 @@ export default function WelcomeScreen() {
           </div>
         </div>
 
-        {/* Dark-mode logo handling + responsive tweaks */}
+        {/* Phase 20.1 Ship B.2: dropped the dark-mode invert filter — it was
+            flipping the logo's purple+amber colours into the wrong hues.
+            The newlog.svg is left in its original colours in both modes. */}
         <style jsx global>{`
-          [data-theme="dark"] .welcome-logo {
-            filter: invert(1) hue-rotate(180deg) brightness(1.05);
-          }
           @media (max-width: 720px) {
             .welcome-hero {
               font-size: 34px !important;
