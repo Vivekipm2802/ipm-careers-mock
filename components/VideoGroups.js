@@ -1,11 +1,21 @@
 // ============================================================
-// VideoGroups — Phase 19 Ship C: + Explore by topic tiles + filter
-// Builds on Ship B:
-// - Adds 4 gradient topic tiles (Quant/Verbal/Logical/PI Prep) between hero row + All packs
-// - Clicking a tile filters the All packs grid to that topic
-// - Active tile shows brand-coloured ring + "Clear filter" link appears in the All packs row
-// - Adds Topic dropdown to Add/Edit pack popover forms
-// Requires SQL: alter table video_groups add column if not exists topic text;
+// VideoGroups — Phase 19 Ship D: real "Explore by topic" strip
+// Builds on Ship C.2 (chip filter inside All packs). Ship D adds a
+// horizontal scroll strip of REAL topics — pulled from vcategory /
+// lvcategory where type='parent'. These are the purple section headers
+// students see inside a pack (Profit and Loss, Percentage, Ratio and
+// Proportion, etc.) — surfaced on the landing page so a student who knows
+// what they want to study can jump straight to it.
+//
+// Schema used:
+// - vcategory  (pre-recorded) — id, title, group_id, parent, type, seq
+// - lvcategory (live recordings) — same columns
+// - videos / lvideos — id, category (=vcategory.id), seq
+// `type='parent'` rows are chapters; `type='sub'` rows are lessons; videos
+// hang off the sub rows.
+//
+// Click a topic card → opens its pack. Jump-to-topic deep-link will land
+// in Ship D.1 once the pack player accepts a topic hint.
 // ============================================================
 
 import { supabase } from "@/utils/supabaseClient";
@@ -130,6 +140,12 @@ const Selector = ({ type, onSelect, role, title }) => {
   // Phase 19 Ship C: filter by topic
   const [selectedTopic, setSelectedTopic] = useState(null);
 
+  // Phase 19 Ship D: real topics fetched from vcategory / lvcategory
+  // (top-level type='parent' rows — the "Profit and Loss / Percentage /
+  //  Ratio and Proportion" purple section headers from inside packs)
+  const [realTopics, setRealTopics] = useState([]);
+  const [realVideoCounts, setRealVideoCounts] = useState({}); // {topicId: count}
+
   // ----------------------------------------------------------
   // Data fetching
   // ----------------------------------------------------------
@@ -146,6 +162,68 @@ const Selector = ({ type, onSelect, role, title }) => {
     if (error) {
       toast.error("Unable to Load Content");
       setLoading(false);
+    }
+  }
+
+  // Phase 19 Ship D: pull real topics (vcategory / lvcategory) for visible packs
+  async function getRealTopics(packIds) {
+    if (!packIds?.length) {
+      setRealTopics([]);
+      setRealVideoCounts({});
+      return;
+    }
+    const categoryTable = type === "lvideo" ? "lvcategory" : "vcategory";
+    const videoTable = type === "lvideo" ? "lvideos" : "videos";
+
+    try {
+      // 1. Fetch top-level topics across visible packs
+      const { data: parents, error: pErr } = await supabase
+        .from(categoryTable)
+        .select("id, title, group_id, seq")
+        .in("group_id", packIds)
+        .eq("type", "parent")
+        .order("seq", { ascending: true });
+
+      if (pErr || !parents?.length) {
+        setRealTopics([]);
+        setRealVideoCounts({});
+        return;
+      }
+
+      // 2. Fetch subtopics under each parent (we need them to count videos)
+      const { data: subs } = await supabase
+        .from(categoryTable)
+        .select("id, parent")
+        .in("parent", parents.map((p) => p.id));
+
+      const subIds = (subs || []).map((s) => s.id);
+      let vids = [];
+      if (subIds.length) {
+        const { data: vidsData } = await supabase
+          .from(videoTable)
+          .select("id, category")
+          .in("category", subIds);
+        vids = vidsData || [];
+      }
+
+      // 3. Aggregate video count per parent topic
+      const subToParent = {};
+      (subs || []).forEach((s) => {
+        subToParent[s.id] = s.parent;
+      });
+      const countByParent = {};
+      vids.forEach((v) => {
+        const p = subToParent[v.category];
+        if (p) countByParent[p] = (countByParent[p] || 0) + 1;
+      });
+
+      setRealTopics(parents);
+      setRealVideoCounts(countByParent);
+    } catch (e) {
+      // Silently degrade — the section just won't render
+      console.warn("[VideoGroups] getRealTopics failed:", e?.message);
+      setRealTopics([]);
+      setRealVideoCounts({});
     }
   }
 
@@ -250,6 +328,16 @@ const Selector = ({ type, onSelect, role, title }) => {
     getGroups();
     if (type == "lvideo") getBatches();
   }, [type]);
+
+  // Phase 19 Ship D: fetch real topics once groups are known
+  useEffect(() => {
+    if (!groups) return;
+    const visiblePackIds = groups
+      .filter((g) => !g.hidden || isAdmin)
+      .map((g) => g.id);
+    getRealTopics(visiblePackIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups, isAdmin]);
 
   // ----------------------------------------------------------
   // Derived
@@ -435,49 +523,103 @@ const Selector = ({ type, onSelect, role, title }) => {
         </div>
       )}
 
-      {/* ===== Phase 19 Ship C: Explore by topic ===== */}
-      {visibleGroups.length > 0 && (
-        <>
+      {/* ===== Phase 19 Ship D: Explore by topic — REAL topics ===== */}
+      {/* Sources from vcategory.type='parent' across visible packs.
+         These are the purple section headers students see inside a pack —
+         Profit and Loss, Percentage, Ratio and Proportion, etc. Click a
+         card → opens its pack. (Jump-to-topic deep-link will land in Ship D.1
+         once the pack player is wired to accept a topic hint.) */}
+      {realTopics.length > 0 && (
+        <div style={{ marginBottom: 36 }}>
           <div
             style={{
-              fontSize: 11,
-              fontWeight: 500,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "var(--c-text-tertiary)",
-              margin: "4px 0 12px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              marginBottom: 14,
             }}
           >
-            Explore by topic
+            <div>
+              <div style={{ ...eyebrowStyle, marginBottom: 6 }}>
+                Explore by topic
+              </div>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 20,
+                  fontWeight: 600,
+                  letterSpacing: "-0.018em",
+                  color: "var(--c-text-primary)",
+                }}
+              >
+                Jump straight to a <span style={serifStyle}>chapter</span>
+              </h2>
+            </div>
+            <span style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
+              {realTopics.length}{" "}
+              {realTopics.length === 1 ? "topic" : "topics"} across{" "}
+              {new Set(realTopics.map((t) => t.group_id)).size}{" "}
+              {new Set(realTopics.map((t) => t.group_id)).size === 1
+                ? "pack"
+                : "packs"}
+            </span>
           </div>
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 10,
-              marginBottom: 32,
+              display: "flex",
+              gap: 12,
+              overflowX: "auto",
+              overflowY: "hidden",
+              paddingBottom: 8,
+              scrollbarWidth: "thin",
+              marginRight: -28,
+              paddingRight: 28,
             }}
           >
-            {TOPICS.map((t) => {
-              const count = topicCounts[t.key] || 0;
-              const isActive = selectedTopic === t.key;
+            {realTopics.map((t) => {
+              const pack = visibleGroups.find((g) => g.id === t.group_id);
+              const packTopicMeta = TOPICS.find(
+                (x) => x.key === pack?.topic,
+              );
               return (
-                <TopicTile
-                  key={t.key}
-                  topic={t}
-                  count={count}
-                  active={isActive}
+                <TopicCard
+                  key={t.id}
+                  title={t.title}
+                  packTitle={pack?.title || "—"}
+                  videoCount={realVideoCounts[t.id] || 0}
+                  accent={
+                    packTopicMeta?.accent || "var(--c-brand-primary)"
+                  }
                   onClick={() => {
-                    setSelectedTopic(isActive ? null : t.key);
+                    // Phase 19 Ship D.1: stash the chapter intent so the pack
+                    // player (PreRecorded.js) can auto-select the right sub-
+                    // category on mount. Cleared after one use.
+                    try {
+                      if (typeof window !== "undefined") {
+                        window.sessionStorage.setItem(
+                          "ipm-topic-intent",
+                          String(t.id),
+                        );
+                      }
+                    } catch (_e) {
+                      /* sessionStorage unavailable — fall back to default open */
+                    }
+                    onSelect(t.group_id);
                   }}
                 />
               );
             })}
           </div>
-        </>
+        </div>
       )}
 
-      {/* ===== All packs heading + grid ===== */}
+      {/* ===== Phase 19 Ship C.2: All packs heading + chip filter row ===== */}
+      {/* (Replaced the gradient "Explore by topic" tiles — students saw the
+         section-level categorisation as redundant with the All packs grid.
+         A slim chip filter inside the All packs card is the same affordance
+         with one-tenth the visual weight. Real topic exploration — surfacing
+         video sections like "Profit and Loss" / "Percentage" — needs the
+         videos schema and ships separately in Ship D.) */}
       <div
         style={{
           display: "flex",
@@ -495,41 +637,66 @@ const Selector = ({ type, onSelect, role, title }) => {
             color: "var(--c-text-primary)",
           }}
         >
-          {selectedTopic
-            ? (TOPICS.find((t) => t.key === selectedTopic)?.full || "Filtered") + " "
-            : "All "}
-          <span style={{ color: "var(--c-text-tertiary)" }}>packs</span>
+          All <span style={{ color: "var(--c-text-tertiary)" }}>packs</span>
         </h2>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          {selectedTopic && (
-            <button
-              onClick={() => setSelectedTopic(null)}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "var(--c-brand-primary)",
-                fontSize: 12.5,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                padding: 0,
-              }}
-            >
-              Clear filter ×
-            </button>
-          )}
-          <span
+        <span
+          style={{
+            fontSize: 12.5,
+            color: "var(--c-text-tertiary)",
+          }}
+        >
+          {remainingPacks.length}{" "}
+          {remainingPacks.length === 1 ? "pack" : "packs"}
+          {selectedTopic ? " in this section" : " available"}
+        </span>
+      </div>
+
+      {/* Chip filter row — matches self-learning-refined.html preview */}
+      {visibleGroups.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            flexWrap: "wrap",
+            background: "var(--c-bg-elev)",
+            border: "1px solid var(--c-border-faint)",
+            borderRadius: 14,
+            padding: "10px 14px",
+            marginBottom: 16,
+          }}
+        >
+          <div
             style={{
-              fontSize: 12.5,
+              fontSize: 10.5,
+              fontWeight: 600,
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
               color: "var(--c-text-tertiary)",
+              marginRight: 4,
             }}
           >
-            {remainingPacks.length}{" "}
-            {remainingPacks.length === 1 ? "pack" : "packs"}
-            {selectedTopic ? " in this topic" : " available"}
-          </span>
+            Filter
+          </div>
+          <FilterChip
+            label="All"
+            count={visibleGroups.length}
+            active={!selectedTopic}
+            onClick={() => setSelectedTopic(null)}
+          />
+          {TOPICS.map((t) => (
+            <FilterChip
+              key={t.key}
+              label={t.label}
+              count={topicCounts[t.key] || 0}
+              active={selectedTopic === t.key}
+              onClick={() =>
+                setSelectedTopic(selectedTopic === t.key ? null : t.key)
+              }
+            />
+          ))}
         </div>
-      </div>
+      )}
 
       {visibleGroups.length === 0 ? (
         <div
@@ -928,122 +1095,181 @@ function StatTile({ label, value, unit, sub, icon }) {
 }
 
 // ============================================================
-// TopicTile — Phase 19 Ship C: gradient tile for Explore by topic
+// FilterChip — Phase 19 Ship C.2: slim pill chip for All packs filter row
+// (Replaced the gradient TopicTile from Ship C — same filter behaviour,
+//  matches self-learning-refined.html preview, no visual redundancy with
+//  the All packs grid below it.)
 // ============================================================
 
-function TopicTile({ topic, count, active, onClick }) {
+function FilterChip({ label, count, active, onClick }) {
   return (
-    <div
+    <button
       onClick={onClick}
       style={{
-        position: "relative",
-        borderRadius: 16,
-        padding: "18px 18px 16px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "7px 14px",
+        borderRadius: 999,
+        border: active
+          ? "1px solid var(--c-brand-primary)"
+          : "1px solid var(--c-border-faint)",
+        background: active ? "var(--c-brand-primary)" : "var(--c-surface)",
+        color: active ? "white" : "var(--c-text-primary)",
+        fontFamily: "inherit",
+        fontSize: 13,
+        fontWeight: 600,
+        letterSpacing: "-0.005em",
         cursor: "pointer",
-        color: "white",
-        background: topic.gradient,
+        transition:
+          "background 0.15s ease, color 0.15s ease, border-color 0.15s ease",
+      }}
+      onMouseEnter={(e) => {
+        if (!active) {
+          e.currentTarget.style.borderColor = "var(--c-border-soft)";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!active) {
+          e.currentTarget.style.borderColor = "var(--c-border-faint)";
+        }
+      }}
+    >
+      <span>{label}</span>
+      <span
+        style={{
+          display: "inline-grid",
+          placeItems: "center",
+          minWidth: 22,
+          height: 20,
+          padding: "0 6px",
+          borderRadius: 999,
+          background: active
+            ? "rgba(255,255,255,0.22)"
+            : "var(--c-bg-elev)",
+          color: active ? "white" : "var(--c-text-tertiary)",
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: 0,
+        }}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+// ============================================================
+// TopicCard — Phase 19 Ship D: real-topic card for "Explore by topic" strip
+// (One card per top-level vcategory row — e.g. "Profit and Loss" — with
+//  the parent pack name + a video count. Coloured top bar uses the pack's
+//  section accent from the TOPICS table.)
+// ============================================================
+
+function TopicCard({ title, packTitle, videoCount, accent, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: "0 0 240px",
         minHeight: 124,
+        background: "var(--c-surface)",
+        border: "1px solid var(--c-border-faint)",
+        borderRadius: 14,
+        padding: "14px 16px 14px",
+        textAlign: "left",
+        cursor: "pointer",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
+        gap: 12,
+        position: "relative",
         overflow: "hidden",
-        transition: "transform 0.18s ease, box-shadow 0.18s ease",
-        boxShadow: active
-          ? `0 0 0 3px var(--c-bg, #FAFAF7), 0 0 0 5px ${topic.accent}, 0 8px 24px -8px ${topic.accent}66`
-          : "0 1px 2px rgba(0,0,0,0.04)",
-        transform: active ? "translateY(-2px)" : "translateY(0)",
+        fontFamily: "inherit",
+        color: "var(--c-text-primary)",
+        transition:
+          "transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease",
       }}
       onMouseEnter={(e) => {
-        if (!active) e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.borderColor = accent;
+        e.currentTarget.style.boxShadow =
+          "0 10px 22px -14px rgba(20,19,15,0.22)";
       }}
       onMouseLeave={(e) => {
-        if (!active) e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.borderColor = "var(--c-border-faint)";
+        e.currentTarget.style.boxShadow = "none";
       }}
     >
-      {/* Decorative blob */}
+      {/* Accent bar at top */}
       <div
         style={{
           position: "absolute",
-          right: -30,
-          top: -30,
-          width: 120,
-          height: 120,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(255,255,255,0.15), transparent 70%)",
-          pointerEvents: "none",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          background: accent,
         }}
       />
-      {/* Head */}
-      <div
-        style={{
-          position: "relative",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          zIndex: 1,
-        }}
-      >
+      <div>
         <div
           style={{
-            width: 32,
-            height: 32,
-            background: "rgba(255,255,255,0.22)",
-            backdropFilter: "blur(8px)",
-            borderRadius: 10,
-            display: "grid",
-            placeItems: "center",
-            fontWeight: 700,
-            fontSize: 13,
-            border: "1px solid rgba(255,255,255,0.16)",
-          }}
-        >
-          {topic.icon}
-        </div>
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            background: "rgba(0,0,0,0.22)",
-            backdropFilter: "blur(8px)",
-            padding: "3px 9px",
-            borderRadius: 999,
             fontSize: 10.5,
-            fontWeight: 700,
-            letterSpacing: "0.06em",
+            fontWeight: 600,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "var(--c-text-tertiary)",
+            marginBottom: 8,
+            marginTop: 4,
           }}
         >
-          {count} {count === 1 ? "pack" : "packs"}
+          Chapter
         </div>
-      </div>
-
-      {/* Foot */}
-      <div style={{ position: "relative", zIndex: 1 }}>
         <h3
           style={{
             margin: 0,
-            fontSize: 17,
-            fontWeight: 700,
+            fontSize: 16,
+            fontWeight: 600,
             letterSpacing: "-0.012em",
+            color: "var(--c-text-primary)",
+            lineHeight: 1.3,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
           }}
         >
-          {topic.label}
+          {title}
         </h3>
-        <div
-          style={{
-            fontSize: 11.5,
-            opacity: 0.86,
-            marginTop: 3,
-          }}
-        >
-          {count === 0
-            ? "No packs yet"
-            : active
-            ? "Click again to clear"
-            : "Click to explore"}
-        </div>
       </div>
-    </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 8,
+          fontSize: 11.5,
+          color: "var(--c-text-tertiary)",
+        }}
+      >
+        <span
+          style={{
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            maxWidth: 140,
+          }}
+          title={packTitle}
+        >
+          in {packTitle}
+        </span>
+        <span style={{ fontWeight: 600, color: "var(--c-text-secondary)" }}>
+          {videoCount} {videoCount === 1 ? "video" : "videos"}
+        </span>
+      </div>
+    </button>
   );
 }
 

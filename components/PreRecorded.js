@@ -76,6 +76,40 @@ export default function PreRecorded({
   const [view, setView] = useState(0);
   const [fullScreenVideo, setFullScreenVideo] = useState(false);
   const [currentCategory, setCurrentCategory] = useState();
+
+  // Phase 19 Ship D.1: jump-to-chapter from the Self Learning
+  // "Explore by topic" strip. VideoGroups.TopicCard stashes the parent
+  // vcategory id in sessionStorage before navigating here. We read it on
+  // first vcategory load and pre-select the first sub-category so the
+  // student lands directly on the chapter's videos. Cleared after one use.
+  useEffect(() => {
+    if (!vcategory?.length) return;
+    let intent = null;
+    try {
+      intent =
+        typeof window !== "undefined"
+          ? window.sessionStorage.getItem("ipm-topic-intent")
+          : null;
+    } catch (_e) {
+      /* sessionStorage unavailable */
+    }
+    if (!intent) return;
+    const intentId = parseInt(intent, 10);
+    const clear = () => {
+      try {
+        window.sessionStorage.removeItem("ipm-topic-intent");
+      } catch (_e) {}
+    };
+    if (Number.isNaN(intentId)) {
+      clear();
+      return;
+    }
+    const firstSub = vcategory.find((c) => c.parent === intentId);
+    if (firstSub) {
+      setCurrentCategory(firstSub.id);
+    }
+    clear();
+  }, [vcategory]);
   const [videoURL, setVideoURL] = useState();
   const [bgLoading, setBGLoading] = useState(false);
   const [drawerActive, setDrawerActive] = useState(true);
