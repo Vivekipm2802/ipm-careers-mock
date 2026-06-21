@@ -220,11 +220,28 @@ const QuestionCard = ({ answered, question, onSelect, index }) => {
             </div>
             <Input
               value={selectedValue}
-              onChange={(e) => onSelect({ id: question.id, value: e.target.value })}
+              onChange={(e) => {
+                // Phase 20.3: keep only digits, one decimal, and a leading minus
+                const raw = String(e.target.value);
+                const cleaned = raw.replace(/[^0-9.\-]/g, "")
+                  .replace(/(?!^)-/g, "")          // minus only at start
+                  .replace(/(\..*)\./g, "$1");     // at most one decimal
+                onSelect({ id: question.id, value: cleaned });
+              }}
               placeholder="Type your answer here"
               size="lg"
               variant="bordered"
+              inputMode="decimal"
             />
+
+            {/* ===== Phase 20.3: On-screen numerical keypad ===== */}
+            {/* Matches the real IPMAT exam UI so students build the right muscle
+                memory. Physical keyboard still works in parallel for desktop. */}
+            <NumKeypad
+              value={selectedValue || ""}
+              onChange={(next) => onSelect({ id: question.id, value: next })}
+            />
+
             {isDevelopment && (
               <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 8 }}>
                 Dev expected: {question?.options?.answer}
@@ -236,6 +253,109 @@ const QuestionCard = ({ answered, question, onSelect, index }) => {
     </div>
   );
 };
+
+// ============================================================
+// NumKeypad — Phase 20.3
+// On-screen numerical keypad for SA / numerical-input questions.
+// Matches the real IPMAT exam interface: 0-9 + decimal + minus +
+// backspace + clear. Physical keyboard still works in parallel.
+// ============================================================
+function NumKeypad({ value, onChange }) {
+  const append = (ch) => {
+    const v = String(value || "");
+    if (ch === ".") {
+      if (v.includes(".")) return;            // only one decimal allowed
+      if (!v) return onChange("0.");          // bare "." → "0."
+      return onChange(v + ".");
+    }
+    onChange(v + ch);
+  };
+  const toggleSign = () => {
+    const v = String(value || "");
+    if (v.startsWith("-")) onChange(v.slice(1));
+    else onChange("-" + v);
+  };
+  const backspace = () => onChange(String(value || "").slice(0, -1));
+  const clear = () => onChange("");
+
+  const Key = ({ children, onPress, wide, accent, ghost }) => (
+    <button
+      type="button"
+      onClick={onPress}
+      style={{
+        gridColumn: wide ? "span 2" : "auto",
+        padding: "14px 0",
+        borderRadius: 10,
+        border: "1px solid var(--c-border-soft)",
+        background: ghost
+          ? "transparent"
+          : accent
+          ? "var(--c-brand-primary)"
+          : "var(--c-surface)",
+        color: accent
+          ? "white"
+          : ghost
+          ? "var(--c-text-secondary)"
+          : "var(--c-text-primary)",
+        fontSize: 17,
+        fontWeight: 600,
+        fontFamily: "inherit",
+        cursor: "pointer",
+        transition: "transform 0.08s ease, background 0.15s ease",
+        userSelect: "none",
+      }}
+      onMouseDown={(e) => { e.currentTarget.style.transform = "translateY(1px)"; }}
+      onMouseUp={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
+    >
+      {children}
+    </button>
+  );
+
+  return (
+    <div
+      style={{
+        marginTop: 18,
+        background: "var(--c-bg-elev, var(--c-bg))",
+        border: "1px solid var(--c-border-faint)",
+        borderRadius: 14,
+        padding: 14,
+        maxWidth: 320,
+      }}
+    >
+      <div style={{
+        fontSize: 10.5, fontWeight: 600,
+        letterSpacing: "0.14em", textTransform: "uppercase",
+        color: "var(--c-text-tertiary)",
+        marginBottom: 10,
+      }}>
+        Numerical keypad
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 8,
+        }}
+      >
+        <Key onPress={() => append("7")}>7</Key>
+        <Key onPress={() => append("8")}>8</Key>
+        <Key onPress={() => append("9")}>9</Key>
+        <Key onPress={() => append("4")}>4</Key>
+        <Key onPress={() => append("5")}>5</Key>
+        <Key onPress={() => append("6")}>6</Key>
+        <Key onPress={() => append("1")}>1</Key>
+        <Key onPress={() => append("2")}>2</Key>
+        <Key onPress={() => append("3")}>3</Key>
+        <Key onPress={() => append(".")}>.</Key>
+        <Key onPress={() => append("0")}>0</Key>
+        <Key onPress={toggleSign}>±</Key>
+        <Key wide onPress={backspace} ghost>⌫ Backspace</Key>
+        <Key onPress={clear} ghost>Clear</Key>
+      </div>
+    </div>
+  );
+}
 
 // ── Phase 7: instructions screen helpers ──
 const insTh = {
