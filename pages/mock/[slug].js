@@ -284,8 +284,8 @@ function NumKeypad({ value, onChange }) {
       onClick={onPress}
       style={{
         gridColumn: wide ? "span 2" : "auto",
-        padding: "14px 0",
-        borderRadius: 10,
+        padding: "9px 0",
+        borderRadius: 8,
         border: "1px solid var(--c-border-soft)",
         background: ghost
           ? "transparent"
@@ -297,7 +297,7 @@ function NumKeypad({ value, onChange }) {
           : ghost
           ? "var(--c-text-secondary)"
           : "var(--c-text-primary)",
-        fontSize: 17,
+        fontSize: 14,
         fontWeight: 600,
         fontFamily: "inherit",
         cursor: "pointer",
@@ -315,19 +315,19 @@ function NumKeypad({ value, onChange }) {
   return (
     <div
       style={{
-        marginTop: 18,
+        marginTop: 14,
         background: "var(--c-bg-elev, var(--c-bg))",
         border: "1px solid var(--c-border-faint)",
-        borderRadius: 14,
-        padding: 14,
-        maxWidth: 320,
+        borderRadius: 12,
+        padding: 10,
+        maxWidth: 220,
       }}
     >
       <div style={{
-        fontSize: 10.5, fontWeight: 600,
+        fontSize: 9.5, fontWeight: 600,
         letterSpacing: "0.14em", textTransform: "uppercase",
         color: "var(--c-text-tertiary)",
-        marginBottom: 10,
+        marginBottom: 8,
       }}>
         Numerical keypad
       </div>
@@ -335,7 +335,7 @@ function NumKeypad({ value, onChange }) {
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 8,
+          gap: 6,
         }}
       >
         <Key onPress={() => append("7")}>7</Key>
