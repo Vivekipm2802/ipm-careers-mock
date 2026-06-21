@@ -166,31 +166,33 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     setResults(data || []);
   }
 
+  // Phase 20.4.1: mock_categories has TWO hidden-related boolean columns
+  // (hidden + is_visible). The admin UI can flip either one. A category is
+  // visible to students only when neither flag says it's hidden.
+  function isCategoryVisible(c) {
+    if (c.hidden === true) return false;
+    if (c.is_visible === false) return false;
+    return true;
+  }
+
   async function getCategories() {
-    // Phase 20.4: select * so we get the hidden flag (column may be `hidden`
-    // or live inside `config.hidden` — we filter on both below).
     const { data } = await supabase
       .from("mock_categories")
       .select("*")
       .order("seq", { ascending: true });
     if (data) {
-      const visible = isAdmin
-        ? data
-        : data.filter((c) => !c.hidden && !c.config?.hidden);
+      const visible = isAdmin ? data : data.filter(isCategoryVisible);
       setCategories(visible);
     }
   }
 
   async function getAllCategories() {
-    // Phase 20.4: same hidden-aware select for the admin's category index
     const { data } = await supabase
       .from("mock_categories")
       .select("*")
       .order("seq", { ascending: true });
     if (data) {
-      const visible = isAdmin
-        ? data
-        : data.filter((c) => !c.hidden && !c.config?.hidden);
+      const visible = isAdmin ? data : data.filter(isCategoryVisible);
       setAllCategories(visible);
     }
   }
