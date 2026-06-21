@@ -19,7 +19,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { supabase } from "@/utils/supabaseClient";
 import { useNMNContext } from "@/components/NMNContext";
@@ -79,13 +79,21 @@ export default function WelcomeScreen() {
           color: "var(--c-text-primary)",
           fontFamily: FONT,
           overflowX: "hidden",
+          overflowY: "auto",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
-          padding: "60px 24px 40px",
+          // Phase 20.1 Ship B.1: flex-start (was: center). With center the
+          // top of the page (logo) was clipped when content was taller than
+          // the viewport. flex-start + top padding keeps the logo on-screen.
+          justifyContent: "flex-start",
+          padding: "48px 24px 40px",
         }}
       >
+        {/* Phase 20.1 Ship B.1: theme toggle (top-right) */}
+        <ThemeToggleButton />
+
+
         {/* Decorative blob behind hero */}
         <div
           aria-hidden
@@ -439,3 +447,69 @@ export default function WelcomeScreen() {
     </>
   );
 }
+
+// ============================================================
+// ThemeToggleButton — Phase 20.1 Ship B.1
+// Floating pill in the top-right that flips html[data-theme].
+// Reads/writes localStorage so the choice sticks across visits.
+// ============================================================
+function ThemeToggleButton() {
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored =
+      window.localStorage.getItem("ipm-theme") ||
+      document.documentElement.getAttribute("data-theme") ||
+      "light";
+    setTheme(stored);
+    document.documentElement.setAttribute("data-theme", stored);
+  }, []);
+
+  const flip = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    if (typeof window !== "undefined") {
+      document.documentElement.setAttribute("data-theme", next);
+      try {
+        window.localStorage.setItem("ipm-theme", next);
+      } catch (_e) {
+        /* ignore */
+      }
+    }
+  };
+
+  return (
+    <button
+      onClick={flip}
+      aria-label="Toggle theme"
+      style={{
+        position: "fixed",
+        top: 16,
+        right: 24,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "7px 14px",
+        background: "var(--c-surface)",
+        border: "1px solid var(--c-border-faint)",
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 500,
+        color: "var(--c-text-secondary)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        zIndex: 50,
+        boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+      }}
+    >
+      <span aria-hidden style={{ fontSize: 14, lineHeight: 1 }}>
+        {theme === "dark" ? "☾" : "☼"}
+      </span>
+      {theme === "dark" ? "Dark" : "Light"}
+    </button>
+  );
+}
+
+// We need useState + useEffect imported at the top — they're already in the
+// import list above (useMemo's siblings). Adding here as a doc reminder.
