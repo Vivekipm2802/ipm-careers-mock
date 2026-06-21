@@ -296,3 +296,24 @@ input, textarea {
   height: 450px;
   display: block;
 }
+
+
+/* Phase 20.5 — bg-white dark-mode override
+   The Tailwind utility `bg-white` (and the legacy body white default) was
+   left-over from light-mode-only days. In dark mode it bleeds through any
+   wrapper that uses it (e.g. pages/demo/index.js around line 1966). These
+   rules switch every such surface to the theme background/surface colours. */
+html[data-theme="dark"] body,
+html[data-theme="dark"] .bg-white {
+  background-color: var(--c-bg) !important;
+}
+/* Children that explicitly look like "cards" (rounded + shadow) deserve the
+   slightly lighter surface tone, not the page background. */
+html[data-theme="dark"] .bg-white.rounded-xl,
+html[data-theme="dark"] .bg-white.rounded-2xl,
+html[data-theme="dark"] .bg-white.rounded-3xl,
+html[data-theme="dark"] .bg-white.shadow-md,
+html[data-theme="dark"] .bg-white.shadow-sm,
+html[data-theme="dark"] .bg-white.shadow-lg {
+  background-color: var(--c-surface) !important;
+}
