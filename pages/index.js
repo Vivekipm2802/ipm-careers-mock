@@ -95,6 +95,7 @@ import PYQManager from "@/components/PYQManager";
 import ConfigManager from "@/components/Configurator";
 import FileUploader from "@/components/FileUploader";
 import PDFViewer from "@/components/PDFViewer";
+import WelcomeScreen from "@/components/WelcomeScreen";
 const CustomEditor = dynamic(() => import("@/components/CustomEditor"), {
   ssr: false,
 });
@@ -1468,97 +1469,7 @@ export default function Home(props) {
           </ModalContent>
         </Modal>
         {/* <div className='fixed w-[150%] rounded-full bg-gradient-purple left-1/2 -translate-x-1/2 -bottom-[210%] z-0 h-auto aspect-square'></div> */}
-        <div className="bg-white shadow-md w-full max-w-[1200px] rounded-lg  overflow-hidden flex flex-col-reverse md:flex-row items-stretch justify-center z-10">
-          <div className="flex flex-col justify-start items-start p-8 py-8 flex-1">
-            <img className={styles.logo} width={250} src="/newlog.svg" />
-            <Spacer y={8}></Spacer>
-            <div className="flex flex-col items-start justify-start text-left">
-              <h2 className=" font-bold gradtext text-3xl">
-                Welcome to IPM Careers!
-              </h2>
-              <h3 className="text-xl text-gray-700">
-                Your Journey for Success begins here!!
-              </h3>
-            </div>
-
-            <h2 className="my-0 font-normal text-gray-600 text-md mt-4 text-left">
-              {" "}
-              Please explore our courses or{" "}
-              <strong>Redeem a Course Coupon</strong>!
-            </h2>
-
-            <div className="flex flex-col md:flex-row justify-start items-start  md:items-center flex-nowrap   my-3">
-              <Button
-                as={Link}
-                href="/demo"
-                color="success"
-                className=" text-white animate-pulse  relative shadow-md shadow-success/50 border-1"
-              >
-                Access FREE Panel
-              </Button>
-              <Spacer x={2} y={2}></Spacer>
-              <Button
-                color="secondary"
-                className=" text-white"
-                onPress={() => {
-                  setRedeemActive(true);
-                }}
-              >
-                Redeem Course Code
-              </Button>
-              <Spacer x={2} y={2}></Spacer>
-              <Button
-                color="primary"
-                className="text-white"
-                onPress={() => {
-                  router.push("https://ipmcareer.com/courses");
-                }}
-              >
-                Explore Courses
-              </Button>
-              <Spacer x={2} y={2}></Spacer>
-              <Button
-                color="danger"
-                variant="faded"
-                onPress={async () => {
-                  try {
-                    const { error } = await supabase.auth.signOut();
-                    if (error) {
-                      toast.error("Failed to log out");
-                      return;
-                    }
-                    toast.success("Logged out successfully");
-                    router.reload("/");
-                  } catch (err) {
-                    toast.error("An unexpected error occurred");
-                  }
-                }}
-              >
-                Logout
-              </Button>
-            </div>
-
-            <div className="text-gry-500 bg-gray-50 text-xs border-1 border-gry-500 border-dashed rounded-xl p-1 mt-6 font-sans pl-3">
-              *Could not find any active course!
-              <Button
-                href="https://ipmcareer.com/courses"
-                as={Link}
-                size="sm"
-                color="primary"
-                className="ml-2"
-              >
-                Explore Courses
-              </Button>
-            </div>
-          </div>
-
-          <div className="w-full md:w-2/3 bg-gray-50 relative overflow-hidden">
-            <img
-              src="/iphonemock.jpg"
-              className="w-full scale-[1.2] origin-center  md:scale-[1] h-full object-cover object-top md:object-center"
-            />
-          </div>
-        </div>
+        <WelcomeScreen />
       </div>
     );
   }
