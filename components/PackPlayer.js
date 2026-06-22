@@ -268,7 +268,7 @@ export default function PackPlayer({
   // ────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     const totalSeconds = videos.reduce(
-      (a, v) => a + (Number(v.duration) || 0),
+      (a, v) => a + (Number(v.duration_seconds) || 0),
       0,
     );
     return {
@@ -288,7 +288,7 @@ export default function PackPlayer({
 
   function chapterMeta(chapterId) {
     const vids = videosForChapter(chapterId);
-    const secs = vids.reduce((a, v) => a + (Number(v.duration) || 0), 0);
+    const secs = vids.reduce((a, v) => a + (Number(v.duration_seconds) || 0), 0);
     return {
       count: vids.length,
       duration: formatShortDuration(secs),
@@ -595,7 +595,7 @@ function ChapterAccordion({
             kind: "video",
             id: v.id,
             label: v.title || s.title,
-            duration: v.duration,
+            duration: v.duration_seconds,
             video: v,
           }),
         );

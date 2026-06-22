@@ -385,7 +385,7 @@ const Selector = ({ type, onSelect, role, title }) => {
           // Lookup chain: video → sub-cat → parent chapter → pack
           const { data: vid } = await supabase
             .from(type === "lvideo" ? "lvideos" : "videos")
-            .select("id, title, category")
+            .select("id, title, category, duration_seconds")
             .eq("id", lastPlay.video_id)
             .maybeSingle();
           if (alive && vid) {
@@ -414,6 +414,7 @@ const Selector = ({ type, onSelect, role, title }) => {
                     packTitle: pk?.title || "Pack",
                     parentChapterId: sub.parent,
                     watchedSeconds: lastPlay.position_seconds,
+                    durationSeconds: vid.duration_seconds || null,
                   });
                 }
               }
@@ -626,6 +627,7 @@ const Selector = ({ type, onSelect, role, title }) => {
               videoTitle={continueLast.videoTitle}
               packTitle={continueLast.packTitle}
               watchedSeconds={continueLast.watchedSeconds}
+              durationSeconds={continueLast.durationSeconds}
               onResume={() => {
                 // Hand the chapter id to PackPlayer via sessionStorage so it
                 // can pre-select the right chapter on mount.
@@ -1035,8 +1037,23 @@ function ContinueWatchingCard({
   videoTitle,
   packTitle,
   watchedSeconds,
+  durationSeconds,
   onResume,
 }) {
+  // Real % if duration is known. Falls back to a flat 100% bar (subtle white
+  // strip) when admin hasn't set a duration on this video yet.
+  const hasDuration =
+    Number.isFinite(durationSeconds) && durationSeconds > 0;
+  const progressPct = hasDuration
+    ? Math.max(
+        0,
+        Math.min(100, (watchedSeconds / durationSeconds) * 100),
+      )
+    : null;
+  const remainingSeconds = hasDuration
+    ? Math.max(0, durationSeconds - watchedSeconds)
+    : null;
+
   return (
     <div
       onClick={onResume}
@@ -1130,8 +1147,12 @@ function ContinueWatchingCard({
           }}
         >
           {packTitle}
-          {watchedSeconds > 0 && (
-            <> · {formatWatched(watchedSeconds)} watched</>
+          {hasDuration ? (
+            <> · {formatWatched(remainingSeconds)} left</>
+          ) : (
+            watchedSeconds > 0 && (
+              <> · {formatWatched(watchedSeconds)} watched</>
+            )
           )}
         </div>
 
@@ -1156,12 +1177,25 @@ function ContinueWatchingCard({
               style={{
                 height: "100%",
                 background: "#fff",
-                width: "100%",
+                width: hasDuration ? `${progressPct}%` : "100%",
                 borderRadius: 999,
-                opacity: 0.7,
+                opacity: hasDuration ? 1 : 0.4,
+                transition: "width 0.3s ease",
               }}
             />
           </div>
+          {hasDuration && (
+            <span
+              style={{
+                fontSize: 11.5,
+                fontWeight: 600,
+                fontVariantNumeric: "tabular-nums",
+                color: "rgba(255,255,255,0.9)",
+              }}
+            >
+              {Math.round(progressPct)}%
+            </span>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
