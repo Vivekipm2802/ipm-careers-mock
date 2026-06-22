@@ -96,6 +96,7 @@ import ConfigManager from "@/components/Configurator";
 import FileUploader from "@/components/FileUploader";
 import PDFViewer from "@/components/PDFViewer";
 import WelcomeScreen from "@/components/WelcomeScreen";
+import PackPlayer from "@/components/PackPlayer";
 const CustomEditor = dynamic(() => import("@/components/CustomEditor"), {
   ssr: false,
 });
@@ -2829,16 +2830,14 @@ export default function Home(props) {
                     type={"video"}
                   >
                     {({ group, clearSelection }) => (
-                      <PreRecorded
-                        onBack={(e) => {
+                      <PackPlayer
+                        group={group}
+                        categoryName={"vcategory"}
+                        listName={"videos"}
+                        onBack={() => {
                           clearSelection();
                         }}
-                        group={group}
-                        title={"Pre Recorded Videos"}
-                        listName={"videos"}
-                        categoryName={"vcategory"}
-                        role={props?.type}
-                      ></PreRecorded>
+                      />
                     )}
                   </VideoGroups>
                 ) : (
@@ -2856,16 +2855,14 @@ export default function Home(props) {
                         type={"lvideo"}
                       >
                         {({ group, clearSelection }) => (
-                          <PreRecorded
-                            onBack={(e) => {
+                          <PackPlayer
+                            group={group}
+                            categoryName={"lvcategory"}
+                            listName={"lvideos"}
+                            onBack={() => {
                               clearSelection();
                             }}
-                            group={group}
-                            title={"Live Recorded Videos"}
-                            listName={"lvideos"}
-                            categoryName={"lvcategory"}
-                            role={props?.type}
-                          ></PreRecorded>
+                          />
                         )}
                       </VideoGroups>
                     ) : (
