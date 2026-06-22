@@ -1042,17 +1042,13 @@ function ContinueWatchingCard({
       onClick={onResume}
       style={{
         position: "relative",
-        borderRadius: 18,
-        padding: 22,
-        cursor: "pointer",
-        background:
-          "linear-gradient(135deg, #4C2B91 0%, #7C3AED 60%, #A78BFA 100%)",
-        color: "#fff",
+        borderRadius: 20,
         overflow: "hidden",
-        minHeight: 220,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
+        aspectRatio: "16 / 9",
+        background:
+          "linear-gradient(135deg, #2D1B69 0%, #7C3AED 50%, #C084FC 100%)",
+        cursor: "pointer",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
         boxShadow: "0 14px 28px -18px rgba(124, 58, 237, 0.45)",
       }}
       onMouseEnter={(e) => {
@@ -1062,36 +1058,37 @@ function ContinueWatchingCard({
         e.currentTarget.style.transform = "translateY(0)";
       }}
     >
-      {/* Soft radial glow */}
+      {/* Dark overlay at bottom for text readability — matches preview */}
       <div
-        aria-hidden
         style={{
           position: "absolute",
-          right: -60,
-          top: -60,
-          width: 260,
-          height: 260,
-          borderRadius: "50%",
+          inset: 0,
           background:
-            "radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%)",
-          pointerEvents: "none",
+            "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)",
+          padding: 24,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+          color: "#fff",
         }}
-      />
-      <div style={{ position: "relative", zIndex: 1 }}>
+      >
+        {/* CONTINUE WATCHING pill */}
         <div
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 8,
-            background: "rgba(0,0,0,0.30)",
+            gap: 6,
+            background: "rgba(255,255,255,0.18)",
             backdropFilter: "blur(8px)",
             padding: "5px 12px",
             borderRadius: 999,
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.14em",
+            fontSize: 10.5,
+            fontWeight: 600,
+            letterSpacing: "0.12em",
             textTransform: "uppercase",
-            marginBottom: 16,
+            marginBottom: 12,
+            width: "fit-content",
+            border: "1px solid rgba(255,255,255,0.15)",
           }}
         >
           <span
@@ -1101,10 +1098,13 @@ function ContinueWatchingCard({
               borderRadius: "50%",
               background: "#ef4444",
               boxShadow: "0 0 0 4px rgba(239, 68, 68, 0.25)",
+              animation: "ipm-cw-pulse 1.8s ease-in-out infinite",
             }}
           />
           Continue watching
         </div>
+
+        {/* Title */}
         <h2
           style={{
             margin: "0 0 6px",
@@ -1120,11 +1120,13 @@ function ContinueWatchingCard({
         >
           {videoTitle}
         </h2>
+
+        {/* Meta */}
         <div
           style={{
             fontSize: 13,
-            opacity: 0.88,
-            lineHeight: 1.5,
+            opacity: 0.85,
+            marginBottom: 14,
           }}
         >
           {packTitle}
@@ -1132,34 +1134,69 @@ function ContinueWatchingCard({
             <> · {formatWatched(watchedSeconds)} watched</>
           )}
         </div>
-      </div>
 
-      {/* Resume button */}
-      <div style={{ position: "relative", zIndex: 1, marginTop: 18 }}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onResume();
-          }}
+        {/* Controls row — progress bar + Resume button */}
+        <div
           style={{
-            display: "inline-flex",
+            display: "flex",
             alignItems: "center",
-            gap: 8,
-            padding: "10px 18px",
-            borderRadius: 999,
-            background: "#fff",
-            color: "#1A1A1A",
-            border: "none",
-            fontFamily: "inherit",
-            fontSize: 13.5,
-            fontWeight: 600,
-            cursor: "pointer",
+            gap: 12,
           }}
         >
-          <PlayCircle size={16} fill="currentColor" />
-          Resume
-        </button>
+          <div
+            style={{
+              flex: 1,
+              height: 4,
+              background: "rgba(255,255,255,0.25)",
+              borderRadius: 999,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                background: "#fff",
+                width: "100%",
+                borderRadius: 999,
+                opacity: 0.7,
+              }}
+            />
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onResume();
+            }}
+            style={{
+              height: 42,
+              padding: "0 20px",
+              borderRadius: 999,
+              background: "#fff",
+              color: "#2D1B69",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 13.5,
+              fontWeight: 600,
+              fontFamily: "inherit",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <PlayCircle size={16} fill="currentColor" />
+            Resume
+          </button>
+        </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes ipm-cw-pulse {
+          50% {
+            opacity: 0.5;
+          }
+        }
+      `}</style>
     </div>
   );
 }
