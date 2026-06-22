@@ -188,6 +188,62 @@ export default function PackPlayer({
   }, [chapters, subs, videos]);
 
   // ────────────────────────────────────────────────────────────
+  // Phase 22 Ship E.2: log watch progress to video_plays.
+  // - When a lesson is selected, upsert a row immediately (registers the play
+  //   and updates updated_at — drives Continue Watching).
+  // - Every 30 seconds while a lesson is open + tab is visible, bump
+  //   position_seconds by 30. The interval is rate-limited and the upsert
+  //   is best-effort (silent on failure so the player keeps working).
+  // - On unmount / lesson change, do a final flush.
+  // ────────────────────────────────────────────────────────────
+  const userEmail = ctx?.userDetails?.email || null;
+
+  useEffect(() => {
+    if (!currentVideo?.id || !userEmail) return;
+    let positionSeconds = 0;
+    let cancelled = false;
+
+    const flush = async () => {
+      if (cancelled) return;
+      try {
+        await supabase
+          .from("video_plays")
+          .upsert(
+            {
+              user_email: userEmail,
+              video_id: currentVideo.id,
+              position_seconds: positionSeconds,
+            },
+            { onConflict: "user_email,video_id" },
+          );
+      } catch (_e) {
+        /* silent — watch tracking is best-effort */
+      }
+    };
+
+    // First write — registers the play
+    flush();
+
+    const tick = setInterval(() => {
+      // Only count when the tab is in the foreground
+      if (
+        typeof document === "undefined" ||
+        document.visibilityState === "visible"
+      ) {
+        positionSeconds += 30;
+        flush();
+      }
+    }, 30 * 1000);
+
+    return () => {
+      cancelled = false; // allow the final flush below
+      clearInterval(tick);
+      flush();
+      cancelled = true;
+    };
+  }, [currentVideo?.id, userEmail]);
+
+  // ────────────────────────────────────────────────────────────
   // Stats
   // ────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
