@@ -196,7 +196,27 @@ export default function PackPlayer({
   //   is best-effort (silent on failure so the player keeps working).
   // - On unmount / lesson change, do a final flush.
   // ────────────────────────────────────────────────────────────
-  const userEmail = ctx?.userDetails?.email || null;
+  // Ship E.2.1: fetch user email DIRECTLY from supabase.auth rather than
+  // relying on NMNContext.userDetails, which isn't reliably populated on
+  // the /demo route. Falls back to the ctx value if it's already there.
+  const [userEmail, setUserEmail] = useState(
+    ctx?.userDetails?.email || null,
+  );
+  useEffect(() => {
+    if (userEmail) return; // already have it
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (alive && data?.user?.email) setUserEmail(data.user.email);
+      } catch (_e) {
+        /* not signed in — leave null, upsert effect will skip */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [userEmail]);
 
   useEffect(() => {
     if (!currentVideo?.id || !userEmail) return;
