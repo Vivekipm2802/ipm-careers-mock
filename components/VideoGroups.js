@@ -146,6 +146,31 @@ const Selector = ({ type, onSelect, role, title }) => {
   const [realTopics, setRealTopics] = useState([]);
   const [realVideoCounts, setRealVideoCounts] = useState({}); // {topicId: count}
 
+  // Phase 22 Ship E.3: watch tracking — drives Continue Watching card +
+  // WATCHED / TIME / STREAK stat tiles. Source: video_plays table.
+  const [userEmail, setUserEmail] = useState(ctx?.userDetails?.email || null);
+  useEffect(() => {
+    if (userEmail) return;
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (alive && data?.user?.email) setUserEmail(data.user.email);
+      } catch (_e) {}
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [userEmail]);
+
+  const [continueLast, setContinueLast] = useState(null);
+  // {videoId, videoTitle, packId, packTitle, parentChapterId, watchedSeconds}
+  const [watchStats, setWatchStats] = useState({
+    watched: 0,
+    timeThisWeek: 0,
+    streak: 0,
+  });
+
   // ----------------------------------------------------------
   // Data fetching
   // ----------------------------------------------------------
@@ -339,6 +364,113 @@ const Selector = ({ type, onSelect, role, title }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups, isAdmin]);
 
+  // Phase 22 Ship E.3: load Continue Watching + stats from video_plays.
+  useEffect(() => {
+    if (!userEmail) return;
+    const categoryTable = type === "lvideo" ? "lvcategory" : "vcategory";
+    let alive = true;
+
+    (async () => {
+      try {
+        // ── Continue Watching: last play row + walk video → sub → chapter → pack
+        const { data: lastPlay } = await supabase
+          .from("video_plays")
+          .select("video_id, position_seconds, updated_at")
+          .eq("user_email", userEmail)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (alive && lastPlay) {
+          // Lookup chain: video → sub-cat → parent chapter → pack
+          const { data: vid } = await supabase
+            .from(type === "lvideo" ? "lvideos" : "videos")
+            .select("id, title, category")
+            .eq("id", lastPlay.video_id)
+            .maybeSingle();
+          if (alive && vid) {
+            const { data: sub } = await supabase
+              .from(categoryTable)
+              .select("id, parent")
+              .eq("id", vid.category)
+              .maybeSingle();
+            if (alive && sub) {
+              const { data: chap } = await supabase
+                .from(categoryTable)
+                .select("id, group_id")
+                .eq("id", sub.parent)
+                .maybeSingle();
+              if (alive && chap) {
+                const { data: pk } = await supabase
+                  .from("video_groups")
+                  .select("id, title")
+                  .eq("id", chap.group_id)
+                  .maybeSingle();
+                if (alive) {
+                  setContinueLast({
+                    videoId: lastPlay.video_id,
+                    videoTitle: vid.title || "Lesson",
+                    packId: pk?.id,
+                    packTitle: pk?.title || "Pack",
+                    parentChapterId: sub.parent,
+                    watchedSeconds: lastPlay.position_seconds,
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        // ── Stats
+        // 1. WATCHED count: distinct video plays
+        const { count: watchedCount } = await supabase
+          .from("video_plays")
+          .select("video_id", { count: "exact", head: true })
+          .eq("user_email", userEmail);
+
+        // 2. TIME this week: sum of position_seconds in last 7 days
+        const sevenDaysAgo = new Date(
+          Date.now() - 7 * 24 * 60 * 60 * 1000,
+        ).toISOString();
+        const { data: weekly } = await supabase
+          .from("video_plays")
+          .select("position_seconds")
+          .eq("user_email", userEmail)
+          .gte("updated_at", sevenDaysAgo);
+        const timeThisWeek = (weekly || []).reduce(
+          (a, r) => a + (Number(r.position_seconds) || 0),
+          0,
+        );
+
+        // 3. STREAK: consecutive days with activity ending today (IST)
+        const thirtyDaysAgo = new Date(
+          Date.now() - 30 * 24 * 60 * 60 * 1000,
+        ).toISOString();
+        const { data: monthly } = await supabase
+          .from("video_plays")
+          .select("updated_at")
+          .eq("user_email", userEmail)
+          .gte("updated_at", thirtyDaysAgo);
+
+        const streak = computeStreak(monthly || []);
+
+        if (alive) {
+          setWatchStats({
+            watched: watchedCount || 0,
+            timeThisWeek,
+            streak,
+          });
+        }
+      } catch (e) {
+        console.warn("[VideoGroups] watch-stats load failed:", e?.message);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [userEmail, type]);
+
   // ----------------------------------------------------------
   // Derived
   // ----------------------------------------------------------
@@ -486,11 +618,37 @@ const Selector = ({ type, onSelect, role, title }) => {
             marginBottom: 36,
           }}
         >
-          <FeaturedPackCard
-            pack={featuredPack}
-            onAccess={() => onSelect(featuredPack.id)}
-            label={type === "lvideo" ? "Latest live session" : "Featured pack"}
-          />
+          {/* Phase 22 Ship E.3: Continue Watching takes priority over Featured
+              when the student has a recent play. Falls back to Featured pack
+              when no plays exist yet (e.g. first-time visitor). */}
+          {continueLast ? (
+            <ContinueWatchingCard
+              videoTitle={continueLast.videoTitle}
+              packTitle={continueLast.packTitle}
+              watchedSeconds={continueLast.watchedSeconds}
+              onResume={() => {
+                // Hand the chapter id to PackPlayer via sessionStorage so it
+                // can pre-select the right chapter on mount.
+                try {
+                  if (typeof window !== "undefined" && continueLast.parentChapterId) {
+                    window.sessionStorage.setItem(
+                      "ipm-topic-intent",
+                      String(continueLast.parentChapterId),
+                    );
+                  }
+                } catch (_e) {}
+                if (continueLast.packId) onSelect(continueLast.packId);
+              }}
+            />
+          ) : (
+            <FeaturedPackCard
+              pack={featuredPack}
+              onAccess={() => onSelect(featuredPack.id)}
+              label={
+                type === "lvideo" ? "Latest live session" : "Featured pack"
+              }
+            />
+          )}
           <div
             style={{
               display: "flex",
@@ -499,24 +657,36 @@ const Selector = ({ type, onSelect, role, title }) => {
             }}
           >
             <StatTile
-              label={type === "lvideo" ? "Live sessions" : "Video packs"}
-              value={stats.total}
-              unit="available"
-              sub={`Curated for your prep`}
+              label="Watched"
+              value={watchStats.watched}
+              unit={watchStats.watched === 1 ? "video" : "videos"}
+              sub={
+                watchStats.watched > 0
+                  ? "Keep going — pick up where you left off"
+                  : "Nothing yet — your first lesson is one click away"
+              }
               icon={<PlayCircle size={18} />}
             />
             <StatTile
-              label="Demo available"
-              value={stats.demoCount}
-              unit="packs"
-              sub="Free preview access"
+              label="Time this week"
+              value={formatHours(watchStats.timeThisWeek)}
+              unit=""
+              sub={
+                watchStats.timeThisWeek > 0
+                  ? "Across the last 7 days"
+                  : "No watch time yet this week"
+              }
               icon={<Eye size={18} />}
             />
             <StatTile
-              label="Featured"
-              value={1}
-              unit="this week"
-              sub="Highlighted by faculty"
+              label="Streak"
+              value={watchStats.streak}
+              unit={watchStats.streak === 1 ? "day" : "days"}
+              sub={
+                watchStats.streak > 0
+                  ? "Don't break the chain"
+                  : "Watch one lesson today to start a streak"
+              }
               icon={<Star size={18} />}
             />
           </div>
@@ -856,6 +1026,145 @@ const Selector = ({ type, onSelect, role, title }) => {
 };
 
 // ============================================================
+// ContinueWatchingCard — Phase 22 Ship E.3
+// Hero card shown when the student has a recent video_plays row.
+// Replaces the FeaturedPackCard when there's something to resume.
+// ============================================================
+
+function ContinueWatchingCard({
+  videoTitle,
+  packTitle,
+  watchedSeconds,
+  onResume,
+}) {
+  return (
+    <div
+      onClick={onResume}
+      style={{
+        position: "relative",
+        borderRadius: 18,
+        padding: 22,
+        cursor: "pointer",
+        background:
+          "linear-gradient(135deg, #4C2B91 0%, #7C3AED 60%, #A78BFA 100%)",
+        color: "#fff",
+        overflow: "hidden",
+        minHeight: 220,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        boxShadow: "0 14px 28px -18px rgba(124, 58, 237, 0.45)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
+    >
+      {/* Soft radial glow */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          right: -60,
+          top: -60,
+          width: 260,
+          height: 260,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            background: "rgba(0,0,0,0.30)",
+            backdropFilter: "blur(8px)",
+            padding: "5px 12px",
+            borderRadius: 999,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            marginBottom: 16,
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "#ef4444",
+              boxShadow: "0 0 0 4px rgba(239, 68, 68, 0.25)",
+            }}
+          />
+          Continue watching
+        </div>
+        <h2
+          style={{
+            margin: "0 0 6px",
+            fontSize: 22,
+            fontWeight: 700,
+            letterSpacing: "-0.018em",
+            lineHeight: 1.2,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {videoTitle}
+        </h2>
+        <div
+          style={{
+            fontSize: 13,
+            opacity: 0.88,
+            lineHeight: 1.5,
+          }}
+        >
+          {packTitle}
+          {watchedSeconds > 0 && (
+            <> · {formatWatched(watchedSeconds)} watched</>
+          )}
+        </div>
+      </div>
+
+      {/* Resume button */}
+      <div style={{ position: "relative", zIndex: 1, marginTop: 18 }}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onResume();
+          }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 18px",
+            borderRadius: 999,
+            background: "#fff",
+            color: "#1A1A1A",
+            border: "none",
+            fontFamily: "inherit",
+            fontSize: 13.5,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          <PlayCircle size={16} fill="currentColor" />
+          Resume
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // FeaturedPackCard — cinematic hero card with thumbnail bg
 // ============================================================
 
@@ -989,22 +1298,8 @@ function FeaturedPackCard({ pack, onAccess, label }) {
             <PlayCircle size={16} fill="currentColor" />
             Access pack
           </button>
-          {pack.demo && (
-            <div
-              style={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                padding: "5px 11px",
-                borderRadius: 999,
-                background: "rgba(34, 197, 94, 0.9)",
-                color: "#fff",
-              }}
-            >
-              Demo
-            </div>
-          )}
+          {/* Phase 21 Ship A.3: dropped the "Demo" pill — it added noise
+              without value (for demo students every pack is demo). */}
         </div>
       </div>
     </div>
@@ -1351,52 +1646,39 @@ function PackCard({
             <PlayCircle size={32} />
           </div>
         )}
-        {/* Subtle play overlay on hover */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 50%)",
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "space-between",
-            padding: 10,
-          }}
-        >
-          {pack.demo && (
+        {/* Phase 21 Ship A.3: only render the gradient overlay + play affordance
+            when there's an actual thumbnail image — without one, the dark
+            gradient on grey looks weird and the little play circle looks like
+            a stray dot. With an image, both come back for hover readability. */}
+        {pack.image && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 50%)",
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "flex-end",
+              padding: 10,
+            }}
+          >
             <div
               style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                padding: "4px 9px",
-                borderRadius: 999,
-                background: "rgba(34, 197, 94, 0.9)",
-                color: "#fff",
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.94)",
+                color: "#1A1A1A",
+                display: "grid",
+                placeItems: "center",
                 backdropFilter: "blur(8px)",
               }}
             >
-              Demo
+              <PlayCircle size={18} fill="currentColor" />
             </div>
-          )}
-          <div style={{ flex: 1 }} />
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: "rgba(255, 255, 255, 0.94)",
-              color: "#1A1A1A",
-              display: "grid",
-              placeItems: "center",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            <PlayCircle size={18} fill="currentColor" />
           </div>
-        </div>
+        )}
       </div>
 
       {/* Body */}
@@ -1642,4 +1924,53 @@ function PackCard({
       </div>
     </div>
   );
+}
+
+// ============================================================
+// Phase 22 Ship E.3 helpers
+// ============================================================
+
+// Streak = consecutive days (ending today, IST) with at least one play.
+function computeStreak(plays) {
+  if (!plays || !plays.length) return 0;
+  const days = new Set();
+  plays.forEach((p) => {
+    if (!p?.updated_at) return;
+    // Bucket into Asia/Kolkata calendar day so an 11:45pm IST play counts today
+    const d = new Date(p.updated_at);
+    const istOffsetMs = 5.5 * 60 * 60 * 1000;
+    const local = new Date(d.getTime() + istOffsetMs);
+    days.add(local.toISOString().slice(0, 10));
+  });
+  let streak = 0;
+  const today = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+  const cursor = new Date(today);
+  // Walk backwards from today until we miss a day
+  // Allow today to be optional (don't break streak if not yet watched today)
+  const todayKey = today.toISOString().slice(0, 10);
+  if (!days.has(todayKey)) cursor.setUTCDate(cursor.getUTCDate() - 1);
+  while (days.has(cursor.toISOString().slice(0, 10))) {
+    streak++;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return streak;
+}
+
+function formatHours(seconds) {
+  if (!seconds || seconds <= 0) return "0h";
+  const hours = seconds / 3600;
+  if (hours < 0.1) return `${Math.round(seconds / 60)}m`;
+  if (hours < 1) return `${(Math.round(hours * 10) / 10).toFixed(1)}h`;
+  return `${(Math.round(hours * 10) / 10).toFixed(1)}h`;
+}
+
+function formatWatched(seconds) {
+  if (!seconds || seconds <= 0) return "0s";
+  const s = Math.round(seconds);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return mm > 0 ? `${h}h ${mm}m` : `${h}h`;
 }
