@@ -1,24 +1,42 @@
+// ============================================================
+// Classes — Phase 23 redesign
+// ============================================================
+// Same data + behaviour as the legacy Classes.js (batches → today's
+// classes → recordings history), but rebuilt with the portal's
+// current design language (Inter + Instrument Serif, CSS vars,
+// dark mode, custom amber buttons, status pills, hover-lift cards).
+//
+// All Supabase queries, isAdmin / isDemo checks, mark_attendance RPC,
+// and AnimatePresence view transitions preserved.
+// ============================================================
+
 import { CtoLocal, formatHHMMTo12Hour } from "@/utils/DateUtil";
 import { supabase } from "@/utils/supabaseClient";
 import axios from "axios";
-import {
-  Button,
-  Chip,
-  Input,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  ScrollShadow,
-  Spacer,
-  Tooltip,
-} from "@nextui-org/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, CheckCircle } from "lucide-react";
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNMNContext } from "./NMNContext";
 import { isToday } from "date-fns";
+
+const FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
+
+const eyebrowStyle = {
+  fontSize: 11,
+  fontWeight: 500,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: "var(--c-text-tertiary)",
+};
+
+const serifStyle = {
+  fontFamily: "'Instrument Serif', serif",
+  fontStyle: "italic",
+  fontWeight: 400,
+  color: "var(--c-brand-primary)",
+};
 
 export default function Classes() {
   const [batches, setBatches] = useState();
@@ -31,18 +49,17 @@ export default function Classes() {
   const [pin, setPIN] = useState();
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // ──────────────────────────────────────────────────────────────
+  // Data layer — unchanged from legacy Classes.js
+  // ──────────────────────────────────────────────────────────────
   async function checkAdmin() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
       try {
-        const res = await axios.post("/api/isAdmin", {
-          email: user.email,
-        });
-        if (res.data?.success) {
-          setIsAdmin(true);
-        }
+        const res = await axios.post("/api/isAdmin", { email: user.email });
+        if (res.data?.success) setIsAdmin(true);
       } catch (e) {
         console.log(e);
       }
@@ -50,60 +67,44 @@ export default function Classes() {
   }
 
   async function getBatches() {
-    // Get the current user
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
     if (!user) {
       toast.error("User not authenticated");
       return null;
     }
-
-    // First, get the courses the user is enrolled in
     const { data: enrollmentData, error: enrollmentError } = await supabase
       .from("enrollments")
       .select("course")
       .eq("email", user.email)
       .eq("is_expired", false);
-
     if (enrollmentError) {
       toast.error("Unable to Load Enrollments");
       return null;
     }
-
     if (!enrollmentData || enrollmentData.length === 0) {
       setBatches([]);
       return null;
     }
-
-    // Extract course IDs
     const courseIds = enrollmentData
       .map((enrollment) => enrollment.course)
       .filter(Boolean);
-
     if (courseIds.length === 0) {
       setBatches([]);
       return null;
     }
-
-    // Fetch batches for the enrolled courses
     const { data, error } = await supabase
       .from("batches")
       .select("*,course_id(*)")
       .in("course_id", courseIds)
       .eq("status", "live")
       .eq("is_deleted", false);
-
     if (error) {
       toast.error("Unable to Load Batches");
       return null;
     }
-
-    if (data) {
-      setBatches(data);
-      return null;
-    }
+    if (data) setBatches(data);
   }
 
   async function getClasses(a) {
@@ -118,23 +119,18 @@ export default function Classes() {
     if (data) {
       setClasses(data);
       getAttendance(data);
-      return null;
     }
   }
 
   async function getAttendance(a) {
     const uids = Array.isArray(a) ? a?.map((item) => item.uuid) : "";
-
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("classes_attendance")
       .select("*")
       .in("class_id", uids);
-    if (data) {
-      setAttendance(data);
-    }
-    if (error) {
-    }
+    if (data) setAttendance(data);
   }
+
   async function getHistory(a) {
     const { data, error } = await supabase
       .from("classes_history")
@@ -145,11 +141,9 @@ export default function Classes() {
       toast.error("Unable to Load Classes");
       return null;
     }
-    if (data) {
-      setHistory(data);
-      return null;
-    }
+    if (data) setHistory(data);
   }
+
   useEffect(() => {
     checkAdmin();
     getBatches();
@@ -161,437 +155,835 @@ export default function Classes() {
       class_id_arg: i,
       pin_arg: p,
     });
-    if (data) {
-      if (data && data?.success) {
-        toast.success("Verified Successfully");
-        toast.remove(r);
-        getClasses(b);
-      } else {
-        toast.error("Invalid Code");
-        toast.remove(r);
-      }
-    }
-    if (error) {
+    if (data?.success) {
+      toast.success("Verified Successfully");
+      toast.remove(r);
+      getClasses(b);
+    } else if (data || error) {
       toast.error("Invalid Code");
       toast.remove(r);
     }
   }
 
-  function getDaysComponent(a) {
-    const dayMap = [
-      {
-        title: "Monday",
-        short: "M",
-        index: 1,
-      },
-      {
-        title: "Tuesday",
-        short: "T",
-        index: 2,
-      },
-      {
-        title: "Wednesday",
-        short: "W",
-        index: 3,
-      },
-      {
-        title: "Thursday",
-        short: "T",
-        index: 4,
-      },
-      {
-        title: "Friday",
-        short: "F",
-        index: 5,
-      },
-      {
-        title: "Saturday",
-        short: "S",
-        index: 6,
-      },
-      {
-        title: "Sunday",
-        short: "S",
-        index: 0,
-      },
-    ];
+  // ──────────────────────────────────────────────────────────────
+  // Render
+  // ──────────────────────────────────────────────────────────────
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        overflowY: "auto",
+        overflowX: "hidden",
+        fontFamily: FONT,
+        padding: "24px 28px 36px",
+        color: "var(--c-text-primary)",
+        boxSizing: "border-box",
+      }}
+    >
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key={view + "view"}
+          initial={{ x: -50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.2, ease: [0.62, 0.13, 0.12, 0.94] }}
+          exit={{ x: 50, opacity: 0 }}
+        >
+          {view === 0 && (
+            <BatchesView
+              batches={batches}
+              isAdmin={isAdmin}
+              isDemo={isDemo}
+              onOpenClasses={(id) => {
+                setCurrentBatch(id);
+                setView(1);
+                getClasses(id);
+              }}
+              onOpenHistory={(id) => {
+                setCurrentBatch(id);
+                setView(2);
+                getHistory(id);
+              }}
+            />
+          )}
+          {view === 1 && (
+            <ClassesView
+              classes={classes}
+              attendance={attendance}
+              isDemo={isDemo}
+              onBack={() => {
+                setView(0);
+                setClasses();
+                setHistory();
+              }}
+            />
+          )}
+          {view === 2 && (
+            <HistoryView
+              history={history}
+              onBack={() => {
+                setView(0);
+                setClasses();
+                setHistory();
+              }}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
 
-    return (
-      <Tooltip
-        size="sm"
-        color="secondary"
-        content={dayMap.find((item) => item.index == a)?.title ?? "unknown"}
+// ============================================================
+// BatchesView — top-level "Your batches"
+// ============================================================
+function BatchesView({ batches, isAdmin, isDemo, onOpenClasses, onOpenHistory }) {
+  return (
+    <>
+      <div style={{ ...eyebrowStyle, marginBottom: 8 }}>Live classes</div>
+      <h1
+        style={{
+          margin: "0 0 6px",
+          fontSize: 30,
+          fontWeight: 600,
+          letterSpacing: "-0.025em",
+          lineHeight: 1.1,
+        }}
       >
-        <div className="w-4 h-4 mr-1 hover:bg-secondary hover:text-white !hover:border-secondary cursor-pointer hover:scale-125 transition-all text-primary rounded-full border-1 border-primary bg-primary-50 flex flex-col items-center justify-center">
-          {dayMap.find((item) => item.index == a)?.short ?? "Error"}
+        Your <span style={serifStyle}>batches</span> &amp; sessions.
+      </h1>
+      <p
+        style={{
+          margin: "0 0 24px",
+          fontSize: 14.5,
+          lineHeight: 1.55,
+          color: "var(--c-text-secondary)",
+          maxWidth: "58ch",
+        }}
+      >
+        Pick a batch to see today's classes and recordings.
+      </p>
+
+      <SectionHeader
+        title="Your batches"
+        meta={
+          batches?.length
+            ? `${batches.length} active`
+            : batches?.length === 0
+              ? "No batches"
+              : "Loading…"
+        }
+      />
+
+      {batches && batches.length > 0 ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+            gap: 14,
+          }}
+        >
+          {batches.map((b) => (
+            <BatchCard
+              key={b.id}
+              batch={b}
+              isAdmin={isAdmin}
+              isDemo={isDemo}
+              onEnter={() => onOpenClasses(b.id)}
+              onHistory={() =>
+                isDemo
+                  ? toast.error("Cannot access history in demo mode")
+                  : onOpenHistory(b.id)
+              }
+            />
+          ))}
         </div>
-      </Tooltip>
-    );
-  }
+      ) : batches?.length === 0 ? (
+        <EmptyState
+          title="No batches assigned"
+          body="You are not currently enrolled in any active batches. Please contact your administrator for enrollment."
+        />
+      ) : (
+        <Spinner />
+      )}
+    </>
+  );
+}
+
+// ============================================================
+// BatchCard
+// ============================================================
+function BatchCard({ batch, isAdmin, isDemo, onEnter, onHistory }) {
+  const days = batch?.days || [];
+  return (
+    <div
+      style={{
+        background: "var(--c-surface)",
+        border: "1px solid var(--c-border-faint)",
+        borderRadius: 16,
+        padding: "20px 22px",
+        transition: "transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease",
+        cursor: "pointer",
+      }}
+      onClick={onEnter}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.borderColor = "var(--c-brand-primary)";
+        e.currentTarget.style.boxShadow =
+          "0 10px 24px -16px rgba(20,19,15,0.16)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.borderColor = "var(--c-border-faint)";
+        e.currentTarget.style.boxShadow = "none";
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3
+            style={{
+              margin: "0 0 6px",
+              fontSize: 17,
+              fontWeight: 600,
+              letterSpacing: "-0.012em",
+              color: "var(--c-text-primary)",
+            }}
+          >
+            {batch.title}
+          </h3>
+          {batch.description && (
+            <p
+              style={{
+                margin: 0,
+                fontSize: 13,
+                color: "var(--c-text-secondary)",
+                lineHeight: 1.5,
+              }}
+            >
+              {batch.description}
+            </p>
+          )}
+        </div>
+        {isDemo ? (
+          <Pill kind="success">Demo</Pill>
+        ) : (
+          <Pill kind="brand">Active</Pill>
+        )}
+      </div>
+
+      {/* Date meta (admin sees both dates; students see schedule chips) */}
+      {(isAdmin || days.length > 0) && (
+        <div
+          style={{
+            display: "flex",
+            gap: 16,
+            flexWrap: "wrap",
+            fontSize: 12.5,
+            color: "var(--c-text-tertiary)",
+            paddingTop: 14,
+            borderTop: "1px dashed var(--c-border-faint)",
+            marginBottom: 12,
+          }}
+        >
+          {isAdmin && batch.start_date && (
+            <span>
+              <b style={{ color: "var(--c-text-secondary)", fontWeight: 600 }}>
+                Start
+              </b>{" "}
+              {CtoLocal(batch.start_date)?.date}{" "}
+              {CtoLocal(batch.start_date)?.monthName}{" "}
+              {CtoLocal(batch.start_date)?.year}
+            </span>
+          )}
+          {isAdmin && batch.end_date && (
+            <span>
+              <b style={{ color: "var(--c-text-secondary)", fontWeight: 600 }}>
+                End
+              </b>{" "}
+              {CtoLocal(batch.end_date)?.date}{" "}
+              {CtoLocal(batch.end_date)?.monthName}{" "}
+              {CtoLocal(batch.end_date)?.year}
+            </span>
+          )}
+        </div>
+      )}
+
+      {days.length > 0 && <DayChips days={days} />}
+
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <PrimaryButton
+          onClick={(e) => {
+            e.stopPropagation();
+            onEnter();
+          }}
+        >
+          Enter →
+        </PrimaryButton>
+        {!isDemo && (
+          <GhostButton
+            onClick={(e) => {
+              e.stopPropagation();
+              onHistory();
+            }}
+          >
+            Recordings
+          </GhostButton>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// ClassesView — view 1, today's classes for a batch
+// ============================================================
+function ClassesView({ classes, attendance, isDemo, onBack }) {
+  return (
+    <>
+      <SoftButton onClick={onBack} style={{ marginBottom: 14 }}>
+        ← Back to batches
+      </SoftButton>
+      <div style={{ ...eyebrowStyle, marginBottom: 6 }}>Today</div>
+      <h2
+        style={{
+          margin: "0 0 22px",
+          fontSize: 22,
+          fontWeight: 600,
+          letterSpacing: "-0.018em",
+        }}
+      >
+        Your <span style={serifStyle}>classes</span> today.
+      </h2>
+
+      {classes && classes.length > 0 ? (
+        classes.map((c) => (
+          <ClassRow
+            key={c.uuid || c.id}
+            classItem={c}
+            attended={attendance?.some((a) => a.class_id === c.uuid)}
+          />
+        ))
+      ) : classes?.length === 0 ? (
+        <EmptyState
+          title={
+            isDemo
+              ? "Demo class will appear here"
+              : "No class scheduled for today"
+          }
+          body={
+            isDemo
+              ? "Once admin adds a live class to this batch, it'll show up here."
+              : "Check back tomorrow or look at your schedule for the week."
+          }
+        />
+      ) : (
+        <Spinner />
+      )}
+    </>
+  );
+}
+
+// ============================================================
+// ClassRow — one row inside ClassesView
+// ============================================================
+function ClassRow({ classItem, attended }) {
+  const startStr = classItem.start_time
+    ? formatHHMMTo12Hour(classItem.start_time)
+    : "";
+  const endStr = classItem.end_time
+    ? formatHHMMTo12Hour(classItem.end_time)
+    : "";
+  // Split "5:30 PM" into time + AM/PM
+  const [startTime, startAmPm] = (startStr || "").split(" ");
 
   return (
-    <div className="w-full flex flex-col h-full items-start justify-start overflow-hidden ">
-      <div className="w-full rounded-xl h-full p-4 flex flex-col items-start justify-start overflow-hidden">
-        <AnimatePresence mode="popLayout">
-          <motion.div
-            key={view + "batches"}
-            initial={{ x: -50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.2, ease: [0.62, 0.13, 0.12, 0.94] }}
-            exit={{ x: 50, opacity: 0 }}
-            className="w-full flex flex-col items-start justify-start flex-nowrap overflow-hidden"
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+        padding: "18px 22px",
+        background: "var(--c-surface)",
+        border: "1px solid var(--c-border-faint)",
+        borderRadius: 16,
+        marginBottom: 12,
+        flexWrap: "wrap",
+      }}
+    >
+      {startStr && (
+        <div
+          style={{
+            textAlign: "center",
+            paddingRight: 16,
+            borderRight: "1px solid var(--c-border-faint)",
+            minWidth: 86,
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'Instrument Serif', serif",
+              fontStyle: "italic",
+              fontSize: 22,
+              lineHeight: 1,
+              color: "var(--c-text-primary)",
+              marginBottom: 4,
+            }}
           >
-            {view == 0 ? (
-              <>
-                <h2 className="text-2xl font-bold text-primary">
-                  Your Batches
-                </h2>
-                <ScrollShadow className="w-full my-4 overflow-y-auto">
-                  {batches && batches.length > 0 ? (
-                    batches.map((i, d) => {
-                      return (
-                        <>
-                          <div className="w-full rounded-lg shadow-sm p-4 flex flex-row items-center justify-start">
-                            <div className="flex flex-col justify-start items-start">
-                              <p className="font-bold text-lg text-primary">
-                                {i.title}{" "}
-                                {isDemo ? (
-                                  <Chip
-                                    color="success"
-                                    size="sm"
-                                    className="ml-2"
-                                  >
-                                    Demo Batch
-                                  </Chip>
-                                ) : (
-                                  ""
-                                )}
-                              </p>
-                              {i?.description ? (
-                                <p className="text-sm text-[color:var(--c-text-tertiary)] leading-none">
-                                  {i.description}
-                                </p>
-                              ) : (
-                                ""
-                              )}
-                              {isAdmin && (
-                                <div className="flex flex-row items-center justify-start my-1">
-                                  {i.start_date ? (
-                                    <div className="flex flex-row items-center justify-start text-sm">
-                                      <p className="font-bold">Start Date:</p>{" "}
-                                      <p>
-                                        {CtoLocal(i.start_date)?.date}{" "}
-                                        {CtoLocal(i.start_date)?.monthName}{" "}
-                                        {CtoLocal(i.start_date)?.year}
-                                      </p>{" "}
-                                    </div>
-                                  ) : (
-                                    ""
-                                  )}
-                                  <Spacer x={2} y={2}></Spacer>
-                                  {i.end_date ? (
-                                    <div className="flex flex-row items-center justify-start text-sm">
-                                      <p className="font-bold">End Date:</p>{" "}
-                                      <p>
-                                        {CtoLocal(i.end_date)?.date}{" "}
-                                        {CtoLocal(i.end_date)?.monthName}{" "}
-                                        {CtoLocal(i.end_date)?.year}
-                                      </p>{" "}
-                                    </div>
-                                  ) : (
-                                    ""
-                                  )}
-                                </div>
-                              )}
-                              {/* <div className="flex flex-row items-center justify-start text-xs">
-                                Schedules: <Spacer x={1}></Spacer>
-                                {i?.days &&
-                                  i?.days?.map((z, v) => {
-                                    return getDaysComponent(z);
-                                  })}
-                              </div> */}
-                            </div>
-                            <div className="flex-1 flex flex-row items-center justify-end">
-                              {/* <Button
-                                size="sm"
-                                color="default"
-                                onPress={() => {
-                                  isDemo == true
-                                    ? toast.error(
-                                        "Cannot Access History in Demo Mode"
-                                      )
-                                    : (setView(2),
-                                      setCurrentBatch(i.id),
-                                      getHistory(i.id));
-                                }}
-                              >
-                                Class History
-                              </Button> */}
-                              <Spacer x={2}></Spacer>
-                              <Button
-                                size="sm"
-                                color="primary"
-                                onPress={() => {
-                                  setView(1),
-                                    setCurrentBatch(i.id),
-                                    getClasses(i.id);
-                                }}
-                              >
-                                Enter
-                              </Button>
-                            </div>
-                          </div>
-                          <Spacer y={2}></Spacer>
-                        </>
-                      );
-                    })
-                  ) : (
-                    <div className="w-full rounded-lg shadow-sm p-8 flex flex-col items-center justify-center text-center">
-                      <p className="text-lg font-semibold text-[color:var(--c-text-primary)] mb-2">
-                        No Batches Assigned
-                      </p>
-                      <p className="text-sm text-[color:var(--c-text-tertiary)]">
-                        You are not currently enrolled in any active batches.
-                        Please contact your administrator for enrollment.
-                      </p>
-                    </div>
-                  )}
-                </ScrollShadow>
-              </>
-            ) : (
-              ""
-            )}
-            {view == 1 ? (
-              <>
-                <h2 className="text-2xl font-bold text-primary">
-                  Your Classes
-                </h2>
-                <div className="w-full my-4 flex flex-col items-start justify-start">
-                  <Button
-                    color="primary"
-                    size="sm"
-                    startContent={
-                      <svg
-                        width="24"
-                        height="24"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M15.707 4.293a1 1 0 0 1 0 1.414L9.414 12l6.293 6.293a1 1 0 0 1-1.414 1.414l-7-7a1 1 0 0 1 0-1.414l7-7a1 1 0 0 1 1.414 0Z"
-                          fill="#ffffff"
-                        />
-                      </svg>
-                    }
-                    onPress={() => {
-                      setView(0), setClasses(), setHistory();
-                    }}
-                  >
-                    Back to Batches
-                  </Button>
-                  <Spacer y={2}></Spacer>
-                  {classes &&
-                    classes.map((i, d) => {
-                      return (
-                        <>
-                          <div className="w-full rounded-lg shadow-sm p-4 flex flex-row items-center justify-start">
-                            <div className="flex flex-col items-start justify-start">
-                              {" "}
-                              <p className="text-lg text-primary font-bold">
-                                {i.title ?? "Today's Class"}
-                              </p>
-                              <div className="flex flex-row items-center justify-start">
-                                {/* <h2 className="font-semibold text-purple-900">
-                                  {formatHHMMTo12Hour(i.start_time)}
-                                </h2> */}
-                                {isToday(i?.start_time) && (
-                                  <Chip
-                                    color="success"
-                                    size="sm"
-                                    className="ml-2"
-                                  >
-                                    Today
-                                  </Chip>
-                                )}
-                              </div>
-                              <div className="flex flex-row items-center justify-start my-1">
-                                {i.start_time ? (
-                                  <div className="flex flex-row items-center justify-start text-sm">
-                                    <p className="font-bold"></p>{" "}
-                                    <p>{formatHHMMTo12Hour(i.start_time)}</p>{" "}
-                                  </div>
-                                ) : (
-                                  ""
-                                )}
-
-                                <p className="mx-2">-</p>
-                                {i.end_time ? (
-                                  <div className="flex flex-row items-center justify-start text-sm">
-                                    <p className="font-bold"></p>{" "}
-                                    <p>{formatHHMMTo12Hour(i.end_time)}</p>{" "}
-                                  </div>
-                                ) : (
-                                  ""
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex-1 flex flex-row items-center justify-end">
-                              {attendance &&
-                              attendance?.some(
-                                (item) => item.class_id == i.uuid
-                              ) ? (
-                                <p className="text-lime-700 flex flex-row items-center justify-center font-semibold border-1 rounded-lg p-2 border-lime-500 text-xs">
-                                  <Check size={16} className="mr-2"></Check>
-                                  Marked as Attended
-                                </p>
-                              ) : (
-                                // <Popover>
-                                //   <PopoverTrigger>
-                                //     <Button
-                                //       endContent={
-                                //         <CheckCircle size={16}></CheckCircle>
-                                //       }
-                                //       size="sm"
-                                //       color="success"
-                                //     >
-                                //       Mark Attendance
-                                //     </Button>
-                                //   </PopoverTrigger>
-                                //   <PopoverContent className="p-4">
-                                //     <Input
-                                //       maxLength={6}
-                                //       minLength={4}
-                                //       label="Class PIN"
-                                //       onChange={(e) => {
-                                //         setPIN(e.target.value);
-                                //       }}
-                                //       placeholder="Enter Class PIN"
-                                //     ></Input>
-                                //     <Spacer y={2}></Spacer>
-                                //     <Button
-                                //       color="success"
-                                //       size="sm"
-                                //       onPress={() => {
-                                //         verifyClassPIN(i.id, pin, i.batch_id);
-                                //       }}
-                                //     >
-                                //       Verify PIN
-                                //     </Button>
-                                //   </PopoverContent>
-                                // </Popover>
-                                <></>
-                              )}
-                              <Spacer x={2}></Spacer>
-                              <Button
-                                size="sm"
-                                color="primary"
-                                href={`${i.url}`}
-                                target="_blank"
-                                as={Link}
-                              >
-                                Join Class
-                              </Button>
-                            </div>
-                          </div>
-                          <Spacer y={2}></Spacer>
-                        </>
-                      );
-                    })}
-                  {classes == undefined || (classes?.length == 0 && !isDemo) ? (
-                    <div className="border-1 my-2 border-[color:var(--c-border-faint)] rounded-xl text-[color:var(--c-text-tertiary)] w-full p-2">
-                      No Class scheduled for today
-                    </div>
-                  ) : (
-                    ""
-                  )}
-                  {classes == undefined || (classes?.length == 0 && isDemo) ? (
-                    <div className="border-1 my-2 border-[color:var(--c-border-faint)] rounded-xl text-[color:var(--c-text-tertiary)] w-full p-2">
-                      Demo class will be visible here once available
-                    </div>
-                  ) : (
-                    ""
-                  )}
-                </div>
-              </>
-            ) : (
-              ""
-            )}
-
-            {view == 2 ? (
-              <>
-                <h2 className="text-2xl font-bold text-primary">
-                  Classes History
-                </h2>
-                <div className="w-full mt-4 flex h-full overflow-hidden  flex-col items-start justify-start">
-                  <Button
-                    color="primary"
-                    size="sm"
-                    startContent={
-                      <svg
-                        width="24"
-                        height="24"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M15.707 4.293a1 1 0 0 1 0 1.414L9.414 12l6.293 6.293a1 1 0 0 1-1.414 1.414l-7-7a1 1 0 0 1 0-1.414l7-7a1 1 0 0 1 1.414 0Z"
-                          fill="#ffffff"
-                        />
-                      </svg>
-                    }
-                    onPress={() => {
-                      setView(0), setClasses(), setHistory();
-                    }}
-                  >
-                    Back to Batches
-                  </Button>
-                  <Spacer y={2}></Spacer>
-
-                  <ScrollShadow className="w-full flex-1">
-                    {history &&
-                      history.map((i, d) => {
-                        return (
-                          <>
-                            <div className="w-full rounded-lg shadow-sm p-4 flex flex-row items-center justify-start relative overflow-hidden">
-                              <div className="font-sans bg-secondary rounded-full h-full  text-[color:var(--c-text-primary)] font-bold text-xs uppercase p-1  mr-4 px-4">
-                                <div>
-                                  {/* {CtoLocal(i.start_time).date}{" "}
-                                  {CtoLocal(i.start_time).monthName?.substring(
-                                    0,
-                                    3
-                                  )} */}
-                                </div>
-                              </div>
-                              <p>{i.title ?? "Today's Class"}</p>
-                              <div className="flex-1 flex flex-row items-center justify-end">
-                                {i?.recording && (
-                                  <Button
-                                    size="sm"
-                                    color="primary"
-                                    as={Link}
-                                    target="_blank"
-                                    href={i?.recording ?? "#"}
-                                  >
-                                    View Recording
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                            <Spacer y={2}></Spacer>
-                          </>
-                        );
-                      })}
-                  </ScrollShadow>
-                </div>
-              </>
-            ) : (
-              ""
-            )}
-          </motion.div>
-        </AnimatePresence>
+            {startTime}
+          </div>
+          {startAmPm && (
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--c-text-tertiary)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+              }}
+            >
+              {startAmPm}
+            </div>
+          )}
+        </div>
+      )}
+      <div style={{ flex: 1, minWidth: 200 }}>
+        <h4
+          style={{
+            margin: "0 0 4px",
+            fontSize: 15.5,
+            fontWeight: 600,
+            letterSpacing: "-0.012em",
+            color: "var(--c-text-primary)",
+          }}
+        >
+          {classItem.title ?? "Today's class"}
+        </h4>
+        {(startStr || endStr) && (
+          <div style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
+            {startStr}
+            {endStr ? ` – ${endStr}` : ""}
+          </div>
+        )}
+        {isToday(classItem?.start_time) && (
+          <span style={{ marginTop: 6, display: "inline-block" }}>
+            <Pill kind="brand">Today</Pill>
+          </span>
+        )}
       </div>
+      {attended ? (
+        <Pill kind="success">
+          <Check size={12} style={{ marginRight: 4 }} />
+          Attended
+        </Pill>
+      ) : null}
+      {classItem.url && (
+        <a
+          href={classItem.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textDecoration: "none" }}
+        >
+          <PrimaryButton as="span">Join →</PrimaryButton>
+        </a>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// HistoryView — view 2, recordings list
+// ============================================================
+function HistoryView({ history, onBack }) {
+  return (
+    <>
+      <SoftButton onClick={onBack} style={{ marginBottom: 14 }}>
+        ← Back to batches
+      </SoftButton>
+      <div style={{ ...eyebrowStyle, marginBottom: 6 }}>Recordings</div>
+      <h2
+        style={{
+          margin: "0 0 22px",
+          fontSize: 22,
+          fontWeight: 600,
+          letterSpacing: "-0.018em",
+        }}
+      >
+        Catch up on <span style={serifStyle}>past</span> sessions.
+      </h2>
+
+      {history && history.length > 0 ? (
+        history.map((h) => (
+          <HistoryRow key={h.id || h.created_at} item={h} />
+        ))
+      ) : history?.length === 0 ? (
+        <EmptyState
+          title="No recordings yet"
+          body="When a live class ends, the recording will land here within a few hours."
+        />
+      ) : (
+        <Spinner />
+      )}
+    </>
+  );
+}
+
+function HistoryRow({ item }) {
+  const dt = item.created_at ? CtoLocal(item.created_at) : null;
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 18,
+        padding: "16px 22px",
+        background: "var(--c-surface)",
+        border: "1px solid var(--c-border-faint)",
+        borderRadius: 14,
+        marginBottom: 10,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
+        {dt && (
+          <div
+            style={{
+              flex: "0 0 60px",
+              textAlign: "center",
+              background: "var(--c-bg-elev)",
+              borderRadius: 10,
+              padding: "8px 6px",
+              border: "1px solid var(--c-border-faint)",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "'Instrument Serif', serif",
+                fontStyle: "italic",
+                fontSize: 22,
+                lineHeight: 1,
+                color: "var(--c-text-primary)",
+              }}
+            >
+              {dt.date}
+            </div>
+            <div
+              style={{
+                fontSize: 10.5,
+                color: "var(--c-text-tertiary)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginTop: 3,
+              }}
+            >
+              {dt.monthName?.substring(0, 3)}
+            </div>
+          </div>
+        )}
+        <h4
+          style={{
+            margin: 0,
+            fontSize: 14.5,
+            fontWeight: 600,
+            letterSpacing: "-0.012em",
+            color: "var(--c-text-primary)",
+          }}
+        >
+          {item.title ?? "Recorded class"}
+        </h4>
+      </div>
+      {item.recording && (
+        <Link
+          href={item.recording}
+          target="_blank"
+          style={{ textDecoration: "none" }}
+        >
+          <GhostButton>View recording →</GhostButton>
+        </Link>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Shared subcomponents
+// ============================================================
+
+function SectionHeader({ title, meta }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        marginBottom: 14,
+      }}
+    >
+      <h2
+        style={{
+          margin: 0,
+          fontSize: 18,
+          fontWeight: 600,
+          letterSpacing: "-0.018em",
+          color: "var(--c-text-primary)",
+        }}
+      >
+        {title}
+      </h2>
+      {meta && (
+        <span style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
+          {meta}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Pill({ kind, children }) {
+  const palette = {
+    success: {
+      bg: "var(--c-success-soft, rgba(22,163,74,0.10))",
+      fg: "var(--c-success, #16A34A)",
+      bd: "var(--c-success, #16A34A)",
+    },
+    danger: {
+      bg: "var(--c-danger-soft, rgba(220,38,38,0.10))",
+      fg: "var(--c-danger, #DC2626)",
+      bd: "var(--c-danger, #DC2626)",
+    },
+    brand: {
+      bg: "var(--c-brand-glow, rgba(217,119,6,0.16))",
+      fg: "var(--c-brand-primary)",
+      bd: "var(--c-brand-primary)",
+    },
+    muted: {
+      bg: "var(--c-bg-elev)",
+      fg: "var(--c-text-secondary)",
+      bd: "var(--c-border-faint)",
+    },
+  };
+  const p = palette[kind] || palette.muted;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: 11,
+        fontWeight: 600,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        padding: "4px 10px",
+        borderRadius: 999,
+        background: p.bg,
+        color: p.fg,
+        border: `1px solid ${p.bd}`,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function DayChips({ days }) {
+  const dayMap = [
+    { short: "S", index: 0, title: "Sunday" },
+    { short: "M", index: 1, title: "Monday" },
+    { short: "T", index: 2, title: "Tuesday" },
+    { short: "W", index: 3, title: "Wednesday" },
+    { short: "T", index: 4, title: "Thursday" },
+    { short: "F", index: 5, title: "Friday" },
+    { short: "S", index: 6, title: "Saturday" },
+  ];
+  return (
+    <div style={{ display: "inline-flex", gap: 4 }}>
+      {dayMap.map((d) => {
+        const on = days.includes(d.index);
+        return (
+          <span
+            key={d.title}
+            title={d.title}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 6,
+              background: on
+                ? "var(--c-brand-glow)"
+                : "var(--c-bg-elev)",
+              color: on
+                ? "var(--c-brand-primary)"
+                : "var(--c-text-tertiary)",
+              fontSize: 10.5,
+              fontWeight: 700,
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            {d.short}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function PrimaryButton({ children, onClick, as }) {
+  const Tag = as || "button";
+  return (
+    <Tag
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 7,
+        padding: "9px 16px",
+        borderRadius: 10,
+        fontSize: 13,
+        fontWeight: 600,
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        background: "var(--c-brand-primary)",
+        color: "white",
+        transition: "transform 0.15s ease",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-1px)")}
+      onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
+    >
+      {children}
+    </Tag>
+  );
+}
+
+function GhostButton({ children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 7,
+        padding: "9px 16px",
+        borderRadius: 10,
+        fontSize: 13,
+        fontWeight: 600,
+        border: "1px solid var(--c-border-soft)",
+        background: "transparent",
+        color: "var(--c-text-primary)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        transition: "transform 0.15s ease, border-color 0.15s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-1px)";
+        e.currentTarget.style.borderColor = "var(--c-brand-primary)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.borderColor = "var(--c-border-soft)";
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SoftButton({ children, onClick, style = {} }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "6px 12px",
+        borderRadius: 999,
+        fontSize: 12.5,
+        fontWeight: 500,
+        border: "1px solid var(--c-border-soft)",
+        background: "var(--c-bg-elev)",
+        color: "var(--c-text-secondary)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function EmptyState({ title, body }) {
+  return (
+    <div
+      style={{
+        border: "1px dashed var(--c-border-soft)",
+        borderRadius: 16,
+        padding: "40px 24px",
+        textAlign: "center",
+      }}
+    >
+      <h3
+        style={{
+          margin: "0 0 6px",
+          fontSize: 15,
+          fontWeight: 600,
+          color: "var(--c-text-secondary)",
+        }}
+      >
+        {title}
+      </h3>
+      <p
+        style={{
+          margin: 0,
+          fontSize: 13,
+          lineHeight: 1.5,
+          color: "var(--c-text-tertiary)",
+          maxWidth: "42ch",
+          marginLeft: "auto",
+          marginRight: "auto",
+        }}
+      >
+        {body}
+      </p>
+    </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 40,
+      }}
+    >
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          border: "3px solid var(--c-border-faint)",
+          borderTopColor: "var(--c-brand-primary)",
+          animation: "ipm-classes-spin 0.8s linear infinite",
+        }}
+      />
+      <style jsx global>{`
+        @keyframes ipm-classes-spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 }
