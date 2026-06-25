@@ -202,29 +202,31 @@ export default function Classes() {
               onOpenHistory={(id) => {
                 setCurrentBatch(id);
                 setView(2);
+                getClasses(id);
                 getHistory(id);
               }}
             />
           )}
-          {view === 1 && (
-            <ClassesView
+          {(view === 1 || view === 2) && (
+            <InnerBatchView
+              activeTab={view === 2 ? "history" : "today"}
               classes={classes}
               attendance={attendance}
-              isDemo={isDemo}
-              onBack={() => {
-                setView(0);
-                setClasses();
-                setHistory();
-              }}
-            />
-          )}
-          {view === 2 && (
-            <HistoryView
               history={history}
+              isDemo={isDemo}
+              onSwitchTab={(tab) => {
+                if (tab === "history") {
+                  setView(2);
+                  if (!history) getHistory(currentBatch);
+                } else {
+                  setView(1);
+                }
+              }}
               onBack={() => {
                 setView(0);
                 setClasses();
                 setHistory();
+                setAttendance();
               }}
             />
           )}
@@ -443,14 +445,89 @@ function BatchCard({ batch, isAdmin, isDemo, onEnter, onHistory }) {
 }
 
 // ============================================================
-// ClassesView — view 1, today's classes for a batch
+// InnerBatchView — single view with tabs for Today / Recordings
+// (replaces the two separate ClassesView + HistoryView)
 // ============================================================
-function ClassesView({ classes, attendance, isDemo, onBack }) {
+function InnerBatchView({
+  activeTab,
+  classes,
+  attendance,
+  history,
+  isDemo,
+  onSwitchTab,
+  onBack,
+}) {
   return (
     <>
       <SoftButton onClick={onBack} style={{ marginBottom: 14 }}>
         ← Back to batches
       </SoftButton>
+
+      {/* Tab strip */}
+      <div
+        style={{
+          display: "inline-flex",
+          background: "var(--c-bg-elev)",
+          border: "1px solid var(--c-border-faint)",
+          borderRadius: 999,
+          padding: 3,
+          marginBottom: 24,
+        }}
+      >
+        <Tab
+          label="Today's classes"
+          active={activeTab === "today"}
+          onClick={() => onSwitchTab("today")}
+        />
+        {!isDemo && (
+          <Tab
+            label="Recordings"
+            active={activeTab === "history"}
+            onClick={() => onSwitchTab("history")}
+          />
+        )}
+      </div>
+
+      {activeTab === "today" ? (
+        <TodayPane
+          classes={classes}
+          attendance={attendance}
+          isDemo={isDemo}
+        />
+      ) : (
+        <HistoryPane history={history} />
+      )}
+    </>
+  );
+}
+
+function Tab({ label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: "7px 18px",
+        borderRadius: 999,
+        border: "none",
+        background: active ? "var(--c-surface)" : "transparent",
+        color: active
+          ? "var(--c-text-primary)"
+          : "var(--c-text-secondary)",
+        fontFamily: "inherit",
+        fontSize: 13,
+        fontWeight: 500,
+        cursor: "pointer",
+        boxShadow: active ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function TodayPane({ classes, attendance, isDemo }) {
+  return (
+    <>
       <div style={{ ...eyebrowStyle, marginBottom: 6 }}>Today</div>
       <h2
         style={{
@@ -598,14 +675,11 @@ function ClassRow({ classItem, attended }) {
 }
 
 // ============================================================
-// HistoryView — view 2, recordings list
+// HistoryPane — recordings list (inside the InnerBatchView tab)
 // ============================================================
-function HistoryView({ history, onBack }) {
+function HistoryPane({ history }) {
   return (
     <>
-      <SoftButton onClick={onBack} style={{ marginBottom: 14 }}>
-        ← Back to batches
-      </SoftButton>
       <div style={{ ...eyebrowStyle, marginBottom: 6 }}>Recordings</div>
       <h2
         style={{
