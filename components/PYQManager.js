@@ -1902,12 +1902,14 @@ function QuestionReader({
         <div style={{ marginBottom: 28 }}>
           {revealed ? (
             <div
-              style={{ borderLeft: "2px solid var(--c-success, #15803D)", padding: "4px 0 4px 22px", maxWidth: "60ch" }}
+              className="pyq-rich-panel"
+              style={{ borderLeft: "2px solid var(--c-success, #15803D)", padding: "4px 0 4px 22px", maxWidth: 760 }}
             >
               <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-success, #15803D)", marginBottom: 8 }}>
                 Answer
               </div>
               <div
+                className="pyq-rich-body"
                 style={{ fontSize: 15, lineHeight: 1.65, color: "var(--c-text-primary)" }}
                 dangerouslySetInnerHTML={{ __html: q.answer }}
               />
@@ -1928,18 +1930,74 @@ function QuestionReader({
         </div>
       )}
 
-      {/* Explanation */}
+      {/* Explanation — can contain video iframes + images */}
       {q.explanation && (revealed || !practiceMode) && (
-        <div style={{ borderLeft: "2px solid var(--c-purple, #6D28D9)", padding: "4px 0 4px 22px", marginBottom: 36, maxWidth: "60ch" }}>
+        <div
+          className="pyq-rich-panel"
+          style={{ borderLeft: "2px solid var(--c-purple, #6D28D9)", padding: "4px 0 4px 22px", marginBottom: 36, maxWidth: 760 }}
+        >
           <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-purple, #6D28D9)", marginBottom: 10 }}>
             Solution
           </div>
           <div
+            className="pyq-rich-body"
             style={{ fontSize: 15, lineHeight: 1.7, color: "var(--c-text-primary)" }}
             dangerouslySetInnerHTML={{ __html: q.explanation }}
           />
         </div>
       )}
+
+      {/* Global styling for embedded videos / images inside Answer + Solution panels */}
+      <style jsx global>{`
+        .pyq-rich-body iframe {
+          width: 100%;
+          aspect-ratio: 16 / 9;
+          max-width: 720px;
+          height: auto;
+          border-radius: 10px;
+          border: 1px solid var(--c-border-faint);
+          background: #000;
+          margin: 14px 0;
+          display: block;
+        }
+        .pyq-rich-body video {
+          width: 100%;
+          max-width: 720px;
+          border-radius: 10px;
+          border: 1px solid var(--c-border-faint);
+          background: #000;
+          margin: 14px 0;
+          display: block;
+        }
+        .pyq-rich-body img {
+          max-width: 100%;
+          height: auto;
+          max-height: 520px;
+          border-radius: 10px;
+          border: 1px solid var(--c-border-faint);
+          background: var(--c-bg-elev);
+          margin: 14px 0;
+          display: block;
+          object-fit: contain;
+        }
+        .pyq-rich-body p { margin: 0 0 12px; }
+        .pyq-rich-body ul, .pyq-rich-body ol { margin: 0 0 12px; padding-left: 22px; }
+        .pyq-rich-body li { margin-bottom: 4px; }
+        .pyq-rich-body strong { font-weight: 600; }
+        .pyq-rich-body em { font-style: italic; }
+        .pyq-rich-body code {
+          background: var(--c-bg-elev);
+          padding: 1px 6px;
+          border-radius: 3px;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 13px;
+        }
+        .pyq-rich-body a {
+          color: var(--c-brand-primary);
+          text-decoration: underline;
+          text-underline-offset: 3px;
+        }
+      `}</style>
 
       {/* Footer nav */}
       <div style={{ marginTop: 40, paddingTop: 22, borderTop: "1px solid var(--c-border-faint)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
