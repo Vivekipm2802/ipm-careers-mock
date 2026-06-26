@@ -198,19 +198,25 @@ export default function PYQManager({
         .from("pyq_questions")
         .select("*")
         .eq("exam", selectedExam.id);
-      if (yearFilter) query = query.eq("year", yearFilter);
-      if (difficultyFilter) query = query.eq("difficulty", difficultyFilter);
-      if (typeFilter) query = query.eq("answer_type", typeFilter);
+      // Defensive type coercion — dropdowns sometimes give string,
+      // the DB column is numeric/text. Coerce explicitly.
+      if (yearFilter != null) {
+        const n = typeof yearFilter === "string" ? parseInt(yearFilter, 10) : yearFilter;
+        if (!Number.isNaN(n)) query = query.eq("year", n);
+      }
+      if (difficultyFilter) query = query.eq("difficulty", String(difficultyFilter));
+      if (typeFilter) query = query.eq("answer_type", String(typeFilter));
       const { data: questionsData, error: questionsError } = await query.order("id");
       if (questionsError) throw questionsError;
 
       let filtered = questionsData || [];
 
-      if (topicFilter) {
+      if (topicFilter != null) {
+        const tid = typeof topicFilter === "string" ? parseInt(topicFilter, 10) : topicFilter;
         const { data: qt } = await supabase
           .from("pyq_question_topics")
           .select("question_id")
-          .eq("topic_id", topicFilter);
+          .eq("topic_id", tid);
         const qIds = new Set((qt || []).map((r) => r.question_id));
         filtered = filtered.filter((q) => qIds.has(q.id));
       }
@@ -1635,6 +1641,14 @@ function QuestionListItem({ q, idx, active, onClick }) {
   const topicLabel = q.topics && q.topics.length > 0 ? q.topics[0].name : null;
   const typeLabel = q.answer_type === "mcq" ? "MCQ" : null;
 
+  // Many image-based questions have a "Comment your answer" placeholder
+  // as the question text. Show a friendlier label in that case.
+  const qt = (q.question || "").trim();
+  const isPlaceholder = /^comment your answer\.?$/i.test(qt);
+  const preview = isPlaceholder
+    ? (q.file_type === "image" ? "Image question" : "Untitled question")
+    : qt;
+
   return (
     <div
       onClick={onClick}
@@ -1656,8 +1670,19 @@ function QuestionListItem({ q, idx, active, onClick }) {
         {String(idx).padStart(3, "0")}
       </div>
       <div>
-        <div style={{ fontSize: 13, color: "var(--c-text-primary)", lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-          {q.question}
+        <div
+          style={{
+            fontSize: 13,
+            color: isPlaceholder ? "var(--c-text-tertiary)" : "var(--c-text-primary)",
+            fontStyle: isPlaceholder ? "italic" : "normal",
+            lineHeight: 1.45,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {preview}
         </div>
         <div style={{ marginTop: 6, fontSize: 11, color: "var(--c-text-tertiary)", display: "flex", gap: 8, alignItems: "center" }}>
           {diff && <span style={{ color: diffColor, fontWeight: 600, textTransform: "capitalize" }}>{diff}</span>}
@@ -1739,17 +1764,60 @@ function QuestionReader({
         )}
       </div>
 
-      {/* Question */}
-      <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: "-0.012em", lineHeight: 1.5, color: "var(--c-text-primary)", marginBottom: 32, maxWidth: "64ch" }}>
-        {q.question}
-      </div>
+      {/* Question stem.
+          Many image-based questions store a placeholder like "Comment your
+          answer" in the question text — the real question is the image.
+          When we detect that, hide the placeholder so the image stands alone. */}
+      {(() => {
+        const qt = (q.question || "").trim();
+        const isPlaceholder = /^comment your answer\.?$/i.test(qt);
+        if (!qt || isPlaceholder) return null;
+        return (
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 500,
+              letterSpacing: "-0.012em",
+              lineHeight: 1.5,
+              color: "var(--c-text-primary)",
+              marginBottom: 24,
+              maxWidth: "64ch",
+            }}
+          >
+            {qt}
+          </div>
+        );
+      })()}
 
-      {/* File / image stem */}
+      {/* Image stem — render large, allow click-to-open in new tab */}
       {q.file_type === "image" && q.file_url && (
-        <div style={{ marginBottom: 28, maxWidth: "60ch" }}>
-          <img src={q.file_url} alt="Question" style={{ maxWidth: "100%", borderRadius: 8, border: "1px solid var(--c-border-faint)" }} />
+        <div style={{ marginBottom: 28 }}>
+          <a
+            href={q.file_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open full size"
+            style={{ display: "block", lineHeight: 0 }}
+          >
+            <img
+              src={q.file_url}
+              alt="Question"
+              style={{
+                maxWidth: "100%",
+                width: "auto",
+                maxHeight: 520,
+                borderRadius: 10,
+                border: "1px solid var(--c-border-faint)",
+                background: "var(--c-bg-elev)",
+                display: "block",
+                objectFit: "contain",
+              }}
+            />
+          </a>
         </div>
       )}
+
+      {/* Downloadable file stem (PDF/DOCX/XLS) */}
       {q.file_url && ["pdf", "docx", "xls"].includes(q.file_type) && (
         <div style={{ marginBottom: 28 }}>
           <a
