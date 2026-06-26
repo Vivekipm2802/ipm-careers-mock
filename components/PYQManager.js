@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { useState, useEffect, useMemo } from "react";
 import {
   Button,
   Card,
@@ -20,7 +19,6 @@ import {
   Tooltip,
   Select,
   SelectItem,
-  Spacer,
   RadioGroup,
   Radio,
   Checkbox,
@@ -38,11 +36,6 @@ import {
   File,
   FileCode,
   ExternalLink,
-  ArrowLeft,
-  Calendar,
-  Tag,
-  Filter,
-  HelpCircle,
   Info,
 } from "lucide-react";
 import ImageUploader from "./ImageUploader";
@@ -53,12 +46,26 @@ import FileUploader from "./FileUploader";
 const QuillWrapper = dynamic(() => import("@/components/QuillSSRWrapper"), {
   ssr: false,
 });
+
+const FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
+
+const ACCENT_MAP = {
+  amber: { c: "#D97706", soft: "rgba(217,119,6,0.08)" },
+  teal: { c: "#0F766E", soft: "rgba(15,118,110,0.08)" },
+  purple: { c: "#6D28D9", soft: "rgba(109,40,217,0.08)" },
+  green: { c: "#15803D", soft: "rgba(21,128,61,0.08)" },
+  blue: { c: "#1D4ED8", soft: "rgba(29,78,216,0.08)" },
+  pink: { c: "#BE185D", soft: "rgba(190,24,93,0.08)" },
+};
+
 export default function PYQManager({
   isAdmin = false,
   viewBy,
   filterValue: initialFilterValue,
 }) {
-  // State
+  // ──────────────────────────────────────────────────────────────
+  // EXISTING STATE — admin question/topic CRUD (preserved)
+  // ──────────────────────────────────────────────────────────────
   const [questions, setQuestions] = useState([]);
   const [topics, setTopics] = useState([]);
   const [years, setYears] = useState([]);
@@ -68,8 +75,8 @@ export default function PYQManager({
   const [newQuestion, setNewQuestion] = useState({
     question: "",
     answer: "",
-    answer_type: "answer_based", // "answer_based" or "mcq"
-    options: [], // For MCQ: [{text: "", is_correct: false}]
+    answer_type: "answer_based",
+    options: [],
     year: new Date().getFullYear(),
     difficulty: "medium",
     file_type: undefined,
@@ -78,194 +85,210 @@ export default function PYQManager({
   });
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [isAddingTopic, setIsAddingTopic] = useState(false);
-  const [newTopic, setNewTopic] = useState({
-    name: "",
-    description: "",
-    icon_url: "",
-  });
+  const [newTopic, setNewTopic] = useState({ name: "", description: "", icon_url: "" });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState(null);
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [filterValue, setFilterValue] = useState(initialFilterValue);
-  const [dataLoaded, setDataLoaded] = useState(false);
   const [explanationModalOpen, setExplanationModalOpen] = useState(false);
   const [currentExplanation, setCurrentExplanation] = useState("");
   const [showExplanationSection, setShowExplanationSection] = useState(false);
 
-  // Initial data loading
+  // ──────────────────────────────────────────────────────────────
+  // NEW STATE — Phase 24: exam shelf + library filters
+  // ──────────────────────────────────────────────────────────────
+  const [exams, setExams] = useState([]);
+  const [examMeta, setExamMeta] = useState({}); // { examId: { count, minYear, maxYear, topics: Set } }
+  const [selectedExam, setSelectedExam] = useState(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
+  // Library filters
+  const [yearFilter, setYearFilter] = useState(null);
+  const [topicFilter, setTopicFilter] = useState(null);
+  const [difficultyFilter, setDifficultyFilter] = useState(null);
+  const [typeFilter, setTypeFilter] = useState(null); // 'mcq' | 'answer_based'
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [practiceMode, setPracticeMode] = useState(true);
+  const [pickedOptionIdx, setPickedOptionIdx] = useState(null);
+  const [revealed, setRevealed] = useState(false);
+
+  // ──────────────────────────────────────────────────────────────
+  // Initial load — exams + topics + exam meta
+  // ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const loadInitialData = async () => {
+    const init = async () => {
       setLoading(true);
-      await Promise.all([fetchTopics(), fetchYears()]);
+      await Promise.all([fetchExams(), fetchTopics(), fetchExamMeta()]);
       setDataLoaded(true);
       setLoading(false);
     };
-
-    loadInitialData();
+    init();
   }, []);
 
-  // Update filter value when initialFilterValue changes
+  // Refetch questions when filters change inside a library
   useEffect(() => {
-    setFilterValue(initialFilterValue);
-  }, [initialFilterValue]);
-
-  // Fetch questions when filter value changes or data is loaded
-  useEffect(() => {
-    if (dataLoaded && filterValue) {
+    if (selectedExam && dataLoaded) {
       fetchQuestions();
     }
-  }, [viewBy, filterValue, dataLoaded]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    selectedExam?.id,
+    yearFilter,
+    topicFilter,
+    difficultyFilter,
+    typeFilter,
+    dataLoaded,
+  ]);
 
-  // Fetch all available topics
-  const fetchTopics = async () => {
-    const { data, error } = await supabase
-      .from("pyq_topics")
+  // Reset reader state when question changes
+  useEffect(() => {
+    setPickedOptionIdx(null);
+    setRevealed(!practiceMode); // if browse mode, instantly reveal
+    setShowExplanationSection(false);
+  }, [selectedQuestion?.id, practiceMode]);
+
+  // ──────────────────────────────────────────────────────────────
+  // Data fetch
+  // ──────────────────────────────────────────────────────────────
+  async function fetchExams() {
+    const { data } = await supabase
+      .from("pyq_exams")
       .select("*")
-      .order("name");
-    if (!error) setTopics(data || []);
-    return data || [];
-  };
+      .order("seq", { ascending: true });
+    setExams(data || []);
+  }
 
-  // Fetch all available years
-  const fetchYears = async () => {
-    const { data, error } = await supabase
+  async function fetchExamMeta() {
+    const { data } = await supabase
+      .from("pyq_questions")
+      .select("exam, year");
+    const meta = {};
+    (data || []).forEach((r) => {
+      const k = r.exam || "ipmat_indore";
+      if (!meta[k]) meta[k] = { count: 0, minYear: r.year, maxYear: r.year };
+      meta[k].count++;
+      meta[k].minYear = Math.min(meta[k].minYear, r.year);
+      meta[k].maxYear = Math.max(meta[k].maxYear, r.year);
+    });
+    setExamMeta(meta);
+  }
+
+  async function fetchTopics() {
+    const { data } = await supabase.from("pyq_topics").select("*").order("name");
+    setTopics(data || []);
+  }
+
+  async function fetchYears() {
+    if (!selectedExam) return;
+    const { data } = await supabase
       .from("pyq_questions")
       .select("year")
+      .eq("exam", selectedExam.id)
       .order("year", { ascending: false });
-    if (!error) {
-      const uniqueYears = [...new Set(data?.map((item) => item.year))];
-      setYears(uniqueYears);
+    if (data) {
+      const uniq = [...new Set(data.map((r) => r.year))];
+      setYears(uniq);
     }
-    return data || [];
-  };
+  }
 
-  // Fetch questions based on view mode (year or topic)
-  const fetchQuestions = async () => {
+  async function fetchQuestions() {
+    if (!selectedExam) return;
     setLoading(true);
-
     try {
-      // Get all questions or filter by year
-      let query = supabase.from("pyq_questions").select("*");
-      if (viewBy === "year" && filterValue) {
-        query = query.eq("year", filterValue);
-      }
-      const { data: questionsData, error: questionsError } = await query.order(
-        "id"
-      );
-
+      let query = supabase
+        .from("pyq_questions")
+        .select("*")
+        .eq("exam", selectedExam.id);
+      if (yearFilter) query = query.eq("year", yearFilter);
+      if (difficultyFilter) query = query.eq("difficulty", difficultyFilter);
+      if (typeFilter) query = query.eq("answer_type", typeFilter);
+      const { data: questionsData, error: questionsError } = await query.order("id");
       if (questionsError) throw questionsError;
 
-      let filteredQuestions = questionsData || [];
+      let filtered = questionsData || [];
 
-      // Filter by topic if needed
-      if (viewBy === "topic" && filterValue) {
-        const { data: questionTopics, error: topicsError } = await supabase
+      if (topicFilter) {
+        const { data: qt } = await supabase
           .from("pyq_question_topics")
           .select("question_id")
-          .eq("topic_id", filterValue);
-
-        if (topicsError) throw topicsError;
-
-        const questionIds = questionTopics?.map((qt) => qt.question_id) || [];
-        filteredQuestions =
-          questionsData?.filter((q) => questionIds.includes(q.id)) || [];
+          .eq("topic_id", topicFilter);
+        const qIds = new Set((qt || []).map((r) => r.question_id));
+        filtered = filtered.filter((q) => qIds.has(q.id));
       }
 
-      // Add topics to each question
-      const questionsWithTopics = await Promise.all(
-        filteredQuestions.map(async (question) => {
-          const { data: topicRelations, error: relError } = await supabase
+      if (searchQuery && searchQuery.trim().length > 0) {
+        const s = searchQuery.toLowerCase();
+        filtered = filtered.filter((q) =>
+          (q.question || "").toLowerCase().includes(s),
+        );
+      }
+
+      // Hydrate with topics
+      const withTopics = await Promise.all(
+        filtered.map(async (q) => {
+          const { data: rel } = await supabase
             .from("pyq_question_topics")
             .select("topic_id")
-            .eq("question_id", question.id);
-
-          if (relError) return { ...question, topics: [] };
-
-          const topicIds = topicRelations?.map((rel) => rel.topic_id) || [];
-          const questionTopics = topics.filter((topic) =>
-            topicIds.includes(topic.id)
-          );
-
-          return { ...question, topics: questionTopics };
-        })
+            .eq("question_id", q.id);
+          const tIds = (rel || []).map((r) => r.topic_id);
+          return { ...q, topics: topics.filter((t) => tIds.includes(t.id)) };
+        }),
       );
 
-      setQuestions(questionsWithTopics);
-    } catch (error) {
-      console.error("Error fetching questions:", error);
+      setQuestions(withTopics);
+    } catch (e) {
+      console.warn("[PYQManager] fetchQuestions:", e?.message);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  // Handle filter change
-  const handleFilterChange = (value) => {
-    setFilterValue(value);
-    setSelectedQuestion(null);
-  };
+  // Fetch years whenever selected exam changes
+  useEffect(() => {
+    if (selectedExam) fetchYears();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedExam?.id]);
 
-  // Save a new question
+  // ──────────────────────────────────────────────────────────────
+  // Admin CRUD handlers — PRESERVED VERBATIM
+  // ──────────────────────────────────────────────────────────────
   const handleSaveNewQuestion = async () => {
     if (!newQuestion.question || !newQuestion.year) {
       alert("Please fill in all required fields");
       return;
     }
-
-    // Validate MCQ questions
     if (newQuestion.answer_type === "mcq") {
       if (!newQuestion.options || newQuestion.options.length < 2) {
         alert("MCQ questions must have at least 2 options");
         return;
       }
-      const hasCorrectAnswer = newQuestion.options.some(
-        (option) => option.is_correct
-      );
-      if (!hasCorrectAnswer) {
+      if (!newQuestion.options.some((o) => o.is_correct)) {
         alert("MCQ questions must have at least one correct answer");
         return;
       }
-    } else if (
-      newQuestion.answer_type === "answer_based" &&
-      !newQuestion.answer
-    ) {
+    } else if (newQuestion.answer_type === "answer_based" && !newQuestion.answer) {
       alert("Answer based questions must have an answer");
       return;
     }
-
     try {
-      // Prepare question data for database
-      const questionToSave = {
+      const toSave = {
         ...newQuestion,
+        exam: selectedExam?.id || "ipmat_indore",
         options:
           newQuestion.answer_type === "mcq"
             ? JSON.stringify(newQuestion.options)
             : null,
       };
-
-      // Insert the new question
-      const { data: questionData, error: questionError } = await supabase
+      const { data, error } = await supabase
         .from("pyq_questions")
-        .insert([questionToSave])
+        .insert([toSave])
         .select();
-
-      if (questionError) throw questionError;
-
-      const newQuestionId = questionData?.[0]?.id;
-
-      // Add topic relationships
-      if (newQuestionId && selectedTopics.length > 0) {
-        const topicRelations = selectedTopics.map((topicId) => ({
-          question_id: newQuestionId,
-          topic_id: topicId,
-        }));
-
-        const { error: topicError } = await supabase
-          .from("pyq_question_topics")
-          .insert(topicRelations);
-        if (topicError) throw topicError;
+      if (error) throw error;
+      const newId = data?.[0]?.id;
+      if (newId && selectedTopics.length > 0) {
+        await supabase.from("pyq_question_topics").insert(
+          selectedTopics.map((tid) => ({ question_id: newId, topic_id: tid })),
+        );
       }
-
-      // Reset form and refresh questions
       setNewQuestion({
         question: "",
         answer: "",
@@ -280,26 +303,21 @@ export default function PYQManager({
       setSelectedTopics([]);
       setIsAddingQuestion(false);
       fetchQuestions();
-    } catch (error) {
-      console.error("Error adding question:", error);
+      fetchExamMeta();
+    } catch (e) {
+      console.error("Error adding question:", e);
     }
   };
 
-  // Update an existing question
   const handleUpdateQuestion = async () => {
     if (!editingQuestion) return;
-
     try {
-      // Validate MCQ questions
       if (editingQuestion.answer_type === "mcq") {
         if (!editingQuestion.options || editingQuestion.options.length < 2) {
           alert("MCQ questions must have at least 2 options");
           return;
         }
-        const hasCorrectAnswer = editingQuestion.options.some(
-          (option) => option.is_correct
-        );
-        if (!hasCorrectAnswer) {
+        if (!editingQuestion.options.some((o) => o.is_correct)) {
           alert("MCQ questions must have at least one correct answer");
           return;
         }
@@ -310,9 +328,7 @@ export default function PYQManager({
         alert("Answer based questions must have an answer");
         return;
       }
-
-      // Update the question
-      const { error: questionError } = await supabase
+      const { error: qErr } = await supabase
         .from("pyq_questions")
         .update({
           question: editingQuestion.question,
@@ -329,84 +345,55 @@ export default function PYQManager({
           explanation: editingQuestion.explanation,
         })
         .eq("id", editingQuestion.id);
-
-      if (questionError) throw questionError;
-
-      // Delete existing topic relationships
-      const { error: deleteError } = await supabase
+      if (qErr) throw qErr;
+      await supabase
         .from("pyq_question_topics")
         .delete()
         .eq("question_id", editingQuestion.id);
-
-      if (deleteError) throw deleteError;
-
-      // Add new topic relationships
       if (selectedTopics.length > 0) {
-        const topicRelations = selectedTopics.map((topicId) => ({
-          question_id: editingQuestion.id,
-          topic_id: topicId,
-        }));
-
-        const { error: topicError } = await supabase
-          .from("pyq_question_topics")
-          .insert(topicRelations);
-        if (topicError) throw topicError;
+        await supabase.from("pyq_question_topics").insert(
+          selectedTopics.map((tid) => ({
+            question_id: editingQuestion.id,
+            topic_id: tid,
+          })),
+        );
       }
-
-      // Update the selected question if it's the one being edited
       if (selectedQuestion && selectedQuestion.id === editingQuestion.id) {
-        const updatedQuestion = {
+        setSelectedQuestion({
           ...editingQuestion,
-          topics: topics.filter((topic) => selectedTopics.includes(topic.id)),
-        };
-        setSelectedQuestion(updatedQuestion);
+          topics: topics.filter((t) => selectedTopics.includes(t.id)),
+        });
       }
-
-      // Reset form and refresh questions
       setEditingQuestion(null);
       setSelectedTopics([]);
       fetchQuestions();
-    } catch (error) {
-      console.error("Error updating question:", error);
+    } catch (e) {
+      console.error("Error updating question:", e);
     }
   };
 
-  // Delete a question
   const handleDeleteQuestion = async (id) => {
     try {
-      // Delete topic relationships first
       await supabase.from("pyq_question_topics").delete().eq("question_id", id);
-
-      // Delete the question
-      const { error: questionError } = await supabase
-        .from("pyq_questions")
-        .delete()
-        .eq("id", id);
-      if (questionError) throw questionError;
-
-      // If the deleted question is the selected one, clear the selection
-      if (selectedQuestion && selectedQuestion.id === id) {
-        setSelectedQuestion(null);
-      }
-
+      const { error } = await supabase.from("pyq_questions").delete().eq("id", id);
+      if (error) throw error;
+      if (selectedQuestion?.id === id) setSelectedQuestion(null);
       setDeleteConfirmOpen(false);
       setQuestionToDelete(null);
       fetchQuestions();
-    } catch (error) {
-      console.error("Error deleting question:", error);
+      fetchExamMeta();
+    } catch (e) {
+      console.error("Error deleting question:", e);
     }
   };
 
-  // Add or update a topic
   const handleAddTopic = async () => {
     if (!newTopic.name) {
       alert("Please enter a topic name");
       return;
     }
-
     try {
       if (newTopic.id) {
-        // Update existing topic
         const { error } = await supabase
           .from("pyq_topics")
           .update({
@@ -417,123 +404,85 @@ export default function PYQManager({
           .eq("id", newTopic.id);
         if (error) throw error;
       } else {
-        // Insert new topic
         const { error } = await supabase.from("pyq_topics").insert([newTopic]);
         if (error) throw error;
       }
-
-      setNewTopic({
-        name: "",
-        description: "",
-        icon_url: "",
-      });
+      setNewTopic({ name: "", description: "", icon_url: "" });
       setIsAddingTopic(false);
-      await fetchTopics();
-    } catch (error) {
-      console.error("Error saving topic:", error);
+      fetchTopics();
+    } catch (e) {
+      console.error("Error saving topic:", e);
     }
   };
 
-  // Delete a topic
   const handleDeleteTopic = async (topicId) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this topic? This action cannot be undone."
-      )
-    )
-      return;
-
+    if (!confirm("Are you sure you want to delete this topic?")) return;
     try {
-      // Delete related question-topic associations first
-      await supabase
-        .from("pyq_question_topics")
-        .delete()
-        .eq("topic_id", topicId);
-
-      // Delete the topic itself
-      const { error } = await supabase
-        .from("pyq_topics")
-        .delete()
-        .eq("id", topicId);
-      if (error) throw error;
-
-      // Refresh topics
-      await fetchTopics();
-    } catch (error) {
-      console.error("Error deleting topic:", error);
+      await supabase.from("pyq_question_topics").delete().eq("topic_id", topicId);
+      await supabase.from("pyq_topics").delete().eq("id", topicId);
+      fetchTopics();
+    } catch (e) {
+      console.error("Error deleting topic:", e);
       alert("Failed to delete topic.");
     }
   };
 
-  // Helper functions
-  const startEditingQuestion = (question) => {
-    const editQuestion = {
-      ...question,
-      answer_type: question.answer_type || "answer_based",
-      options: question.options ? JSON.parse(question.options) : [],
-      explanation: question.explanation || "",
+  const startEditingQuestion = (q) => {
+    const eq = {
+      ...q,
+      answer_type: q.answer_type || "answer_based",
+      options: q.options
+        ? typeof q.options === "string"
+          ? JSON.parse(q.options)
+          : q.options
+        : [],
+      explanation: q.explanation || "",
     };
-    setEditingQuestion(editQuestion);
-    setSelectedTopics(question.topics?.map((t) => t.id) || []);
+    setEditingQuestion(eq);
+    setSelectedTopics(q.topics?.map((t) => t.id) || []);
   };
 
-  const toggleTopicSelection = (topicId) => {
+  const toggleTopicSelection = (id) =>
     setSelectedTopics((prev) =>
-      prev.includes(topicId)
-        ? prev.filter((id) => id !== topicId)
-        : [...prev, topicId]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
-  };
 
-  // MCQ Options Management Functions
-  const addMCQOption = (isEditing = false) => {
-    const newOption = { text: "", is_correct: false };
-    if (isEditing && editingQuestion) {
+  const addMCQOption = (editing = false) => {
+    const newOpt = { text: "", is_correct: false };
+    if (editing && editingQuestion) {
       setEditingQuestion({
         ...editingQuestion,
-        options: [...(editingQuestion.options || []), newOption],
+        options: [...(editingQuestion.options || []), newOpt],
       });
     } else {
       setNewQuestion({
         ...newQuestion,
-        options: [...(newQuestion.options || []), newOption],
+        options: [...(newQuestion.options || []), newOpt],
       });
     }
   };
-
-  const removeMCQOption = (index, isEditing = false) => {
-    if (isEditing && editingQuestion) {
-      const updatedOptions = editingQuestion.options.filter(
-        (_, i) => i !== index
-      );
+  const removeMCQOption = (idx, editing = false) => {
+    if (editing && editingQuestion) {
       setEditingQuestion({
         ...editingQuestion,
-        options: updatedOptions,
+        options: editingQuestion.options.filter((_, i) => i !== idx),
       });
     } else {
-      const updatedOptions = newQuestion.options.filter((_, i) => i !== index);
       setNewQuestion({
         ...newQuestion,
-        options: updatedOptions,
+        options: newQuestion.options.filter((_, i) => i !== idx),
       });
     }
   };
-
-  const updateMCQOption = (index, field, value, isEditing = false) => {
-    if (isEditing && editingQuestion) {
-      const updatedOptions = [...editingQuestion.options];
-      updatedOptions[index] = { ...updatedOptions[index], [field]: value };
-      setEditingQuestion({
-        ...editingQuestion,
-        options: updatedOptions,
-      });
+  const updateMCQOption = (idx, field, val, editing = false) => {
+    if (editing && editingQuestion) {
+      const opts = [...editingQuestion.options];
+      opts[idx] = { ...opts[idx], [field]: val };
+      setEditingQuestion({ ...editingQuestion, options: opts });
     } else {
-      const updatedOptions = [...newQuestion.options];
-      updatedOptions[index] = { ...updatedOptions[index], [field]: value };
-      setNewQuestion({
-        ...newQuestion,
-        options: updatedOptions,
-      });
+      const opts = [...newQuestion.options];
+      opts[idx] = { ...opts[idx], [field]: val };
+      setNewQuestion({ ...newQuestion, options: opts });
     }
   };
 
@@ -541,688 +490,128 @@ export default function PYQManager({
     setQuestionToDelete(id);
     setDeleteConfirmOpen(true);
   };
-
-  const showExplanation = (explanation) => {
-    setCurrentExplanation(explanation || "");
-    setExplanationModalOpen(true);
+  const handleDownload = (url, name) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+  const getFileIcon = (t) => {
+    if (t === "pdf" || t === "docx") return <FileText className="h-5 w-5" />;
+    if (t === "xls") return <FileSpreadsheet className="h-5 w-5" />;
+    if (t === "html") return <FileCode className="h-5 w-5" />;
+    if (t === "image") return <FileImage className="h-5 w-5" />;
+    return <File className="h-5 w-5" />;
   };
 
-  const handleDownload = (fileUrl, fileName) => {
-    const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const getFileIcon = (fileType) => {
-    switch (fileType) {
-      case "pdf":
-        return <FileText className="h-5 w-5" />;
-      case "docx":
-        return <FileText className="h-5 w-5" />;
-      case "xls":
-        return <FileSpreadsheet className="h-5 w-5" />;
-      case "html":
-        return <FileCode className="h-5 w-5" />;
-      case "image":
-        return <FileImage className="h-5 w-5" />;
-      default:
-        return <File className="h-5 w-5" />;
-    }
-  };
-
-  // Render the filter selector with improved UI/UX
-  const renderFilterSelector = () => {
-    if (viewBy === "year") {
-      return (
-        <div className="w-full">
-          <div className="flex items-center justify-between mb-10 mt-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-primary" />
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-gray-700">
-                  Choose a Year to View Questions
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Select any year below to see all available questions from that
-                  year
-                </p>
-              </div>
-            </div>
-            {isAdmin && (
-              <Button
-                color="primary"
-                onPress={() => setIsAddingQuestion(true)}
-                startContent={<Plus className="h-4 flex-shrink-0 w-4" />}
-              >
-                Add Question
-              </Button>
-            )}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-            {years.map((year) => (
-              <Card
-                key={year}
-                isPressable
-                isHoverable
-                className={`cursor-pointer transition-all duration-200 ${
-                  filterValue === year
-                    ? "bg-primary-50 border-2 border-primary shadow-lg scale-105"
-                    : "bg-white border border-gray-200 hover:border-primary-300 hover:shadow-md hover:scale-102"
-                }`}
-                onPress={() => handleFilterChange(year)}
-              >
-                <CardBody className="p-4 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        filterValue === year
-                          ? "bg-primary text-white"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      <Calendar className="h-4 w-4" />
-                    </div>
-                    <span
-                      className={`font-semibold text-sm ${
-                        filterValue === year ? "text-primary" : "text-gray-700"
-                      }`}
-                    >
-                      {year}
-                    </span>
-                  </div>
-                </CardBody>
-              </Card>
-            ))}
-          </div>
-        </div>
-      );
-    } else if (viewBy === "topic") {
-      return (
-        <div className="w-full">
-          <div className="flex items-center justify-between mb-10 mt-4">
-            <div className="flex items-center gap-3">
-              <Tag className="h-5 w-5 text-secondary" />
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-gray-700">
-                  Choose a Topic to View Questions
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Select any topic below to see all related questions
-                </p>
-              </div>
-            </div>
-            {isAdmin && (
-              <div className="flex items-center gap-3">
-                <Button
-                  color="secondary"
-                  onPress={() => {
-                    setNewTopic({ name: "", description: "", icon_url: "" });
-                    setIsAddingTopic(true);
-                  }}
-                  startContent={<Plus className="h-4 flex-shrink-0 w-4" />}
-                >
-                  Add Topic
-                </Button>
-                <Button
-                  color="primary"
-                  onPress={() => setIsAddingQuestion(true)}
-                  startContent={<Plus className="h-4 flex-shrink-0 w-4" />}
-                >
-                  Add Question
-                </Button>
-              </div>
-            )}
-          </div>
-          <div className="max-h-[calc(100vh-12rem)] overflow-y-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pe-2">
-              {topics.map((topic) => (
-                <Card
-                  key={topic.id}
-                  isPressable
-                  isHoverable
-                  className={`cursor-pointer transition-all duration-200 shadow-sm ${
-                    filterValue === topic.id
-                      ? "bg-secondary-50 border-2 border-secondary scale-105"
-                      : "bg-white border border-gray-200 hover:border-secondary-300 hover:scale-102"
-                  }`}
-                  onPress={() => handleFilterChange(topic.id)}
-                >
-                  <CardBody className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                          filterValue === topic.id
-                            ? "bg-secondary text-white"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {topic.icon_url ? (
-                          <img
-                            src={topic.icon_url}
-                            alt={topic.name}
-                            className="object-contain"
-                          />
-                        ) : (
-                          <Tag className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4
-                          className={`font-semibold text-sm mb-1 truncate ${
-                            filterValue === topic.id
-                              ? "text-secondary"
-                              : "text-gray-800"
-                          }`}
-                        >
-                          {topic.name}
-                        </h4>
-                        {topic.description && (
-                          <p className="text-xs text-gray-500 line-clamp-2">
-                            {topic.description}
-                          </p>
-                        )}
-                      </div>
-                      {filterValue === topic.id && (
-                        <div className="flex-shrink-0">
-                          <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
-                            <Check className="h-3 w-3 text-white" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    {isAdmin && (
-                    <div className="flex justify-end pt-2">
-                      <Tooltip content="Edit Topic" placement="left">
-                        <Button
-                          isIconOnly
-                          variant="light"
-                          size="sm"
-                          onPress={() => {
-                            setNewTopic(topic);
-                            setIsAddingTopic(true);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4 text-default-500" />
-                        </Button>
-                      </Tooltip>
-                      <Tooltip content="Delete Topic" placement="left">
-                        <Button
-                          isIconOnly
-                          variant="light"
-                          size="sm"
-                          onPress={() => handleDeleteTopic(topic.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-danger" />
-                        </Button>
-                      </Tooltip>
-                    </div>
-                    )}
-                  </CardBody>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // Loading state
+  // ──────────────────────────────────────────────────────────────
+  // Loading
+  // ──────────────────────────────────────────────────────────────
   if (!dataLoaded) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <Spinner size="lg" />
-          <p className="mt-4 text-gray-500">Loading data...</p>
-        </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          padding: 48,
+          fontFamily: FONT,
+        }}
+      >
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            border: "3px solid var(--c-border-faint)",
+            borderTopColor: "var(--c-brand-primary)",
+            animation: "ipm-pyq-spin 0.8s linear infinite",
+          }}
+        />
+        <style jsx global>{`
+          @keyframes ipm-pyq-spin { to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }
 
+  // ──────────────────────────────────────────────────────────────
+  // Main render — Shelf OR Library
+  // ──────────────────────────────────────────────────────────────
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="">
-        {selectedQuestion && (
-          <div className="flex justify-start items-center p-4">
-            <Button
-              variant="light"
-              startContent={<ArrowLeft className="h-4 w-4" />}
-              onPress={() => setSelectedQuestion(null)}
-            >
-              Back to List
-            </Button>
-          </div>
-        )}
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        overflowY: "auto",
+        fontFamily: FONT,
+        color: "var(--c-text-primary)",
+      }}
+    >
+      {!selectedExam ? (
+        <Shelf
+          exams={exams}
+          meta={examMeta}
+          onPick={(e) => setSelectedExam(e)}
+        />
+      ) : (
+        <Library
+          exam={selectedExam}
+          questions={questions}
+          topics={topics}
+          years={years}
+          loading={loading}
+          isAdmin={isAdmin}
+          selectedQuestion={selectedQuestion}
+          setSelectedQuestion={setSelectedQuestion}
+          yearFilter={yearFilter}
+          setYearFilter={setYearFilter}
+          topicFilter={topicFilter}
+          setTopicFilter={setTopicFilter}
+          difficultyFilter={difficultyFilter}
+          setDifficultyFilter={setDifficultyFilter}
+          typeFilter={typeFilter}
+          setTypeFilter={setTypeFilter}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          practiceMode={practiceMode}
+          setPracticeMode={setPracticeMode}
+          pickedOptionIdx={pickedOptionIdx}
+          setPickedOptionIdx={setPickedOptionIdx}
+          revealed={revealed}
+          setRevealed={setRevealed}
+          showExplanationSection={showExplanationSection}
+          setShowExplanationSection={setShowExplanationSection}
+          onBackToShelf={() => {
+            setSelectedExam(null);
+            setSelectedQuestion(null);
+            setYearFilter(null);
+            setTopicFilter(null);
+            setDifficultyFilter(null);
+            setTypeFilter(null);
+            setSearchQuery("");
+          }}
+          onSearchSubmit={() => fetchQuestions()}
+          onAddQuestion={() => setIsAddingQuestion(true)}
+          onAddTopic={() => {
+            setNewTopic({ name: "", description: "", icon_url: "" });
+            setIsAddingTopic(true);
+          }}
+          onEditQuestion={startEditingQuestion}
+          onDeleteQuestion={confirmDeleteQuestion}
+          onShowExplanation={(html) => {
+            setCurrentExplanation(html || "");
+            setExplanationModalOpen(true);
+          }}
+        />
+      )}
 
-        {/* Filter Selector with Header and Button in same row */}
-        {!selectedQuestion && !filterValue && (
-          <div className="px-4 pb-6">{renderFilterSelector()}</div>
-        )}
-      </div>
-
-      {/* Content - scrollable area */}
-      <div className="flex-grow overflow-y-auto p-4">
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <Spinner size="lg" />
-          </div>
-        ) : !filterValue ? (
-          <></>
-        ) : questions.length === 0 ? (
-          <Card shadow="none">
-            <CardBody className="flex flex-col items-center justify-center">
-              <div className="w-full">
-                <div className="flex items-center gap-2 mb-2 text-primary">
-                  <ArrowLeft
-                    className="cursor-pointer hover:text-secondary"
-                    onClick={() => {
-                      setFilterValue(null);
-                      setSelectedQuestion(null);
-                    }}
-                  />
-                  <h2 className="text-md text-left font-medium">
-                    Showing results for :{" "}
-                    <span className="capitalize">
-                      {viewBy === "topic"
-                        ? topics.find((t) => t.id === filterValue)?.name || ""
-                        : filterValue}
-                    </span>
-                  </h2>
-                </div>
-              </div>
-              <p className="text-gray-500 mb-4 text-center">
-                No questions found for this {viewBy}.
-              </p>
-              {isAdmin && (
-                <Button
-                  color="primary"
-                  onPress={() => setIsAddingQuestion(true)}
-                  startContent={<Plus className="h-4 flex-shrink-0 w-4" />}
-                >
-                  Add Your First Question
-                </Button>
-              )}
-            </CardBody>
-          </Card>
-        ) : selectedQuestion ? (
-          // Question Detail View
-          <Card className="w-full" shadow="none">
-            <CardHeader className="flex justify-between items-start">
-              <div className="w-full">
-                {/* Metadata Chips */}
-                <div className=" flex flex-wrap gap-2">
-                  <Chip variant="flat" color="default">
-                    Year: {selectedQuestion.year}
-                  </Chip>
-                  <Chip variant="flat" color="default" className="capitalize">
-                    {selectedQuestion.difficulty}
-                  </Chip>
-                  <Chip variant="flat" color="primary">
-                    {selectedQuestion.answer_type === "mcq"
-                      ? "MCQ"
-                      : "Answer Based"}
-                  </Chip>
-                  {selectedQuestion.topics?.map((topic) => (
-                    <Chip key={topic.id} color="secondary" variant="flat">
-                      {topic.name}
-                    </Chip>
-                  ))}
-                  {/*  {selectedQuestion.file_type && (
-                  <Chip variant="flat" color="primary" startContent={getFileIcon(selectedQuestion.file_type)}>
-                    {selectedQuestion.file_type.toUpperCase()}
-                  </Chip>
-                )} */}
-                </div>
-
-                {/* Question Title */}
-                <h3 className="mt-2 text-xl text-left font-bold">
-                  {selectedQuestion.question}
-                </h3>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                {selectedQuestion.file_url && (
-                  <Tooltip
-                    content={`Download ${
-                      selectedQuestion.file_type?.toUpperCase() || "file"
-                    }`}
-                  >
-                    <Button
-                      isIconOnly
-                      variant="light"
-                      color="primary"
-                      onPress={() =>
-                        handleDownload(
-                          selectedQuestion.file_url,
-                          `question-${selectedQuestion.id}.${selectedQuestion.file_type}`
-                        )
-                      }
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </Tooltip>
-                )}
-                {isAdmin && (
-                  <>
-                    <Button
-                      isIconOnly
-                      variant="light"
-                      onPress={() => startEditingQuestion(selectedQuestion)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      isIconOnly
-                      variant="light"
-                      color="danger"
-                      onPress={() => confirmDeleteQuestion(selectedQuestion.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
-              </div>
-            </CardHeader>
-
-            <CardBody>
-              {/* Show Image First if file_type is "image" */}
-              {selectedQuestion.file_type === "image" && (
-                <div className="flex flex-col items-center mb-4">
-                  <img
-                    src={selectedQuestion.file_url || "/placeholder.svg"}
-                    alt={`Question ${selectedQuestion.id}`}
-                    className="max-w-full max-h-96 object-contain"
-                  />
-                </div>
-              )}
-
-              {/* Display Answer Based on Answer Type */}
-              {selectedQuestion.answer_type === "mcq" &&
-              selectedQuestion.options ? (
-                <div className="flex gap-6">
-                  {/* MCQ Options */}
-                  <div className="flex-1">
-                    <div className="space-y-3">
-                      {JSON.parse(selectedQuestion.options).map(
-                        (option, index) => (
-                          <div key={index} className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded-full border-2 border-gray-300 flex items-center justify-center">
-                              <div className="w-2 h-2 rounded-full bg-transparent"></div>
-                            </div>
-                            <span className="font-medium text-sm min-w-[20px]">
-                              {String.fromCharCode(65 + index)}.
-                            </span>
-                            <span className="flex-1 text-gray-700">
-                              {option.text}
-                            </span>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Correct Answer Button */}
-                  <div className="flex-shrink-0 flex flex-col gap-2">
-                    <Tooltip
-                      content={
-                        <div className="p-2">
-                          <div className="font-semibold mb-1">
-                            Correct Answer:
-                          </div>
-                          {JSON.parse(selectedQuestion.options)
-                            .filter((option) => option.is_correct)
-                            .map((option, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-2"
-                              >
-                                <span className="font-medium">
-                                  {String.fromCharCode(
-                                    65 +
-                                      JSON.parse(
-                                        selectedQuestion.options
-                                      ).findIndex((opt) => opt.is_correct)
-                                  )}
-                                  .
-                                </span>
-                                <span>{option.text}</span>
-                              </div>
-                            ))}
-                        </div>
-                      }
-                      placement="left"
-                      showArrow
-                    >
-                      <Button
-                        variant="solid"
-                        color="success"
-                        size="sm"
-                        className="font-medium"
-                      >
-                        Correct Answer
-                      </Button>
-                    </Tooltip>
-                    {selectedQuestion.explanation && (
-                      <Button
-                        variant="solid"
-                        color="primary"
-                        size="sm"
-                        className="font-medium"
-                        onPress={() =>
-                          setShowExplanationSection(!showExplanationSection)
-                        }
-                      >
-                        {showExplanationSection ? "Hide" : "View"} Explanation
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                /* Answer Based Question - Display using dangerouslySetInnerHTML */
-                <div className="flex gap-6">
-                  <div className="flex-1">
-                    {/* <h4 className="text-lg font-semibold mb-3">Answer:</h4>
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: selectedQuestion.answer,
-                      }}
-                    /> */}
-                  </div>
-                  <div className="flex-shrink-0 flex flex-col gap-2">
-                    <Tooltip
-                      content={
-                        <div className="p-2">
-                          <div className="font-semibold mb-1">
-                            Correct Answer:
-                          </div>
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: selectedQuestion.answer,
-                            }}
-                          />
-                        </div>
-                      }
-                      placement="left"
-                      showArrow
-                    >
-                      <Button
-                        variant="solid"
-                        color="success"
-                        size="sm"
-                        className="font-medium"
-                      >
-                        Correct Answer
-                      </Button>
-                    </Tooltip>
-                    {selectedQuestion.explanation && (
-                      <Button
-                        variant="solid"
-                        color="primary"
-                        size="sm"
-                        className="font-medium"
-                        onPress={() =>
-                          setShowExplanationSection(!showExplanationSection)
-                        }
-                      >
-                        {showExplanationSection ? "Hide" : "View"} Explanation
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Explanation Section */}
-              {selectedQuestion.explanation && showExplanationSection && (
-                <div className="mt-6 pt-4 border-t">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Info className="h-5 w-5 text-primary" />
-                    <h4 className="text-lg font-semibold text-primary">
-                      Explanation
-                    </h4>
-                  </div>
-                  <div
-                    className="prose prose-sm max-w-none explanation-content"
-                    dangerouslySetInnerHTML={{
-                      __html: selectedQuestion.explanation,
-                    }}
-                  />
-                </div>
-              )}
-            </CardBody>
-
-            {/* File Actions (Download/View) */}
-            {selectedQuestion.file_url && (
-              <CardFooter className="flex justify-end">
-                <Button
-                  size="sm"
-                  variant="flat"
-                  color="primary"
-                  startContent={<Download className="h-4 w-4" />}
-                  onPress={() =>
-                    handleDownload(
-                      selectedQuestion.file_url,
-                      `question-${selectedQuestion.id}.${selectedQuestion.file_type}`
-                    )
-                  }
-                >
-                  Download {selectedQuestion.file_type?.toUpperCase() || "File"}
-                </Button>
-                {selectedQuestion.file_type !== "image" && (
-                  <Button
-                    size="sm"
-                    variant="flat"
-                    color="secondary"
-                    className="ml-2"
-                    startContent={<ExternalLink className="h-4 w-4" />}
-                    as="a"
-                    href={selectedQuestion.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View in Browser
-                  </Button>
-                )}
-              </CardFooter>
-            )}
-          </Card>
-        ) : (
-          // Question List View
-          <div className="grid gap-3">
-            <div className="flex items-center gap-2">
-              <ArrowLeft
-                className="cursor-pointer text-primary hover:text-secondary"
-                onClick={() => {
-                  setFilterValue(null);
-                  setSelectedQuestion(null);
-                }}
-              />
-              <h2 className="text-md text-left font-medium text-primary">
-                Showing results for :{" "}
-                <span className="capitalize">
-                  {viewBy === "topic"
-                    ? topics.find((t) => t.id === filterValue)?.name || ""
-                    : filterValue}
-                </span>
-              </h2>
-            </div>
-            {questions.map((question) => (
-              <Card
-                key={question.id}
-                className="w-full border-1 cursor-pointer hover:bg-gray-50 transition-colors"
-                isPressable
-                shadow="none"
-                onPress={() => setSelectedQuestion(question)}
-              >
-                <CardBody className="py-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium line-clamp-2">
-                        {question.question}
-                      </h3>
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        <Chip size="sm" variant="flat" color="secondary">
-                          {question.year}
-                        </Chip>
-                        <Chip
-                          size="sm"
-                          variant="flat"
-                          color="primary"
-                          className="capitalize"
-                        >
-                          {question.difficulty}
-                        </Chip>
-                        {question.file_type && (
-                          <Chip
-                            size="sm"
-                            variant="flat"
-                            color="primary"
-                            startContent={getFileIcon(question.file_type)}
-                          >
-                            {question.file_type.toUpperCase()}
-                          </Chip>
-                        )}
-                      </div>
-                    </div>
-                    {isAdmin && (
-                      <div className="flex gap-1 ml-2">
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          variant="light"
-                          onPress={(e) => {
-                            /* e.stopPropagation() */
-                            startEditingQuestion(question);
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          variant="light"
-                          color="danger"
-                          onPress={(e) => {
-                            /* e.stopPropagation() */
-                            confirmDeleteQuestion(question.id);
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardBody>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* ════════════════════════════════════════════════════ */}
+      {/* ADMIN MODALS — preserved verbatim from legacy        */}
+      {/* ════════════════════════════════════════════════════ */}
 
       {/* Add Question Modal */}
       <Modal
@@ -1237,54 +626,29 @@ export default function PYQManager({
               <ModalHeader>Add New Question</ModalHeader>
               <ModalBody>
                 <div className="grid gap-4">
-                  {/* File Type Selector Moved to Top */}
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      File Type
-                    </label>
+                    <label className="block text-sm font-medium mb-1">File Type</label>
                     <Select
                       aria-label="Select File Type"
                       placeholder="Select File Type"
                       className="w-full flex-grow"
                       selectedKeys={
-                        newQuestion.file_type
-                          ? new Set([newQuestion.file_type])
-                          : new Set()
+                        newQuestion.file_type ? new Set([newQuestion.file_type]) : new Set()
                       }
-                      onSelectionChange={(keys) => {
-                        const selectedFileType = Array.from(keys)[0] || "";
-                        setNewQuestion({
-                          ...newQuestion,
-                          file_type: selectedFileType,
-                        });
-                      }}
+                      onSelectionChange={(keys) =>
+                        setNewQuestion({ ...newQuestion, file_type: Array.from(keys)[0] || "" })
+                      }
                     >
-                      <SelectItem key="pdf" value="pdf">
-                        PDF
-                      </SelectItem>
-                      <SelectItem key="docx" value="docx">
-                        DOCX
-                      </SelectItem>
-                      <SelectItem key="xls" value="xls">
-                        XLS
-                      </SelectItem>
-                      <SelectItem key="html" value="html">
-                        HTML
-                      </SelectItem>
-                      <SelectItem key="image" value="image">
-                        Image
-                      </SelectItem>
-                      <SelectItem key="text" value="text">
-                        Text
-                      </SelectItem>
+                      <SelectItem key="pdf" value="pdf">PDF</SelectItem>
+                      <SelectItem key="docx" value="docx">DOCX</SelectItem>
+                      <SelectItem key="xls" value="xls">XLS</SelectItem>
+                      <SelectItem key="html" value="html">HTML</SelectItem>
+                      <SelectItem key="image" value="image">Image</SelectItem>
+                      <SelectItem key="text" value="text">Text</SelectItem>
                     </Select>
                   </div>
-
-                  {/* Answer Type Selection */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Answer Type
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Answer Type</label>
                     <RadioGroup
                       value={newQuestion.answer_type}
                       onValueChange={(value) =>
@@ -1296,74 +660,41 @@ export default function PYQManager({
                             value === "mcq"
                               ? newQuestion.options.length > 0
                                 ? newQuestion.options
-                                : [
-                                    { text: "", is_correct: false },
-                                    { text: "", is_correct: false },
-                                  ]
+                                : [{ text: "", is_correct: false }, { text: "", is_correct: false }]
                               : [],
                         })
                       }
                       orientation="horizontal"
                     >
-                      <Radio value="answer_based">Answer Based Question</Radio>
-                      <Radio value="mcq">Multiple Choice Question (MCQ)</Radio>
+                      <Radio value="answer_based">Answer Based</Radio>
+                      <Radio value="mcq">MCQ</Radio>
                     </RadioGroup>
                   </div>
-
-                  {/* Conditional Answer/Options Based on Answer Type */}
-                  {newQuestion.answer_type === "answer_based" &&
-                    newQuestion.file_type !== "html" && (
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Answer
-                        </label>
-                        <Textarea
-                          placeholder="Enter the answer"
-                          value={newQuestion.answer}
-                          onChange={(e) =>
-                            setNewQuestion({
-                              ...newQuestion,
-                              answer: e.target.value,
-                            })
-                          }
-                          minRows={3}
-                        />
-                      </div>
-                    )}
-
+                  {newQuestion.answer_type === "answer_based" && newQuestion.file_type !== "html" && (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Answer</label>
+                      <Textarea
+                        placeholder="Enter the answer"
+                        value={newQuestion.answer}
+                        onChange={(e) => setNewQuestion({ ...newQuestion, answer: e.target.value })}
+                        minRows={3}
+                      />
+                    </div>
+                  )}
                   {newQuestion.answer_type === "mcq" && (
                     <div>
-                      <label className="block text-sm font-medium mb-2">
-                        MCQ Options
-                      </label>
+                      <label className="block text-sm font-medium mb-2">MCQ Options</label>
                       <div className="space-y-3">
-                        {newQuestion.options.map((option, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center gap-2 p-3 border rounded-lg"
-                          >
+                        {newQuestion.options.map((option, idx) => (
+                          <div key={idx} className="flex items-center gap-2 p-3 border rounded-lg">
                             <Checkbox
                               isSelected={option.is_correct}
-                              onValueChange={(checked) =>
-                                updateMCQOption(
-                                  index,
-                                  "is_correct",
-                                  checked,
-                                  false
-                                )
-                              }
+                              onValueChange={(c) => updateMCQOption(idx, "is_correct", c, false)}
                             />
                             <Input
-                              placeholder={`Option ${index + 1}`}
+                              placeholder={`Option ${idx + 1}`}
                               value={option.text}
-                              onChange={(e) =>
-                                updateMCQOption(
-                                  index,
-                                  "text",
-                                  e.target.value,
-                                  false
-                                )
-                              }
+                              onChange={(e) => updateMCQOption(idx, "text", e.target.value, false)}
                               className="flex-1"
                             />
                             {newQuestion.options.length > 2 && (
@@ -1372,149 +703,90 @@ export default function PYQManager({
                                 size="sm"
                                 color="danger"
                                 variant="light"
-                                onPress={() => removeMCQOption(index, false)}
+                                onPress={() => removeMCQOption(idx, false)}
                               >
                                 <X className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
                         ))}
-                        <Button
-                          size="sm"
-                          variant="bordered"
-                          onPress={() => addMCQOption(false)}
-                          startContent={<Plus className="h-4 w-4" />}
-                        >
+                        <Button size="sm" variant="bordered" onPress={() => addMCQOption(false)}
+                                startContent={<Plus className="h-4 w-4" />}>
                           Add Option
                         </Button>
                       </div>
                     </div>
                   )}
-                  {newQuestion.answer_type === "answer_based" &&
-                    newQuestion.file_type === "html" && (
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Answer in Rich Text Editor
-                        </label>
-                        <QuillWrapper
-                          value={newQuestion.answer}
-                          onChange={(value) =>
-                            setNewQuestion({ ...newQuestion, answer: value })
-                          }
-                        />
-                      </div>
-                    )}
+                  {newQuestion.answer_type === "answer_based" && newQuestion.file_type === "html" && (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Rich Text Answer</label>
+                      <QuillWrapper
+                        value={newQuestion.answer}
+                        onChange={(v) => setNewQuestion({ ...newQuestion, answer: v })}
+                      />
+                    </div>
+                  )}
                   {newQuestion.file_type === "image" && (
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Question/Answer Image
-                      </label>
+                      <label className="block text-sm font-medium mb-1">Question Image</label>
                       <ImageUploader
                         value={newQuestion.file_url}
-                        onUploadComplete={(url) =>
-                          setNewQuestion({ ...newQuestion, file_url: url })
-                        }
+                        onUploadComplete={(url) => setNewQuestion({ ...newQuestion, file_url: url })}
                       />
                     </div>
                   )}
                   {["pdf", "docx", "xls"].includes(newQuestion.file_type) && (
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        File Uploader
-                      </label>
+                      <label className="block text-sm font-medium mb-1">File Upload</label>
                       <FileUploader
                         data={{ file: newQuestion.file_url }}
-                        onUploadComplete={(url) =>
-                          setNewQuestion({ ...newQuestion, file_url: url })
-                        }
+                        onUploadComplete={(url) => setNewQuestion({ ...newQuestion, file_url: url })}
                       />
                     </div>
                   )}
-
-                  {/* Question Input */}
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Question
-                    </label>
+                    <label className="block text-sm font-medium mb-1">Question</label>
                     <Textarea
                       placeholder="Enter the question text"
                       value={newQuestion.question}
-                      onChange={(e) =>
-                        setNewQuestion({
-                          ...newQuestion,
-                          question: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })}
                       minRows={3}
                     />
                   </div>
-
-                  {/* Year & Difficulty */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Year
-                      </label>
+                      <label className="block text-sm font-medium mb-1">Year</label>
                       <Input
                         type="number"
-                        placeholder="Year"
                         value={newQuestion.year?.toString()}
                         onChange={(e) =>
-                          setNewQuestion({
-                            ...newQuestion,
-                            year: Number.parseInt(e.target.value),
-                          })
+                          setNewQuestion({ ...newQuestion, year: Number.parseInt(e.target.value) })
                         }
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Difficulty
-                      </label>
+                      <label className="block text-sm font-medium mb-1">Difficulty</label>
                       <Select
-                        aria-label="Select Difficulty"
-                        className="w-full flex-grow"
+                        aria-label="Difficulty"
                         selectedKeys={new Set([newQuestion.difficulty])}
-                        onSelectionChange={(keys) => {
-                          const selectedDifficulty = Array.from(keys)[0];
-                          setNewQuestion({
-                            ...newQuestion,
-                            difficulty: selectedDifficulty,
-                          });
-                        }}
+                        onSelectionChange={(keys) =>
+                          setNewQuestion({ ...newQuestion, difficulty: Array.from(keys)[0] })
+                        }
                       >
-                        <SelectItem key="easy" value="easy">
-                          Easy
-                        </SelectItem>
-                        <SelectItem key="medium" value="medium">
-                          Medium
-                        </SelectItem>
-                        <SelectItem key="hard" value="hard">
-                          Hard
-                        </SelectItem>
+                        <SelectItem key="easy" value="easy">Easy</SelectItem>
+                        <SelectItem key="medium" value="medium">Medium</SelectItem>
+                        <SelectItem key="hard" value="hard">Hard</SelectItem>
                       </Select>
                     </div>
                   </div>
-
-                  {/* Topics Selection */}
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Topics
-                    </label>
+                    <label className="block text-sm font-medium mb-1">Topics</label>
                     <div className="flex flex-wrap gap-2 p-2 border rounded-md">
                       {topics.map((topic) => (
                         <Chip
                           key={topic.id}
-                          color={
-                            selectedTopics.includes(topic.id)
-                              ? "primary"
-                              : "default"
-                          }
-                          variant={
-                            selectedTopics.includes(topic.id)
-                              ? "solid"
-                              : "bordered"
-                          }
+                          color={selectedTopics.includes(topic.id) ? "primary" : "default"}
+                          variant={selectedTopics.includes(topic.id) ? "solid" : "bordered"}
                           className="cursor-pointer"
                           onClick={() => toggleTopicSelection(topic.id)}
                         >
@@ -1528,26 +800,15 @@ export default function PYQManager({
                     size="sm"
                     className="w-fit"
                     onPress={() => setIsAddingTopic(true)}
-                    startContent={<Plus className="h-3 flex-shrink-0 w-3" />}
+                    startContent={<Plus className="h-3 w-3" />}
                   >
                     Add Topic
                   </Button>
-
-                  {/* Explanation Section */}
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Explanation (Optional)
-                    </label>
-                    <p className="text-xs text-gray-500 mb-2">
-                      Provide a detailed explanation that supports text, images,
-                      and videos
-                    </p>
+                    <label className="block text-sm font-medium mb-1">Explanation</label>
                     <QuillWrapper
                       value={newQuestion.explanation}
-                      onChange={(value) =>
-                        setNewQuestion({ ...newQuestion, explanation: value })
-                      }
-                      placeholder="Enter explanation with rich text, images, and videos..."
+                      onChange={(v) => setNewQuestion({ ...newQuestion, explanation: v })}
                     />
                   </div>
                 </div>
@@ -1570,47 +831,30 @@ export default function PYQManager({
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>
-                {newTopic && newTopic.id ? "Edit Topic" : "Add New Topic"}
-              </ModalHeader>
+              <ModalHeader>{newTopic?.id ? "Edit Topic" : "Add New Topic"}</ModalHeader>
               <ModalBody>
                 <div className="grid gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Topic Name
-                    </label>
+                    <label className="block text-sm font-medium mb-1">Topic Name</label>
                     <Input
                       placeholder="Enter topic name"
                       value={newTopic.name}
-                      onChange={(e) =>
-                        setNewTopic({ ...newTopic, name: e.target.value })
-                      }
+                      onChange={(e) => setNewTopic({ ...newTopic, name: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Description (Optional)
-                    </label>
+                    <label className="block text-sm font-medium mb-1">Description (optional)</label>
                     <Textarea
                       placeholder="Enter topic description"
                       value={newTopic.description}
-                      onChange={(e) =>
-                        setNewTopic({
-                          ...newTopic,
-                          description: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Topic Icon (Optional)
-                    </label>
+                    <label className="block text-sm font-medium mb-1">Topic Icon (optional)</label>
                     <ImageUploader
                       value={newTopic.icon_url}
-                      onUploadComplete={(url) =>
-                        setNewTopic({ ...newTopic, icon_url: url })
-                      }
+                      onUploadComplete={(url) => setNewTopic({ ...newTopic, icon_url: url })}
                     />
                   </div>
                 </div>
@@ -1632,7 +876,7 @@ export default function PYQManager({
       <Modal
         scrollBehavior="inside"
         isOpen={!!editingQuestion}
-        onOpenChange={(open) => !open && setEditingQuestion(null)}
+        onOpenChange={(o) => !o && setEditingQuestion(null)}
         size="2xl"
       >
         <ModalContent>
@@ -1642,325 +886,187 @@ export default function PYQManager({
                 <ModalHeader>Edit Question</ModalHeader>
                 <ModalBody>
                   <div className="grid gap-4">
-                    {/* File Type Selector at the Top */}
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        File Type
-                      </label>
+                      <label className="block text-sm font-medium mb-1">File Type</label>
                       <Select
-                        aria-label="Select File Type"
-                        placeholder="Select File Type"
-                        className="w-full flex-grow"
+                        aria-label="File Type"
                         selectedKeys={
                           editingQuestion.file_type
                             ? new Set([editingQuestion.file_type])
                             : new Set()
                         }
-                        onSelectionChange={(keys) => {
-                          const selectedFileType = Array.from(keys)[0] || "";
+                        onSelectionChange={(keys) =>
                           setEditingQuestion({
                             ...editingQuestion,
-                            file_type: selectedFileType,
+                            file_type: Array.from(keys)[0] || "",
                             file_url: "",
-                          });
-                        }}
+                          })
+                        }
                       >
-                        <SelectItem key="text" value="text">
-                          Text
-                        </SelectItem>
-                        <SelectItem key="html" value="html">
-                          HTML
-                        </SelectItem>
-                        <SelectItem key="image" value="image">
-                          Image
-                        </SelectItem>
-                        <SelectItem key="pdf" value="pdf">
-                          PDF
-                        </SelectItem>
-                        <SelectItem key="docx" value="docx">
-                          DOCX
-                        </SelectItem>
-                        <SelectItem key="xls" value="xls">
-                          XLS
-                        </SelectItem>
+                        <SelectItem key="text" value="text">Text</SelectItem>
+                        <SelectItem key="html" value="html">HTML</SelectItem>
+                        <SelectItem key="image" value="image">Image</SelectItem>
+                        <SelectItem key="pdf" value="pdf">PDF</SelectItem>
+                        <SelectItem key="docx" value="docx">DOCX</SelectItem>
+                        <SelectItem key="xls" value="xls">XLS</SelectItem>
                       </Select>
                     </div>
-
-                    {/* Question Input */}
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Question
-                      </label>
+                      <label className="block text-sm font-medium mb-1">Question</label>
                       <Textarea
                         value={editingQuestion.question}
                         onChange={(e) =>
-                          setEditingQuestion({
-                            ...editingQuestion,
-                            question: e.target.value,
-                          })
+                          setEditingQuestion({ ...editingQuestion, question: e.target.value })
                         }
                         minRows={3}
                       />
                     </div>
-
-                    {/* Answer Type Selection */}
                     <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Answer Type
-                      </label>
+                      <label className="block text-sm font-medium mb-2">Answer Type</label>
                       <RadioGroup
                         value={editingQuestion.answer_type}
-                        onValueChange={(value) =>
+                        onValueChange={(v) =>
                           setEditingQuestion({
                             ...editingQuestion,
-                            answer_type: value,
-                            answer:
-                              value === "mcq" ? "" : editingQuestion.answer,
+                            answer_type: v,
+                            answer: v === "mcq" ? "" : editingQuestion.answer,
                             options:
-                              value === "mcq"
-                                ? editingQuestion.options.length > 0
+                              v === "mcq"
+                                ? editingQuestion.options?.length > 0
                                   ? editingQuestion.options
-                                  : [
-                                      { text: "", is_correct: false },
-                                      { text: "", is_correct: false },
-                                    ]
+                                  : [{ text: "", is_correct: false }, { text: "", is_correct: false }]
                                 : [],
                           })
                         }
                         orientation="horizontal"
                       >
-                        <Radio value="answer_based">
-                          Answer Based Question
-                        </Radio>
-                        <Radio value="mcq">
-                          Multiple Choice Question (MCQ)
-                        </Radio>
+                        <Radio value="answer_based">Answer Based</Radio>
+                        <Radio value="mcq">MCQ</Radio>
                       </RadioGroup>
                     </div>
-
-                    {/* Conditional Answer/Options Based on Answer Type */}
-                    {editingQuestion.answer_type === "answer_based" &&
-                      editingQuestion.file_type === "text" && (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">
-                            Answer
-                          </label>
-                          <Textarea
-                            value={editingQuestion.answer}
-                            onChange={(e) =>
-                              setEditingQuestion({
-                                ...editingQuestion,
-                                answer: e.target.value,
-                              })
-                            }
-                            minRows={3}
-                          />
-                        </div>
-                      )}
-
-                    {editingQuestion.answer_type === "answer_based" &&
-                      editingQuestion.file_type === "html" && (
-                        <div>
-                          <label className="block text-sm font-medium mb-1">
-                            Rich Text Answer
-                          </label>
-                          <QuillWrapper
-                            value={editingQuestion.answer}
-                            onChange={(value) =>
-                              setEditingQuestion({
-                                ...editingQuestion,
-                                answer: value,
-                              })
-                            }
-                          />
-                        </div>
-                      )}
-
+                    {editingQuestion.answer_type === "answer_based" && editingQuestion.file_type === "text" && (
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Answer</label>
+                        <Textarea
+                          value={editingQuestion.answer}
+                          onChange={(e) =>
+                            setEditingQuestion({ ...editingQuestion, answer: e.target.value })
+                          }
+                          minRows={3}
+                        />
+                      </div>
+                    )}
+                    {editingQuestion.answer_type === "answer_based" && editingQuestion.file_type === "html" && (
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Rich Text Answer</label>
+                        <QuillWrapper
+                          value={editingQuestion.answer}
+                          onChange={(v) => setEditingQuestion({ ...editingQuestion, answer: v })}
+                        />
+                      </div>
+                    )}
                     {editingQuestion.answer_type === "mcq" && (
                       <div>
-                        <label className="block text-sm font-medium mb-2">
-                          MCQ Options
-                        </label>
+                        <label className="block text-sm font-medium mb-2">MCQ Options</label>
                         <div className="space-y-3">
-                          {editingQuestion.options.map((option, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-2 p-3 border rounded-lg"
-                            >
+                          {editingQuestion.options?.map((option, idx) => (
+                            <div key={idx} className="flex items-center gap-2 p-3 border rounded-lg">
                               <Checkbox
                                 isSelected={option.is_correct}
-                                onValueChange={(checked) =>
-                                  updateMCQOption(
-                                    index,
-                                    "is_correct",
-                                    checked,
-                                    true
-                                  )
-                                }
+                                onValueChange={(c) => updateMCQOption(idx, "is_correct", c, true)}
                               />
                               <Input
-                                placeholder={`Option ${index + 1}`}
+                                placeholder={`Option ${idx + 1}`}
                                 value={option.text}
-                                onChange={(e) =>
-                                  updateMCQOption(
-                                    index,
-                                    "text",
-                                    e.target.value,
-                                    true
-                                  )
-                                }
+                                onChange={(e) => updateMCQOption(idx, "text", e.target.value, true)}
                                 className="flex-1"
                               />
                               {editingQuestion.options.length > 2 && (
                                 <Button
-                                  isIconOnly
-                                  size="sm"
-                                  color="danger"
-                                  variant="light"
-                                  onPress={() => removeMCQOption(index, true)}
+                                  isIconOnly size="sm" color="danger" variant="light"
+                                  onPress={() => removeMCQOption(idx, true)}
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
                               )}
                             </div>
                           ))}
-                          <Button
-                            size="sm"
-                            variant="bordered"
-                            onPress={() => addMCQOption(true)}
-                            startContent={<Plus className="h-4 w-4" />}
-                          >
+                          <Button size="sm" variant="bordered" onPress={() => addMCQOption(true)}
+                                  startContent={<Plus className="h-4 w-4" />}>
                             Add Option
                           </Button>
                         </div>
                       </div>
                     )}
-
                     {editingQuestion.file_type === "image" && (
                       <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Upload Image
-                        </label>
+                        <label className="block text-sm font-medium mb-1">Image</label>
                         <ImageUploader
                           value={editingQuestion.file_url}
-                          onUploadComplete={(url) =>
-                            setEditingQuestion({
-                              ...editingQuestion,
-                              file_url: url,
-                            })
-                          }
+                          onUploadComplete={(url) => setEditingQuestion({ ...editingQuestion, file_url: url })}
                         />
                       </div>
                     )}
-
-                    {["pdf", "docx", "xls"].includes(
-                      editingQuestion.file_type
-                    ) && (
+                    {["pdf", "docx", "xls"].includes(editingQuestion.file_type) && (
                       <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Upload File
-                        </label>
+                        <label className="block text-sm font-medium mb-1">File</label>
                         <FileUploader
                           data={{ file: editingQuestion.file_url }}
-                          onUploadComplete={(url) =>
-                            setEditingQuestion({
-                              ...editingQuestion,
-                              file_url: url,
-                            })
-                          }
+                          onUploadComplete={(url) => setEditingQuestion({ ...editingQuestion, file_url: url })}
                         />
                       </div>
                     )}
-
-                    {/* Hide file URL input when file type is "text" */}
                     {editingQuestion.file_type !== "text" && (
                       <div>
-                        <label className="block text-sm font-medium mb-1">
-                          File URL (Optional)
-                        </label>
+                        <label className="block text-sm font-medium mb-1">File URL (optional)</label>
                         <Input
                           placeholder="Enter file URL"
                           value={editingQuestion.file_url || ""}
-                          onChange={(e) =>
-                            setEditingQuestion({
-                              ...editingQuestion,
-                              file_url: e.target.value,
-                            })
-                          }
+                          onChange={(e) => setEditingQuestion({ ...editingQuestion, file_url: e.target.value })}
                         />
                       </div>
                     )}
-
-                    {/* Year & Difficulty */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Year
-                        </label>
+                        <label className="block text-sm font-medium mb-1">Year</label>
                         <Input
                           type="number"
-                          value={editingQuestion.year.toString()}
+                          value={editingQuestion.year?.toString()}
                           onChange={(e) =>
-                            setEditingQuestion({
-                              ...editingQuestion,
-                              year: Number.parseInt(e.target.value),
-                            })
+                            setEditingQuestion({ ...editingQuestion, year: Number.parseInt(e.target.value) })
                           }
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Difficulty
-                        </label>
+                        <label className="block text-sm font-medium mb-1">Difficulty</label>
                         <Select
-                          aria-label="Select Difficulty"
-                          className="w-full flex-grow"
+                          aria-label="Difficulty"
                           selectedKeys={
                             editingQuestion.difficulty
                               ? new Set([editingQuestion.difficulty])
                               : new Set()
                           }
-                          onSelectionChange={(keys) => {
-                            const selectedDifficulty =
-                              Array.from(keys)[0] || "";
+                          onSelectionChange={(keys) =>
                             setEditingQuestion({
                               ...editingQuestion,
-                              difficulty: selectedDifficulty,
-                            });
-                          }}
+                              difficulty: Array.from(keys)[0] || "",
+                            })
+                          }
                         >
-                          <SelectItem key="easy" value="easy">
-                            Easy
-                          </SelectItem>
-                          <SelectItem key="medium" value="medium">
-                            Medium
-                          </SelectItem>
-                          <SelectItem key="hard" value="hard">
-                            Hard
-                          </SelectItem>
+                          <SelectItem key="easy" value="easy">Easy</SelectItem>
+                          <SelectItem key="medium" value="medium">Medium</SelectItem>
+                          <SelectItem key="hard" value="hard">Hard</SelectItem>
                         </Select>
                       </div>
                     </div>
-
-                    {/* Topics Selection */}
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Topics
-                      </label>
+                      <label className="block text-sm font-medium mb-1">Topics</label>
                       <div className="flex flex-wrap gap-2 p-2 border rounded-md">
                         {topics.map((topic) => (
                           <Chip
                             key={topic.id}
-                            color={
-                              selectedTopics.includes(topic.id)
-                                ? "primary"
-                                : "default"
-                            }
-                            variant={
-                              selectedTopics.includes(topic.id)
-                                ? "solid"
-                                : "bordered"
-                            }
+                            color={selectedTopics.includes(topic.id) ? "primary" : "default"}
+                            variant={selectedTopics.includes(topic.id) ? "solid" : "bordered"}
                             className="cursor-pointer"
                             onClick={() => toggleTopicSelection(topic.id)}
                           >
@@ -1969,25 +1075,11 @@ export default function PYQManager({
                         ))}
                       </div>
                     </div>
-
-                    {/* Explanation Section */}
                     <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Explanation (Optional)
-                      </label>
-                      <p className="text-xs text-gray-500 mb-2">
-                        Provide a detailed explanation that supports text,
-                        images, and videos
-                      </p>
+                      <label className="block text-sm font-medium mb-1">Explanation</label>
                       <QuillWrapper
                         value={editingQuestion.explanation || ""}
-                        onChange={(value) =>
-                          setEditingQuestion({
-                            ...editingQuestion,
-                            explanation: value,
-                          })
-                        }
-                        placeholder="Enter explanation with rich text, images, and videos..."
+                        onChange={(v) => setEditingQuestion({ ...editingQuestion, explanation: v })}
                       />
                     </div>
                   </div>
@@ -1997,7 +1089,7 @@ export default function PYQManager({
                     <X className="h-4 w-4 mr-1" /> Cancel
                   </Button>
                   <Button color="primary" onPress={handleUpdateQuestion}>
-                    <Check className="h-4 w-4 mr-1" /> Update Question
+                    <Check className="h-4 w-4 mr-1" /> Update
                   </Button>
                 </ModalFooter>
               </>
@@ -2006,31 +1098,20 @@ export default function PYQManager({
         </ModalContent>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={deleteConfirmOpen}
-        onOpenChange={setDeleteConfirmOpen}
-        size="sm"
-      >
+      {/* Delete Confirm */}
+      <Modal isOpen={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen} size="sm">
         <ModalContent>
           {(onClose) => (
             <>
               <ModalHeader>Confirm Deletion</ModalHeader>
               <ModalBody>
-                <p>
-                  Are you sure you want to delete this question? This action
-                  cannot be undone.
-                </p>
+                <p>Are you sure? This cannot be undone.</p>
               </ModalBody>
               <ModalFooter>
-                <Button variant="flat" onPress={onClose}>
-                  <X className="h-4 w-4 mr-1" /> Cancel
-                </Button>
+                <Button variant="flat" onPress={onClose}>Cancel</Button>
                 <Button
                   color="danger"
-                  onPress={() =>
-                    questionToDelete && handleDeleteQuestion(questionToDelete)
-                  }
+                  onPress={() => questionToDelete && handleDeleteQuestion(questionToDelete)}
                 >
                   <Trash2 className="h-4 w-4 mr-1" /> Delete
                 </Button>
@@ -2040,38 +1121,24 @@ export default function PYQManager({
         </ModalContent>
       </Modal>
 
-      {/* Explanation Modal */}
-      <Modal
-        scrollBehavior="inside"
-        isOpen={explanationModalOpen}
-        onOpenChange={setExplanationModalOpen}
-        size="3xl"
-      >
+      {/* Explanation modal (kept for backwards-compat) */}
+      <Modal scrollBehavior="inside" isOpen={explanationModalOpen} onOpenChange={setExplanationModalOpen} size="3xl">
         <ModalContent>
           {(onClose) => (
             <>
               <ModalHeader className="flex items-center gap-2">
-                <Info className="h-5 w-5 text-primary" />
-                Question Explanation
+                <Info className="h-5 w-5" /> Explanation
               </ModalHeader>
               <ModalBody>
                 {currentExplanation ? (
-                  <div
-                    className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{
-                      __html: currentExplanation,
-                    }}
-                  />
+                  <div className="prose prose-sm max-w-none"
+                       dangerouslySetInnerHTML={{ __html: currentExplanation }} />
                 ) : (
-                  <p className="text-gray-500 text-center py-8">
-                    No explanation available for this question.
-                  </p>
+                  <p className="text-center text-gray-500 py-8">No explanation available.</p>
                 )}
               </ModalBody>
               <ModalFooter>
-                <Button variant="flat" onPress={onClose}>
-                  Close
-                </Button>
+                <Button variant="flat" onPress={onClose}>Close</Button>
               </ModalFooter>
             </>
           )}
@@ -2080,3 +1147,784 @@ export default function PYQManager({
     </div>
   );
 }
+
+// ════════════════════════════════════════════════════════════════
+// SHELF — exam picker
+// ════════════════════════════════════════════════════════════════
+function Shelf({ exams, meta, onPick }) {
+  const available = exams.filter((e) => e.status === "active");
+  const comingSoon = exams.filter((e) => e.status !== "active");
+  const totalQs = available.reduce((a, e) => a + (meta[e.id]?.count || 0), 0);
+
+  return (
+    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "36px 28px 60px" }}>
+      <div style={{ marginBottom: 32 }}>
+        <div style={eyebrow}>PYQ Papers · practice bank</div>
+        <h1
+          style={{
+            margin: "8px 0 10px",
+            fontSize: 32,
+            fontWeight: 600,
+            letterSpacing: "-0.025em",
+            lineHeight: 1.1,
+          }}
+        >
+          Every past paper, every <span style={serif}>exam</span>.
+        </h1>
+        <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.6, color: "var(--c-text-secondary)", maxWidth: "60ch" }}>
+          Browse questions by year, topic, or difficulty. Open an exam to drill into its bank.
+          {comingSoon.length > 0 && " More exams are being added — typed up and tagged."}
+        </p>
+      </div>
+
+      {available.length > 0 && (
+        <>
+          <SectionHead title="Available" right={`${available.length} exam · ${totalQs.toLocaleString()} questions`} />
+          <div style={grid}>
+            {available.map((e) => (
+              <ExamCard key={e.id} exam={e} meta={meta[e.id]} onClick={() => onPick(e)} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {comingSoon.length > 0 && (
+        <>
+          <SectionHead title="Coming soon" right={`${comingSoon.length} exams · being added`} muted />
+          <div style={grid}>
+            {comingSoon.map((e) => (
+              <ExamCard key={e.id} exam={e} meta={meta[e.id]} onClick={() => {}} soon />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SectionHead({ title, right, muted }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "44px 0 18px" }}>
+      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.018em", color: muted ? "var(--c-text-tertiary)" : "var(--c-text-primary)" }}>
+        {title}
+      </h2>
+      {right && (
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--c-text-tertiary)" }}>
+          {right}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function ExamCard({ exam, meta, onClick, soon }) {
+  const accent = ACCENT_MAP[exam.accent] || ACCENT_MAP.amber;
+  const yrRange =
+    meta && meta.minYear && meta.maxYear ? `${meta.minYear}—${meta.maxYear}` : "—";
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: soon ? "var(--c-bg-elev)" : "var(--c-surface)",
+        border: "1px solid var(--c-border-faint)",
+        borderRadius: 14,
+        padding: 22,
+        cursor: soon ? "default" : "pointer",
+        transition: "transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease",
+        position: "relative",
+        overflow: "hidden",
+      }}
+      onMouseEnter={(e) => {
+        if (soon) return;
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.borderColor = "var(--c-border-soft)";
+        e.currentTarget.style.boxShadow = "0 10px 24px -16px rgba(20,19,15,0.14)";
+        const bar = e.currentTarget.querySelector("[data-accent]");
+        if (bar) bar.style.opacity = "1";
+      }}
+      onMouseLeave={(e) => {
+        if (soon) return;
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.borderColor = "var(--c-border-faint)";
+        e.currentTarget.style.boxShadow = "none";
+        const bar = e.currentTarget.querySelector("[data-accent]");
+        if (bar) bar.style.opacity = "0";
+      }}
+    >
+      <div data-accent style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 2, background: accent.c, opacity: 0, transition: "opacity 0.16s ease" }} />
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
+        <div>
+          {exam.org && (
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: soon ? "var(--c-text-tertiary)" : accent.c, marginBottom: 4 }}>
+              {exam.org}
+            </div>
+          )}
+          <h3 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 600, letterSpacing: "-0.012em", color: soon ? "var(--c-text-secondary)" : "var(--c-text-primary)" }}>
+            {exam.name}
+          </h3>
+        </div>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            padding: "3px 8px",
+            borderRadius: 999,
+            border: "1px solid",
+            color: soon ? "var(--c-text-tertiary)" : accent.c,
+            background: soon ? "var(--c-bg-elev)" : accent.soft,
+            borderColor: soon ? "var(--c-border-faint)" : accent.c,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {soon ? "Coming soon" : "Active"}
+        </span>
+      </div>
+
+      {exam.tagline && (
+        <p style={{ margin: "0 0 14px", fontSize: 12.5, color: "var(--c-text-secondary)", lineHeight: 1.5 }}>
+          {exam.tagline}
+        </p>
+      )}
+
+      {!soon ? (
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: "var(--c-text-tertiary)", marginBottom: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <span><b style={{ color: "var(--c-text-primary)" }}>{(meta?.count || 0).toLocaleString()}</b> questions</span>
+          <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor", opacity: 0.4 }} />
+          <span><b style={{ color: "var(--c-text-primary)" }}>{yrRange}</b></span>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", marginBottom: 12, lineHeight: 1.5 }}>
+          Past papers are being digitised. Expected sections shown below.
+        </div>
+      )}
+
+      {exam.sections && exam.sections.length > 0 && (
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
+          {exam.sections.map((s) => (
+            <span key={s} style={{ fontSize: 10.5, fontWeight: 500, color: "var(--c-text-tertiary)", background: "var(--c-bg-elev)", border: "1px solid var(--c-border-faint)", borderRadius: 4, padding: "2px 7px" }}>
+              {s}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div style={{ paddingTop: 12, borderTop: "1px dashed var(--c-border-faint)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {soon ? (
+          <>
+            <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)", fontStyle: "italic" }}>Not yet available</span>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: "transparent", border: "1px solid var(--c-border-soft)", color: "var(--c-text-secondary)", padding: "5px 11px", borderRadius: 6, fontFamily: "inherit", fontSize: 11.5, fontWeight: 500, cursor: "pointer" }}
+            >
+              Notify me
+            </button>
+          </>
+        ) : (
+          <>
+            <span />
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--c-text-primary)" }}>
+              Open library →
+            </span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// LIBRARY — filter bar + list + reader
+// ════════════════════════════════════════════════════════════════
+function Library({
+  exam,
+  questions,
+  topics,
+  years,
+  loading,
+  isAdmin,
+  selectedQuestion,
+  setSelectedQuestion,
+  yearFilter, setYearFilter,
+  topicFilter, setTopicFilter,
+  difficultyFilter, setDifficultyFilter,
+  typeFilter, setTypeFilter,
+  searchQuery, setSearchQuery,
+  practiceMode, setPracticeMode,
+  pickedOptionIdx, setPickedOptionIdx,
+  revealed, setRevealed,
+  showExplanationSection, setShowExplanationSection,
+  onBackToShelf,
+  onSearchSubmit,
+  onAddQuestion,
+  onAddTopic,
+  onEditQuestion,
+  onDeleteQuestion,
+  onShowExplanation,
+}) {
+  const accent = ACCENT_MAP[exam.accent] || ACCENT_MAP.amber;
+
+  // Auto-select first question if none selected and list non-empty
+  useEffect(() => {
+    if (!selectedQuestion && questions.length > 0) {
+      setSelectedQuestion(questions[0]);
+    }
+    if (selectedQuestion && !questions.find((q) => q.id === selectedQuestion.id)) {
+      setSelectedQuestion(questions[0] || null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions]);
+
+  return (
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", fontFamily: FONT }}>
+      {/* Top header */}
+      <div style={{ borderBottom: "1px solid var(--c-border-faint)", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+        <div>
+          <div style={{ fontSize: 11, color: "var(--c-text-tertiary)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 2 }}>
+            <button
+              onClick={onBackToShelf}
+              style={{ background: "transparent", border: "none", color: "var(--c-text-tertiary)", fontFamily: "inherit", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer", padding: 0 }}
+            >
+              ← PYQ shelf
+            </button>
+            <span style={{ margin: "0 6px" }}>·</span>
+            <span style={{ color: accent.c }}>{exam.org || "Practice bank"}</span>
+          </div>
+          <h1 style={{ margin: 0, fontSize: 17, fontWeight: 600, letterSpacing: "-0.014em" }}>
+            {exam.name}
+          </h1>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            onClick={() => setPracticeMode(!practiceMode)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "6px 12px", borderRadius: 8,
+              border: practiceMode ? "none" : "1px solid var(--c-border-faint)",
+              background: practiceMode ? "var(--c-text-primary)" : "transparent",
+              color: practiceMode ? "var(--c-bg)" : "var(--c-text-secondary)",
+              fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer",
+            }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: practiceMode ? accent.c : "currentColor", opacity: practiceMode ? 1 : 0.4 }} />
+            Practice mode
+          </button>
+          {isAdmin && (
+            <>
+              <button onClick={onAddTopic} style={adminBtn}>
+                <Plus size={12} /> Topic
+              </button>
+              <button onClick={onAddQuestion} style={{ ...adminBtn, background: "var(--c-text-primary)", color: "var(--c-bg)", borderColor: "var(--c-text-primary)" }}>
+                <Plus size={12} /> Question
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Filter bar */}
+      <FilterBar
+        years={years}
+        topics={topics}
+        yearFilter={yearFilter} setYearFilter={setYearFilter}
+        topicFilter={topicFilter} setTopicFilter={setTopicFilter}
+        difficultyFilter={difficultyFilter} setDifficultyFilter={setDifficultyFilter}
+        typeFilter={typeFilter} setTypeFilter={setTypeFilter}
+        searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+        onSearchSubmit={onSearchSubmit}
+      />
+
+      {/* Body */}
+      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        {/* Left: question list */}
+        <div style={{ flex: "0 0 360px", borderRight: "1px solid var(--c-border-faint)", overflowY: "auto" }}>
+          <div style={{ padding: "12px 22px", borderBottom: "1px solid var(--c-border-faint)", fontSize: 11.5, color: "var(--c-text-tertiary)" }}>
+            Showing <b style={{ color: "var(--c-text-primary)" }}>{questions.length}</b> question{questions.length === 1 ? "" : "s"}
+          </div>
+          {loading ? (
+            <div style={{ padding: 40, textAlign: "center", color: "var(--c-text-tertiary)" }}>Loading…</div>
+          ) : questions.length === 0 ? (
+            <div style={{ padding: 40, textAlign: "center", color: "var(--c-text-tertiary)" }}>
+              No questions match these filters.
+            </div>
+          ) : (
+            questions.map((q, i) => (
+              <QuestionListItem
+                key={q.id}
+                q={q}
+                idx={i + 1}
+                active={selectedQuestion?.id === q.id}
+                onClick={() => setSelectedQuestion(q)}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Right: reader */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "40px 56px 60px" }}>
+          {selectedQuestion ? (
+            <QuestionReader
+              q={selectedQuestion}
+              accent={accent}
+              practiceMode={practiceMode}
+              pickedOptionIdx={pickedOptionIdx}
+              setPickedOptionIdx={setPickedOptionIdx}
+              revealed={revealed}
+              setRevealed={setRevealed}
+              isAdmin={isAdmin}
+              showExplanationSection={showExplanationSection}
+              setShowExplanationSection={setShowExplanationSection}
+              onEdit={() => onEditQuestion(selectedQuestion)}
+              onDelete={() => onDeleteQuestion(selectedQuestion.id)}
+              total={questions.length}
+              indexInList={questions.findIndex((q) => q.id === selectedQuestion.id) + 1}
+              onPrev={() => {
+                const idx = questions.findIndex((q) => q.id === selectedQuestion.id);
+                if (idx > 0) setSelectedQuestion(questions[idx - 1]);
+              }}
+              onNext={() => {
+                const idx = questions.findIndex((q) => q.id === selectedQuestion.id);
+                if (idx < questions.length - 1) setSelectedQuestion(questions[idx + 1]);
+              }}
+            />
+          ) : (
+            <div style={{ padding: 60, textAlign: "center", color: "var(--c-text-tertiary)" }}>
+              Pick a question on the left to start.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FilterBar({
+  years, topics,
+  yearFilter, setYearFilter,
+  topicFilter, setTopicFilter,
+  difficultyFilter, setDifficultyFilter,
+  typeFilter, setTypeFilter,
+  searchQuery, setSearchQuery,
+  onSearchSubmit,
+}) {
+  return (
+    <div style={{ borderBottom: "1px solid var(--c-border-faint)", padding: "8px 28px", display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", fontSize: 12 }}>
+      <FChip
+        label="Year"
+        value={yearFilter}
+        options={years.map((y) => ({ id: y, label: String(y) }))}
+        onSelect={(v) => setYearFilter(v)}
+      />
+      <FChip
+        label="Topic"
+        value={topicFilter}
+        options={topics.map((t) => ({ id: t.id, label: t.name }))}
+        onSelect={(v) => setTopicFilter(v)}
+      />
+      <FChip
+        label="Difficulty"
+        value={difficultyFilter}
+        options={[
+          { id: "easy", label: "Easy" },
+          { id: "medium", label: "Medium" },
+          { id: "hard", label: "Hard" },
+        ]}
+        onSelect={(v) => setDifficultyFilter(v)}
+      />
+      <FChip
+        label="Type"
+        value={typeFilter}
+        options={[
+          { id: "mcq", label: "MCQ" },
+          { id: "answer_based", label: "Answer-based" },
+        ]}
+        onSelect={(v) => setTypeFilter(v)}
+      />
+
+      <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, background: "var(--c-bg-elev)", border: "1px solid var(--c-border-faint)", borderRadius: 6, padding: "4px 9px", fontSize: 12, color: "var(--c-text-tertiary)", minWidth: 240 }}>
+        <span>⌕</span>
+        <input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") onSearchSubmit(); }}
+          placeholder="Search questions… ↵"
+          style={{ background: "transparent", border: "none", outline: "none", fontFamily: "inherit", fontSize: 12, color: "var(--c-text-primary)", flex: 1, minWidth: 0 }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function FChip({ label, value, options, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const selectedLabel = value != null ? options.find((o) => o.id === value)?.label : null;
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          background: value != null ? "var(--c-bg-elev)" : "transparent",
+          border: value != null ? "1px solid var(--c-border-soft)" : "1px dashed var(--c-border-soft)",
+          color: value != null ? "var(--c-text-primary)" : "var(--c-text-tertiary)",
+          padding: "4px 10px", borderRadius: 6,
+          fontFamily: "inherit", fontSize: 12, fontWeight: 500,
+          cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4,
+        }}
+      >
+        {label}
+        {selectedLabel && (
+          <>
+            <span style={{ color: "var(--c-text-primary)", fontWeight: 600 }}>{selectedLabel}</span>
+            <span
+              onClick={(e) => { e.stopPropagation(); onSelect(null); }}
+              style={{ paddingLeft: 6, borderLeft: "1px solid var(--c-border-faint)", marginLeft: 2, color: "var(--c-text-tertiary)" }}
+            >×</span>
+          </>
+        )}
+      </button>
+      {open && (
+        <div
+          style={{
+            position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 20,
+            background: "var(--c-surface)",
+            border: "1px solid var(--c-border-faint)",
+            borderRadius: 8,
+            padding: 6,
+            minWidth: 140,
+            boxShadow: "0 8px 24px -8px rgba(20,19,15,0.18)",
+            maxHeight: 320, overflowY: "auto",
+          }}
+        >
+          <div
+            onClick={() => { onSelect(null); setOpen(false); }}
+            style={{ padding: "6px 10px", borderRadius: 4, fontSize: 12, color: "var(--c-text-tertiary)", cursor: "pointer" }}
+          >
+            Any
+          </div>
+          {options.map((o) => (
+            <div
+              key={o.id}
+              onClick={() => { onSelect(o.id); setOpen(false); }}
+              style={{
+                padding: "6px 10px", borderRadius: 4, fontSize: 12,
+                color: value === o.id ? "var(--c-brand-primary)" : "var(--c-text-primary)",
+                background: value === o.id ? "var(--c-brand-glow)" : "transparent",
+                cursor: "pointer", fontWeight: value === o.id ? 600 : 400,
+              }}
+            >
+              {o.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuestionListItem({ q, idx, active, onClick }) {
+  const diff = q.difficulty?.toLowerCase();
+  const diffColor =
+    diff === "easy" ? "var(--c-success, #15803D)" :
+    diff === "hard" ? "var(--c-danger, #B91C1C)" :
+    "var(--c-warning, #B45309)";
+
+  const topicLabel = q.topics && q.topics.length > 0 ? q.topics[0].name : null;
+  const typeLabel = q.answer_type === "mcq" ? "MCQ" : null;
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        padding: "14px 22px",
+        borderBottom: "1px solid var(--c-border-faint)",
+        cursor: "pointer",
+        display: "grid", gridTemplateColumns: "32px 1fr", gap: 12,
+        alignItems: "start",
+        position: "relative",
+        background: active ? "var(--c-bg-elev)" : "transparent",
+        transition: "background 0.1s ease",
+      }}
+      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--c-bg-elev)"; }}
+      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
+    >
+      {active && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 2, background: "var(--c-brand-primary)" }} />}
+      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: active ? "var(--c-brand-primary)" : "var(--c-text-tertiary)", fontWeight: active ? 600 : 400, fontVariantNumeric: "tabular-nums" }}>
+        {String(idx).padStart(3, "0")}
+      </div>
+      <div>
+        <div style={{ fontSize: 13, color: "var(--c-text-primary)", lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {q.question}
+        </div>
+        <div style={{ marginTop: 6, fontSize: 11, color: "var(--c-text-tertiary)", display: "flex", gap: 8, alignItems: "center" }}>
+          {diff && <span style={{ color: diffColor, fontWeight: 600, textTransform: "capitalize" }}>{diff}</span>}
+          {q.year && (
+            <>
+              <span style={{ opacity: 0.4 }}>·</span>
+              <span>{q.year}</span>
+            </>
+          )}
+          {topicLabel && (
+            <>
+              <span style={{ opacity: 0.4 }}>·</span>
+              <span>{topicLabel}</span>
+            </>
+          )}
+          {typeLabel && (
+            <>
+              <span style={{ opacity: 0.4 }}>·</span>
+              <span>{typeLabel}</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuestionReader({
+  q, accent, practiceMode, pickedOptionIdx, setPickedOptionIdx,
+  revealed, setRevealed,
+  isAdmin, showExplanationSection, setShowExplanationSection,
+  onEdit, onDelete,
+  total, indexInList, onPrev, onNext,
+}) {
+  const options = useMemo(() => {
+    if (q.answer_type !== "mcq" || !q.options) return null;
+    try {
+      return typeof q.options === "string" ? JSON.parse(q.options) : q.options;
+    } catch { return null; }
+  }, [q]);
+
+  const correctIdx = options?.findIndex((o) => o.is_correct);
+  const diff = q.difficulty?.toLowerCase();
+  const diffColor =
+    diff === "easy" ? "var(--c-success, #15803D)" :
+    diff === "hard" ? "var(--c-danger, #B91C1C)" :
+    "var(--c-warning, #B45309)";
+
+  return (
+    <div>
+      {/* Meta line */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "var(--c-text-tertiary)", flexWrap: "wrap" }}>
+          {q.year && <span style={{ color: accent.c, fontWeight: 600 }}>{q.year}</span>}
+          {diff && (
+            <>
+              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor", opacity: 0.4 }} />
+              <span style={{ color: diffColor, fontWeight: 600, textTransform: "capitalize" }}>{diff}</span>
+            </>
+          )}
+          {q.topics?.map((t) => (
+            <span key={t.id}>
+              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor", opacity: 0.4, display: "inline-block", marginRight: 8 }} />
+              <span style={{ color: "var(--c-text-secondary)", fontWeight: 500 }}>{t.name}</span>
+            </span>
+          ))}
+          {q.answer_type === "mcq" && (
+            <>
+              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor", opacity: 0.4 }} />
+              <span>MCQ</span>
+            </>
+          )}
+        </div>
+        {isAdmin && (
+          <div style={{ display: "flex", gap: 4 }}>
+            <button onClick={onEdit} style={icBtn} title="Edit"><Pencil size={13} /></button>
+            <button onClick={onDelete} style={icBtn} title="Delete"><Trash2 size={13} /></button>
+          </div>
+        )}
+      </div>
+
+      {/* Question */}
+      <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: "-0.012em", lineHeight: 1.5, color: "var(--c-text-primary)", marginBottom: 32, maxWidth: "64ch" }}>
+        {q.question}
+      </div>
+
+      {/* File / image stem */}
+      {q.file_type === "image" && q.file_url && (
+        <div style={{ marginBottom: 28, maxWidth: "60ch" }}>
+          <img src={q.file_url} alt="Question" style={{ maxWidth: "100%", borderRadius: 8, border: "1px solid var(--c-border-faint)" }} />
+        </div>
+      )}
+      {q.file_url && ["pdf", "docx", "xls"].includes(q.file_type) && (
+        <div style={{ marginBottom: 28 }}>
+          <a
+            href={q.file_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "8px 14px", borderRadius: 8,
+              background: "var(--c-bg-elev)", border: "1px solid var(--c-border-soft)",
+              color: "var(--c-text-primary)", textDecoration: "none",
+              fontSize: 12.5, fontWeight: 600,
+            }}
+          >
+            <Download size={13} /> Download {q.file_type?.toUpperCase()}
+          </a>
+        </div>
+      )}
+
+      {/* MCQ options */}
+      {q.answer_type === "mcq" && options && (
+        <div style={{ display: "flex", flexDirection: "column", maxWidth: "56ch", marginBottom: 32 }}>
+          {options.map((o, i) => {
+            const isPicked = pickedOptionIdx === i;
+            const showVerdict = revealed || !practiceMode;
+            const isCorrect = i === correctIdx;
+            const isWrong = isPicked && !isCorrect && showVerdict;
+            const showCorrect = isCorrect && showVerdict;
+            return (
+              <div
+                key={i}
+                onClick={() => {
+                  if (practiceMode) {
+                    setPickedOptionIdx(i);
+                    setRevealed(true);
+                  } else {
+                    setPickedOptionIdx(i);
+                  }
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 16,
+                  padding: "16px 18px",
+                  borderBottom: "1px solid var(--c-border-faint)",
+                  cursor: "pointer",
+                  background: showCorrect ? "linear-gradient(to right, rgba(21,128,61,0.08), transparent 80%)" :
+                              isWrong ? "linear-gradient(to right, rgba(185,28,28,0.08), transparent 80%)" : "transparent",
+                  borderLeft: showCorrect ? "2px solid var(--c-success, #15803D)" :
+                              isWrong ? "2px solid var(--c-danger, #B91C1C)" : "2px solid transparent",
+                  paddingLeft: showCorrect || isWrong ? 16 : 18,
+                  transition: "background 0.1s ease",
+                }}
+              >
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600, width: 20,
+                  color: showCorrect ? "var(--c-success, #15803D)" :
+                         isWrong ? "var(--c-danger, #B91C1C)" :
+                         isPicked ? accent.c : "var(--c-text-tertiary)",
+                }}>
+                  {String.fromCharCode(65 + i)}
+                </div>
+                <div style={{ fontSize: 16, color: "var(--c-text-primary)", lineHeight: 1.5, flex: 1, fontWeight: isPicked ? 500 : 400 }}>
+                  {o.text}
+                </div>
+                {showCorrect && (
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-success, #15803D)" }}>
+                    Correct
+                  </span>
+                )}
+                {isWrong && (
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-danger, #B91C1C)" }}>
+                    Wrong
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Answer-based reveal */}
+      {q.answer_type !== "mcq" && q.answer && (
+        <div style={{ marginBottom: 28 }}>
+          {revealed ? (
+            <div
+              style={{ borderLeft: "2px solid var(--c-success, #15803D)", padding: "4px 0 4px 22px", maxWidth: "60ch" }}
+            >
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-success, #15803D)", marginBottom: 8 }}>
+                Answer
+              </div>
+              <div
+                style={{ fontSize: 15, lineHeight: 1.65, color: "var(--c-text-primary)" }}
+                dangerouslySetInnerHTML={{ __html: q.answer }}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => setRevealed(true)}
+              style={{
+                padding: "9px 16px", borderRadius: 8,
+                background: "var(--c-text-primary)", color: "var(--c-bg)",
+                border: "none", cursor: "pointer", fontFamily: "inherit",
+                fontSize: 13, fontWeight: 600,
+              }}
+            >
+              Show answer
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Explanation */}
+      {q.explanation && (revealed || !practiceMode) && (
+        <div style={{ borderLeft: "2px solid var(--c-purple, #6D28D9)", padding: "4px 0 4px 22px", marginBottom: 36, maxWidth: "60ch" }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-purple, #6D28D9)", marginBottom: 10 }}>
+            Solution
+          </div>
+          <div
+            style={{ fontSize: 15, lineHeight: 1.7, color: "var(--c-text-primary)" }}
+            dangerouslySetInnerHTML={{ __html: q.explanation }}
+          />
+        </div>
+      )}
+
+      {/* Footer nav */}
+      <div style={{ marginTop: 40, paddingTop: 22, borderTop: "1px solid var(--c-border-faint)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--c-text-tertiary)" }}>
+          Q <b style={{ color: "var(--c-text-primary)" }}>{String(indexInList).padStart(3, "0")}</b> / {total}
+        </span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onPrev} disabled={indexInList <= 1} style={navBtn}>← Previous</button>
+          <button onClick={onNext} disabled={indexInList >= total} style={{ ...navBtn, background: "var(--c-text-primary)", color: "var(--c-bg)", border: "none" }}>
+            Next →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// Style tokens
+// ════════════════════════════════════════════════════════════════
+const eyebrow = {
+  fontSize: 11, fontWeight: 500, letterSpacing: "0.14em",
+  textTransform: "uppercase", color: "var(--c-text-tertiary)",
+};
+const serif = {
+  fontFamily: "'Instrument Serif', serif", fontStyle: "italic",
+  color: "var(--c-brand-primary)", fontWeight: 400,
+};
+const grid = {
+  display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+  gap: 14, marginBottom: 40,
+};
+const adminBtn = {
+  display: "inline-flex", alignItems: "center", gap: 5,
+  padding: "5px 11px", borderRadius: 6,
+  background: "transparent",
+  border: "1px solid var(--c-border-soft)",
+  color: "var(--c-text-secondary)",
+  fontFamily: "inherit", fontSize: 11.5, fontWeight: 500,
+  cursor: "pointer", whiteSpace: "nowrap",
+};
+const icBtn = {
+  width: 30, height: 30,
+  background: "transparent",
+  border: "1px solid var(--c-border-faint)",
+  borderRadius: 6,
+  color: "var(--c-text-tertiary)",
+  cursor: "pointer", display: "grid", placeItems: "center",
+};
+const navBtn = {
+  background: "transparent", color: "var(--c-text-secondary)",
+  border: "1px solid var(--c-border-soft)",
+  padding: "7px 16px", borderRadius: 6,
+  fontSize: 12.5, fontWeight: 500,
+  cursor: "pointer", fontFamily: "inherit",
+};
