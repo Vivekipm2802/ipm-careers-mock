@@ -382,19 +382,11 @@ export const NMNContextProvider = ({ children }) => {
       isExpanded: false,
       items: [
         {
-          title: "Concept Based",
+          title: "All Papers",
           type: "user",
           action: "pyqconcept",
           id: 21,
-          icon: <Hash size={20} />,
-        },
-
-        {
-          title: "By Years",
-          type: "user",
-          action: "pyqyear",
-          id: 22,
-          icon: <CalendarRange size={20} />,
+          icon: <FileText size={20} />,
         },
       ],
     },

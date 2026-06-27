@@ -1841,6 +1841,29 @@ function QuestionReader({
   onEdit, onDelete,
   total, indexInList, onPrev, onNext,
 }) {
+  // Per-question bookmark, persisted in localStorage so it survives reloads.
+  const [bookmarked, setBookmarked] = useState(false);
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      const raw = window.localStorage.getItem("pyq_bookmarks") || "[]";
+      const arr = JSON.parse(raw);
+      setBookmarked(Array.isArray(arr) && arr.includes(q.id));
+    } catch { setBookmarked(false); }
+  }, [q.id]);
+  const toggleBookmark = () => {
+    try {
+      if (typeof window === "undefined") return;
+      const raw = window.localStorage.getItem("pyq_bookmarks") || "[]";
+      let arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) arr = [];
+      const has = arr.includes(q.id);
+      const next = has ? arr.filter((x) => x !== q.id) : [...arr, q.id];
+      window.localStorage.setItem("pyq_bookmarks", JSON.stringify(next));
+      setBookmarked(!has);
+    } catch {}
+  };
+
   // Keyboard shortcuts — Space reveals, J = prev, K = next.
   // Ignore when the user is typing in any input/textarea.
   useEffect(() => {
@@ -2099,6 +2122,42 @@ function QuestionReader({
         </div>
       )}
 
+      {/* MCQ answer panel — always shows on reveal, even when explanation is empty.
+          This guarantees students see a substantial "answer" surface, not just
+          a green-highlighted option. */}
+      {q.answer_type === "mcq" && options && revealed && correctIdx != null && correctIdx >= 0 && (
+        <div
+          className="pyq-rich-panel"
+          style={{
+            borderLeft: "2px solid var(--c-success, #15803D)",
+            padding: "12px 0 12px 22px",
+            maxWidth: 760,
+            background: "linear-gradient(to right, rgba(21,128,61,0.04), transparent 60%)",
+            marginLeft: -2,
+            marginBottom: 22,
+          }}
+        >
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-success, #15803D)", marginBottom: 8 }}>
+            Answer
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: "var(--c-text-primary)", marginBottom: 2 }}>
+            <span style={{
+              fontFamily: "'JetBrains Mono', monospace", fontSize: 13,
+              background: "var(--c-success, #15803D)", color: "#fff",
+              padding: "2px 8px", borderRadius: 5, marginRight: 10, verticalAlign: 2,
+            }}>
+              {String.fromCharCode(65 + correctIdx)}
+            </span>
+            {options[correctIdx]?.text}
+          </div>
+          {!q.explanation && (
+            <div style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", marginTop: 8, fontStyle: "italic" }}>
+              Worked solution not available for this question yet.
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Answer-based: SA input + reveal */}
       {q.answer_type !== "mcq" && q.answer && (
         <div style={{ marginBottom: 22 }}>
@@ -2262,6 +2321,11 @@ function QuestionReader({
             Q <b style={{ color: "var(--c-text-primary)", fontWeight: 600 }}>{String(indexInList).padStart(3, "0")}</b> / <b style={{ color: "var(--c-text-primary)", fontWeight: 600 }}>{total}</b>
           </span>
           <div style={{ display: "flex", gap: 6 }}>
+            <button
+              style={{ ...dockIcon, color: bookmarked ? "var(--c-warning, #B45309)" : "var(--c-text-secondary)" }}
+              title={bookmarked ? "Remove bookmark" : "Bookmark this question"}
+              onClick={toggleBookmark}
+            >{bookmarked ? "★" : "☆"}</button>
             <button
               style={dockIcon}
               title="Copy link to this question"
