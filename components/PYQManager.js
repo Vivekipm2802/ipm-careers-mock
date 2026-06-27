@@ -1163,23 +1163,28 @@ function Shelf({ exams, meta, onPick }) {
   const totalQs = available.reduce((a, e) => a + (meta[e.id]?.count || 0), 0);
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "36px 28px 60px" }}>
-      <div style={{ marginBottom: 32 }}>
-        <div style={eyebrow}>PYQ Papers · practice bank</div>
+    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "48px 28px 80px", textAlign: "left" }}>
+      <div style={{ marginBottom: 8, textAlign: "left" }}>
+        <div style={{ ...eyebrow, marginBottom: 18 }}>PYQ Papers · Practice bank</div>
         <h1
           style={{
-            margin: "8px 0 10px",
-            fontSize: 32,
-            fontWeight: 600,
-            letterSpacing: "-0.025em",
-            lineHeight: 1.1,
+            margin: 0,
+            fontSize: "clamp(38px, 5.2vw, 54px)",
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.05,
+            textAlign: "left",
           }}
         >
           Every past paper, every <span style={serif}>exam</span>.
         </h1>
-        <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.6, color: "var(--c-text-secondary)", maxWidth: "60ch" }}>
+        <p style={{ margin: "18px 0 0", fontSize: 16.5, lineHeight: 1.55, color: "var(--c-text-secondary)", maxWidth: "62ch", textAlign: "left" }}>
           Browse questions by year, topic, or difficulty. Open an exam to drill into its bank.
-          {comingSoon.length > 0 && " More exams are being added — typed up and tagged."}
+          {comingSoon.length > 0 && (
+            <span style={{ display: "block", marginTop: 4, fontSize: 14.5, color: "var(--c-text-tertiary)" }}>
+              More exams are being added — typed up and tagged.
+            </span>
+          )}
         </p>
       </div>
 
@@ -1210,12 +1215,21 @@ function Shelf({ exams, meta, onPick }) {
 
 function SectionHead({ title, right, muted }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "44px 0 18px" }}>
-      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.018em", color: muted ? "var(--c-text-tertiary)" : "var(--c-text-primary)" }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        margin: "56px 0 24px",
+        paddingBottom: 14,
+        borderBottom: "1px solid var(--c-border-faint)",
+      }}
+    >
+      <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, letterSpacing: "-0.005em", color: muted ? "var(--c-text-tertiary)" : "var(--c-text-primary)" }}>
         {title}
       </h2>
       {right && (
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--c-text-tertiary)" }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 500, color: "var(--c-text-tertiary)" }}>
           {right}
         </span>
       )}
@@ -1516,49 +1530,102 @@ function FilterBar({
   searchQuery, setSearchQuery,
   onSearchSubmit,
 }) {
-  return (
-    <div style={{ borderBottom: "1px solid var(--c-border-faint)", padding: "8px 28px", display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", fontSize: 12 }}>
-      <FChip
-        label="Year"
-        value={yearFilter}
-        options={years.map((y) => ({ id: y, label: String(y) }))}
-        onSelect={(v) => setYearFilter(v)}
-      />
-      <FChip
-        label="Topic"
-        value={topicFilter}
-        options={topics.map((t) => ({ id: t.id, label: t.name }))}
-        onSelect={(v) => setTopicFilter(v)}
-      />
-      <FChip
-        label="Difficulty"
-        value={difficultyFilter}
-        options={[
-          { id: "easy", label: "Easy" },
-          { id: "medium", label: "Medium" },
-          { id: "hard", label: "Hard" },
-        ]}
-        onSelect={(v) => setDifficultyFilter(v)}
-      />
-      <FChip
-        label="Type"
-        value={typeFilter}
-        options={[
-          { id: "mcq", label: "MCQ" },
-          { id: "answer_based", label: "Answer-based" },
-        ]}
-        onSelect={(v) => setTypeFilter(v)}
-      />
+  const anyActive =
+    yearFilter != null || topicFilter != null ||
+    difficultyFilter != null || typeFilter != null;
 
-      <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, background: "var(--c-bg-elev)", border: "1px solid var(--c-border-faint)", borderRadius: 6, padding: "4px 9px", fontSize: 12, color: "var(--c-text-tertiary)", minWidth: 240 }}>
-        <span>⌕</span>
-        <input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") onSearchSubmit(); }}
-          placeholder="Search questions… ↵"
-          style={{ background: "transparent", border: "none", outline: "none", fontFamily: "inherit", fontSize: 12, color: "var(--c-text-primary)", flex: 1, minWidth: 0 }}
+  const clearAll = () => {
+    setYearFilter(null);
+    setTopicFilter(null);
+    setDifficultyFilter(null);
+    setTypeFilter(null);
+  };
+
+  return (
+    <div style={{ padding: "12px 28px 12px", borderBottom: "1px solid var(--c-border-faint)" }}>
+      <div
+        style={{
+          display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
+          padding: "8px 10px",
+          border: "1px solid var(--c-border-faint)",
+          borderRadius: 12,
+          background: "var(--c-bg-elev)",
+        }}
+      >
+        <FChip
+          label="Year"
+          value={yearFilter}
+          options={years.map((y) => ({ id: y, label: String(y) }))}
+          onSelect={(v) => setYearFilter(v)}
         />
+        <FChip
+          label="Topic"
+          value={topicFilter}
+          options={topics.map((t) => ({ id: t.id, label: t.name }))}
+          onSelect={(v) => setTopicFilter(v)}
+        />
+        <FChip
+          label="Difficulty"
+          value={difficultyFilter}
+          options={[
+            { id: "easy", label: "Easy" },
+            { id: "medium", label: "Medium" },
+            { id: "hard", label: "Hard" },
+          ]}
+          onSelect={(v) => setDifficultyFilter(v)}
+        />
+        <FChip
+          label="Type"
+          value={typeFilter}
+          options={[
+            { id: "mcq", label: "MCQ" },
+            { id: "answer_based", label: "Answer-based" },
+          ]}
+          onSelect={(v) => setTypeFilter(v)}
+        />
+
+        {anyActive && (
+          <span
+            onClick={clearAll}
+            style={{
+              fontSize: 12, color: "var(--c-text-tertiary)", cursor: "pointer", fontWeight: 500,
+              padding: "0 10px", borderLeft: "1px dashed var(--c-border-soft)", marginLeft: 2,
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = "var(--c-danger, #B91C1C)"}
+            onMouseLeave={(e) => e.currentTarget.style.color = "var(--c-text-tertiary)"}
+          >
+            Clear filters
+          </span>
+        )}
+
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: "var(--c-bg)",
+            border: "1px solid var(--c-border-faint)",
+            borderRadius: 8, padding: "7px 12px",
+            fontSize: 13, color: "var(--c-text-tertiary)", minWidth: 260,
+          }}
+        >
+          <span style={{ color: "var(--c-text-tertiary)" }}>⌕</span>
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") onSearchSubmit(); }}
+            placeholder="Search questions…"
+            style={{ background: "transparent", border: "none", outline: "none", fontFamily: "inherit", fontSize: 13, color: "var(--c-text-primary)", flex: 1, minWidth: 0 }}
+          />
+          <kbd
+            style={{
+              fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+              background: "var(--c-bg-elev)", border: "1px solid var(--c-border-faint)",
+              borderRadius: 4, padding: "1px 5px", color: "var(--c-text-tertiary)",
+            }}
+          >
+            ↵
+          </kbd>
+        </div>
       </div>
     </div>
   );
@@ -1567,65 +1634,84 @@ function FilterBar({
 function FChip({ label, value, options, onSelect }) {
   const [open, setOpen] = useState(false);
   const selectedLabel = value != null ? options.find((o) => o.id === value)?.label : null;
+  const active = value != null;
 
   return (
     <div style={{ position: "relative" }}>
       <button
         onClick={() => setOpen(!open)}
         style={{
-          background: value != null ? "var(--c-bg-elev)" : "transparent",
-          border: value != null ? "1px solid var(--c-border-soft)" : "1px dashed var(--c-border-soft)",
-          color: value != null ? "var(--c-text-primary)" : "var(--c-text-tertiary)",
-          padding: "4px 10px", borderRadius: 6,
-          fontFamily: "inherit", fontSize: 12, fontWeight: 500,
-          cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4,
+          background: active ? "var(--c-brand-glow, #efeaff)" : "transparent",
+          border: active ? "1px solid var(--c-brand-primary, #6b4ed8)" : "1px solid transparent",
+          color: active ? "var(--c-brand-primary, #6b4ed8)" : "var(--c-text-secondary)",
+          padding: "7px 12px", borderRadius: 8,
+          fontFamily: "inherit", fontSize: 13, fontWeight: 500,
+          cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+          transition: "background 0.12s ease, border-color 0.12s ease",
         }}
+        onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--c-bg)"; }}
+        onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
       >
-        {label}
-        {selectedLabel && (
-          <>
-            <span style={{ color: "var(--c-text-primary)", fontWeight: 600 }}>{selectedLabel}</span>
-            <span
-              onClick={(e) => { e.stopPropagation(); onSelect(null); }}
-              style={{ paddingLeft: 6, borderLeft: "1px solid var(--c-border-faint)", marginLeft: 2, color: "var(--c-text-tertiary)" }}
-            >×</span>
-          </>
+        <span>{label}</span>
+        {active && selectedLabel && (
+          <span
+            title={selectedLabel}
+            style={{
+              background: "var(--c-brand-primary, #6b4ed8)", color: "#fff",
+              fontSize: 11, fontWeight: 600,
+              padding: "1px 7px", borderRadius: 999,
+              fontFamily: "'JetBrains Mono', monospace",
+              maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}
+          >
+            {String(selectedLabel).length > 10 ? String(selectedLabel).slice(0, 10) + "…" : selectedLabel}
+          </span>
         )}
+        <span style={{ fontSize: 10, color: active ? "var(--c-brand-primary, #6b4ed8)" : "var(--c-text-tertiary)", marginLeft: 2 }}>
+          ▾
+        </span>
       </button>
       {open && (
-        <div
-          style={{
-            position: "absolute", top: "100%", left: 0, marginTop: 4, zIndex: 20,
-            background: "var(--c-surface)",
-            border: "1px solid var(--c-border-faint)",
-            borderRadius: 8,
-            padding: 6,
-            minWidth: 140,
-            boxShadow: "0 8px 24px -8px rgba(20,19,15,0.18)",
-            maxHeight: 320, overflowY: "auto",
-          }}
-        >
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 19 }} />
           <div
-            onClick={() => { onSelect(null); setOpen(false); }}
-            style={{ padding: "6px 10px", borderRadius: 4, fontSize: 12, color: "var(--c-text-tertiary)", cursor: "pointer" }}
+            style={{
+              position: "absolute", top: "100%", left: 0, marginTop: 6, zIndex: 20,
+              background: "var(--c-surface)",
+              border: "1px solid var(--c-border-faint)",
+              borderRadius: 10,
+              padding: 6,
+              minWidth: 180,
+              boxShadow: "0 12px 28px -8px rgba(20,19,15,0.18)",
+              maxHeight: 320, overflowY: "auto",
+            }}
           >
-            Any
-          </div>
-          {options.map((o) => (
             <div
-              key={o.id}
-              onClick={() => { onSelect(o.id); setOpen(false); }}
-              style={{
-                padding: "6px 10px", borderRadius: 4, fontSize: 12,
-                color: value === o.id ? "var(--c-brand-primary)" : "var(--c-text-primary)",
-                background: value === o.id ? "var(--c-brand-glow)" : "transparent",
-                cursor: "pointer", fontWeight: value === o.id ? 600 : 400,
-              }}
+              onClick={() => { onSelect(null); setOpen(false); }}
+              style={{ padding: "8px 12px", borderRadius: 6, fontSize: 13, color: "var(--c-text-tertiary)", cursor: "pointer", fontStyle: value == null ? "normal" : "italic" }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "var(--c-bg-elev)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
             >
-              {o.label}
+              {value == null ? "✓ Any" : "Clear selection"}
             </div>
-          ))}
-        </div>
+            {options.map((o) => (
+              <div
+                key={o.id}
+                onClick={() => { onSelect(o.id); setOpen(false); }}
+                style={{
+                  padding: "8px 12px", borderRadius: 6, fontSize: 13,
+                  color: value === o.id ? "var(--c-brand-primary, #6b4ed8)" : "var(--c-text-primary)",
+                  background: value === o.id ? "var(--c-brand-glow, #efeaff)" : "transparent",
+                  cursor: "pointer", fontWeight: value === o.id ? 600 : 400,
+                }}
+                onMouseEnter={(e) => { if (value !== o.id) e.currentTarget.style.background = "var(--c-bg-elev)"; }}
+                onMouseLeave={(e) => { if (value !== o.id) e.currentTarget.style.background = "transparent"; }}
+              >
+                {o.label}
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
@@ -1730,40 +1816,64 @@ function QuestionReader({
     diff === "hard" ? "var(--c-danger, #B91C1C)" :
     "var(--c-warning, #B45309)";
 
+  // Difficulty chip styling — soft-tinted backgrounds keyed off level
+  const diffChipStyle =
+    diff === "easy"   ? { color: "var(--c-success, #15803D)", background: "rgba(21,128,61,0.08)",  borderColor: "rgba(21,128,61,0.28)"  } :
+    diff === "hard"   ? { color: "var(--c-danger,  #B91C1C)", background: "rgba(185,28,28,0.08)",  borderColor: "rgba(185,28,28,0.28)"  } :
+                        { color: "var(--c-warning, #B45309)", background: "rgba(180,83,9,0.08)",   borderColor: "rgba(180,83,9,0.28)"   };
+
   return (
-    <div>
-      {/* Meta line */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "var(--c-text-tertiary)", flexWrap: "wrap" }}>
-          {q.year && <span style={{ color: accent.c, fontWeight: 600 }}>{q.year}</span>}
+    <div style={{ textAlign: "left", maxWidth: 820 }}>
+      {/* Meta chip row — anchored to top, left-aligned */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, marginBottom: 22, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {q.year != null && (
+            <span style={{
+              ...chipStyle,
+              fontFamily: "'JetBrains Mono', monospace", fontWeight: 600,
+              color: "var(--c-text-primary)",
+            }}>
+              {q.year}
+            </span>
+          )}
           {diff && (
-            <>
-              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor", opacity: 0.4 }} />
-              <span style={{ color: diffColor, fontWeight: 600, textTransform: "capitalize" }}>{diff}</span>
-            </>
+            <span style={{
+              ...chipStyle,
+              ...diffChipStyle,
+              textTransform: "capitalize",
+              fontWeight: 600,
+            }}>
+              {diff}
+            </span>
           )}
           {q.topics?.map((t) => (
-            <span key={t.id}>
-              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor", opacity: 0.4, display: "inline-block", marginRight: 8 }} />
-              <span style={{ color: "var(--c-text-secondary)", fontWeight: 500 }}>{t.name}</span>
+            <span key={t.id} style={{
+              ...chipStyle,
+              color: "var(--c-brand-primary, #6b4ed8)",
+              background: "var(--c-brand-glow, #efeaff)",
+              borderColor: "rgba(107,78,216,0.28)",
+            }}>
+              {t.name}
             </span>
           ))}
-          {q.answer_type === "mcq" && (
+          <span style={chipStyle}>
+            QA · {q.answer_type === "mcq" ? "MCQ" : "SA"}
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--c-text-tertiary)" }}>
+            Q <b style={{ color: "var(--c-text-primary)", fontWeight: 600 }}>{String(indexInList).padStart(3, "0")}</b> · {total}
+          </span>
+          {isAdmin && (
             <>
-              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor", opacity: 0.4 }} />
-              <span>MCQ</span>
+              <button onClick={onEdit} style={icBtn} title="Edit"><Pencil size={13} /></button>
+              <button onClick={onDelete} style={icBtn} title="Delete"><Trash2 size={13} /></button>
             </>
           )}
         </div>
-        {isAdmin && (
-          <div style={{ display: "flex", gap: 4 }}>
-            <button onClick={onEdit} style={icBtn} title="Edit"><Pencil size={13} /></button>
-            <button onClick={onDelete} style={icBtn} title="Delete"><Trash2 size={13} /></button>
-          </div>
-        )}
       </div>
 
-      {/* Question stem.
+      {/* Question stem — anchored top-left, never centered.
           Many image-based questions store a placeholder like "Comment your
           answer" in the question text — the real question is the image.
           When we detect that, hide the placeholder so the image stands alone. */}
@@ -1774,13 +1884,14 @@ function QuestionReader({
         return (
           <div
             style={{
-              fontSize: 22,
+              fontSize: 19,
               fontWeight: 500,
-              letterSpacing: "-0.012em",
-              lineHeight: 1.5,
+              letterSpacing: "-0.005em",
+              lineHeight: 1.55,
               color: "var(--c-text-primary)",
-              marginBottom: 24,
-              maxWidth: "64ch",
+              marginBottom: 22,
+              maxWidth: "68ch",
+              textAlign: "left",
             }}
           >
             {qt}
@@ -1896,13 +2007,55 @@ function QuestionReader({
         </div>
       )}
 
-      {/* Answer-based reveal */}
+      {/* Answer-based: SA input + reveal */}
       {q.answer_type !== "mcq" && q.answer && (
-        <div style={{ marginBottom: 28 }}>
+        <div style={{ marginBottom: 22 }}>
+          {!revealed && practiceMode && (
+            <div
+              style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "12px 14px",
+                border: "1px dashed var(--c-border-soft)",
+                borderRadius: 10,
+                background: "var(--c-bg-elev)",
+                maxWidth: 520,
+                marginBottom: 14,
+              }}
+            >
+              <input
+                placeholder="Type your answer…"
+                onKeyDown={(e) => { if (e.key === "Enter") setRevealed(true); }}
+                style={{
+                  flex: 1, background: "transparent", border: 0, outline: 0,
+                  fontFamily: "'JetBrains Mono', monospace", fontSize: 15,
+                  color: "var(--c-text-primary)",
+                }}
+              />
+              <span
+                onClick={() => setRevealed(true)}
+                style={{
+                  fontSize: 12, fontWeight: 600,
+                  color: "var(--c-brand-primary, #6b4ed8)",
+                  background: "var(--c-brand-glow, #efeaff)",
+                  padding: "5px 10px", borderRadius: 6, cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Check ↵
+              </span>
+            </div>
+          )}
+
           {revealed ? (
             <div
               className="pyq-rich-panel"
-              style={{ borderLeft: "2px solid var(--c-success, #15803D)", padding: "4px 0 4px 22px", maxWidth: 760 }}
+              style={{
+                borderLeft: "2px solid var(--c-success, #15803D)",
+                padding: "12px 0 4px 22px",
+                maxWidth: 760,
+                background: "linear-gradient(to right, rgba(21,128,61,0.04), transparent 60%)",
+                marginLeft: -2,
+              }}
             >
               <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-success, #15803D)", marginBottom: 8 }}>
                 Answer
@@ -1923,7 +2076,7 @@ function QuestionReader({
                 fontSize: 13, fontWeight: 600,
               }}
             >
-              Show answer
+              Show answer &amp; solution
             </button>
           )}
         </div>
@@ -1998,11 +2151,45 @@ function QuestionReader({
         }
       `}</style>
 
-      {/* Footer nav */}
-      <div style={{ marginTop: 40, paddingTop: 22, borderTop: "1px solid var(--c-border-faint)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--c-text-tertiary)" }}>
-          Q <b style={{ color: "var(--c-text-primary)" }}>{String(indexInList).padStart(3, "0")}</b> / {total}
-        </span>
+      {/* Footer dock — pager + small action buttons */}
+      <div
+        style={{
+          marginTop: 40, paddingTop: 16,
+          borderTop: "1px solid var(--c-border-faint)",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          gap: 12, flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
+            Q <b style={{ color: "var(--c-text-primary)", fontWeight: 600 }}>{String(indexInList).padStart(3, "0")}</b> / <b style={{ color: "var(--c-text-primary)", fontWeight: 600 }}>{total}</b>
+          </span>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              style={dockIcon}
+              title="Copy link to this question"
+              onClick={() => {
+                try {
+                  if (typeof window !== "undefined" && navigator?.clipboard) {
+                    navigator.clipboard.writeText(window.location.href);
+                  }
+                } catch {}
+              }}
+            >⎘</button>
+            <button
+              style={dockIcon}
+              title="Report issue with this question"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.open(
+                    "https://wa.me/919999999999?text=" + encodeURIComponent(`Issue with PYQ question id ${q.id}`),
+                    "_blank",
+                  );
+                }
+              }}
+            >⚐</button>
+          </div>
+        </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={onPrev} disabled={indexInList <= 1} style={navBtn}>← Previous</button>
           <button onClick={onNext} disabled={indexInList >= total} style={{ ...navBtn, background: "var(--c-text-primary)", color: "var(--c-bg)", border: "none" }}>
@@ -2052,4 +2239,24 @@ const navBtn = {
   padding: "7px 16px", borderRadius: 6,
   fontSize: 12.5, fontWeight: 500,
   cursor: "pointer", fontFamily: "inherit",
+};
+const chipStyle = {
+  display: "inline-flex", alignItems: "center", gap: 4,
+  fontSize: 12, fontWeight: 500,
+  padding: "4px 10px", borderRadius: 999,
+  border: "1px solid var(--c-border-faint)",
+  background: "var(--c-bg-elev)",
+  color: "var(--c-text-secondary)",
+  whiteSpace: "nowrap",
+  fontFamily: "inherit",
+};
+const dockIcon = {
+  width: 32, height: 32, borderRadius: 8,
+  border: "1px solid var(--c-border-faint)",
+  background: "var(--c-bg-elev)",
+  cursor: "pointer",
+  color: "var(--c-text-secondary)",
+  fontSize: 14,
+  display: "inline-grid", placeItems: "center",
+  fontFamily: "inherit",
 };
