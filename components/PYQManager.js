@@ -1641,13 +1641,11 @@ function QuestionListItem({ q, idx, active, onClick }) {
   const topicLabel = q.topics && q.topics.length > 0 ? q.topics[0].name : null;
   const typeLabel = q.answer_type === "mcq" ? "MCQ" : null;
 
-  // Many image-based questions have a "Comment your answer" placeholder
-  // as the question text. Show a friendlier label in that case.
+  // Many image-based questions have a "Comment your answer" placeholder as the
+  // question text. When we detect that, drop the preview row entirely and let
+  // the metadata line (difficulty · year · topic · type) carry the row alone.
   const qt = (q.question || "").trim();
-  const isPlaceholder = /^comment your answer\.?$/i.test(qt);
-  const preview = isPlaceholder
-    ? (q.file_type === "image" ? "Image question" : "Untitled question")
-    : qt;
+  const isPlaceholder = /^comment your answer\.?$/i.test(qt) || !qt;
 
   return (
     <div
@@ -1670,21 +1668,22 @@ function QuestionListItem({ q, idx, active, onClick }) {
         {String(idx).padStart(3, "0")}
       </div>
       <div>
-        <div
-          style={{
-            fontSize: 13,
-            color: isPlaceholder ? "var(--c-text-tertiary)" : "var(--c-text-primary)",
-            fontStyle: isPlaceholder ? "italic" : "normal",
-            lineHeight: 1.45,
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
-          {preview}
-        </div>
-        <div style={{ marginTop: 6, fontSize: 11, color: "var(--c-text-tertiary)", display: "flex", gap: 8, alignItems: "center" }}>
+        {!isPlaceholder && (
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--c-text-primary)",
+              lineHeight: 1.45,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {qt}
+          </div>
+        )}
+        <div style={{ marginTop: isPlaceholder ? 0 : 6, fontSize: 11, color: "var(--c-text-tertiary)", display: "flex", gap: 8, alignItems: "center" }}>
           {diff && <span style={{ color: diffColor, fontWeight: 600, textTransform: "capitalize" }}>{diff}</span>}
           {q.year && (
             <>
