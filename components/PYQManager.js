@@ -1457,61 +1457,100 @@ function Library({
         onSearchSubmit={onSearchSubmit}
       />
 
-      {/* Body */}
-      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-        {/* Left: question list */}
-        <div style={{ flex: "0 0 360px", borderRight: "1px solid var(--c-border-faint)", overflowY: "auto" }}>
-          <div style={{ padding: "12px 22px", borderBottom: "1px solid var(--c-border-faint)", fontSize: 11.5, color: "var(--c-text-tertiary)" }}>
-            Showing <b style={{ color: "var(--c-text-primary)" }}>{questions.length}</b> question{questions.length === 1 ? "" : "s"}
+      {/* Body — list + reader as card panels, side by side with gap */}
+      <div style={{ flex: 1, display: "flex", minHeight: 0, gap: 18, padding: "18px 28px 24px" }}>
+        {/* Left: question list panel */}
+        <div
+          style={{
+            flex: "0 0 340px",
+            background: "var(--c-surface)",
+            border: "1px solid var(--c-border-faint)",
+            borderRadius: 12,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              padding: "12px 18px",
+              borderBottom: "1px solid var(--c-border-faint)",
+              fontSize: 12,
+              color: "var(--c-text-tertiary)",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 500,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexShrink: 0,
+            }}
+          >
+            <span>Showing <b style={{ color: "var(--c-text-primary)", fontWeight: 600 }}>{questions.length}</b> question{questions.length === 1 ? "" : "s"}</span>
+            <span style={{ fontSize: 11 }}>Oldest first</span>
           </div>
-          {loading ? (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--c-text-tertiary)" }}>Loading…</div>
-          ) : questions.length === 0 ? (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--c-text-tertiary)" }}>
-              No questions match these filters.
-            </div>
-          ) : (
-            questions.map((q, i) => (
-              <QuestionListItem
-                key={q.id}
-                q={q}
-                idx={i + 1}
-                active={selectedQuestion?.id === q.id}
-                onClick={() => setSelectedQuestion(q)}
-              />
-            ))
-          )}
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            {loading ? (
+              <div style={{ padding: 40, textAlign: "center", color: "var(--c-text-tertiary)" }}>Loading…</div>
+            ) : questions.length === 0 ? (
+              <div style={{ padding: 40, textAlign: "center", color: "var(--c-text-tertiary)" }}>
+                No questions match these filters.
+              </div>
+            ) : (
+              questions.map((q, i) => (
+                <QuestionListItem
+                  key={q.id}
+                  q={q}
+                  idx={i + 1}
+                  active={selectedQuestion?.id === q.id}
+                  onClick={() => setSelectedQuestion(q)}
+                />
+              ))
+            )}
+          </div>
         </div>
 
-        {/* Right: reader */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "40px 56px 60px" }}>
+        {/* Right: reader panel */}
+        <div
+          style={{
+            flex: 1,
+            background: "var(--c-surface)",
+            border: "1px solid var(--c-border-faint)",
+            borderRadius: 12,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+          }}
+        >
           {selectedQuestion ? (
-            <QuestionReader
-              q={selectedQuestion}
-              accent={accent}
-              practiceMode={practiceMode}
-              pickedOptionIdx={pickedOptionIdx}
-              setPickedOptionIdx={setPickedOptionIdx}
-              revealed={revealed}
-              setRevealed={setRevealed}
-              isAdmin={isAdmin}
-              showExplanationSection={showExplanationSection}
-              setShowExplanationSection={setShowExplanationSection}
-              onEdit={() => onEditQuestion(selectedQuestion)}
-              onDelete={() => onDeleteQuestion(selectedQuestion.id)}
-              total={questions.length}
-              indexInList={questions.findIndex((q) => q.id === selectedQuestion.id) + 1}
-              onPrev={() => {
-                const idx = questions.findIndex((q) => q.id === selectedQuestion.id);
-                if (idx > 0) setSelectedQuestion(questions[idx - 1]);
-              }}
-              onNext={() => {
-                const idx = questions.findIndex((q) => q.id === selectedQuestion.id);
-                if (idx < questions.length - 1) setSelectedQuestion(questions[idx + 1]);
-              }}
-            />
+            <div style={{ flex: 1, overflowY: "auto", padding: "30px 36px 22px" }}>
+              <QuestionReader
+                q={selectedQuestion}
+                accent={accent}
+                practiceMode={practiceMode}
+                pickedOptionIdx={pickedOptionIdx}
+                setPickedOptionIdx={setPickedOptionIdx}
+                revealed={revealed}
+                setRevealed={setRevealed}
+                isAdmin={isAdmin}
+                showExplanationSection={showExplanationSection}
+                setShowExplanationSection={setShowExplanationSection}
+                onEdit={() => onEditQuestion(selectedQuestion)}
+                onDelete={() => onDeleteQuestion(selectedQuestion.id)}
+                total={questions.length}
+                indexInList={questions.findIndex((q) => q.id === selectedQuestion.id) + 1}
+                onPrev={() => {
+                  const idx = questions.findIndex((q) => q.id === selectedQuestion.id);
+                  if (idx > 0) setSelectedQuestion(questions[idx - 1]);
+                }}
+                onNext={() => {
+                  const idx = questions.findIndex((q) => q.id === selectedQuestion.id);
+                  if (idx < questions.length - 1) setSelectedQuestion(questions[idx + 1]);
+                }}
+              />
+            </div>
           ) : (
-            <div style={{ padding: 60, textAlign: "center", color: "var(--c-text-tertiary)" }}>
+            <div style={{ flex: 1, padding: 60, textAlign: "center", color: "var(--c-text-tertiary)" }}>
               Pick a question on the left to start.
             </div>
           )}
@@ -1802,6 +1841,27 @@ function QuestionReader({
   onEdit, onDelete,
   total, indexInList, onPrev, onNext,
 }) {
+  // Keyboard shortcuts — Space reveals, J = prev, K = next.
+  // Ignore when the user is typing in any input/textarea.
+  useEffect(() => {
+    const handler = (e) => {
+      const tag = (e.target?.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || e.target?.isContentEditable) return;
+      if (e.key === " " || e.code === "Space") {
+        e.preventDefault();
+        setRevealed(true);
+      } else if (e.key === "j" || e.key === "J") {
+        e.preventDefault();
+        onPrev();
+      } else if (e.key === "k" || e.key === "K") {
+        e.preventDefault();
+        onNext();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onPrev, onNext, setRevealed]);
+
   const options = useMemo(() => {
     if (q.answer_type !== "mcq" || !q.options) return null;
     try {
@@ -1949,7 +2009,7 @@ function QuestionReader({
 
       {/* MCQ options */}
       {q.answer_type === "mcq" && options && (
-        <div style={{ display: "flex", flexDirection: "column", maxWidth: "56ch", marginBottom: 32 }}>
+        <div style={{ display: "flex", flexDirection: "column", maxWidth: "56ch", marginBottom: 18, border: "1px solid var(--c-border-faint)", borderRadius: 10, overflow: "hidden" }}>
           {options.map((o, i) => {
             const isPicked = pickedOptionIdx === i;
             const showVerdict = revealed || !practiceMode;
@@ -2004,6 +2064,38 @@ function QuestionReader({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* MCQ reveal-bar — gives users a way to see solution without picking */}
+      {q.answer_type === "mcq" && options && (
+        <div
+          style={{
+            display: "flex", alignItems: "center", gap: 14,
+            marginBottom: 22,
+            paddingTop: 12,
+            borderTop: "1px dashed var(--c-border-faint)",
+            flexWrap: "wrap",
+          }}
+        >
+          {!revealed && (
+            <button
+              onClick={() => setRevealed(true)}
+              style={{
+                fontSize: 13, fontWeight: 600, color: "#fff",
+                background: "var(--c-text-primary)", border: 0, borderRadius: 8,
+                padding: "9px 16px", cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Show answer &amp; solution
+            </button>
+          )}
+          <span style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
+            {revealed
+              ? <>Press <kbd style={kbdStyle}>K</kbd> for next · <kbd style={kbdStyle}>J</kbd> for previous</>
+              : <>or press <kbd style={kbdStyle}>Space</kbd> to reveal · <kbd style={kbdStyle}>J</kbd>/<kbd style={kbdStyle}>K</kbd> to navigate</>
+            }
+          </span>
         </div>
       )}
 
@@ -2067,17 +2159,22 @@ function QuestionReader({
               />
             </div>
           ) : (
-            <button
-              onClick={() => setRevealed(true)}
-              style={{
-                padding: "9px 16px", borderRadius: 8,
-                background: "var(--c-text-primary)", color: "var(--c-bg)",
-                border: "none", cursor: "pointer", fontFamily: "inherit",
-                fontSize: 13, fontWeight: 600,
-              }}
-            >
-              Show answer &amp; solution
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <button
+                onClick={() => setRevealed(true)}
+                style={{
+                  padding: "9px 16px", borderRadius: 8,
+                  background: "var(--c-text-primary)", color: "var(--c-bg)",
+                  border: "none", cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 13, fontWeight: 600,
+                }}
+              >
+                Show answer &amp; solution
+              </button>
+              <span style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
+                or press <kbd style={kbdStyle}>Space</kbd> to reveal · <kbd style={kbdStyle}>J</kbd>/<kbd style={kbdStyle}>K</kbd> to navigate
+              </span>
+            </div>
           )}
         </div>
       )}
@@ -2259,4 +2356,14 @@ const dockIcon = {
   fontSize: 14,
   display: "inline-grid", placeItems: "center",
   fontFamily: "inherit",
+};
+const kbdStyle = {
+  fontFamily: "'JetBrains Mono', monospace",
+  fontSize: 11,
+  background: "var(--c-bg-elev)",
+  border: "1px solid var(--c-border-faint)",
+  borderRadius: 4,
+  padding: "1px 6px",
+  color: "var(--c-text-secondary)",
+  margin: "0 1px",
 };
