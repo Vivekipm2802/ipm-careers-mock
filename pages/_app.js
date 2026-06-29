@@ -11,6 +11,7 @@ import { NMNContextProvider } from '@/components/NMNContext';
 import {  posthog } from 'posthog-js';
 import { useRouter } from 'next/router';
 import {PostHogProvider} from 'posthog-js/react'
+import { Analytics } from '@vercel/analytics/next';
 export default function App({ Component, pageProps }) {
   
 const [userData,setUserData] = useState();
@@ -62,7 +63,8 @@ getUserData()
  <PostHogProvider client={posthog}>
     <Toaster position="bottom-right" toastOptions={{className:" font-sans text-sm",duration: 2000}}></Toaster>
     <NMNContextProvider>
-    <Component {...pageProps} /></NMNContextProvider></PostHogProvider></NextUIProvider>
+    <Component {...pageProps} />
+    <Analytics /></NMNContextProvider></PostHogProvider></NextUIProvider>
 }
 
 
