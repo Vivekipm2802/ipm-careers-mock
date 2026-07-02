@@ -150,7 +150,16 @@ const ResultPage = ({ result, questions, leaderboard }) => {
                   : "N/A"}
               </div>
               <div style={{ fontSize: 13, color: "var(--c-brand-primary)", fontWeight: 600, marginTop: 4 }}>
-                Your answer: {report[activeExplanation]?.answer ?? "—"}
+                {/* BUG FIX (2026-07): report is stored in the ORDER the student
+                    answered questions (chronological), not the display order
+                    of questions[]. Indexing report[activeExplanation] grabbed
+                    a DIFFERENT question's answer text (e.g. showing "A^2 – B^2"
+                    on a Binomial question). Match report → question by id. */}
+                Your answer: {(() => {
+                  const activeQ = questions[activeExplanation];
+                  const r = activeQ ? report.find((item) => item.id === activeQ.id) : null;
+                  return r?.answer ?? "—";
+                })()}
               </div>
             </div>
           </div>

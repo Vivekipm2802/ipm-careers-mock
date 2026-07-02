@@ -86,18 +86,33 @@ export default function MockResult({ result }) {
   }, []);
 
   // ── Per-question scoring helper ──
+  // SA normalisation (Ship 1 — 2026-07): the prior version stripped
+  // whitespace but was still strict + case-sensitive + never collapsed
+  // numeric equivalents. Students typing "5", " 5", "5.0", or "PARIS"
+  // against a stored "5" / "Paris" were marked wrong for correct answers.
+  const normalizeAns = (s) => {
+    if (s == null) return "";
+    const trimmed = String(s).trim().toLowerCase().replace(/\s+/g, "");
+    if (/^-?\d*\.?\d+$/.test(trimmed)) {
+      const n = Number(trimmed);
+      if (!Number.isNaN(n) && Number.isFinite(n)) return String(n);
+    }
+    return trimmed;
+  };
+
   function isQuestionCorrect(q, reportItem) {
     if (!reportItem) return null; // not attempted
-    const reportValue = reportItem.value - 1;
     if (q.type === "options") {
-      const correctIdx = q?.options?.findIndex((o) => o?.isCorrect);
+      // Guard `NaN - 1` when `value` is nil (skipped mid-flight, etc.)
+      if (reportItem.value == null) return null;
+      const reportValue = Number(reportItem.value) - 1;
+      if (!Number.isFinite(reportValue)) return null;
+      if (!Array.isArray(q?.options)) return null;
+      const correctIdx = q.options.findIndex((o) => o?.isCorrect);
       return correctIdx === reportValue;
     }
     if (q.type === "input") {
-      return (
-        (q?.options?.answer || "").toString().replace(/\s/g, "") ===
-        (reportItem.value || "").toString().replace(/\s/g, "")
-      );
+      return normalizeAns(q?.options?.answer) === normalizeAns(reportItem.value);
     }
     return null;
   }

@@ -33,6 +33,29 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 
+// ────────────────────────────────────────────────────────────
+// Helpers for the P0 fixes (Ship 1 — 2026-07)
+// sameId:      Supabase can return question ids as number OR string
+//              depending on column type / route. `===` misses matches
+//              across types → duplicate report entries per question →
+//              downstream reads pick the WRONG duplicate. Normalise.
+// normalizeAns: SA (short-answer) equality was strict `===` with no
+//              trim / lowercase / numeric collapse. Students typing
+//              " 5 " or "5.0" or "PARIS" against a stored "5" / "Paris"
+//              were being marked wrong for correct answers.
+// ────────────────────────────────────────────────────────────
+const sameId = (a, b) => a != null && b != null && String(a) === String(b);
+const normalizeAns = (s) => {
+  if (s == null) return "";
+  const trimmed = String(s).trim().toLowerCase().replace(/\s+/g, "");
+  // Numeric collapse — "5" === "5.0" === "5.00"
+  if (/^-?\d*\.?\d+$/.test(trimmed)) {
+    const n = Number(trimmed);
+    if (!Number.isNaN(n) && Number.isFinite(n)) return String(n);
+  }
+  return trimmed;
+};
+
 const Game = () => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
   const [sideBarActive, setSidebarActive] = useState(!isMobile);
@@ -184,14 +207,18 @@ const Game = () => {
     }
   }, [router, userDetails]);
 
+  // Merges a partial update into an existing report entry (or appends a
+  // new one). Used for STATUS-only updates like "mark for review" that
+  // should preserve the existing answer / selectedOption / isCorrect.
+  // Full-answer submissions do NOT go through this — they use setReport
+  // directly so the entry is replaced atomically with the new state.
   const addToReport = (newObject) => {
     setReport((prevReport) => {
-      const existingIndex = prevReport.findIndex(
-        (item) => item.id === newObject.id
+      const existingIndex = prevReport.findIndex((item) =>
+        sameId(item.id, newObject.id)
       );
 
       if (existingIndex !== -1) {
-        // Update existing object
         const updatedReport = [...prevReport];
         updatedReport[existingIndex] = {
           ...updatedReport[existingIndex],
@@ -199,7 +226,6 @@ const Game = () => {
         };
         return updatedReport;
       } else {
-        // Add new object
         return [...prevReport, newObject];
       }
     });
@@ -214,12 +240,22 @@ const Game = () => {
   };
 
   const handleClearResponse = (questionId) => {
-    // Remove from report
+    // Remove from report AND reverse the score contribution atomically.
+    // Previously the entry was removed but the score kept the old
+    // ±increment/decrement, so the total score diverged silently from
+    // what the report actually contained.
     setReport((prevReport) => {
-      return prevReport.filter((item) => item.id !== questionId);
+      const existing = prevReport.find((item) => sameId(item.id, questionId));
+      if (existing && existing.isCorrect !== undefined && existing.isCorrect !== null) {
+        setScore((s) =>
+          existing.isCorrect
+            ? s - config.increment  // undo the +increment given for correct
+            : s + config.decrement  // undo the -decrement docked for wrong
+        );
+      }
+      return prevReport.filter((item) => !sameId(item.id, questionId));
     });
 
-    // Remove from temp answers
     setTempAnswers((prev) => {
       const newTemp = { ...prev };
       delete newTemp[questionId];
@@ -229,40 +265,14 @@ const Game = () => {
 
   const saveTempAnswers = () => {
     if (!tempAnswers || Object.keys(tempAnswers).length === 0) return;
-    Object.values(tempAnswers).forEach((answerData) => {
-      const { selectedOption, options, id, type, value } = answerData;
-      let isCorrect = false;
-      let answer = "";
 
-      if (type === "options") {
-        const currentOption = options?.[selectedOption - 1];
-        isCorrect = currentOption?.isCorrect;
-        answer = currentOption?.title;
-      } else if (type === "input") {
-        isCorrect = value === options?.answer;
-        answer = value;
-      }
-
-      const existingReport = report.find((item) => item.id == id);
-      let status = "answered";
-      if (existingReport) {
-        if (
-          existingReport.status === "review" ||
-          existingReport.status === "markedForReview"
-        ) {
-          status = "markedForReview";
-        }
-      }
-
-      addToReport({
-        id: id,
-        status: status,
-        selectedOption: selectedOption,
-        timestamp: timeDuration - totalSeconds,
-        isCorrect: isCorrect,
-        answer: answer,
-      });
-    });
+    const drafts = Object.values(tempAnswers);
+    // Route every draft through handleSubmit so we get the same atomic
+    // report + score semantics, bounds-checks, and SA normalisation.
+    // Previously this loop ran its own copy of the storage logic, read
+    // `report` from a stale closure across iterations, and got the
+    // "status" flag wrong when multiple drafts landed together.
+    drafts.forEach((answerData) => handleSubmit(answerData));
     setTempAnswers({});
   };
 
@@ -278,55 +288,75 @@ const Game = () => {
     let answer = "";
 
     if (type === "options") {
-      const currentOption = options?.[selectedOption - 1];
-      isCorrect = currentOption?.isCorrect;
-      answer = currentOption?.title;
+      // Bounds-check `selectedOption` so we never read past the end of the
+      // options array. If the UI ever emits a stale/out-of-range index,
+      // fall back to "wrong" rather than storing `undefined` (which is
+      // what produced the "option E on a 4-option question" symptom).
+      const idx = Number(selectedOption) - 1;
+      const currentOption =
+        Array.isArray(options) && idx >= 0 && idx < options.length
+          ? options[idx]
+          : null;
+      isCorrect = !!currentOption?.isCorrect;
+      answer = currentOption?.title ?? "";
     } else if (type === "input") {
-      // Handle input type questions
-      isCorrect = value === options?.answer; // Assuming 'answer' is the correct value
-      answer = value;
+      // SA: trim, lowercase, whitespace-strip, and collapse numerics
+      // ("5" === "5.0" === " 5 "). Prior version used strict `===` on
+      // raw strings — the top cause of "I picked the right answer but
+      // was marked wrong" complaints.
+      isCorrect = normalizeAns(value) === normalizeAns(options?.answer);
+      answer = value ?? "";
     }
 
-    const existingReport = report.find((item) => item.id == id);
-    let status = "answered";
+    // Atomic report + score update.
+    // Reading `report` from the outer closure was unsafe when two option
+    // clicks landed in quick succession — both handlers saw the same
+    // stale `existingReport` and both applied their own undo/apply
+    // deltas, double-counting the score. All prior state now flows
+    // through `setReport`'s functional updater so score deltas are
+    // computed against the freshest committed report.
+    setReport((prev) => {
+      const existingIndex = prev.findIndex((item) => sameId(item.id, id));
+      const existing = existingIndex !== -1 ? prev[existingIndex] : null;
 
-    if (existingReport) {
-      if (
-        existingReport.status === "review" ||
-        existingReport.status === "markedForReview"
-      ) {
-        // If already marked for review (or already marked for review), now it's both answered and marked for review
-        status = "markedForReview";
-      } else {
-        // If already answered, keep as answered
-        status = "answered";
+      // Compute score delta based on the CURRENT committed report state.
+      setScore((s) => {
+        let newScore = s;
+        if (existing && existing.isCorrect !== undefined && existing.isCorrect !== null) {
+          // Undo the delta previously applied for this question
+          newScore -= existing.isCorrect ? config.increment : -config.decrement;
+        }
+        // Apply the new delta
+        newScore += isCorrect ? config.increment : -config.decrement;
+        return newScore;
+      });
+
+      const status =
+        existing &&
+        (existing.status === "review" || existing.status === "markedForReview")
+          ? "markedForReview"
+          : "answered";
+
+      // REPLACE the entire entry, don't spread-merge. Spread-merge was
+      // leaking stale fields (an old selectedOption sitting under a new
+      // answer, etc.) when a question was first marked-for-review and
+      // then re-answered.
+      const newEntry = {
+        id: id,
+        status: status,
+        selectedOption: selectedOption,
+        timestamp: timeDuration - totalSeconds,
+        isCorrect: isCorrect,
+        answer: answer,
+      };
+
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        updated[existingIndex] = newEntry;
+        return updated;
       }
-    }
-
-    addToReport({
-      id: id,
-      status: status,
-      selectedOption: selectedOption,
-      timestamp: timeDuration - totalSeconds,
-      isCorrect: isCorrect,
-      answer: answer,
+      return [...prev, newEntry];
     });
-
-    // Adjust score: undo previous score if re-answering, then apply new score
-    if (existingReport && existingReport.isCorrect !== undefined) {
-      // Undo previous score
-      if (existingReport.isCorrect) {
-        setScore((s) => s - config.increment);
-      } else {
-        setScore((s) => s + config.decrement);
-      }
-    }
-    // Apply new score
-    if (isCorrect) {
-      setScore((s) => s + config.increment);
-    } else {
-      setScore((s) => s - config.decrement);
-    }
   };
 
   const incrementLevel = () => {
@@ -774,7 +804,7 @@ const Game = () => {
                 isPlaying={!(showModal || isHintVisible)}
                 key={level}
                 onReview={(e) => {
-                  const existingReport = report.find((item) => item.id === e);
+                  const existingReport = report.find((item) => sameId(item.id, e));
                   const hasTempAnswer = tempAnswers && tempAnswers[e];
 
                   if (
@@ -797,7 +827,7 @@ const Game = () => {
                 onNext={incrementLevel}
                 isMarked={report?.some(
                   (item) =>
-                    item?.id == questions[level]?.id && item?.status == "review"
+                    sameId(item?.id, questions[level]?.id) && item?.status === "review"
                 )}
                 onFinish={() => {
                   const hasTempAnswers =
@@ -916,7 +946,16 @@ const Game = () => {
                           }
                         </h2>
                         <h2 className="font-bold text-md text-blue-500">
-                          Your Answer: {report[activeExplanation]?.answer}
+                          {/* BUG FIX (2026-07): report is stored chronologically
+                              (order student answered), not in questions[] display
+                              order. Indexing report[activeExplanation] pulled a
+                              DIFFERENT question's answer text (e.g. "A^2 – B^2"
+                              appearing on a Binomial question). Match by id. */}
+                          Your Answer: {(() => {
+                            const activeQ = questions[activeExplanation];
+                            const r = activeQ ? report.find((item) => item.id === activeQ.id) : null;
+                            return r?.answer ?? "—";
+                          })()}
                         </h2>
                       </div>
                     </div>
@@ -966,7 +1005,7 @@ const Game = () => {
                               <h2 className="flex-1 flex flex-row justify-center align-middle items-center">
                                 <div className="w-6 z-10 h-6 flex flex-col items-center justify-center relative">
                                   {getStatusIcon(i, report, true)}
-                                  {report.find((item) => item.id == i.id)
+                                  {report.find((item) => sameId(item.id, i.id))
                                     ?.isCorrect ? (
                                     <Check
                                       className="z-10"
@@ -1084,7 +1123,7 @@ const Game = () => {
         {gamestate < 2 && (
           <QuestionBrowser
             switchQuestion={(e) => {
-              setLevel(questions?.findIndex((item) => item.id == e));
+              setLevel(questions?.findIndex((item) => sameId(item.id, e)));
             }}
             gamestate={gamestate}
             questions={questions}
