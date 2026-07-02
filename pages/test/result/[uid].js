@@ -325,7 +325,23 @@ const ResultPage = ({ result, questions, leaderboard }) => {
             if (activeFilter !== "all" && activeFilter !== status) return null;
             const r = report.find((item) => item.id === q.id);
             const correctIdx = Array.isArray(q.options) ? q.options.findIndex((o) => o?.isCorrect) : -1;
-            const chosenIdx = r ? (typeof r.value === "number" ? r.value - 1 : null) : null;
+            // Ship 3 fix (2026-07): concept test runner stores the picked
+            // option as `selectedOption` (a STRING like "1"..."4"), never
+            // as `value`. Previously this line only read `.value`, so
+            // chosenIdx was ALWAYS null on the concept test review card —
+            // meaning the student's picked option was never highlighted
+            // as "Your choice". Combined with the "Wrong" badge at the
+            // top, students thought the system had marked them wrong
+            // even for correctly-picked answers. Read selectedOption
+            // first, fall back to value so mock-test-shaped rows still
+            // work if this component is ever reused.
+            const chosenIdx = (() => {
+              if (!r) return null;
+              const raw = r.selectedOption ?? r.value;
+              if (raw == null) return null;
+              const n = Number(raw) - 1;
+              return Number.isFinite(n) ? n : null;
+            })();
             const interval = calculateIntervalDelta(report, questions, d, q);
             const hasExplanation = q?.explanation && q?.explanation !== "<p><strong>Write your Explanation Here...</strong></p>";
             const hasVideo = q?.explanationvideo;
