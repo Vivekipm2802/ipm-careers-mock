@@ -22,6 +22,10 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 
+// Ship 4: Supabase returns question ids as number OR string depending on the
+// query path. Compare as strings everywhere (same helper as the runners).
+const sameId = (a, b) => a != null && b != null && String(a) === String(b);
+
 export default function MockResult({ result }) {
   const [sections, setSections] = useState();
   const [modules, setModules] = useState();
@@ -119,10 +123,10 @@ export default function MockResult({ result }) {
 
   function getQStatus(q) {
     if (!result) return "skipped";
-    const answered = result.report?.find((r) => r.id == q.id);
+    const answered = result.report?.find((r) => sameId(r.id, q.id));
     const isMarked = result.data
       ?.filter((m) => m.status == "review")
-      ?.some((m) => m.id == q.id);
+      ?.some((m) => sameId(m.id, q.id));
     if (!answered) return isMarked ? "marked" : "skipped";
     const correct = isQuestionCorrect(q, answered);
     if (correct === true) return "correct";
@@ -157,8 +161,15 @@ export default function MockResult({ result }) {
         qs.forEach((q) => {
           secTotal += 1;
           secMax += pos;
-          const reportItem = result.report?.find((r) => r.id === q.id);
+          const reportItem = result.report?.find((r) => sameId(r.id, q.id));
           const isCorrect = isQuestionCorrect(q, reportItem);
+          // Ship 4: marked questions were counted under BOTH skipped and
+          // marked (and answered+marked under correct/wrong AND marked), so
+          // pill totals never summed to totalQ. Partition to match getQStatus:
+          // correct / wrong / marked (unanswered+review) / skipped.
+          const isMarked = result.data
+            ?.filter((m) => m.status == "review")
+            ?.some((m) => sameId(m.id, q.id));
           if (isCorrect === true) {
             secScore += pos;
             secCorrect += 1;
@@ -167,13 +178,10 @@ export default function MockResult({ result }) {
             secScore += neg;
             secNegs += Math.abs(neg);
             wrongCount += 1;
+          } else if (isMarked) {
+            markedCount += 1;
           } else {
             skippedCount += 1;
-          }
-          if (
-            result.data?.filter((m) => m.status == "review")?.some((m) => m.id == q.id)
-          ) {
-            markedCount += 1;
           }
         });
       });
@@ -190,7 +198,8 @@ export default function MockResult({ result }) {
       });
     });
 
-    const totalQ = correctCount + wrongCount + skippedCount;
+    // Ship 4: markedCount is now disjoint from skippedCount — include it
+    const totalQ = correctCount + wrongCount + skippedCount + markedCount;
     const attempted = correctCount + wrongCount;
     // Ship 2 fix (2026-07): denominator was `totalQ` (total questions,
     // including skipped) while the label read "Out of N attempted".
@@ -214,20 +223,22 @@ export default function MockResult({ result }) {
     };
   }, [sections, modules, questions, result]);
 
-  // Total time taken in minutes (from report.at)
+  // Total time taken in minutes.
+  // Ship 4: prefer the wall-clock `duration` column (runner records
+  // submit − start). max(at) misses all time spent on the final question;
+  // kept only as fallback for plays recorded before the column existed.
   const totalTimeMin = useMemo(() => {
+    if (Number.isFinite(Number(result?.duration)) && result.duration > 0) {
+      return Math.round(result.duration / 60);
+    }
     if (!result?.report) return 0;
     const maxAt = result.report.reduce((m, r) => (typeof r.at === "number" && r.at > m ? r.at : m), 0);
     return Math.round(maxAt / 60);
   }, [result]);
 
+  // Ship 4: dropped the deprecated mql.addListener block — it attached a new
+  // listener on every click (leak) and only console.logged.
   function printPage() {
-    if (window.matchMedia) {
-      const mql = window.matchMedia("print");
-      mql.addListener(function (m) {
-        if (!m.matches) console.log("Print dialog closed");
-      });
-    }
     window.print();
   }
 
@@ -436,6 +447,7 @@ export default function MockResult({ result }) {
             <FilterPill label="Correct" count={stats.correctCount} active={activeFilter === "correct"} onClick={() => setActiveFilter("correct")} />
             <FilterPill label="Wrong" count={stats.wrongCount} active={activeFilter === "wrong"} onClick={() => setActiveFilter("wrong")} />
             <FilterPill label="Skipped" count={stats.skippedCount} active={activeFilter === "skipped"} onClick={() => setActiveFilter("skipped")} />
+            <FilterPill label="Marked" count={stats.markedCount} active={activeFilter === "marked"} onClick={() => setActiveFilter("marked")} />
           </div>
         </div>
 
@@ -459,8 +471,13 @@ export default function MockResult({ result }) {
               const correctIdx = Array.isArray(q?.options)
                 ? q.options.findIndex((o) => o?.isCorrect)
                 : -1;
-              const reportItem = result.report?.find((r) => r.id === q.id);
-              const chosenIdx = reportItem ? reportItem.value - 1 : null;
+              const reportItem = result.report?.find((r) => sameId(r.id, q.id));
+              // Ship 4: sameId lookup (strict === missed string/number ids →
+              // "Your choice" never highlighted) + Number coercion for value.
+              const chosenIdx =
+                reportItem && Number.isFinite(Number(reportItem.value))
+                  ? Number(reportItem.value) - 1
+                  : null;
               cards.push(
                 <QuestionCard
                   key={q.id}

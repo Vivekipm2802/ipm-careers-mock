@@ -38,6 +38,10 @@ import { useMediaQuery } from "react-responsive";
 import { useTimer } from "react-timer-hook";
 import { CtoLocal } from "@/utils/DateUtil";
 import { getAuthHeaders } from "@/utils/authHeaders";
+
+// Ship 4: Supabase returns question ids as number OR string depending on the
+// query path. Compare as strings everywhere (same helper as the test runner).
+const sameId = (a, b) => a != null && b != null && String(a) === String(b);
 import axios from "axios";
 
 function Icon() {
@@ -488,7 +492,11 @@ const MockTest = ({
   const addItem = (newItem) => {
     setAnswered((prevItems) => {
       // Check if the item already exists by ID
-      const index = _.findIndex(prevItems, { id: newItem.id });
+      // Ship 4: lodash matcher compares ids strictly — "12" never matched 12,
+      // which produced duplicate report entries per question. Use sameId.
+      const index = Array.isArray(prevItems)
+        ? prevItems.findIndex((it) => sameId(it.id, newItem.id))
+        : -1;
 
       if (index === -1) {
         // Item doesn't exist, add it
@@ -527,7 +535,11 @@ const MockTest = ({
   const addMiscItem = (newItem) => {
     setMiscData((prevItems) => {
       // Check if the item already exists by ID
-      const index = _.findIndex(prevItems, { id: newItem.id });
+      // Ship 4: lodash matcher compares ids strictly — "12" never matched 12,
+      // which produced duplicate report entries per question. Use sameId.
+      const index = Array.isArray(prevItems)
+        ? prevItems.findIndex((it) => sameId(it.id, newItem.id))
+        : -1;
 
       if (index === -1) {
         // Item doesn't exist, add it
@@ -565,8 +577,13 @@ const MockTest = ({
       autoStart: false,
     });
 
+  // Ship 4: wall-clock test start, so total time = submit − start instead of
+  // max(at) (which missed all time spent on the final question).
+  const startedAtRef = useRef(null);
+
   useEffect(() => {
     if (gamestate === 1) {
+      if (!startedAtRef.current) startedAtRef.current = Date.now();
       const time = new Date();
       time.setSeconds(time.getSeconds() + timeDuration);
 
@@ -624,12 +641,17 @@ const MockTest = ({
     try {
       // Try server-side API route first (bypasses RLS)
       const headers = await getAuthHeaders();
+      // Ship 4: true wall-clock duration in seconds (null if start not seen)
+      const duration = startedAtRef.current
+        ? Math.round((Date.now() - startedAtRef.current) / 1000)
+        : null;
       const apiRes = await axios.post(
         "/api/submitMock",
         {
           test_id: config?.id,
           report: a || [],
           data: b || [],
+          duration,
         },
         { headers },
       );
@@ -645,14 +667,27 @@ const MockTest = ({
 
     try {
       // Fallback: direct supabase insert
-      const { data, error } = await supabase
+      const fallbackRow = {
+        test_id: config?.id,
+        status: "completed",
+        report: a || [],
+        duration: startedAtRef.current
+          ? Math.round((Date.now() - startedAtRef.current) / 1000)
+          : null,
+      };
+      let { data, error } = await supabase
         .from("mock_plays")
-        .insert({
-          test_id: config?.id,
-          status: "completed",
-          report: a || [],
-        })
+        .insert(fallbackRow)
         .select();
+      if (error) {
+        // Ship 4: if the duration column doesn't exist yet, never block a
+        // student's submission — retry without it.
+        const { duration, ...withoutDuration } = fallbackRow;
+        ({ data, error } = await supabase
+          .from("mock_plays")
+          .insert(withoutDuration)
+          .select());
+      }
       if (data && data.length > 0) {
         toast.success("Test Submitted Successfully");
         router.push(`/mock/result/${data[0].uid}`);
@@ -719,7 +754,15 @@ const MockTest = ({
   }
 
   function clearResponse(id) {
-    setAnswered((prevItems) => _.reject(prevItems, { id }));
+    // Ship 4: _.reject with a matcher compares ids strictly — a string id
+    // never matched a number id, so Clear silently failed and the stale
+    // answer was submitted. Filter via sameId instead. (Mock scoring happens
+    // at result time from the report, so no live score to reverse here.)
+    setAnswered((prevItems) =>
+      Array.isArray(prevItems)
+        ? prevItems.filter((item) => !sameId(item.id, id))
+        : prevItems,
+    );
   }
 
   function openFullscreen() {

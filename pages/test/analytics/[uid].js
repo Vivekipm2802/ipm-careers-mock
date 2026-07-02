@@ -92,14 +92,17 @@ const ConceptAnalytics = ({ result }) => {
     const negativeScore = wrongCount * decrement;
     const totalScore = positiveScore - negativeScore;
     const maxScore = totalQ * increment;
-    const accuracy = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
+    // Ship 4: align with the Ship 2 result-page fix — accuracy is
+    // correct / attempted, not correct / total.
+    const accuracy = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
     return { correctCount, wrongCount, skippedCount, attempted, totalQ,
              positiveScore, negativeScore, totalScore, maxScore, accuracy };
   }, [questions, result, increment, decrement]);
 
   function getQStatus(q) {
     if (!result?.report) return "skipped";
-    const r = result.report.find((rep) => rep.id === q.id);
+    // Ship 4: String compare — strict === misses string/number id mismatches
+    const r = result.report.find((rep) => String(rep.id) === String(q.id));
     if (!r) return "skipped";
     if (r.isCorrect === true) return "correct";
     if (r.isCorrect === false) return "wrong";
@@ -116,7 +119,9 @@ const ConceptAnalytics = ({ result }) => {
       // Ship 2 fix (2026-07): previously dropped anything ≥ 30 min
       // (`t < 1800`). Concept tests can legitimately have questions
       // taking longer. Keep everything ≥ 0 seconds; cap at 2 hours.
-      if (t >= 0 && t < 7200) map.set(r.id, t);
+      // Ship 4: String key — report ids can be string while q.id is number;
+      // Map.get is strict, so every lookup missed and all times showed 0.
+      if (t >= 0 && t < 7200) map.set(String(r.id), t);
       prev = r.timestamp;
     });
     return map;
@@ -129,12 +134,17 @@ const ConceptAnalytics = ({ result }) => {
   }, [questions]);
 
   const wrongList = useMemo(() => items.filter(({ q }) => getQStatus(q) === "wrong")
-                                       .map(({ q, idx }) => ({ q, idx, t: questionTimes.get(q.id) || 0 })),
+                                       .map(({ q, idx }) => ({ q, idx, t: questionTimes.get(String(q.id)) || 0 })),
                             [items, result, questionTimes]);
   const slowestWrong = useMemo(() => [...wrongList].sort((a, b) => b.t - a.t).slice(0, 5), [wrongList]);
   const fastestWrong = useMemo(() => [...wrongList].sort((a, b) => a.t - b.t).slice(0, 5), [wrongList]);
 
+  // Ship 4: prefer the wall-clock `duration` column (submit − start).
+  // max(timestamp) misses time on the final question; fallback for old rows.
   const totalTimeMin = useMemo(() => {
+    if (Number.isFinite(Number(result?.duration)) && result.duration > 0) {
+      return Math.round(result.duration / 60);
+    }
     if (!result?.report) return 0;
     const maxT = result.report.reduce((m, r) => (typeof r.timestamp === "number" && r.timestamp > m ? r.timestamp : m), 0);
     return Math.round(maxT / 60);
@@ -463,7 +473,8 @@ function TimeBars({ items, getStatus, questionTimes }) {
   if (!items || items.length === 0) {
     return <div style={{ padding: "20px 0", textAlign: "center", color: "var(--c-text-tertiary)", fontSize: 13 }}>No data</div>;
   }
-  const times = items.map(({ q }) => questionTimes.get(q.id) || 0);
+  // Ship 4: questionTimes is keyed by String(id)
+  const times = items.map(({ q }) => questionTimes.get(String(q.id)) || 0);
   const maxT = Math.max(...times, 1);
   return (
     <>
@@ -531,7 +542,9 @@ function ScoreProgressionChart({ items, getStatus, pos, neg }) {
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 8, fontVariantNumeric: "tabular-nums" }}>
         <span>Q 1</span>
-        <span>Final score: <b style={{ color: "var(--c-text-primary)" }}>{Math.max(0, finalScore)}</b></span>
+        {/* Ship 4: show the true final score — clamping to 0 contradicted a
+            line that visibly dips below the midline */}
+        <span>Final score: <b style={{ color: "var(--c-text-primary)" }}>{finalScore}</b></span>
       </div>
     </>
   );

@@ -45,7 +45,7 @@ const ResultPage = ({ result, questions, leaderboard }) => {
   // those were wrong.
   function calculateIntervalDelta(report, qs, d, i) {
     if (!Array.isArray(report) || report.length === 0) return 0;
-    const currentEntry = report.find((item) => item.id === i.id);
+    const currentEntry = report.find((item) => String(item.id) === String(i.id));
     if (!currentEntry || typeof currentEntry.timestamp !== "number") return 0;
 
     // Find the most recent attempt BEFORE this one, ordered by timestamp
@@ -95,17 +95,23 @@ const ResultPage = ({ result, questions, leaderboard }) => {
   const maxScore = totalQ * increment;
   const positiveScore = correctCount * increment;
   const negativeScore = wrongCount * decrement;
+  // Ship 4: prefer the wall-clock `duration` column (submit − start).
+  // max(timestamp) misses time on the final question; fallback for old rows.
   const timeTakenMin = useMemo(() => {
+    if (Number.isFinite(Number(result?.duration)) && result.duration > 0) {
+      return Math.round(result.duration / 60);
+    }
     if (!report || report.length === 0) return 0;
     const maxT = report.reduce((m, r) => (typeof r.timestamp === "number" && r.timestamp > m ? r.timestamp : m), 0);
     return Math.round(maxT / 60);
-  }, [report]);
+  }, [report, result]);
   const testTitle = result?.test_uuid?.parent?.title || result?.test_uuid?.title || "Concept test";
 
   function printPage() { window.print(); }
 
   function getStatusLocal(q) {
-    const r = report.find((item) => item.id === q.id);
+    // Ship 4: sameId — strict === misses string/number id mismatches
+    const r = report.find((item) => String(item.id) === String(q.id));
     if (!r) return "skipped";
     if (r.isCorrect === true) return "correct";
     if (r.isCorrect === false) return "wrong";
@@ -171,7 +177,7 @@ const ResultPage = ({ result, questions, leaderboard }) => {
                     on a Binomial question). Match report → question by id. */}
                 Your answer: {(() => {
                   const activeQ = questions[activeExplanation];
-                  const r = activeQ ? report.find((item) => item.id === activeQ.id) : null;
+                  const r = activeQ ? report.find((item) => String(item.id) === String(activeQ.id)) : null;
                   return r?.answer ?? "—";
                 })()}
               </div>
@@ -323,7 +329,7 @@ const ResultPage = ({ result, questions, leaderboard }) => {
           {questions.map((q, d) => {
             const status = getStatusLocal(q);
             if (activeFilter !== "all" && activeFilter !== status) return null;
-            const r = report.find((item) => item.id === q.id);
+            const r = report.find((item) => String(item.id) === String(q.id));
             const correctIdx = Array.isArray(q.options) ? q.options.findIndex((o) => o?.isCorrect) : -1;
             // Ship 3 fix (2026-07): concept test runner stores the picked
             // option as `selectedOption` (a STRING like "1"..."4"), never

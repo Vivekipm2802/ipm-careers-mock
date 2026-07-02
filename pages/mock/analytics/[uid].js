@@ -18,6 +18,10 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 
+// Ship 4: Supabase returns question ids as number OR string depending on the
+// query path. Compare as strings everywhere (same helper as the runners).
+const sameId = (a, b) => a != null && b != null && String(a) === String(b);
+
 export default function MockAnalytics({ result }) {
   const [sections, setSections] = useState();
   const [modules, setModules] = useState();
@@ -133,8 +137,8 @@ export default function MockAnalytics({ result }) {
     return null;
   }
   function getQStatus(q) {
-    const answered = result.report?.find((r) => r.id == q.id);
-    const isMarked = result.data?.filter((m) => m.status == "review")?.some((m) => m.id == q.id);
+    const answered = result.report?.find((r) => sameId(r.id, q.id));
+    const isMarked = result.data?.filter((m) => m.status == "review")?.some((m) => sameId(m.id, q.id));
     if (!answered) return isMarked ? "marked" : "skipped";
     const c = isQuestionCorrect(q, answered);
     if (c === true) return "correct";
@@ -171,20 +175,28 @@ export default function MockAnalytics({ result }) {
         const qs = questions.filter((q) => q.parent === mod.module.id);
         qs.forEach((q) => {
           total += 1; max += pos;
-          const reportItem = result.report?.find((r) => r.id === q.id);
+          const reportItem = result.report?.find((r) => sameId(r.id, q.id));
           const isCorrect = isQuestionCorrect(q, reportItem);
+          // Ship 4: marked questions were counted under BOTH skipped and
+          // marked, so the legend never summed to totalQ. Global counts now
+          // partition to match getQStatus (marked = unanswered + review);
+          // per-section `skipped` keeps including marked so DistRow sums hold.
+          const isMarked = result.data?.filter((m) => m.status == "review")?.some((m) => sameId(m.id, q.id));
           if (isCorrect === true) { score += pos; correct += 1; correctCount += 1; }
           else if (isCorrect === false) { score += neg; negs += Math.abs(neg); wrong += 1; wrongCount += 1; }
-          else { skipped += 1; skippedCount += 1; }
-          if (result.data?.filter((m) => m.status == "review")?.some((m) => m.id == q.id)) markedCount += 1;
+          else { skipped += 1; if (isMarked) markedCount += 1; else skippedCount += 1; }
         });
       });
       totalScore += score; maxScore += max;
       const attempted = correct + wrong;
       return { sec, score, max, correct, wrong, skipped, total, negs, attempted };
     });
-    const totalQ = correctCount + wrongCount + skippedCount;
-    const accuracy = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
+    // Ship 4: markedCount is now disjoint from skippedCount — include it.
+    const totalQ = correctCount + wrongCount + skippedCount + markedCount;
+    // Ship 4: align with the Ship 2 result-page fix — accuracy is
+    // correct / attempted, not correct / total.
+    const attempted = correctCount + wrongCount;
+    const accuracy = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
     const totalNeg = perSection.reduce((s, p) => s + p.negs, 0);
     const withoutNeg = totalScore + totalNeg;
     return { totalScore, maxScore, correctCount, wrongCount, skippedCount, markedCount,
@@ -203,14 +215,21 @@ export default function MockAnalytics({ result }) {
       // (`t < 1800`) — a long section deliberately given 30–45 min
       // had its slow questions vanish from the "slowest wrong" table.
       // Keep everything ≥ 0 seconds; cap at 2 hours as a sanity ceiling.
-      if (t >= 0 && t < 7200) map.set(r.id, t);
+      // Ship 4: String key — report ids can be string while q.id is number;
+      // Map.get is strict, so every lookup missed and all times showed 0.
+      if (t >= 0 && t < 7200) map.set(String(r.id), t);
       prev = r.at;
     });
     return map;
   }, [result]);
 
   // ── Total time taken ──
+  // Ship 4: prefer the wall-clock `duration` column (submit − start).
+  // max(at) misses time on the final question; kept as fallback for old rows.
   const totalTimeMin = useMemo(() => {
+    if (Number.isFinite(Number(result?.duration)) && result.duration > 0) {
+      return Math.round(result.duration / 60);
+    }
     if (!result?.report) return 0;
     const maxAt = result.report.reduce((m, r) => (typeof r.at === "number" && r.at > m ? r.at : m), 0);
     return Math.round(maxAt / 60);
@@ -221,9 +240,10 @@ export default function MockAnalytics({ result }) {
     return flatQuestions
       .map(({ q, sec }, idx) => {
         if (getQStatus(q) !== "wrong") return null;
-        return { q, idx, sec, t: questionTimes.get(q.id) || 0 };
+        return { q, idx, sec, t: questionTimes.get(String(q.id)) || 0 };
       })
       .filter(Boolean);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flatQuestions, questionTimes, result]);
   const slowestWrong = useMemo(() => [...wrongList].sort((a, b) => b.t - a.t).slice(0, 5), [wrongList]);
   const fastestWrong = useMemo(() => [...wrongList].sort((a, b) => a.t - b.t).slice(0, 5), [wrongList]);
@@ -608,7 +628,8 @@ function TimeBars({ items, getStatus, questionTimes }) {
   if (!items || items.length === 0) {
     return <div style={{ padding: "20px 0", textAlign: "center", color: "var(--c-text-tertiary)", fontSize: 13 }}>No questions in this filter</div>;
   }
-  const times = items.map(({ q }) => questionTimes.get(q.id) || 0);
+  // Ship 4: questionTimes is keyed by String(id)
+  const times = items.map(({ q }) => questionTimes.get(String(q.id)) || 0);
   const maxT = Math.max(...times, 1);
   return (
     <>
@@ -688,7 +709,9 @@ function ScoreProgressionChart({ items, getStatus, sections }) {
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 8, fontVariantNumeric: "tabular-nums" }}>
         <span>Q 1</span>
-        <span>Final score: <b style={{ color: "var(--c-text-primary)" }}>{Math.max(0, finalScore)}</b></span>
+        {/* Ship 4: show the true final score — clamping to 0 contradicted a
+            line that visibly dips below the midline */}
+        <span>Final score: <b style={{ color: "var(--c-text-primary)" }}>{finalScore}</b></span>
       </div>
     </>
   );

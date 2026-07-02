@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Flasher from "@/components/Flasher";
 import {
   Button,
@@ -94,14 +94,25 @@ const Game = () => {
       router.push("/");
       return;
     }
-    const { data, error } = await supabase
-      .from("plays")
-      .insert({
-        test_uuid: parentData?.uuid,
-        report: a,
-        score,
-      })
-      .select();
+    // Ship 4: record true wall-clock duration (seconds)
+    const row = {
+      test_uuid: parentData?.uuid,
+      report: a,
+      score,
+      duration: startedAtRef.current
+        ? Math.round((Date.now() - startedAtRef.current) / 1000)
+        : null,
+    };
+    let { data, error } = await supabase.from("plays").insert(row).select();
+    if (error) {
+      // If the duration column doesn't exist yet, never block a student's
+      // submission — retry without it.
+      const { duration, ...withoutDuration } = row;
+      ({ data, error } = await supabase
+        .from("plays")
+        .insert(withoutDuration)
+        .select());
+    }
     if (data && data.length != 0) {
       // Phase 12 Ship E.4: redirect IMMEDIATELY to the unified result page
       // No flash of the old inline view, no setTimeout delay
@@ -156,8 +167,13 @@ const Game = () => {
       autoStart: false,
     });
 
+  // Ship 4: wall-clock test start, so total time = submit − start instead of
+  // max(timestamp) (which missed all time spent on the final question).
+  const startedAtRef = useRef(null);
+
   useEffect(() => {
     if (gamestate === 1) {
+      if (!startedAtRef.current) startedAtRef.current = Date.now();
       const time = new Date();
       time.setSeconds(time.getSeconds() + timeDuration);
       restart(time);

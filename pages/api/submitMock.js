@@ -20,7 +20,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { test_id, report, data: miscData } = req.body;
+  // Ship 4: accept optional wall-clock duration (seconds) from the runner
+  const { test_id, report, data: miscData, duration } = req.body;
 
   if (!test_id) {
     return res.status(400).json({ error: 'Missing test_id' });
@@ -42,6 +43,7 @@ export default async function handler(req, res) {
         data: miscData || [],
         user: user.email,
         name: user.user_metadata?.full_name || user.email,
+        duration: Number.isFinite(Number(duration)) ? Math.round(Number(duration)) : null,
       })
       .select();
 
