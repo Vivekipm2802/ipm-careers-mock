@@ -30,20 +30,34 @@ const ResultPage = ({ result, questions, leaderboard }) => {
   const [activeFilter, setActiveFilter] = useState("all");
   const router = useRouter();
 
+  // Ship 2 fix (2026-07): return the actual time interval a student spent
+  // on THIS question, not a delta-of-deltas (which is a second derivative
+  // and mathematically nonsensical for a "seconds spent" label).
+  //
+  // `timestamp` in each report entry is the cumulative seconds elapsed
+  // since the test started, at the moment the student submitted that
+  // question. To get time-on-question we need:
+  //   this question's timestamp − the previous ATTEMPTED question's
+  //   timestamp (chronological, not display order).
+  //
+  // The prior version indexed by display order (`qs[d-1]`) and, for
+  // d≥2, subtracted two intervals and returned that (ci−pi). Both of
+  // those were wrong.
   function calculateIntervalDelta(report, qs, d, i) {
-    if (d === 0) {
-      return report?.find((item) => item.id === i.id)?.timestamp ?? 0;
-    } else if (d === 1) {
-      const current = report?.find((item) => item.id === i.id)?.timestamp ?? 0;
-      const previous = report?.find((item) => item.id === qs[d - 1]?.id)?.timestamp ?? 0;
-      return current - previous;
-    } else {
-      const ci = (report?.find((item) => item.id === i.id)?.timestamp ?? 0) -
-                 (report?.find((item) => item.id === qs[d - 1]?.id)?.timestamp ?? 0);
-      const pi = (report?.find((item) => item.id === qs[d - 1]?.id)?.timestamp ?? 0) -
-                 (report?.find((item) => item.id === qs[d - 2]?.id)?.timestamp ?? 0);
-      return ci - pi;
-    }
+    if (!Array.isArray(report) || report.length === 0) return 0;
+    const currentEntry = report.find((item) => item.id === i.id);
+    if (!currentEntry || typeof currentEntry.timestamp !== "number") return 0;
+
+    // Find the most recent attempt BEFORE this one, ordered by timestamp
+    // rather than display order — students often answer out of order.
+    const earlier = report.filter(
+      (r) => typeof r.timestamp === "number" && r.timestamp < currentEntry.timestamp
+    );
+    if (earlier.length === 0) return currentEntry.timestamp; // first answered
+
+    const prevTs = Math.max(...earlier.map((r) => r.timestamp));
+    const delta = currentEntry.timestamp - prevTs;
+    return delta >= 0 ? delta : 0;
   }
 
   if (!result || !questions) {
@@ -346,6 +360,45 @@ const ResultPage = ({ result, questions, leaderboard }) => {
                 <div className="qcontent" style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-text-primary)", margin: "0 0 18px", maxWidth: "70ch" }} dangerouslySetInnerHTML={{ __html: q.question }} />
                 {q.questionimage && <img src={q.questionimage} style={{ maxHeight: 200, marginBottom: 16, borderRadius: 12, border: "1px solid var(--c-border-faint)" }} />}
 
+                {/* Ship 2 fix (2026-07): SA (short-answer / input) questions
+                    store options as an object `{answer: "..."}`, not an array.
+                    Previously the MCQ options block simply didn't render for
+                    SA and there was NO fallback — students saw a question with
+                    no correct answer AND no record of what they typed. Silent
+                    data loss. Now we render a small panel showing the correct
+                    answer and, when the student attempted it, their input. */}
+                {(!Array.isArray(q.options)) && q?.options?.answer !== undefined && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+                    <div style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "12px 16px", borderRadius: 12,
+                      background: status === "correct" ? "var(--c-success-soft, #E0F2E8)" : status === "wrong" ? "var(--c-danger-soft, #F8DADA)" : "var(--c-surface-muted, var(--c-bg))",
+                      border: `1px solid ${status === "correct" ? "var(--c-success)" : status === "wrong" ? "var(--c-danger)" : "var(--c-border-faint)"}`,
+                      fontSize: 14, color: "var(--c-text-primary)",
+                    }}>
+                      <span>
+                        <span style={{ color: "var(--c-text-tertiary)", marginRight: 8, fontSize: 12 }}>Your answer:</span>
+                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                          {r?.answer ?? r?.value ?? <span style={{ color: "var(--c-text-tertiary)", fontStyle: "italic", fontFamily: "inherit", fontWeight: 400 }}>Not attempted</span>}
+                        </span>
+                      </span>
+                      {status === "correct" && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-success)" }}>Correct</span>}
+                      {status === "wrong" && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-danger)" }}>Wrong</span>}
+                    </div>
+                    <div style={{
+                      padding: "12px 16px", borderRadius: 12,
+                      background: "var(--c-success-soft, #E0F2E8)",
+                      border: "1px solid var(--c-success)",
+                      fontSize: 14, color: "var(--c-text-primary)",
+                    }}>
+                      <span style={{ color: "var(--c-success)", marginRight: 8, fontSize: 12, fontWeight: 600 }}>Correct answer:</span>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                        {q.options.answer}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {Array.isArray(q.options) && q.options.length > 0 && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                     {q.options.map((opt, i) => {
@@ -494,8 +547,12 @@ export async function getServerSideProps(context) {
   }
   let leaderboard = [];
   if (result?.test_uuid?.uuid) {
+    // Ship 2 fix: SELECT was missing `uid` (the play's primary key),
+    // which broke the "You" highlight — `row.uid === result.uid`
+    // always evaluated `undefined === value` → false, so a user
+    // never saw their row highlighted on the leaderboard.
     const { data: lbData } = await serversupabase
-      .from("plays").select("id,created_at,score,user,name,isPassed,test_uuid")
+      .from("plays").select("uid,id,created_at,score,user,name,isPassed,test_uuid")
       .eq("test_uuid", result.test_uuid.uuid)
       .order("score", { ascending: false }).limit(20);
     leaderboard = lbData || [];

@@ -191,7 +191,12 @@ export default function MockResult({ result }) {
     });
 
     const totalQ = correctCount + wrongCount + skippedCount;
-    const accuracy = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
+    const attempted = correctCount + wrongCount;
+    // Ship 2 fix (2026-07): denominator was `totalQ` (total questions,
+    // including skipped) while the label read "Out of N attempted".
+    // Accuracy is by definition correct / attempted — skipped shouldn't
+    // dilute it. Fixed both the calc and the label sub-line.
+    const accuracy = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
     const totalNeg = perSection.reduce((s, p) => s + p.negs, 0);
 
     return {
@@ -202,6 +207,7 @@ export default function MockResult({ result }) {
       skippedCount,
       markedCount,
       totalQ,
+      attempted,
       accuracy,
       totalNeg,
       perSection,
@@ -313,7 +319,7 @@ export default function MockResult({ result }) {
         {/* === KPI ROW === */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
           <Kpi label="Total score" value={Math.max(0, stats.totalScore)} unit={`/ ${stats.maxScore}`} sub={`${stats.correctCount} right · ${stats.wrongCount} wrong`} />
-          <Kpi label="Accuracy" value={stats.accuracy} unit="%" sub={`Out of ${stats.totalQ} attempted`} />
+          <Kpi label="Accuracy" value={stats.accuracy} unit="%" sub={`${stats.correctCount} correct of ${stats.attempted} attempted`} />
           <Kpi label="Time taken" value={totalTimeMin || "—"} unit={totalTimeMin ? "min" : ""} sub={totalTimeMin ? `Avg ${Math.round((totalTimeMin * 60) / stats.totalQ)}s / Q` : ""} />
           <Kpi label="Without negatives" value={Math.max(0, stats.totalScore + stats.totalNeg)} unit="" sub={stats.totalNeg > 0 ? `+${stats.totalNeg} from negatives` : "No negatives"} success />
         </div>

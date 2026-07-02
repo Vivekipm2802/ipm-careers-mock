@@ -113,7 +113,10 @@ const ConceptAnalytics = ({ result }) => {
     let prev = 0;
     sorted.forEach((r) => {
       const t = r.timestamp - prev;
-      if (t > 0 && t < 1800) map.set(r.id, t);
+      // Ship 2 fix (2026-07): previously dropped anything ≥ 30 min
+      // (`t < 1800`). Concept tests can legitimately have questions
+      // taking longer. Keep everything ≥ 0 seconds; cap at 2 hours.
+      if (t >= 0 && t < 7200) map.set(r.id, t);
       prev = r.timestamp;
     });
     return map;

@@ -104,15 +104,31 @@ export default function MockAnalytics({ result }) {
   }, []);
 
   // ── Helpers ──
+  // Ship 2 fix (2026-07): the previous SA comparison was strict `===`
+  // with whitespace stripped but not case-normalised or numeric-collapsed.
+  // The MCQ path also computed `reportItem.value - 1` unconditionally,
+  // yielding `NaN` when `value` was nil — which classified a mid-flight
+  // skip as "wrong" instead of "skipped". Both fixed here.
+  const normalizeAns = (s) => {
+    if (s == null) return "";
+    const trimmed = String(s).trim().toLowerCase().replace(/\s+/g, "");
+    if (/^-?\d*\.?\d+$/.test(trimmed)) {
+      const n = Number(trimmed);
+      if (!Number.isNaN(n) && Number.isFinite(n)) return String(n);
+    }
+    return trimmed;
+  };
   function isQuestionCorrect(q, reportItem) {
     if (!reportItem) return null;
-    const reportValue = reportItem.value - 1;
     if (q.type === "options") {
-      return q?.options?.findIndex((o) => o?.isCorrect) === reportValue;
+      if (reportItem.value == null) return null;
+      const reportValue = Number(reportItem.value) - 1;
+      if (!Number.isFinite(reportValue)) return null;
+      if (!Array.isArray(q?.options)) return null;
+      return q.options.findIndex((o) => o?.isCorrect) === reportValue;
     }
     if (q.type === "input") {
-      return (q?.options?.answer || "").toString().replace(/\s/g, "") ===
-             (reportItem.value || "").toString().replace(/\s/g, "");
+      return normalizeAns(q?.options?.answer) === normalizeAns(reportItem.value);
     }
     return null;
   }
@@ -183,7 +199,11 @@ export default function MockAnalytics({ result }) {
     let prev = 0;
     sorted.forEach((r) => {
       const t = r.at - prev;
-      if (t > 0 && t < 1800) map.set(r.id, t);
+      // Ship 2 fix (2026-07): previously dropped anything ≥ 30 min
+      // (`t < 1800`) — a long section deliberately given 30–45 min
+      // had its slow questions vanish from the "slowest wrong" table.
+      // Keep everything ≥ 0 seconds; cap at 2 hours as a sanity ceiling.
+      if (t >= 0 && t < 7200) map.set(r.id, t);
       prev = r.at;
     });
     return map;
