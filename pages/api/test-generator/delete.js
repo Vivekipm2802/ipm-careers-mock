@@ -1,4 +1,5 @@
 import { serversupabase } from "../../../utils/supabaseClient";
+import { requireAdmin } from "@/lib/apiAuth";
 
 /**
  * DELETE /api/test-generator/delete
@@ -8,6 +9,12 @@ import { serversupabase } from "../../../utils/supabaseClient";
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Ship 5: was open — anyone could delete any test and all its questions.
+  const admin = await requireAdmin(req);
+  if (!admin) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   const { testId } = req.body;

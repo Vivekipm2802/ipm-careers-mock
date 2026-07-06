@@ -20,14 +20,14 @@
 
 export const config = { runtime: "edge" };
 
+import { requireEdgeAdmin, isCronRequest } from "@/lib/edgeAuth";
+
 // ── Supabase REST helpers ──────────────────────────────────────
 
 function sbKey() {
-  return (
-    process.env.SUPABASE_SERVICE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY ||
-    ""
-  );
+  // Ship 5: NEXT_PUBLIC_ fallback removed — a service key must never live
+  // in an env var that can be inlined into the client bundle.
+  return process.env.SUPABASE_SERVICE_KEY || "";
 }
 
 function sbHeaders(extra = {}) {
@@ -227,11 +227,12 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ error: "POST only" }), { status: 405 });
   }
 
-  // Auth
-  const cronHeader = req.headers.get("x-vercel-cron");
-  const authHeader = req.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (!cronHeader && authHeader !== `Bearer ${secret}`) {
+  // Auth — Ship 5.
+  // Old check trusted a bare `x-vercel-cron` header, which any external
+  // client can set → full auth bypass. Now: either the server-side
+  // CRON_SECRET (Vercel cron sends it automatically) or a signed-in admin.
+  const admin = isCronRequest(req) ? null : await requireEdgeAdmin(req);
+  if (!isCronRequest(req) && !admin) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 

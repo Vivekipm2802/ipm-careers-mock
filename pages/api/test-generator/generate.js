@@ -3,12 +3,13 @@ export const config = {
   runtime: "edge",
 };
 
+import { requireEdgeAdmin } from "@/lib/edgeAuth";
+
 // ââ Supabase REST helpers (Edge-safe, no Node SDK needed) ââââââââââââââââââââ
 
 function supabaseHeaders() {
-  const key =
-    process.env.SUPABASE_SERVICE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY;
+  // Ship 5: NEXT_PUBLIC_ fallback removed (client-bundle leak risk).
+  const key = process.env.SUPABASE_SERVICE_KEY;
   return {
     apikey: key,
     Authorization: `Bearer ${key}`,
@@ -152,6 +153,16 @@ export default async function handler(req) {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Ship 5: was completely open — anyone could burn Gemini quota and pull
+  // bank questions. Admin only (edge-safe check).
+  const admin = await requireEdgeAdmin(req);
+  if (!admin) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }

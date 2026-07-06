@@ -10,6 +10,7 @@
 // ============================================================
 
 import { supabase } from "@/utils/supabaseClient";
+import { getAuthHeaders } from "@/utils/authHeaders";
 import {
   Modal,
   ModalBody,
@@ -236,7 +237,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     try {
       const res = await fetch("/api/test-generator/toggle-visibility", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
         body: JSON.stringify({ testId, hidden: !currentlyHidden }),
       });
       const data = await res.json();
@@ -270,7 +271,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     try {
       const res = await fetch("/api/test-generator/delete", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
         body: JSON.stringify({ testId }),
       });
       const data = await res.json();

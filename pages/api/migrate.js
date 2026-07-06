@@ -1,4 +1,5 @@
 import { serversupabase } from "../../utils/supabaseClient";
+import { requireAdmin } from "@/lib/apiAuth";
 
 /**
  * One-time migration endpoint.
@@ -10,6 +11,12 @@ import { serversupabase } from "../../utils/supabaseClient";
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Ship 5: was completely open — destructive DB cleanup reachable by anyone.
+  const admin = await requireAdmin(req);
+  if (!admin) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   const results = [];

@@ -1,11 +1,13 @@
-import { isAdminEmail } from '@/lib/apiAuth';
+import { getAuthUser, isAdminEmail } from '@/lib/apiAuth';
 
 /**
  * POST /api/isAdmin
- * Body: { email: "user@example.com" }
+ * Auth: Authorization: Bearer <supabase access token> (required)
  *
- * Checks whether the given email is an admin.
- * Strategy: DB (user_roles table) first → ADMIN_EMAILS env var fallback.
+ * Ship 5: previously this accepted ANY email in the body with no auth —
+ * an open oracle for probing which emails are admins. Now the caller must
+ * be authenticated and we check the TOKEN's email, never the body's.
+ * Response shape ({ success }) unchanged for existing callers.
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,20 +15,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email } = req.body || {};
-
-    if (!email || typeof email !== 'string') {
-      return res.status(400).json({ success: false, message: 'Email is required' });
+    const user = await getAuthUser(req);
+    if (!user?.email) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
-    // isAdminEmail is now async — checks DB first, falls back to env var
-    const admin = await isAdminEmail(email);
-
-    if (admin) {
-      return res.status(200).json({ success: true, message: 'Email found in the array' });
-    } else {
-      return res.status(200).json({ success: false, message: 'Email not found in the array' });
-    }
+    const admin = await isAdminEmail(user.email);
+    return res.status(200).json({ success: !!admin });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Internal Server Error' });
   }

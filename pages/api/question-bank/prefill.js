@@ -23,6 +23,8 @@
 
 export const config = { runtime: "edge" };
 
+import { requireEdgeAdmin, isCronRequest } from "@/lib/edgeAuth";
+
 // ── Topic lists (same as CustomTestGenerator presets) ────────────────────────
 
 const QA_TOPICS = [
@@ -68,9 +70,8 @@ const MAX_TOPICS_PER_RUN = 3; // max topics to fill per cron invocation
 // ── Supabase REST helpers ─────────────────────────────────────────────────────
 
 function supabaseHeaders() {
-  const key =
-    process.env.SUPABASE_SERVICE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY;
+  // Ship 5: NEXT_PUBLIC_ fallback removed (client-bundle leak risk).
+  const key = process.env.SUPABASE_SERVICE_KEY;
   return {
     apikey: key,
     Authorization: `Bearer ${key}`,
@@ -258,12 +259,12 @@ function parseAndValidate(text) {
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export default async function handler(req) {
-  // Auth: accept Vercel cron header OR Authorization: Bearer <CRON_SECRET>
-  const cronHeader = req.headers.get("x-vercel-cron");
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronHeader && authHeader !== `Bearer ${cronSecret}`) {
+  // Auth — Ship 5: a bare `x-vercel-cron` header is spoofable by any client,
+  // so it is no longer trusted. CRON_SECRET (sent automatically by Vercel
+  // cron) or a signed-in admin only.
+  const isCron = isCronRequest(req);
+  const admin = isCron ? null : await requireEdgeAdmin(req);
+  if (!isCron && !admin) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },

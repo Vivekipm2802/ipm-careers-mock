@@ -43,7 +43,8 @@ export default function BulkUser() {
     if (!email) return;
 
     try {
-      const response = await axios.post("/api/cme", { emails:email });
+      // Ship 5: /api/cme is admin-only now
+      const response = await axios.post("/api/cme", { emails: email }, { headers: await getAuthHeaders() });
       setEmailStatus(response?.data);
     } catch (error) {
       toast.error("Error checking email");

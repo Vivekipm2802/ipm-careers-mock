@@ -1,4 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
+import { getAuthHeaders } from "@/utils/authHeaders";
 import { useEffect, useState } from "react";
 import { useNMNContext } from "./NMNContext";
 import StudentAttendance from "./StudentAttendance";
@@ -83,9 +84,11 @@ export default function Dashboard({ userData }) {
 
   async function checkAdminStatus() {
     try {
-      const response = await axios.post("/api/isAdmin", {
-        email: userData?.email,
-      });
+      const response = await axios.post(
+        "/api/isAdmin",
+        {},
+        { headers: await getAuthHeaders() },
+      );
       if (response.data.success) setIsAdmin(true);
     } catch (error) {
       console.error("Error checking admin status:", error);

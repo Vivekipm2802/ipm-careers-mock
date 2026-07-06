@@ -5,6 +5,7 @@ import {
   TableBody, TableRow, TableCell, Switch, Spinner,
 } from "@nextui-org/react";
 import { supabase } from "@/utils/supabaseClient";
+import { getAuthHeaders } from "@/utils/authHeaders";
 import { toast } from "react-hot-toast";
 import DefaultLayout from "@/layouts/DefaultLayout";
 
@@ -48,7 +49,6 @@ const EXAM_OPTIONS = [
   { key: "IIM_Kozhikode_BMS",label: "IIM Kozhikode BMS" },
 ];
 
-const CRON_SECRET = process.env.NEXT_PUBLIC_CRON_SECRET || "";
 
 export default function QuestionBankAdmin() {
   // Form state
@@ -102,11 +102,13 @@ export default function QuestionBankAdmin() {
     toast.loading(`Generating ${mcqCount + saCount} questions…`, { id: "gen" });
 
     try {
+      // Ship 5: never ship a NEXT_PUBLIC_ secret — the API now accepts the
+      // signed-in admin's own token instead.
       const res = await fetch("/api/question-bank/generate-bulk", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ""}`,
+          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({
           subject, topic,

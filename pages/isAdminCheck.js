@@ -1,4 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
+import { getAuthHeaders } from "@/utils/authHeaders";
 import axios from "axios";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -37,9 +38,10 @@ function IsAdminCheck(props) {
           return;
         }
 
-        // For admin pages, also check admin status
-        const res = await axios.post("/api/isAdmin", { email: user.email });
-        console.log("isAdmin response:", res.data); 
+        // For admin pages, also check admin status.
+        // Ship 5: /api/isAdmin now derives the email from the auth token.
+        const headers = await getAuthHeaders();
+        const res = await axios.post("/api/isAdmin", {}, { headers });
 
         if (res.data.success) {
           setVerified(true);

@@ -50,9 +50,8 @@ export default async function handler(req, res) {
 
     // Step 2: Create the table via Supabase SQL (using the REST SQL endpoint)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey =
-      process.env.SUPABASE_SERVICE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY;
+    // Ship 5: NEXT_PUBLIC_ fallback removed (client-bundle leak risk).
+    const serviceKey = process.env.SUPABASE_SERVICE_KEY;
 
     const createTableSQL = `
       CREATE TABLE IF NOT EXISTS public.user_roles (

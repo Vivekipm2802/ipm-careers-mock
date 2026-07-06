@@ -3,9 +3,8 @@ const { createClient } = require('@supabase/supabase-js');
 
 function getServiceClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey =
-    process.env.SUPABASE_SERVICE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY;
+  // Ship 5: NEXT_PUBLIC_ fallback removed (client-bundle leak risk).
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
   if (!supabaseUrl || !supabaseServiceKey) return null;
   return createClient(supabaseUrl, supabaseServiceKey);
 }

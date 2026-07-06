@@ -7,6 +7,7 @@
 
 import Notifications from "@/components/Notification";
 import { supabase } from "@/utils/supabaseClient";
+import { getAuthHeaders } from "@/utils/authHeaders";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import styles from "./Login.module.css";
@@ -54,7 +55,7 @@ function Login() {
         if (!isGoogleProvider) return;
         setUserDetails(user);
         try {
-          const adminRes = await axios.post("/api/isAdmin", { email: user.email });
+          const adminRes = await axios.post("/api/isAdmin", {}, { headers: await getAuthHeaders() });
           if (adminRes.data.success === true) { router.push("/admin"); return; }
         } catch (_) {}
         router.push(router.query.redirectTo ?? "/");
@@ -136,7 +137,8 @@ function Login() {
   async function getUser() {
     const user = await supabase.auth.getUser();
     if (!user || !user.data?.user) return null;
-    axios.post("/api/isAdmin", { email: user.data.user.email })
+    const headers = await getAuthHeaders();
+    axios.post("/api/isAdmin", {}, { headers })
       .then((res) => { if (res.data.success == true) router.push("/admin"); else router.push("/"); })
       .catch(() => {});
   }

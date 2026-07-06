@@ -1,8 +1,16 @@
 import { serversupabase } from "../../../utils/supabaseClient";
+import { requireAdmin } from "@/lib/apiAuth";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Ship 5: test creation writes to mock_test/mock_groups/mock/mock_questions
+  // via the service client — admin only.
+  const admin = await requireAdmin(req);
+  if (!admin) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {

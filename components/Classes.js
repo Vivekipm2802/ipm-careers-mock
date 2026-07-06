@@ -12,6 +12,7 @@
 
 import { CtoLocal, formatHHMMTo12Hour } from "@/utils/DateUtil";
 import { supabase } from "@/utils/supabaseClient";
+import { getAuthHeaders } from "@/utils/authHeaders";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check } from "lucide-react";
@@ -88,7 +89,7 @@ export default function Classes() {
     } = await supabase.auth.getUser();
     if (user) {
       try {
-        const res = await axios.post("/api/isAdmin", { email: user.email });
+        const res = await axios.post("/api/isAdmin", {}, { headers: await getAuthHeaders() });
         if (res.data?.success) setIsAdmin(true);
       } catch (e) {
         console.log(e);

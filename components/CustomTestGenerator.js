@@ -1,4 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
+import { getAuthHeaders } from "@/utils/authHeaders";
 import {
   Button,
   Chip,
@@ -623,7 +624,7 @@ function CustomTestGenerator({ userData, role }) {
 
       const res = await fetch("/api/test-generator/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
         body: JSON.stringify(payload),
       });
 
@@ -706,7 +707,7 @@ function CustomTestGenerator({ userData, role }) {
 
       const res = await fetch("/api/test-generator/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
         body: JSON.stringify(payload),
       });
 
