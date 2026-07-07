@@ -628,8 +628,8 @@ export default function MockTests({ enrolled = [], role = "user" }) {
           <div
             style={{
               background:
-                "linear-gradient(135deg, #C48425 0%, #7A4E08 100%)",
-              color: "#fff",
+                "var(--c-mock-banner)",
+              color: "var(--c-mock-banner-text)",
               borderRadius: 16,
               padding: "18px 20px",
               position: "relative",
@@ -655,7 +655,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 fontWeight: 500,
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "rgba(255,255,255,0.7)",
+                color: "var(--c-mock-banner-soft)",
                 marginBottom: 6,
                 position: "relative",
               }}
@@ -699,8 +699,8 @@ export default function MockTests({ enrolled = [], role = "user" }) {
           <div
             style={{
               background:
-                "linear-gradient(135deg, #C48425 0%, #7A4E08 100%)",
-              color: "#fff",
+                "var(--c-mock-banner)",
+              color: "var(--c-mock-banner-text)",
               borderRadius: 16,
               padding: "18px 20px",
               position: "relative",
@@ -727,7 +727,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 fontWeight: 500,
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "rgba(255,255,255,0.7)",
+                color: "var(--c-mock-banner-soft)",
                 marginBottom: 6,
                 position: "relative",
               }}

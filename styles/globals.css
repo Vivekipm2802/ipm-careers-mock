@@ -348,3 +348,20 @@ html[data-theme="dark"] { --c-accent-grad: linear-gradient(110deg, #FFBE5C 20%, 
   animation: dsSheen 5.5s linear infinite;
 }
 @keyframes dsSheen { to { background-position: -220% 0; } }
+
+
+/* Gold retheme ship 2.3 — theme-aware mock banner */
+:root {
+  --c-mock-banner: linear-gradient(115deg, #FFEDC9, #FFDF9E 55%, #FBD083);
+  --c-mock-banner-text: #4A3308;
+  --c-mock-banner-soft: rgba(74, 51, 8, 0.72);
+  --c-mock-banner-btn-bg: #C48425;
+  --c-mock-banner-btn-fg: #FFFFFF;
+}
+html[data-theme="dark"] {
+  --c-mock-banner: linear-gradient(135deg, #C48425 0%, #7A4E08 100%);
+  --c-mock-banner-text: #FFFFFF;
+  --c-mock-banner-soft: rgba(255, 255, 255, 0.72);
+  --c-mock-banner-btn-bg: rgba(255, 255, 255, 0.92);
+  --c-mock-banner-btn-fg: #5C3D0F;
+}

@@ -296,8 +296,8 @@ export default function Dashboard({ userData }) {
             <div
               className="rounded-[16px] mb-6 shrink-0 relative overflow-hidden flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
               style={{
-                background: "linear-gradient(135deg, #C48425 0%, #7A4E08 100%)",
-                color: "#fff",
+                background: "var(--c-mock-banner)",
+                color: "var(--c-mock-banner-text)",
                 padding: "20px 24px",
               }}
             >
@@ -372,8 +372,8 @@ export default function Dashboard({ userData }) {
                     setSK(new Set(["2"]));
                   }}
                   style={{
-                    background: "rgba(255,255,255,0.92)",
-                    color: "#5C3D0F",
+                    background: "var(--c-mock-banner-btn-bg)",
+                    color: "var(--c-mock-banner-btn-fg)",
                     fontWeight: 600,
                     fontSize: 13.5,
                     padding: "10px 20px",
