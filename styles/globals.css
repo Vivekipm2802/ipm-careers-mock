@@ -29,9 +29,9 @@
   --c-surface-sunken:     #F2EEE4;
 
   /* ── Text ── */
-  --c-text-primary:       #1D1D1F;
-  --c-text-secondary:     #515154;
-  --c-text-tertiary:      #86868B;
+  --c-text-primary:       #1E1A13;
+  --c-text-secondary:     #57524A;
+  --c-text-tertiary:      #8B857B;
   --c-text-on-brand:      #FFFFFF;
 
   /* ── Borders ── */
@@ -98,9 +98,9 @@ html[data-theme="dark"] {
   --c-surface-muted:      #18181A;
   --c-surface-sunken:     #0A0A0B;
 
-  --c-text-primary:       #F5F5F7;
-  --c-text-secondary:     #ABABB0;
-  --c-text-tertiary:      #6E6E73;
+  --c-text-primary:       #F4F1EA;
+  --c-text-secondary:     #A9A399;
+  --c-text-tertiary:      #7B756B;
   --c-text-on-brand:      #1D1D1F;
 
   --c-border-faint:       rgba(255,255,255,0.06);
