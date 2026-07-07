@@ -319,3 +319,18 @@ html[data-theme="dark"] .bg-white.shadow-sm,
 html[data-theme="dark"] .bg-white.shadow-lg {
   background-color: var(--c-surface) !important;
 }
+
+
+/* Gold retheme ship 2 — serif gradient stat numbers */
+:root { --c-stat-grad: linear-gradient(160deg, #D0942F, #8A5A0C); }
+html[data-theme="dark"] { --c-stat-grad: linear-gradient(160deg, #FFEDC9, #FFBE5C 45%, #F9A01B); }
+.ds-stat-value {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-optical-sizing: auto;
+  background: var(--c-stat-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

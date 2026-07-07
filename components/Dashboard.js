@@ -383,11 +383,9 @@ function Stat({ label, value, suffix, delta, deltaTone = "muted" }) {
         {label}
       </div>
       <div
+        className="ds-stat-value"
         style={{
-          fontSize: 26,
-          fontWeight: 600,
-          letterSpacing: "-0.02em",
-          color: "var(--c-text-primary)",
+          fontSize: 28,
           marginTop: 4,
           lineHeight: 1.1,
         }}

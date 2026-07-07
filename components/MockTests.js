@@ -628,7 +628,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
           <div
             style={{
               background:
-                "linear-gradient(135deg, var(--c-brand-primary) 0%, #8c2620 100%)",
+                "linear-gradient(135deg, #C48425 0%, #7A4E08 100%)",
               color: "#fff",
               borderRadius: 16,
               padding: "18px 20px",
@@ -699,7 +699,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
           <div
             style={{
               background:
-                "linear-gradient(135deg, var(--c-brand-primary) 0%, #8c2620 100%)",
+                "linear-gradient(135deg, #C48425 0%, #7A4E08 100%)",
               color: "#fff",
               borderRadius: 16,
               padding: "18px 20px",
