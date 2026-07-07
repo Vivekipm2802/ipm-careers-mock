@@ -294,7 +294,7 @@ export default function Dashboard({ userData }) {
           const two = (n) => String(n).padStart(2, "0");
           return (
             <div
-              className="rounded-[16px] mb-6 relative overflow-hidden flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
+              className="rounded-[16px] mb-6 shrink-0 relative overflow-hidden flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
               style={{
                 background: "linear-gradient(135deg, #C48425 0%, #7A4E08 100%)",
                 color: "#fff",
