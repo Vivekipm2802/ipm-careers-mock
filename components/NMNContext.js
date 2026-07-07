@@ -274,6 +274,17 @@ export const NMNContextProvider = ({ children }) => {
           icon: <Target size={20} />,
         },
         {
+          // Ship 5.1: the redesign moved students to ConceptTestStudent but
+          // the admin management view (old Concept component, with View
+          // Submissions → per-student Result/Analytics) kept living behind
+          // slug "play-admin" — which had no menu entry. Restore the door.
+          title: "Concept Manager",
+          type: "admin",
+          action: "play-admin",
+          id: 56,
+          icon: <FileEdit size={20} />,
+        },
+        {
           title: "Full Mocks",
           type: "user",
           action: "mocks",
