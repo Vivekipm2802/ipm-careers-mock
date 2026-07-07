@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import Loader from "./Loader";
 import axios from "axios";
 import { ArrowRight, Target, Flame, BookOpen } from "lucide-react";
+import { parseISO, isAfter, format, differenceInSeconds } from "date-fns";
 
 /**
  * Student dashboard — Phase 1.8
@@ -31,6 +32,8 @@ export default function Dashboard({ userData }) {
   const [classes, setClasses] = useState();
   const [isAdmin, setIsAdmin] = useState(false);
   const [results, setResults] = useState([]);
+  const [nextMock, setNextMock] = useState(null);
+  const [nowTick, setNowTick] = useState(() => new Date());
 
   const { setCTXSlug, sk, setSK, userCourses, isDemo } = useNMNContext();
 
@@ -124,6 +127,32 @@ export default function Dashboard({ userData }) {
 
   useEffect(() => {
     getClasses();
+  }, []);
+
+  // ── Next upcoming full mock (same source/filters as MockTests) ──
+  useEffect(() => {
+    async function getNextMock() {
+      const { data } = await supabase
+        .from("mock_test")
+        .select("title, start_time, config")
+        .order("start_time", { ascending: true });
+      if (!data) return;
+      const now = new Date();
+      const upcoming = data
+        .filter(
+          (t) =>
+            t.start_time &&
+            !t.config?.hidden &&
+            (!t.config?.generatorType || t.config?.generatorType === "fullmock"),
+        )
+        .map((t) => ({ ...t, startsAt: parseISO(t.start_time) }))
+        .filter((t) => isAfter(t.startsAt, now))
+        .sort((a, b) => a.startsAt - b.startsAt);
+      setNextMock(upcoming[0] || null);
+    }
+    getNextMock();
+    const tick = setInterval(() => setNowTick(new Date()), 30000);
+    return () => clearInterval(tick);
   }, []);
 
   // ── Derived display values ──
@@ -226,7 +255,7 @@ export default function Dashboard({ userData }) {
           title="Continue practice"
           desc="Pick up a mock test where you left off"
           Icon={Target}
-          accent="brand"
+          accent="gold"
           onClick={() => {
             setCTXSlug("mocks");
             setSK(new Set(["2"]));
@@ -246,13 +275,120 @@ export default function Dashboard({ userData }) {
           title="Previous year papers"
           desc="Actual exam questions, year by year"
           Icon={BookOpen}
-          accent="info"
+          accent="gold"
           onClick={() => {
             setCTXSlug("pyqyear");
             setSK(new Set(["6"]));
           }}
         />
       </div>
+
+      {/* ── Next mock banner (only when a mock is scheduled) ── */}
+      {nextMock &&
+        (() => {
+          const secs = differenceInSeconds(nextMock.startsAt, nowTick);
+          if (secs <= 0) return null;
+          const days = Math.floor(secs / 86400);
+          const hours = Math.floor((secs % 86400) / 3600);
+          const minutes = Math.floor((secs % 3600) / 60);
+          const two = (n) => String(n).padStart(2, "0");
+          return (
+            <div
+              className="rounded-[16px] mb-6 relative overflow-hidden flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
+              style={{
+                background: "linear-gradient(135deg, #C48425 0%, #7A4E08 100%)",
+                color: "#fff",
+                padding: "20px 24px",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  right: -40,
+                  top: -40,
+                  width: 180,
+                  height: 180,
+                  background:
+                    "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)",
+                  borderRadius: "50%",
+                  pointerEvents: "none",
+                }}
+              />
+              <div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    opacity: 0.8,
+                  }}
+                >
+                  Next mock
+                </div>
+                <div
+                  className="ds-display"
+                  style={{ fontSize: 20, marginTop: 5, letterSpacing: "-0.01em" }}
+                >
+                  {nextMock.title}
+                </div>
+                <div style={{ fontSize: 12.5, opacity: 0.8, marginTop: 3 }}>
+                  Opens {format(nextMock.startsAt, "EEE d MMM, h:mm a")}
+                  {nextMock.config?.duration ? ` · ${nextMock.config.duration} min` : ""}
+                </div>
+              </div>
+              <div className="flex items-center gap-5" style={{ position: "relative" }}>
+                <div className="flex gap-4">
+                  {[
+                    [two(days), "days"],
+                    [two(hours), "hours"],
+                    [two(minutes), "min"],
+                  ].map(([v, l]) => (
+                    <div key={l} style={{ textAlign: "center" }}>
+                      <div
+                        className="ds-display"
+                        style={{ fontSize: 24, lineHeight: 1 }}
+                      >
+                        {v}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 9.5,
+                          letterSpacing: "0.1em",
+                          textTransform: "uppercase",
+                          opacity: 0.75,
+                          marginTop: 4,
+                        }}
+                      >
+                        {l}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCTXSlug("mocks");
+                    setSK(new Set(["2"]));
+                  }}
+                  style={{
+                    background: "rgba(255,255,255,0.92)",
+                    color: "#5C3D0F",
+                    fontWeight: 600,
+                    fontSize: 13.5,
+                    padding: "10px 20px",
+                    borderRadius: 999,
+                    border: "none",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  View mocks →
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
       {/* ── Today's classes ──────────────────────────────────── */}
       <div
@@ -450,7 +586,7 @@ function QuickAction({ title, desc, Icon, accent, onClick }) {
         style={{
           width: 38,
           height: 38,
-          borderRadius: 10,
+          borderRadius: 12,
           background: p.bg,
           color: p.fg,
         }}
