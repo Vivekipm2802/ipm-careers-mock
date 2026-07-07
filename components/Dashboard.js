@@ -194,7 +194,7 @@ export default function Dashboard({ userData }) {
       style={{ color: "var(--c-text-primary)", textAlign: "left" }}
     >
       {/* ── Greeting ─────────────────────────────────────────── */}
-      <header className="mb-8 mt-2">
+      <header className="mb-8 mt-10">
         <h1
           className="ds-display"
           style={{

@@ -79,10 +79,12 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
   const accordionItemClasses = {
     title: 'text-sm font-medium',
     subtitle: 'text-xs',
+    startContent: 'text-ds-ink2 [&_svg]:w-[18px] [&_svg]:h-[18px]',
+    indicator: 'text-ds-ink3',
   };
 
   const titleStyle = {
-    color: 'var(--c-text-primary)',
+    color: 'var(--c-text-secondary)',
     fontWeight: 500,
     fontSize: 14,
     letterSpacing: '-0.005em',
