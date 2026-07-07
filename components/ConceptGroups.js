@@ -334,7 +334,7 @@ const Selector = ({ type, onSelect, role, title }) => {
           color: "var(--c-text-primary)", lineHeight: 1.15,
         }}>
           Welcome back,{" "}
-          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+          <span className="ds-grad-text" style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400 }}>
             {firstName}
           </span>.
         </h1>

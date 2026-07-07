@@ -118,7 +118,7 @@ const eyebrow: React.CSSProperties = {
   color: "var(--c-text-tertiary)",
 };
 const serifStyle: React.CSSProperties = {
-  fontFamily: "'Instrument Serif', serif",
+  fontFamily: "var(--font-accent)",
   fontStyle: "italic",
   fontWeight: 400,
   color: "var(--c-brand-primary)",
@@ -494,7 +494,7 @@ const SectionalTest = ({
           color: "var(--c-text-primary)",
         }}
       >
-        Train one <span style={serifStyle}>section</span> at a time.
+        Train one <span className="ds-grad-text" style={serifStyle}>section</span> at a time.
       </h1>
       <p
         style={{

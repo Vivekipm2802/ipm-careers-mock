@@ -106,7 +106,7 @@ const eyebrowStyle = {
   color: "var(--c-text-tertiary)",
 };
 const serifStyle = {
-  fontFamily: "'Instrument Serif', serif",
+  fontFamily: "var(--font-accent)",
   fontStyle: "italic",
   fontWeight: 400,
   color: "var(--c-brand-primary)",
@@ -596,7 +596,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
           color: "var(--c-text-primary)",
         }}
       >
-        Sit a <span style={serifStyle}>full mock</span>.
+        Sit a <span className="ds-grad-text" style={serifStyle}>full mock</span>.
       </h1>
       {/* Phase 15 Ship A.4: lead paragraph restored to match the approved hybrid preview. */}
       <p

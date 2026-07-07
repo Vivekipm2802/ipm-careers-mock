@@ -334,3 +334,17 @@ html[data-theme="dark"] { --c-stat-grad: linear-gradient(160deg, #FFEDC9, #FFBE5
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+
+/* Gold retheme ship 2.2 — animated gradient accent text */
+:root { --c-accent-grad: linear-gradient(110deg, #B8730A 20%, #8A5A0C 42%, #D0942F 50%, #8A5A0C 58%, #B8730A 80%); }
+html[data-theme="dark"] { --c-accent-grad: linear-gradient(110deg, #FFBE5C 20%, #F9A01B 42%, #FFE9C4 50%, #F9A01B 58%, #FFBE5C 80%); }
+.ds-grad-text {
+  background: var(--c-accent-grad);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: dsSheen 5.5s linear infinite;
+}
+@keyframes dsSheen { to { background-position: -220% 0; } }

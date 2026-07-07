@@ -203,7 +203,7 @@ export default function ConceptTestStudent({ group, onBack, role }) {
           color: "var(--c-text-primary)", lineHeight: 1.15,
         }}>
           Master each topic,{" "}
-          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+          <span className="ds-grad-text" style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400 }}>
             one concept
           </span>{" "}
           at a time.

@@ -175,10 +175,7 @@ export default function Dashboard({ userData }) {
           }}
         >
           Welcome back,{" "}
-          <span
-            className="ds-accent"
-            style={{ color: "var(--c-brand-primary)" }}
-          >
+          <span className="ds-accent ds-grad-text">
             {firstName}.
           </span>
         </h1>
