@@ -178,6 +178,7 @@ const ClassDashboard = ({ classes }) => {
                       as={Link}
                       href={`${item.url}`}
                       color="primary"
+                      variant={status === "ongoing" ? "solid" : "flat"}
                       target="_blank"
                       size="sm"
                       isDisabled={status !== "ongoing"}
