@@ -65,13 +65,13 @@ function DefaultLayout(props){
         {sideBarContent}
       </div>
 
-      {/* Phase 16 Ship C: sidebar width is dynamic — 76px collapsed, 350px expanded. Smooth transition. */}
+      {/* Phase 16 Ship C: sidebar width is dynamic — 76px collapsed, 240px expanded. Smooth transition. */}
       <div
         className={styles.left + " " + styles.gamecontainer + " shadow-xl px-2"}
         style={{
           background: 'var(--c-surface)',
           borderRight: '1px solid var(--c-border-faint)',
-          width: sidebarCollapsed ? 76 : 350,
+          width: sidebarCollapsed ? 76 : 240,
           transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >

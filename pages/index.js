@@ -1985,7 +1985,7 @@ export default function Home(props) {
                 <DropdownTrigger>
                   <div
                     className={
-                      "fixed top-4 right-4 border-2 border-primary rounded-full lg:flex hidden group"
+                      "fixed top-3 right-4 rounded-full lg:flex hidden group"
                     }
                   >
                     <div className=" absolute left-0 top-0 w-full h-full bg-primary rounded-full scale-100 group-hover:scale-150 opacity-0 group-hover:opacity-25 transition-all"></div>
@@ -2000,26 +2000,13 @@ export default function Home(props) {
                     ) : (
                       ""
                     )}
-                    {userData?.user_metadata?.profile_pic ? (
-                      ""
-                    ) : (
-                      <div className="absolute top-0 left-0 w-3 h-3 z-10  rounded-full p-0">
-                        <div
-                          className="w-full -z-[1]  animate-ping rounded-full h-full bg-red-500"
-                          width={14}
-                        />
-                        <div
-                          className="w-full -z-[1]   rounded-full h-full bg-red-500 absolute left-0 top-0"
-                          width={14}
-                        />
-                      </div>
-                    )}
                     <Avatar
-                      size="xl"
-                      className="w-12 h-12"
+                      color="primary"
+                      name={(userData?.user_metadata?.full_name || "S").charAt(0)}
+                      className="w-[38px] h-[38px] text-[14px] font-semibold"
                       src={
-                        convertToWebP(userData?.user_metadata?.profile_pic) ??
-                        "/defprofile.svg"
+                        convertToWebP(userData?.user_metadata?.profile_pic) ||
+                        undefined
                       }
                     ></Avatar>
                   </div>

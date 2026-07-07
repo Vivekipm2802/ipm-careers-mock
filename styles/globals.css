@@ -168,8 +168,6 @@ html, body {
 .mdl { z-index: 99999999999999; }
 .swiper-wrapper { transition: 0.5s cubic-bezier(0.075, 0.82, 0.165, 1) !important; }
 
-::-webkit-scrollbar { width: 4px; }
-
 .nextui-tooltip-button { width: 100%; }
 
 .embed-container {
@@ -198,17 +196,6 @@ html, body {
 
 .swiper-pagination-bullet-active { background-color: var(--brand-col1) !important; }
 
-::-webkit-scrollbar-track { background: #f1f1f1; }
-::-webkit-scrollbar-thumb {
-  border-radius: 200px;
-  background: var(--brand-col2);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-::-webkit-scrollbar-thumb:hover {
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  background: var(--brand-col1);
-}
-html[data-theme="dark"] ::-webkit-scrollbar-track { background: #18181A; }
 
 .allwhite text { fill: white; }
 .allwhite line { stroke: white; }
@@ -337,17 +324,14 @@ html[data-theme="dark"] { --c-stat-grad: linear-gradient(160deg, #FFEDC9, #FFBE5
 
 
 /* Gold retheme ship 2.2 — animated gradient accent text */
-:root { --c-accent-grad: linear-gradient(110deg, #B8730A 20%, #8A5A0C 42%, #D0942F 50%, #8A5A0C 58%, #B8730A 80%); }
-html[data-theme="dark"] { --c-accent-grad: linear-gradient(110deg, #FFBE5C 20%, #F9A01B 42%, #FFE9C4 50%, #F9A01B 58%, #FFBE5C 80%); }
+:root { --c-accent-grad: linear-gradient(110deg, #FFBE5C 20%, #F9A01B 55%, #E08E15 80%); }
+html[data-theme="dark"] { --c-accent-grad: linear-gradient(110deg, #FFBE5C 20%, #F9A01B 55%, #E08E15 80%); }
 .ds-grad-text {
   background: var(--c-accent-grad);
-  background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: dsSheen 5.5s linear infinite;
 }
-@keyframes dsSheen { to { background-position: -220% 0; } }
 
 
 /* Gold retheme ship 2.3 — theme-aware mock banner */
