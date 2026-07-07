@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap');
+/* Gold retheme — Fraunces + amber tokens */
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
@@ -11,20 +13,20 @@
 
 :root {
   /* ── Brand ── */
-  --c-brand-primary:      #6E2B73;
-  --c-brand-primary-soft: #B17BB6;
-  --c-brand-primary-tint: #F4ECF5;
+  --c-brand-primary:      #C48425;
+  --c-brand-primary-soft: #DDA032;
+  --c-brand-primary-tint: #F8EFDD;
   --c-brand-gold:         #E89B0F;
   --c-brand-gold-soft:    #FFB627;
   --c-brand-gold-tint:    #FDF3DA;
 
   /* ── Surfaces ── */
-  --c-bg:                 #F5F5F7;
+  --c-bg:                 #F8F5EE;
   --c-bg-elevated:        #FFFFFF;
   --c-bg-overlay:         rgba(255,255,255,0.72);
   --c-surface:            #FFFFFF;
-  --c-surface-muted:      #FAFAFB;
-  --c-surface-sunken:     #F0F0F2;
+  --c-surface-muted:      #FBF9F3;
+  --c-surface-sunken:     #F2EEE4;
 
   /* ── Text ── */
   --c-text-primary:       #1D1D1F;
@@ -57,8 +59,8 @@
   --c-r-sm: 10px; --c-r-md: 14px; --c-r-lg: 20px; --c-r-xl: 28px;
 
   /* ── Type ── */
-  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-  --font-accent:  'Instrument Serif', Georgia, serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-accent:  'Fraunces', 'Instrument Serif', Georgia, serif;
 
   /* Legacy tokens kept as-is for existing screens */
   --max-width: 1100px;
@@ -82,14 +84,14 @@
 
 /* Dark mode overrides */
 html[data-theme="dark"] {
-  --c-brand-primary:      #C896CD;
-  --c-brand-primary-soft: #6E2B73;
-  --c-brand-primary-tint: rgba(177,123,182,0.16);
+  --c-brand-primary:      #FFB347;
+  --c-brand-primary-soft: #C48425;
+  --c-brand-primary-tint: rgba(255,179,71,0.14);
   --c-brand-gold:         #FFB627;
   --c-brand-gold-soft:    #E89B0F;
   --c-brand-gold-tint:    rgba(255,182,39,0.14);
 
-  --c-bg:                 #000000;
+  --c-bg:                 #050507;
   --c-bg-elevated:        #0E0E10;
   --c-bg-overlay:         rgba(28,28,30,0.78);
   --c-surface:            #1C1C1E;
@@ -132,7 +134,7 @@ html, body {
 }
 
 /* Utility helpers for new design system */
-.ds-display { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.025em; }
+.ds-display { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.02em; font-optical-sizing: auto; }
 .ds-accent  { font-family: var(--font-accent); font-style: italic; font-weight: 400; }
 .ds-card {
   background: var(--c-surface);
