@@ -92,8 +92,8 @@ const TOPICS = [
     key: "quant",
     label: "Quant",
     full: "Quantitative Ability",
-    gradient: "linear-gradient(135deg, #4C2B91 0%, #7C3AED 60%, #A78BFA 100%)",
-    accent: "#A78BFA",
+    gradient: "linear-gradient(135deg, #78350F 0%, #B45309 60%, #E7A33E 100%)",
+    accent: "#E7A33E",
     icon: "𝒙²",
   },
   {
@@ -595,7 +595,7 @@ const Selector = ({ type, onSelect, role, title }) => {
           color: "var(--c-text-primary)",
         }}
       >
-        Watch and <span style={serifStyle}>{heroCopy.accent}</span>.
+        Watch and <span className="ds-grad-text" style={serifStyle}>{heroCopy.accent}</span>.
       </h1>
       <p
         style={{
@@ -1063,7 +1063,7 @@ function ContinueWatchingCard({
         overflow: "hidden",
         aspectRatio: "16 / 9",
         background:
-          "linear-gradient(135deg, #2D1B69 0%, #7C3AED 50%, #C084FC 100%)",
+          "linear-gradient(135deg, #3A2C14 0%, #8A5A0C 55%, #DDA032 100%)",
         cursor: "pointer",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
         boxShadow: "0 14px 28px -18px rgba(124, 58, 237, 0.45)",
@@ -1251,7 +1251,7 @@ function FeaturedPackCard({ pack, onAccess, label }) {
         aspectRatio: "16 / 9",
         background: pack.image
           ? `url(${pack.image}) center/cover`
-          : "linear-gradient(135deg, #2D1B69 0%, #7C3AED 50%, #C084FC 100%)",
+          : "linear-gradient(135deg, #3A2C14 0%, #8A5A0C 55%, #DDA032 100%)",
         boxShadow: "0 4px 24px -8px rgba(0,0,0,0.18)",
       }}
     >

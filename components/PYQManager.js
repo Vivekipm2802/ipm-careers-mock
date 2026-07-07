@@ -1176,7 +1176,7 @@ function Shelf({ exams, meta, onPick }) {
             textAlign: "left",
           }}
         >
-          Every past paper, every <span style={serif}>exam</span>.
+          Every past paper, every <span className="ds-grad-text" style={serif}>exam</span>.
         </h1>
         <p style={{ margin: "18px 0 0", fontSize: 16.5, lineHeight: 1.55, color: "var(--c-text-secondary)", maxWidth: "62ch", textAlign: "left" }}>
           Browse questions by year, topic, or difficulty. Open an exam to drill into its bank.
@@ -1999,9 +1999,10 @@ function QuestionReader({
                 maxWidth: "100%",
                 width: "auto",
                 maxHeight: 520,
-                borderRadius: 10,
+                borderRadius: 12,
                 border: "1px solid var(--c-border-faint)",
-                background: "var(--c-bg-elev)",
+                background: "#fff",
+                padding: 14,
                 display: "block",
                 objectFit: "contain",
               }}

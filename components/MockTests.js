@@ -630,6 +630,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
               background:
                 "var(--c-mock-banner)",
               color: "var(--c-mock-banner-text)",
+              border: "1px solid var(--c-mock-banner-line)",
               borderRadius: 16,
               padding: "18px 20px",
               position: "relative",
@@ -701,6 +702,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
               background:
                 "var(--c-mock-banner)",
               color: "var(--c-mock-banner-text)",
+              border: "1px solid var(--c-mock-banner-line)",
               borderRadius: 16,
               padding: "18px 20px",
               position: "relative",

@@ -298,6 +298,7 @@ export default function Dashboard({ userData }) {
               style={{
                 background: "var(--c-mock-banner)",
                 color: "var(--c-mock-banner-text)",
+                border: "1px solid var(--c-mock-banner-line)",
                 padding: "20px 24px",
               }}
             >

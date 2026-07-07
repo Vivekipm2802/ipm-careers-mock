@@ -357,11 +357,13 @@ html[data-theme="dark"] { --c-accent-grad: linear-gradient(110deg, #FFBE5C 20%, 
   --c-mock-banner-soft: rgba(74, 51, 8, 0.72);
   --c-mock-banner-btn-bg: #C48425;
   --c-mock-banner-btn-fg: #FFFFFF;
+  --c-mock-banner-line: rgba(216, 138, 15, 0.5);
 }
 html[data-theme="dark"] {
-  --c-mock-banner: linear-gradient(135deg, #C48425 0%, #7A4E08 100%);
-  --c-mock-banner-text: #FFFFFF;
-  --c-mock-banner-soft: rgba(255, 255, 255, 0.72);
-  --c-mock-banner-btn-bg: rgba(255, 255, 255, 0.92);
-  --c-mock-banner-btn-fg: #5C3D0F;
+  --c-mock-banner: linear-gradient(115deg, #3A2C14, #57390F 55%, #6E4A10);
+  --c-mock-banner-text: #FFE9C4;
+  --c-mock-banner-soft: rgba(255, 233, 196, 0.72);
+  --c-mock-banner-btn-bg: linear-gradient(150deg, #FFBE5C, #F9A01B);
+  --c-mock-banner-btn-fg: #0B0B0C;
+  --c-mock-banner-line: rgba(249, 160, 27, 0.4);
 }
