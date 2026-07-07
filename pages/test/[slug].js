@@ -475,7 +475,7 @@ const Game = () => {
           color: "var(--c-text-primary)", margin: "0 0 8px",
         }}>
           Saving your{" "}
-          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+          <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
             result
           </span>…
         </h1>
@@ -507,7 +507,7 @@ const Game = () => {
           color: "var(--c-text-primary)", margin: "0 0 10px", lineHeight: 1.2,
         }}>
           You&apos;ve already taken this{" "}
-          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+          <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
             test
           </span>.
         </h1>
@@ -587,7 +587,7 @@ const Game = () => {
               color: "var(--c-text-primary)", lineHeight: 1.2,
             }}>
               Submit your{" "}
-              <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+              <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
                 test
               </span>?
             </h2>
@@ -704,7 +704,7 @@ const Game = () => {
                   {/* Page title with serif accent */}
                   <h1 style={{ margin: "0 0 10px", fontSize: 32, fontWeight: 600, letterSpacing: "-0.022em", color: "var(--c-text-primary)", lineHeight: 1.15 }}>
                     Hi{" "}
-                    <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                    <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
                       {userDetails?.user_metadata?.full_name?.split(" ")[0] || "there"}
                     </span>
                     , let&apos;s begin.

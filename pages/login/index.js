@@ -224,6 +224,31 @@ function Login() {
           </ModalContent>
         </Modal>
 
+        {/* ── Brand panel (desktop) — matches ipmcareer.com's gold editorial look ── */}
+        <div className={styles.brandSide}>
+          <a className={styles.brandLogo} href="https://ipmcareer.com/">
+            <img src="/newlog.svg" alt="IPM Careers — Run by IIM Alumni" />
+          </a>
+          <div className={styles.brandCopy}>
+            <div className={styles.brandEyebrow}>IPM Careers Study Panel</div>
+            <h2 className={styles.brandH}>
+              Your daily reps toward <span className={styles.brandIt}>an IIM seat.</span>
+            </h2>
+            <p className={styles.brandP}>
+              Full-length mocks, concept tests, sectional drills and Daily Learn — with
+              in-depth analysis after every attempt.
+            </p>
+            <ul className={styles.brandPoints}>
+              <li>Mocks for IPMAT Indore, Rohtak, JIPMAT &amp; IIM Bangalore UG</li>
+              <li>Daily QA, VA &amp; LR quizzes with current affairs</li>
+              <li>Topper benchmarking on every performance report</li>
+            </ul>
+          </div>
+          <div className={styles.brandFoot}>
+            Trusted by <b>5000+ aspirants</b> · study.ipmcareer.com
+          </div>
+        </div>
+
         <div className={styles.wrap}>
           <div className={`${styles.card} ${!isSignUp ? styles.cardCompact : ""}`}>
             <img className={styles.logo} src="/newlog.svg" alt="IPM Careers" />

@@ -1081,7 +1081,7 @@ const MockTest = ({
           color: "var(--c-text-primary)", margin: "0 0 8px",
         }}>
           Saving your{" "}
-          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+          <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
             result
           </span>…
         </h1>
@@ -1137,7 +1137,7 @@ const MockTest = ({
               color: "var(--c-text-primary)", lineHeight: 1.2,
             }}>
               Submit your{" "}
-              <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+              <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
                 mock
               </span>?
             </h2>
@@ -1341,7 +1341,7 @@ const MockTest = ({
                         </div>
                         <h1 style={{ margin: "0 0 10px", fontSize: 32, fontWeight: 600, letterSpacing: "-0.022em", color: "var(--c-text-primary)", lineHeight: 1.15 }}>
                           Read the{" "}
-                          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                          <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
                             instructions
                           </span>{" "}
                           carefully.
@@ -1386,7 +1386,7 @@ const MockTest = ({
                         </div>
                         <h1 style={{ margin: "0 0 10px", fontSize: 32, fontWeight: 600, letterSpacing: "-0.022em", color: "var(--c-text-primary)", lineHeight: 1.15 }}>
                           Marking scheme &amp;{" "}
-                          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                          <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
                             palette
                           </span>
                           .

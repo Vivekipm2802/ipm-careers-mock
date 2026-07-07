@@ -307,7 +307,7 @@ if(userDetails == undefined || questions == undefined ){
                   </div>
                   <h1 style={{ margin: "0 0 10px", fontSize: 32, fontWeight: 600, letterSpacing: "-0.022em", color: "var(--c-text-primary)", lineHeight: 1.15 }}>
                     Hi{" "}
-                    <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+                    <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
                       {userDetails?.user_metadata?.full_name?.split(" ")[0] || "there"}
                     </span>
                     , let&apos;s learn.
@@ -600,7 +600,7 @@ if(userDetails == undefined || questions == undefined ){
                   Your score
                 </div>
                 <h1 style={{ fontSize: 64, fontWeight: 600, letterSpacing: "-0.03em", color: "var(--c-text-primary)", lineHeight: 1, margin: 0, fontVariantNumeric: "tabular-nums" }}>
-                  <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>{score}</span>
+                  <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>{score}</span>
                 </h1>
 
                 {report && report.filter((item) => item.isCorrect == true).length > questions.length / 2 ? (

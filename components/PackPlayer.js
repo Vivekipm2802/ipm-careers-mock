@@ -43,7 +43,7 @@ const eyebrowStyle = {
 };
 
 const serifStyle = {
-  fontFamily: "'Instrument Serif', serif",
+  fontFamily: "var(--font-accent)",
   fontStyle: "italic",
   fontWeight: 400,
   color: "var(--c-brand-primary)",
@@ -720,7 +720,7 @@ function ChapterAccordion({
               >
                 <span
                   style={{
-                    fontFamily: "'Instrument Serif', serif",
+                    fontFamily: "var(--font-accent)",
                     fontStyle: "italic",
                     fontSize: 14,
                     width: 18,

@@ -2370,7 +2370,7 @@ const eyebrow = {
   textTransform: "uppercase", color: "var(--c-text-tertiary)",
 };
 const serif = {
-  fontFamily: "'Instrument Serif', serif", fontStyle: "italic",
+  fontFamily: "var(--font-accent)", fontStyle: "italic",
   color: "var(--c-brand-primary)", fontWeight: 400,
 };
 const grid = {

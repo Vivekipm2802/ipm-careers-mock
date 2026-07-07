@@ -80,7 +80,7 @@ const eyebrowStyle = {
 };
 
 const serifStyle = {
-  fontFamily: "'Instrument Serif', serif",
+  fontFamily: "var(--font-accent)",
   fontStyle: "italic",
   fontWeight: 400,
   color: "var(--c-brand-primary)",

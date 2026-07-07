@@ -390,7 +390,7 @@ function TopicCard({ cat, subs, testCount, attemptedCount, progressPct, progress
           </svg>
           <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
             <span style={{
-              fontFamily: "'Instrument Serif', serif",
+              fontFamily: "var(--font-accent)",
               fontStyle: "italic", fontSize: 26, fontWeight: 400,
               color: numColor,
               lineHeight: 1, letterSpacing: "-0.01em",

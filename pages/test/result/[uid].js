@@ -215,7 +215,7 @@ const ResultPage = ({ result, questions, leaderboard }) => {
             <div style={eyebrowStyle}>Test result · Concept test · {testTitle}</div>
             <h1 style={{ fontSize: 64, fontWeight: 600, letterSpacing: "-0.03em", color: "var(--c-text-primary)", lineHeight: 1, margin: 0, fontVariantNumeric: "tabular-nums" }}>
               You scored{" "}
-              <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+              <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
                 {Math.max(0, score)}
               </span>
             </h1>

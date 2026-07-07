@@ -33,7 +33,7 @@ const eyebrowStyle = {
 };
 
 const serifStyle = {
-  fontFamily: "'Instrument Serif', serif",
+  fontFamily: "var(--font-accent)",
   fontStyle: "italic",
   fontWeight: 400,
   color: "var(--c-brand-primary)",
@@ -711,7 +711,7 @@ function ClassRow({ classItem, attended }) {
         >
           <div
             style={{
-              fontFamily: "'Instrument Serif', serif",
+              fontFamily: "var(--font-accent)",
               fontStyle: "italic",
               fontSize: 22,
               lineHeight: 1,
@@ -881,7 +881,7 @@ function CapsuleRow({ item, isReviewed, onClick }) {
         >
           <div
             style={{
-              fontFamily: "'Instrument Serif', serif",
+              fontFamily: "var(--font-accent)",
               fontStyle: "italic",
               fontSize: 22,
               lineHeight: 1,

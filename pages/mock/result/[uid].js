@@ -312,7 +312,7 @@ export default function MockResult({ result }) {
             <div style={eyebrowStyle}>Test result · {stats.perSection.length > 1 ? "Full mock" : "Sectional test"}</div>
             <h1 style={{ fontSize: 64, fontWeight: 600, letterSpacing: "-0.03em", color: "var(--c-text-primary)", lineHeight: 1, margin: 0, fontVariantNumeric: "tabular-nums" }}>
               You scored{" "}
-              <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+              <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
                 {Math.max(0, stats.totalScore)}
               </span>
             </h1>
