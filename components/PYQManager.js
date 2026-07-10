@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Button,
   Card,
@@ -48,6 +48,11 @@ const QuillWrapper = dynamic(() => import("@/components/QuillSSRWrapper"), {
 });
 
 const FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
+
+// Supabase returns ids as string OR number depending on the query path.
+// Always compare through this helper so filter/select logic never silently
+// misses on a string-vs-number mismatch.
+const sameId = (a, b) => String(a) === String(b);
 
 const ACCENT_MAP = {
   amber: { c: "#D97706", soft: "rgba(217,119,6,0.08)" },
@@ -139,6 +144,24 @@ export default function PYQManager({
     dataLoaded,
   ]);
 
+  // Debounced live search — refetch shortly after typing stops so the search
+  // box feels responsive. Enter (onSearchSubmit) still triggers an instant
+  // fetch. skip-first ref avoids a redundant fetch on initial mount / exam open
+  // (the filter effect above already covers that path).
+  const searchInit = useRef(true);
+  useEffect(() => {
+    if (searchInit.current) {
+      searchInit.current = false;
+      return;
+    }
+    if (!selectedExam || !dataLoaded) return;
+    const t = setTimeout(() => {
+      fetchQuestions();
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
+
   // Reset reader state when question changes
   useEffect(() => {
     setPickedOptionIdx(null);
@@ -213,12 +236,15 @@ export default function PYQManager({
 
       if (topicFilter != null) {
         const tid = typeof topicFilter === "string" ? parseInt(topicFilter, 10) : topicFilter;
-        const { data: qt } = await supabase
+        const { data: qt, error: qtErr } = await supabase
           .from("pyq_question_topics")
           .select("question_id")
           .eq("topic_id", tid);
-        const qIds = new Set((qt || []).map((r) => r.question_id));
-        filtered = filtered.filter((q) => qIds.has(q.id));
+        if (qtErr) throw qtErr;
+        // question_id may be string or number depending on path — normalize
+        // both sides or the Set membership silently drops every row.
+        const qIds = new Set((qt || []).map((r) => String(r.question_id)));
+        filtered = filtered.filter((q) => qIds.has(String(q.id)));
       }
 
       if (searchQuery && searchQuery.trim().length > 0) {
@@ -228,17 +254,30 @@ export default function PYQManager({
         );
       }
 
-      // Hydrate with topics
-      const withTopics = await Promise.all(
-        filtered.map(async (q) => {
-          const { data: rel } = await supabase
-            .from("pyq_question_topics")
-            .select("topic_id")
-            .eq("question_id", q.id);
-          const tIds = (rel || []).map((r) => r.topic_id);
-          return { ...q, topics: topics.filter((t) => tIds.includes(t.id)) };
-        }),
-      );
+      // Hydrate with topics — single batched query keyed by question id.
+      // (Was N+1: one round-trip per question.) Empty guard avoids a malformed
+      // .in() call when nothing matched the filters.
+      let withTopics = filtered.map((q) => ({ ...q, topics: [] }));
+      if (filtered.length > 0) {
+        const qIdList = filtered.map((q) => q.id);
+        const { data: rels, error: relErr } = await supabase
+          .from("pyq_question_topics")
+          .select("question_id, topic_id")
+          .in("question_id", qIdList);
+        if (relErr) throw relErr;
+        const topicById = new Map(topics.map((t) => [String(t.id), t]));
+        const byQuestion = new Map();
+        (rels || []).forEach((r) => {
+          const key = String(r.question_id);
+          if (!byQuestion.has(key)) byQuestion.set(key, []);
+          const t = topicById.get(String(r.topic_id));
+          if (t) byQuestion.get(key).push(t);
+        });
+        withTopics = filtered.map((q) => ({
+          ...q,
+          topics: byQuestion.get(String(q.id)) || [],
+        }));
+      }
 
       setQuestions(withTopics);
     } catch (e) {
@@ -291,9 +330,13 @@ export default function PYQManager({
       if (error) throw error;
       const newId = data?.[0]?.id;
       if (newId && selectedTopics.length > 0) {
-        await supabase.from("pyq_question_topics").insert(
+        const { error: linkErr } = await supabase.from("pyq_question_topics").insert(
           selectedTopics.map((tid) => ({ question_id: newId, topic_id: tid })),
         );
+        if (linkErr) {
+          console.error("Error saving topic tags:", linkErr);
+          alert("Question saved, but topic tags failed to save. Re-open the question and re-apply topics.");
+        }
       }
       setNewQuestion({
         question: "",
@@ -352,19 +395,24 @@ export default function PYQManager({
         })
         .eq("id", editingQuestion.id);
       if (qErr) throw qErr;
-      await supabase
+      const { error: delErr } = await supabase
         .from("pyq_question_topics")
         .delete()
         .eq("question_id", editingQuestion.id);
+      if (delErr) throw delErr;
       if (selectedTopics.length > 0) {
-        await supabase.from("pyq_question_topics").insert(
+        const { error: linkErr } = await supabase.from("pyq_question_topics").insert(
           selectedTopics.map((tid) => ({
             question_id: editingQuestion.id,
             topic_id: tid,
           })),
         );
+        if (linkErr) {
+          console.error("Error saving topic tags:", linkErr);
+          alert("Question updated, but topic tags failed to save. Re-open the question and re-apply topics.");
+        }
       }
-      if (selectedQuestion && selectedQuestion.id === editingQuestion.id) {
+      if (selectedQuestion && sameId(selectedQuestion.id, editingQuestion.id)) {
         setSelectedQuestion({
           ...editingQuestion,
           topics: topics.filter((t) => selectedTopics.includes(t.id)),
@@ -422,11 +470,30 @@ export default function PYQManager({
   };
 
   const handleDeleteTopic = async (topicId) => {
-    if (!confirm("Are you sure you want to delete this topic?")) return;
+    // Count how many questions currently carry this tag so the admin knows
+    // exactly what a delete strips — this is a cascading, irreversible action.
+    let affected = 0;
     try {
-      await supabase.from("pyq_question_topics").delete().eq("topic_id", topicId);
-      await supabase.from("pyq_topics").delete().eq("id", topicId);
+      const { count } = await supabase
+        .from("pyq_question_topics")
+        .select("question_id", { count: "exact", head: true })
+        .eq("topic_id", topicId);
+      affected = count || 0;
+    } catch {
+      /* fall through — warn generically if the count lookup fails */
+    }
+    const msg =
+      affected > 0
+        ? `Delete this topic? It is tagged on ${affected} question${affected === 1 ? "" : "s"} — those tags will be removed. This cannot be undone.`
+        : "Delete this topic? This cannot be undone.";
+    if (!confirm(msg)) return;
+    try {
+      const { error: relErr } = await supabase.from("pyq_question_topics").delete().eq("topic_id", topicId);
+      if (relErr) throw relErr;
+      const { error: topErr } = await supabase.from("pyq_topics").delete().eq("id", topicId);
+      if (topErr) throw topErr;
       fetchTopics();
+      fetchQuestions();
     } catch (e) {
       console.error("Error deleting topic:", e);
       alert("Failed to delete topic.");
@@ -469,24 +536,26 @@ export default function PYQManager({
   };
   const removeMCQOption = (idx, editing = false) => {
     if (editing && editingQuestion) {
+      const opts = Array.isArray(editingQuestion.options) ? editingQuestion.options : [];
       setEditingQuestion({
         ...editingQuestion,
-        options: editingQuestion.options.filter((_, i) => i !== idx),
+        options: opts.filter((_, i) => i !== idx),
       });
     } else {
+      const opts = Array.isArray(newQuestion.options) ? newQuestion.options : [];
       setNewQuestion({
         ...newQuestion,
-        options: newQuestion.options.filter((_, i) => i !== idx),
+        options: opts.filter((_, i) => i !== idx),
       });
     }
   };
   const updateMCQOption = (idx, field, val, editing = false) => {
     if (editing && editingQuestion) {
-      const opts = [...editingQuestion.options];
+      const opts = Array.isArray(editingQuestion.options) ? [...editingQuestion.options] : [];
       opts[idx] = { ...opts[idx], [field]: val };
       setEditingQuestion({ ...editingQuestion, options: opts });
     } else {
-      const opts = [...newQuestion.options];
+      const opts = Array.isArray(newQuestion.options) ? [...newQuestion.options] : [];
       opts[idx] = { ...opts[idx], [field]: val };
       setNewQuestion({ ...newQuestion, options: opts });
     }
@@ -1391,9 +1460,14 @@ function Library({
   useEffect(() => {
     if (!selectedQuestion && questions.length > 0) {
       setSelectedQuestion(questions[0]);
+      return;
     }
-    if (selectedQuestion && !questions.find((q) => q.id === selectedQuestion.id)) {
-      setSelectedQuestion(questions[0] || null);
+    if (selectedQuestion) {
+      // Re-bind to the freshly fetched row (hydrated topics + DB-normalized
+      // fields) so the reader never shows a stale copy after an edit/refetch.
+      const fresh = questions.find((q) => sameId(q.id, selectedQuestion.id));
+      if (fresh && fresh !== selectedQuestion) setSelectedQuestion(fresh);
+      else if (!fresh) setSelectedQuestion(questions[0] || null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions]);
