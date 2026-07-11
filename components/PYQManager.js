@@ -1238,10 +1238,12 @@ function Shelf({ exams, meta, onPick }) {
         <h1
           style={{
             margin: 0,
-            fontSize: "clamp(38px, 5.2vw, 54px)",
-            fontWeight: 700,
-            letterSpacing: "-0.02em",
-            lineHeight: 1.05,
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(36px, 4.8vw, 52px)",
+            fontWeight: 500,
+            letterSpacing: "-0.018em",
+            lineHeight: 1.06,
+            color: "var(--c-text-primary)",
             textAlign: "left",
           }}
         >
@@ -1294,7 +1296,7 @@ function SectionHead({ title, right, muted }) {
         borderBottom: "1px solid var(--c-border-faint)",
       }}
     >
-      <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, letterSpacing: "-0.005em", color: muted ? "var(--c-text-tertiary)" : "var(--c-text-primary)" }}>
+      <h2 style={{ margin: 0, fontSize: 12.5, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: muted ? "var(--c-text-tertiary)" : "var(--c-brand-gold)" }}>
         {title}
       </h2>
       {right && (
@@ -1350,7 +1352,7 @@ function ExamCard({ exam, meta, onClick, soon }) {
               {exam.org}
             </div>
           )}
-          <h3 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 600, letterSpacing: "-0.012em", color: soon ? "var(--c-text-secondary)" : "var(--c-text-primary)" }}>
+          <h3 style={{ margin: "0 0 6px", fontFamily: "var(--font-display)", fontSize: soon ? 20 : 24, fontWeight: 500, letterSpacing: "-0.012em", color: soon ? "var(--c-text-secondary)" : "var(--c-text-primary)" }}>
             {exam.name}
           </h3>
         </div>
@@ -1380,10 +1382,10 @@ function ExamCard({ exam, meta, onClick, soon }) {
       )}
 
       {!soon ? (
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: "var(--c-text-tertiary)", marginBottom: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <span><b style={{ color: "var(--c-text-primary)" }}>{(meta?.count || 0).toLocaleString()}</b> questions</span>
-          <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor", opacity: 0.4 }} />
-          <span><b style={{ color: "var(--c-text-primary)" }}>{yrRange}</b></span>
+        <div style={{ marginBottom: 14, display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+          <span className="ds-stat-value" style={{ fontSize: 24, lineHeight: 1 }}>{(meta?.count || 0).toLocaleString()}</span>
+          <span style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>questions</span>
+          <span style={{ marginLeft: "auto", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--c-text-tertiary)" }}>{yrRange}</span>
         </div>
       ) : (
         <div style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", marginBottom: 12, lineHeight: 1.5 }}>
@@ -1394,7 +1396,7 @@ function ExamCard({ exam, meta, onClick, soon }) {
       {exam.sections && exam.sections.length > 0 && (
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
           {exam.sections.map((s) => (
-            <span key={s} style={{ fontSize: 10.5, fontWeight: 500, color: "var(--c-text-tertiary)", background: "var(--c-bg-elev)", border: "1px solid var(--c-border-faint)", borderRadius: 4, padding: "2px 7px" }}>
+            <span key={s} style={{ fontSize: 10.5, fontWeight: 600, color: soon ? "var(--c-text-tertiary)" : "var(--c-brand-gold)", background: soon ? "var(--c-bg-elev)" : "var(--c-brand-gold-tint)", border: soon ? "1px solid var(--c-border-faint)" : "1px solid transparent", borderRadius: 6, padding: "3px 9px" }}>
               {s}
             </span>
           ))}
@@ -1407,7 +1409,7 @@ function ExamCard({ exam, meta, onClick, soon }) {
             <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)", fontStyle: "italic" }}>Not yet available</span>
             <button
               onClick={(e) => e.stopPropagation()}
-              style={{ background: "transparent", border: "1px solid var(--c-border-soft)", color: "var(--c-text-secondary)", padding: "5px 11px", borderRadius: 6, fontFamily: "inherit", fontSize: 11.5, fontWeight: 500, cursor: "pointer" }}
+              style={{ background: "transparent", border: "1px solid var(--c-mock-banner-line)", color: "var(--c-brand-gold)", padding: "6px 14px", borderRadius: 999, fontFamily: "inherit", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
             >
               Notify me
             </button>
@@ -1415,7 +1417,7 @@ function ExamCard({ exam, meta, onClick, soon }) {
         ) : (
           <>
             <span />
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--c-text-primary)" }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", borderRadius: 999, padding: "9px 20px" }}>
               Open library →
             </span>
           </>
@@ -1487,7 +1489,7 @@ function Library({
             <span style={{ margin: "0 6px" }}>·</span>
             <span style={{ color: accent.c }}>{exam.org || "Practice bank"}</span>
           </div>
-          <h1 style={{ margin: 0, fontSize: 17, fontWeight: 600, letterSpacing: "-0.014em" }}>
+          <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: 30, fontWeight: 500, letterSpacing: "-0.015em", color: "var(--c-text-primary)" }}>
             {exam.name}
           </h1>
         </div>
@@ -1496,10 +1498,10 @@ function Library({
             onClick={() => setPracticeMode(!practiceMode)}
             style={{
               display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "6px 12px", borderRadius: 8,
+              padding: "7px 15px", borderRadius: 999,
               border: practiceMode ? "none" : "1px solid var(--c-border-faint)",
-              background: practiceMode ? "var(--c-text-primary)" : "transparent",
-              color: practiceMode ? "var(--c-bg)" : "var(--c-text-secondary)",
+              background: practiceMode ? "var(--c-mock-banner-btn-bg)" : "transparent",
+              color: practiceMode ? "var(--c-mock-banner-btn-fg)" : "var(--c-text-secondary)",
               fontFamily: "inherit", fontSize: 12, fontWeight: 500, cursor: "pointer",
             }}
           >
@@ -1551,7 +1553,6 @@ function Library({
               borderBottom: "1px solid var(--c-border-faint)",
               fontSize: 12,
               color: "var(--c-text-tertiary)",
-              fontFamily: "'JetBrains Mono', monospace",
               fontWeight: 500,
               display: "flex",
               justifyContent: "space-between",
@@ -2180,9 +2181,9 @@ function QuestionReader({
             <button
               onClick={() => setRevealed(true)}
               style={{
-                fontSize: 13, fontWeight: 600, color: "#fff",
-                background: "var(--c-text-primary)", border: 0, borderRadius: 8,
-                padding: "9px 16px", cursor: "pointer", fontFamily: "inherit",
+                fontSize: 13, fontWeight: 600, color: "var(--c-mock-banner-btn-fg)",
+                background: "var(--c-mock-banner-btn-bg)", border: 0, borderRadius: 999,
+                padding: "10px 20px", cursor: "pointer", fontFamily: "inherit",
               }}
             >
               Show answer &amp; solution
@@ -2253,7 +2254,7 @@ function QuestionReader({
                 onKeyDown={(e) => { if (e.key === "Enter") setRevealed(true); }}
                 style={{
                   flex: 1, background: "transparent", border: 0, outline: 0,
-                  fontFamily: "'JetBrains Mono', monospace", fontSize: 15,
+                  fontFamily: "inherit", fontSize: 15,
                   color: "var(--c-text-primary)",
                 }}
               />
@@ -2297,8 +2298,8 @@ function QuestionReader({
               <button
                 onClick={() => setRevealed(true)}
                 style={{
-                  padding: "9px 16px", borderRadius: 8,
-                  background: "var(--c-text-primary)", color: "var(--c-bg)",
+                  padding: "10px 20px", borderRadius: 999,
+                  background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)",
                   border: "none", cursor: "pointer", fontFamily: "inherit",
                   fontSize: 13, fontWeight: 600,
                 }}
@@ -2441,8 +2442,8 @@ function QuestionReader({
 // Style tokens
 // ════════════════════════════════════════════════════════════════
 const eyebrow = {
-  fontSize: 11, fontWeight: 500, letterSpacing: "0.14em",
-  textTransform: "uppercase", color: "var(--c-text-tertiary)",
+  fontSize: 11.5, fontWeight: 600, letterSpacing: "0.13em",
+  textTransform: "uppercase", color: "var(--c-brand-gold)",
 };
 const serif = {
   fontFamily: "var(--font-accent)", fontStyle: "italic",
