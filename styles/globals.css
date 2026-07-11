@@ -342,6 +342,7 @@ html[data-theme="dark"] { --c-accent-grad: linear-gradient(110deg, #FFBE5C 20%, 
   --c-mock-banner-btn-bg: #C48425;
   --c-mock-banner-btn-fg: #FFFFFF;
   --c-mock-banner-line: rgba(216, 138, 15, 0.5);
+  --c-brand-glow: rgba(196, 132, 37, 0.10);
 }
 html[data-theme="dark"] {
   --c-mock-banner: linear-gradient(115deg, #3A2C14, #57390F 55%, #6E4A10);
@@ -350,4 +351,5 @@ html[data-theme="dark"] {
   --c-mock-banner-btn-bg: linear-gradient(150deg, #FFBE5C, #F9A01B);
   --c-mock-banner-btn-fg: #0B0B0C;
   --c-mock-banner-line: rgba(249, 160, 27, 0.4);
+  --c-brand-glow: rgba(255, 179, 71, 0.13);
 }

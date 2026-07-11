@@ -1755,10 +1755,10 @@ function FChip({ label, value, options, onSelect }) {
       <button
         onClick={() => setOpen(!open)}
         style={{
-          background: active ? "var(--c-brand-glow, #efeaff)" : "transparent",
-          border: active ? "1px solid var(--c-brand-primary, #6b4ed8)" : "1px solid transparent",
-          color: active ? "var(--c-brand-primary, #6b4ed8)" : "var(--c-text-secondary)",
-          padding: "7px 12px", borderRadius: 8,
+          background: "transparent",
+          border: "1px solid transparent",
+          color: active ? "var(--c-text-primary)" : "var(--c-text-secondary)",
+          padding: "7px 12px", borderRadius: 999,
           fontFamily: "inherit", fontSize: 13, fontWeight: 500,
           cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
           transition: "background 0.12s ease, border-color 0.12s ease",
@@ -1771,17 +1771,15 @@ function FChip({ label, value, options, onSelect }) {
           <span
             title={selectedLabel}
             style={{
-              background: "var(--c-brand-primary, #6b4ed8)", color: "#fff",
-              fontSize: 11, fontWeight: 600,
-              padding: "1px 7px", borderRadius: 999,
-              fontFamily: "'JetBrains Mono', monospace",
-              maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              color: "var(--c-brand-gold)",
+              fontSize: 13, fontWeight: 600,
+              maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}
           >
             {String(selectedLabel).length > 10 ? String(selectedLabel).slice(0, 10) + "…" : selectedLabel}
           </span>
         )}
-        <span style={{ fontSize: 10, color: active ? "var(--c-brand-primary, #6b4ed8)" : "var(--c-text-tertiary)", marginLeft: 2 }}>
+        <span style={{ fontSize: 10, color: active ? "var(--c-brand-gold)" : "var(--c-text-tertiary)", marginLeft: 2 }}>
           ▾
         </span>
       </button>
@@ -2009,7 +2007,7 @@ function QuestionReader({
               ...chipStyle,
               color: "var(--c-brand-primary, #6b4ed8)",
               background: "var(--c-brand-glow, #efeaff)",
-              borderColor: "rgba(107,78,216,0.28)",
+              borderColor: "var(--c-mock-banner-line)",
             }}>
               {t.name}
             </span>
@@ -2429,7 +2427,7 @@ function QuestionReader({
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={onPrev} disabled={indexInList <= 1} style={navBtn}>← Previous</button>
-          <button onClick={onNext} disabled={indexInList >= total} style={{ ...navBtn, background: "var(--c-text-primary)", color: "var(--c-bg)", border: "none" }}>
+          <button onClick={onNext} disabled={indexInList >= total} style={{ ...navBtn, background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", border: "none", fontWeight: 600 }}>
             Next →
           </button>
         </div>
@@ -2473,7 +2471,7 @@ const icBtn = {
 const navBtn = {
   background: "transparent", color: "var(--c-text-secondary)",
   border: "1px solid var(--c-border-soft)",
-  padding: "7px 16px", borderRadius: 6,
+  padding: "8px 18px", borderRadius: 999,
   fontSize: 12.5, fontWeight: 500,
   cursor: "pointer", fontFamily: "inherit",
 };
