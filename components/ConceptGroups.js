@@ -46,7 +46,7 @@ function sectionAbbrev(group) {
 }
 
 const sectionGradients = {
-  qa: "linear-gradient(135deg, #6A4DFF, #9F8BFF)",
+  qa: "linear-gradient(135deg, #2A6FCB, #6FA8E4)",
   va: "linear-gradient(135deg, #C29E5F, #E0BC7A)",
   lr: "linear-gradient(135deg, #1FA463, #43C982)",
   di: "linear-gradient(135deg, #B66C00, #E3A038)",

@@ -134,21 +134,34 @@ export default function Dashboard({ userData }) {
     async function getNextMock() {
       const { data } = await supabase
         .from("mock_test")
-        .select("title, start_time, config")
+        .select("title, start_time, end_time, config")
         .order("start_time", { ascending: true });
       if (!data) return;
       const now = new Date();
-      const upcoming = data
+      const candidates = data
         .filter(
           (t) =>
             t.start_time &&
             !t.config?.hidden &&
             (!t.config?.generatorType || t.config?.generatorType === "fullmock"),
         )
-        .map((t) => ({ ...t, startsAt: parseISO(t.start_time) }))
+        .map((t) => ({
+          ...t,
+          startsAt: parseISO(t.start_time),
+          endsAt: t.end_time ? parseISO(t.end_time) : null,
+        }));
+      // A mock that is open right now beats a future one.
+      const live = candidates
+        .filter((t) => !isAfter(t.startsAt, now) && t.endsAt && isAfter(t.endsAt, now))
+        .sort((a, b) => a.endsAt - b.endsAt);
+      if (live[0]) {
+        setNextMock({ ...live[0], mode: "live" });
+        return;
+      }
+      const upcoming = candidates
         .filter((t) => isAfter(t.startsAt, now))
         .sort((a, b) => a.startsAt - b.startsAt);
-      setNextMock(upcoming[0] || null);
+      setNextMock(upcoming[0] ? { ...upcoming[0], mode: "upcoming" } : null);
     }
     getNextMock();
     const tick = setInterval(() => setNowTick(new Date()), 30000);
@@ -286,6 +299,77 @@ export default function Dashboard({ userData }) {
       {/* ── Next mock banner (only when a mock is scheduled) ── */}
       {nextMock &&
         (() => {
+          if (nextMock.mode === "live") {
+            const stillOpen = nextMock.endsAt && isAfter(nextMock.endsAt, nowTick);
+            if (!stillOpen) return null;
+            return (
+              <div
+                className="rounded-[16px] mb-6 shrink-0 relative overflow-hidden flex flex-col sm:flex-row sm:items-center gap-4 justify-between"
+                style={{
+                  background: "var(--c-mock-banner)",
+                  color: "var(--c-mock-banner-text)",
+                  border: "1px solid var(--c-mock-banner-line)",
+                  padding: "20px 24px",
+                }}
+              >
+                <div>
+                  <div
+                    className="flex items-center gap-2"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      opacity: 0.85,
+                    }}
+                  >
+                    <span
+                      className="animate-pulse"
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: "var(--c-success)",
+                        display: "inline-block",
+                      }}
+                    />
+                    Live now
+                  </div>
+                  <div
+                    className="ds-display"
+                    style={{ fontSize: 20, marginTop: 5, letterSpacing: "-0.01em" }}
+                  >
+                    {nextMock.title}
+                  </div>
+                  <div style={{ fontSize: 12.5, opacity: 0.8, marginTop: 3 }}>
+                    Open now · closes {format(nextMock.endsAt, "EEE d MMM, h:mm a")}
+                    {nextMock.config?.duration ? ` · ${nextMock.config.duration} min` : ""}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCTXSlug("mocks");
+                    setSK(new Set(["2"]));
+                  }}
+                  style={{
+                    background: "var(--c-mock-banner-btn-bg)",
+                    color: "var(--c-mock-banner-btn-fg)",
+                    fontWeight: 600,
+                    fontSize: 13.5,
+                    padding: "11px 24px",
+                    borderRadius: 999,
+                    border: "none",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  Attempt now →
+                </button>
+              </div>
+            );
+          }
           const secs = differenceInSeconds(nextMock.startsAt, nowTick);
           if (secs <= 0) return null;
           const days = Math.floor(secs / 86400);

@@ -287,7 +287,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
           </div>
 
           <div className="lg:hidden block bottom-1 text-xs w-full font-sans text-center p-2" style={{ color: 'var(--c-text-tertiary)' }}>
-            © 2024 IPM Careers. All rights reserved
+            © 2026 IPM Careers. All rights reserved
           </div>
         </div>
         <div className="flex flex-1 h-full bg-transparent cursor-pointer" onClick={() => { setIsActive(false); }}></div>

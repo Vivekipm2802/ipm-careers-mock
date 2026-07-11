@@ -141,7 +141,7 @@ function DefaultLayout(props){
               color: 'var(--c-text-tertiary)',
             }}
           >
-            © 2024 IPM Careers. All rights reserved
+            © 2026 IPM Careers. All rights reserved
           </div>
         )}
       </div>

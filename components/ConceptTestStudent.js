@@ -250,8 +250,8 @@ export default function ConceptTestStudent({ group, onBack, role }) {
       <svg width="0" height="0" style={{ position: "absolute" }}>
         <defs>
           <linearGradient id="gradPurple" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#9F8BFF" />
-            <stop offset="100%" stopColor="#6A4DFF" />
+            <stop offset="0%" stopColor="#6FA8E4" />
+            <stop offset="100%" stopColor="#2A6FCB" />
           </linearGradient>
           <linearGradient id="gradGreen" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#43C982" />
