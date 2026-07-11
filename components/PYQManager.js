@@ -2417,7 +2417,7 @@ function QuestionReader({
               onClick={() => {
                 if (typeof window !== "undefined") {
                   window.open(
-                    "https://wa.me/919999999999?text=" + encodeURIComponent(`Issue with PYQ question id ${q.id}`),
+                    "https://wa.me/918299470392?text=" + encodeURIComponent(`Issue with PYQ question id ${q.id}`),
                     "_blank",
                   );
                 }
