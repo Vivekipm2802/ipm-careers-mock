@@ -85,7 +85,25 @@ const Game = () => {
   const [allowed, setAllowed] = useState(false);
   const { userDetails } = useNMNContext();
   const [confirmModal, setConfirmModal] = useState(false);
+  // Ship 7 (P0): submit failure surface — previously a failed submit silently
+  // cleared the overlay and dumped the student back with no message.
+  const [submitError, setSubmitError] = useState(null);
+  const [lastReport, setLastReport] = useState(null);
   const router = useRouter();
+
+  // Ship 7 (P0): the submit insert had NO timeout. On a flaky mobile connection
+  // the fetch can hang indefinitely; because the "Submitting" overlay is gated
+  // on that await, the student sits on a spinner forever with no error and no
+  // way out. Desktop on stable wifi always completed in <1s, so it never showed.
+  const SUBMIT_TIMEOUT_MS = 15000;
+  const LOOKUP_TIMEOUT_MS = 8000;
+  const withTimeout = (thenable, ms, label) =>
+    Promise.race([
+      Promise.resolve(thenable),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`${label} timed out`)), ms),
+      ),
+    ]);
 
   async function submitScore(a) {
     // Phase 12 Ship E: skip the save in preview mode (admin reviewing the test)
@@ -94,6 +112,10 @@ const Game = () => {
       router.push("/");
       return;
     }
+
+    setSubmitError(null);
+    setLastReport(a);
+
     // Ship 4: record true wall-clock duration (seconds)
     const row = {
       test_uuid: parentData?.uuid,
@@ -103,33 +125,113 @@ const Game = () => {
         ? Math.round((Date.now() - startedAtRef.current) / 1000)
         : null,
     };
-    let { data, error } = await supabase.from("plays").insert(row).select();
-    if (error) {
-      // If the duration column doesn't exist yet, never block a student's
-      // submission — retry without it.
-      const { duration, ...withoutDuration } = row;
-      ({ data, error } = await supabase
-        .from("plays")
-        .insert(withoutDuration)
-        .select());
-    }
-    if (data && data.length != 0) {
-      // Phase 12 Ship E.4: redirect IMMEDIATELY to the unified result page
-      // No flash of the old inline view, no setTimeout delay
-      const newPlayUid = data[0]?.uid;
-      if (newPlayUid) {
-        router.push(`/test/result/${newPlayUid}`);
+
+    // Ship 7: keep a local copy BEFORE touching the network. If the connection
+    // dies mid-submit, the answers survive a reload instead of evaporating.
+    const draftKey = `ipm_concept_draft_${parentData?.uuid || router.query.slug}`;
+    try {
+      window.localStorage.setItem(
+        draftKey,
+        JSON.stringify({ row, at: Date.now() }),
+      );
+    } catch {}
+
+    // Ship 7: a timed-out insert may still have LANDED server-side. Never blind
+    // -retry an insert or we double-submit a single-attempt test — look first.
+    const findExistingPlay = async () => {
+      try {
+        const { data: found } = await withTimeout(
+          serversupabase
+            .from("plays")
+            .select("uid")
+            .eq("test_uuid", parentData?.uuid || router.query.slug)
+            .eq("user", userDetails?.email)
+            .order("created_at", { ascending: false })
+            .limit(1),
+          LOOKUP_TIMEOUT_MS,
+          "Lookup",
+        );
+        return found && found.length > 0 ? found[0] : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const finish = (uid, playRow) => {
+      try {
+        window.localStorage.removeItem(draftKey);
+      } catch {}
+      if (uid) {
+        router.push(`/test/result/${uid}`);
         return;
       }
-      // Fallback: if uid missing for some reason, show the inline result view
-      setSubmitted(data[0]);
+      // Fallback: uid missing for some reason — show the inline result view
+      setSubmitted(playRow);
       getLeaderboard(parentData?.uuid);
       setSubmitting(false);
-    } else {
-      // Submission failed — let user see error
+    };
+
+    let data = null;
+    let error = null;
+    try {
+      ({ data, error } = await withTimeout(
+        supabase.from("plays").insert(row).select(),
+        SUBMIT_TIMEOUT_MS,
+        "Submit",
+      ));
+      if (error) {
+        // If the duration column doesn't exist yet, never block a student's
+        // submission — retry without it.
+        const { duration, ...withoutDuration } = row;
+        ({ data, error } = await withTimeout(
+          supabase.from("plays").insert(withoutDuration).select(),
+          SUBMIT_TIMEOUT_MS,
+          "Submit",
+        ));
+      }
+    } catch (e) {
+      // Timed out / network dropped. The insert may still have landed — check
+      // before showing an error, so we don't tell a student their saved test
+      // failed (and don't let them submit it twice).
+      console.error("[concept submit]", e?.message || e);
+      const existing = await findExistingPlay();
+      if (existing?.uid) {
+        finish(existing.uid, existing);
+        return;
+      }
+      setSubmitError(
+        "We couldn't reach the server. Your answers are saved on this device — check your connection and tap Retry.",
+      );
       setSubmitting(false);
+      return;
     }
+
+    if (data && data.length != 0) {
+      // Phase 12 Ship E.4: redirect IMMEDIATELY to the unified result page
+      finish(data[0]?.uid, data[0]);
+      return;
+    }
+
+    // Insert returned no row: either RLS filtered the SELECT (the row may still
+    // exist) or it genuinely failed. Check before telling the student anything.
+    const existing = await findExistingPlay();
+    if (existing?.uid) {
+      finish(existing.uid, existing);
+      return;
+    }
+    console.error("[concept submit] insert failed:", error?.message || error);
+    setSubmitError(
+      error?.message ||
+        "Your test could not be saved. Your answers are safe on this device — tap Retry.",
+    );
+    setSubmitting(false);
   }
+
+  const retrySubmit = () => {
+    setSubmitError(null);
+    setSubmitting(true);
+    submitScore(lastReport ?? report);
+  };
 
   async function checkMultiple(uid) {
     // Phase 12 Ship E: admin override — preview=true bypasses the single-shot check
@@ -446,6 +548,55 @@ const Game = () => {
   }
 
   // Phase 12 Ship E.4: clean overlay while submitting (replaces the flash of old inline view)
+  // Ship 7 (P0): submit failed — never silently drop the student back into the
+  // test. Their answers are held in state + localStorage; give them a Retry.
+  if (submitError) {
+    return (
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "var(--c-bg)", color: "var(--c-text-primary)",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        textAlign: "center", padding: 24,
+        fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+      }}>
+        <div style={{
+          fontSize: 11, fontWeight: 500, letterSpacing: "0.14em",
+          textTransform: "uppercase", color: "var(--c-text-tertiary)",
+          marginBottom: 10,
+        }}>
+          Not submitted
+        </div>
+        <h1 style={{
+          fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em",
+          color: "var(--c-text-primary)", margin: "0 0 10px",
+        }}>
+          Your answers are{" "}
+          <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
+            safe
+          </span>
+        </h1>
+        <p style={{ fontSize: 13.5, color: "var(--c-text-secondary)", margin: "0 0 22px", maxWidth: "44ch", lineHeight: 1.55 }}>
+          {submitError}
+        </p>
+        <button
+          onClick={retrySubmit}
+          style={{
+            padding: "11px 22px", borderRadius: 8, border: "none",
+            background: "var(--c-brand-primary)", color: "#fff",
+            fontFamily: "inherit", fontSize: 14, fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Retry submission
+        </button>
+        <p style={{ fontSize: 12, color: "var(--c-text-tertiary)", margin: "16px 0 0", maxWidth: "42ch", lineHeight: 1.5 }}>
+          Don&apos;t close this tab — your answers are stored on this device until the submission goes through.
+        </p>
+      </div>
+    );
+  }
+
   if (submitting) {
     return (
       <div style={{
