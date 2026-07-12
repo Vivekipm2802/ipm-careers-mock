@@ -35,6 +35,7 @@ export default function Dashboard({ userData }) {
   const [nextMock, setNextMock] = useState(null);
   const [nowTick, setNowTick] = useState(() => new Date());
   const [plays, setPlays] = useState([]);
+  const [conceptPlays, setConceptPlays] = useState([]);
   const [weeklyRank, setWeeklyRank] = useState(null);
 
   const { setCTXSlug, sk, setSK, userCourses, isDemo } = useNMNContext();
@@ -179,6 +180,11 @@ export default function Dashboard({ userData }) {
       .eq("user", userData.email)
       .then(({ data }) => setPlays(data || []));
     supabase
+      .from("plays")
+      .select("created_at, report")
+      .eq("user", userData.email)
+      .then(({ data }) => setConceptPlays(data || []));
+    supabase
       .rpc("get_weekly_ipmat_rank", { p_email: userData.email })
       .then(({ data, error }) => {
         if (!error && Array.isArray(data) && data.length) setWeeklyRank(data[0]);
@@ -194,6 +200,7 @@ export default function Dashboard({ userData }) {
     const stamps = [
       ...(results || []).map((r) => r.created_at),
       ...(plays || []).map((pl) => pl.created_at),
+      ...(conceptPlays || []).map((cp) => cp.created_at),
     ].filter(Boolean);
     const daySet = new Set(stamps.map(dayKey));
 
@@ -223,12 +230,16 @@ export default function Dashboard({ userData }) {
     const weekMocks = (plays || []).filter(
       (pl) => pl.created_at && new Date(pl.created_at).getTime() >= ws,
     ).length;
-    const weekTests = (results || []).filter(
-      (r) => r.created_at && new Date(r.created_at).getTime() >= ws,
-    ).length;
+    const weekTests =
+      (results || []).filter(
+        (r) => r.created_at && new Date(r.created_at).getTime() >= ws,
+      ).length +
+      (conceptPlays || []).filter(
+        (cp) => cp.created_at && new Date(cp.created_at).getTime() >= ws,
+      ).length;
 
     // accuracy — last 5 completed tests with a report, trend vs previous 5
-    const withReport = (results || [])
+    const withReport = [...(results || []), ...(conceptPlays || [])]
       .filter((r) => Array.isArray(r.report) && r.report.length)
       .sort((x, y) => new Date(y.created_at) - new Date(x.created_at));
     const acc = (rs) => {
@@ -252,7 +263,7 @@ export default function Dashboard({ userData }) {
       accDelta: accNow != null && accPrev != null ? accNow - accPrev : null,
       accCount: Math.min(withReport.length, 5),
     };
-  }, [results, plays]);
+  }, [results, plays, conceptPlays]);
 
   // ── Derived display values ──
   const fullName = userData?.user_metadata?.full_name || "there";
