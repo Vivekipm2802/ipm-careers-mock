@@ -1,6 +1,6 @@
 import { supabase } from "@/utils/supabaseClient";
 import { getAuthHeaders } from "@/utils/authHeaders";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNMNContext } from "./NMNContext";
 import StudentAttendance from "./StudentAttendance";
 import DemoComponent from "./DemoComponent";
@@ -9,7 +9,7 @@ import { toast } from "react-hot-toast";
 import Loader from "./Loader";
 import axios from "axios";
 import { ArrowRight, Target, Flame, BookOpen } from "lucide-react";
-import { parseISO, isAfter, format, differenceInSeconds } from "date-fns";
+import { parseISO, isAfter, format, differenceInSeconds, startOfWeek } from "date-fns";
 
 /**
  * Student dashboard — Phase 1.8
@@ -34,6 +34,8 @@ export default function Dashboard({ userData }) {
   const [results, setResults] = useState([]);
   const [nextMock, setNextMock] = useState(null);
   const [nowTick, setNowTick] = useState(() => new Date());
+  const [plays, setPlays] = useState([]);
+  const [weeklyRank, setWeeklyRank] = useState(null);
 
   const { setCTXSlug, sk, setSK, userCourses, isDemo } = useNMNContext();
 
@@ -168,6 +170,90 @@ export default function Dashboard({ userData }) {
     return () => clearInterval(tick);
   }, []);
 
+  // ── Dashboard stats: mock attempts + weekly all-India rank ──
+  useEffect(() => {
+    if (!userData?.email) return;
+    supabase
+      .from("mock_plays")
+      .select("created_at, score")
+      .eq("user", userData.email)
+      .then(({ data }) => setPlays(data || []));
+    supabase
+      .rpc("get_weekly_ipmat_rank", { p_email: userData.email })
+      .then(({ data, error }) => {
+        if (!error && Array.isArray(data) && data.length) setWeeklyRank(data[0]);
+      });
+  }, [userData?.email]);
+
+  // ── Computed stats: streak, weekly counts, accuracy trend ──
+  const dashStats = useMemo(() => {
+    const dayKey = (d) => {
+      const t = new Date(d);
+      return t.getFullYear() * 10000 + t.getMonth() * 100 + t.getDate();
+    };
+    const stamps = [
+      ...(results || []).map((r) => r.created_at),
+      ...(plays || []).map((pl) => pl.created_at),
+    ].filter(Boolean);
+    const daySet = new Set(stamps.map(dayKey));
+
+    // current streak — anchored on today, or yesterday if today has no activity yet
+    let current = 0;
+    const probe = new Date();
+    if (!daySet.has(dayKey(probe))) probe.setDate(probe.getDate() - 1);
+    while (daySet.has(dayKey(probe))) {
+      current++;
+      probe.setDate(probe.getDate() - 1);
+    }
+
+    // best streak ever
+    const sortedDays = [...new Set(stamps.map((d) => {
+      const t = new Date(d);
+      return new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime();
+    }))].sort((x, y) => x - y);
+    let best = 0, run = 0, prev = null;
+    for (const t of sortedDays) {
+      run = prev != null && t - prev === 86400000 ? run + 1 : 1;
+      if (run > best) best = run;
+      prev = t;
+    }
+
+    // this week (Monday start)
+    const ws = startOfWeek(new Date(), { weekStartsOn: 1 }).getTime();
+    const weekMocks = (plays || []).filter(
+      (pl) => pl.created_at && new Date(pl.created_at).getTime() >= ws,
+    ).length;
+    const weekTests = (results || []).filter(
+      (r) => r.created_at && new Date(r.created_at).getTime() >= ws,
+    ).length;
+
+    // accuracy — last 5 completed tests with a report, trend vs previous 5
+    const withReport = (results || [])
+      .filter((r) => Array.isArray(r.report) && r.report.length)
+      .sort((x, y) => new Date(y.created_at) - new Date(x.created_at));
+    const acc = (rs) => {
+      let c = 0, att = 0;
+      rs.forEach((r) =>
+        r.report.forEach((it) => {
+          if (it?.isCorrect === true) { c++; att++; }
+          else if (it?.isCorrect === false) { att++; }
+        }),
+      );
+      return att > 0 ? Math.round((c / att) * 100) : null;
+    };
+    const accNow = acc(withReport.slice(0, 5));
+    const accPrev = acc(withReport.slice(5, 10));
+    return {
+      streak: current,
+      bestStreak: Math.max(best, current),
+      weekMocks,
+      weekTests,
+      accNow,
+      accDelta: accNow != null && accPrev != null ? accNow - accPrev : null,
+      accCount: Math.min(withReport.length, 5),
+    };
+  }, [results, plays]);
+
   // ── Derived display values ──
   const fullName = userData?.user_metadata?.full_name || "there";
   const firstName = fullName.split(" ")[0];
@@ -237,28 +323,51 @@ export default function Dashboard({ userData }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Stat
           label="Study streak"
-          value="—"
-          suffix=""
-          delta="Coming soon"
-          deltaTone="muted"
+          value={dashStats.streak > 0 ? `${dashStats.streak} ${dashStats.streak === 1 ? "day" : "days"}` : "—"}
+          delta={
+            dashStats.streak > 0
+              ? `Best: ${dashStats.bestStreak} · any activity counts`
+              : "Do anything today to start"
+          }
+          deltaTone={dashStats.streak > 0 ? "gold" : "muted"}
         />
         <Stat
           label="Tests this week"
-          value={testCount}
-          delta={testCount > 0 ? "Keep going" : "Take your first"}
-          deltaTone={testCount > 0 ? "success" : "muted"}
+          value={dashStats.weekMocks + dashStats.weekTests}
+          delta={
+            dashStats.weekMocks + dashStats.weekTests > 0
+              ? `${dashStats.weekMocks} ${dashStats.weekMocks === 1 ? "mock" : "mocks"} · ${dashStats.weekTests} practice`
+              : "Take your first"
+          }
+          deltaTone={dashStats.weekMocks + dashStats.weekTests > 0 ? "success" : "muted"}
         />
         <Stat
           label="Avg. accuracy"
-          value="—"
-          delta="Coming soon"
-          deltaTone="muted"
+          value={dashStats.accNow != null ? `${dashStats.accNow}%` : "—"}
+          delta={
+            dashStats.accNow == null
+              ? "Complete a test to unlock"
+              : dashStats.accDelta != null
+              ? `Last 5 tests · ${dashStats.accDelta >= 0 ? "▲" : "▼"} ${Math.abs(dashStats.accDelta)}%`
+              : `Last ${dashStats.accCount} ${dashStats.accCount === 1 ? "test" : "tests"}`
+          }
+          deltaTone={
+            dashStats.accNow == null
+              ? "muted"
+              : dashStats.accDelta != null && dashStats.accDelta < 0
+              ? "danger"
+              : "success"
+          }
         />
         <Stat
           label="IPMAT rank"
-          value="—"
-          delta="Coming soon"
-          deltaTone="muted"
+          value={weeklyRank?.rank ? `#${weeklyRank.rank}` : "—"}
+          delta={
+            weeklyRank?.rank
+              ? `of ${weeklyRank.total} · avg mock score, this week`
+              : "Attempt a mock this week"
+          }
+          deltaTone={weeklyRank?.rank ? "gold" : "muted"}
         />
       </div>
 
