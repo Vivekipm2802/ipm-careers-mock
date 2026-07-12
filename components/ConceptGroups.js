@@ -581,6 +581,7 @@ function SectionRow({ group, stats, sectionType, barColor, isLast, role, onSelec
 
   return (
     <div
+      className="concept-row"
       onClick={onSelect}
       style={{
         display: "grid",

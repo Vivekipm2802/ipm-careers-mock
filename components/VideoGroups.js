@@ -612,6 +612,7 @@ const Selector = ({ type, onSelect, role, title }) => {
       {/* ===== Hero row: Featured pack + 3 stat tiles stacked ===== */}
       {featuredPack && (
         <div
+          className="video-hero-row"
           style={{
             display: "grid",
             gridTemplateColumns: "1.5fr 1fr",

@@ -361,4 +361,19 @@ html[data-theme="dark"] {
   .pyq-list-panel { flex: 1 1 100% !important; max-height: 320px; }
   .pyq-reader-panel { flex: 1 1 100% !important; }
   .mock-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .mock-row { flex-wrap: wrap; }
+  .mock-row .mock-row-score {
+    border-right: none !important;
+    text-align: left !important;
+    padding: 0 !important;
+    margin-left: 62px;
+  }
+  .concept-row {
+    grid-template-columns: 48px 1fr !important;
+    row-gap: 12px !important;
+  }
+  .concept-row > *:nth-child(3) { grid-column: 1 / -1; }
+  .concept-row > *:nth-child(4) { grid-column: 1 / -1; justify-self: end; }
+  .result-meta-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .video-hero-row { grid-template-columns: 1fr !important; }
 }

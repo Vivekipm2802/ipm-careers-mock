@@ -1425,6 +1425,7 @@ function MockRow({
 
   return (
     <div
+      className="mock-row"
       style={{
         background: "var(--c-surface)",
         border: `1px solid ${
@@ -1533,6 +1534,7 @@ function MockRow({
       {status.kind === "attempted" &&
         typeof status.latestPlay?.score === "number" && (
           <div
+            className="mock-row-score"
             style={{
               flexShrink: 0,
               textAlign: "right",

@@ -432,7 +432,7 @@ export default function MockResult({ result }) {
         )}
 
         {/* === TEST INFO STRIP === */}
-        <div style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, padding: "24px 28px", marginBottom: 32, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
+        <div className="result-meta-grid" style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 18, padding: "24px 28px", marginBottom: 32, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
           <InfoCol k="Participant" v={result?.name || userDetails?.user_metadata?.full_name || "—"} />
           <InfoCol k="Test centre" v="IPM Careers Online Portal" />
           <InfoCol k="Test date" v={`${CtoLocal(result.created_at).dayName}, ${CtoLocal(result.created_at).date} ${CtoLocal(result.created_at).monthName}, ${CtoLocal(result.created_at).year}`} />

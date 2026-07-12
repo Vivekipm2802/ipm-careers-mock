@@ -5,6 +5,7 @@
 // password, password recovery, validation, role routing).
 // ============================================================
 
+import Head from "next/head";
 import Notifications from "@/components/Notification";
 import { supabase } from "@/utils/supabaseClient";
 import { getAuthHeaders } from "@/utils/authHeaders";
@@ -178,6 +179,13 @@ function Login() {
 
   return (
     <>
+      <Head>
+        <title>Student Login — IPM Careers Study Portal</title>
+        <meta
+          name="description"
+          content="Sign in to the IPM Careers study portal — full-length IPMAT mocks, concept tests, PYQ practice and daily quizzes for IPMAT, JIPMAT and IIM Bangalore UG aspirants."
+        />
+      </Head>
       <div className={styles.page}>
         {notificationText && notificationText.length > 2 ? <Notifications text={notificationText} /> : ""}
 
