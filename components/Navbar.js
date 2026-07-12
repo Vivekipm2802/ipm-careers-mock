@@ -4,7 +4,7 @@ import styles from './Navbar.module.css';
 
 import { useRouter } from 'next/router';
 import { logoutUser } from '@/supabase/userUtility';
-import { Accordion, AccordionItem, Button, Divider } from '@nextui-org/react';
+import { Accordion, AccordionItem, Avatar, Button, Divider } from '@nextui-org/react';
 import { useNMNContext } from './NMNContext';
 import { toast } from 'react-hot-toast';
 import { Lock } from 'lucide-react';
@@ -206,12 +206,14 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
 
           <Divider className="my-4" />
 
-          <h2
-            className="px-2 text-sm mb-0 p-2 font-semibold rounded-lg"
-            style={{ background: 'var(--c-brand-primary-tint)', color: 'var(--c-brand-primary)' }}
-          >
-            Hi, Welcome back {userDetails?.user_metadata?.full_name}
-          </h2>
+          <div className="px-3 pb-1">
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--c-brand-gold)' }}>
+              Welcome back
+            </div>
+            <div className="ds-display" style={{ fontSize: 20, color: 'var(--c-text-primary)', marginTop: 2 }}>
+              {userDetails?.user_metadata?.full_name}
+            </div>
+          </div>
 
           <Accordion
             itemClasses={accordionItemClasses}
@@ -225,10 +227,11 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
               className="w-full font-sans"
               title={<span style={titleStyle}>Your profile</span>}
               startContent={
-                <img
-                  src={convertToWebP(userDetails?.user_metadata?.profile_pic) ?? '/defprofile.svg'}
-                  className="w-8 h-8 rounded-full object-cover"
-                  alt=""
+                <Avatar
+                  color="primary"
+                  name={(userDetails?.user_metadata?.full_name || 'S').charAt(0)}
+                  className="w-8 h-8 text-[12px] font-semibold"
+                  src={convertToWebP(userDetails?.user_metadata?.profile_pic) || undefined}
                 />
               }
             >
@@ -277,11 +280,16 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
           </Accordion>
 
           <div
-            className="flex mt-auto flex-row items-center justify-around flex-shrink-0 max-h-[200px] w-full p-4 font-semibold text-xl rounded-xl"
-            style={{ background: 'var(--c-brand-primary)', color: 'var(--c-text-on-brand)' }}
+            className="flex mt-auto flex-row items-center justify-between flex-shrink-0 w-full px-4 py-3 rounded-2xl"
+            style={{ background: 'var(--c-mock-banner)', border: '1px solid var(--c-mock-banner-line)', color: 'var(--c-mock-banner-text)' }}
           >
-            Have a <br />doubt ?
-            <Button color="secondary" size="sm" as={Link} href="tel:+918299470392">
+            <span className="ds-display" style={{ fontSize: 16.5 }}>Have a doubt?</span>
+            <Button
+              size="sm"
+              as={Link}
+              href="tel:+918299470392"
+              style={{ background: 'var(--c-mock-banner-btn-bg)', color: 'var(--c-mock-banner-btn-fg)', fontWeight: 600, borderRadius: 999 }}
+            >
               Connect with us
             </Button>
           </div>

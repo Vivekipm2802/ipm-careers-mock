@@ -1779,7 +1779,7 @@ export default function Home(props) {
                   <h2 className="text-2xl font-medium text-primary">
                     Your Courses
                   </h2>
-                  <div className="w-full flex flex-row bg-green-50 border-green-200 border-1 my-4 rounded-xl">
+                  <div className="w-full flex flex-row border-1 my-4 rounded-xl" style={{ background: "var(--c-brand-gold-tint)", borderColor: "var(--c-mock-banner-line)" }}>
                     <h2 className="text-sm font-bold flex-1 text-center p-1">
                       Added On
                     </h2>
