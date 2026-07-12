@@ -36,6 +36,7 @@ export default function Dashboard({ userData }) {
   const [nowTick, setNowTick] = useState(() => new Date());
   const [plays, setPlays] = useState([]);
   const [conceptPlays, setConceptPlays] = useState([]);
+  const [dailySubs, setDailySubs] = useState([]);
   const [weeklyRank, setWeeklyRank] = useState(null);
 
   const { setCTXSlug, sk, setSK, userCourses, isDemo } = useNMNContext();
@@ -184,6 +185,11 @@ export default function Dashboard({ userData }) {
       .select("created_at, report")
       .eq("user", userData.email)
       .then(({ data }) => setConceptPlays(data || []));
+    // Daily Learn quiz submissions — RLS scopes rows to the signed-in student
+    supabase
+      .from("daily_rc_submissions")
+      .select("created_at")
+      .then(({ data }) => setDailySubs(data || []));
     supabase
       .rpc("get_weekly_ipmat_rank", { p_email: userData.email })
       .then(({ data, error }) => {
@@ -211,6 +217,7 @@ export default function Dashboard({ userData }) {
       ...(results || []).map((r) => r.created_at),
       ...(plays || []).map((pl) => pl.created_at),
       ...(conceptPlays || []).map((cp) => cp.created_at),
+      ...(dailySubs || []).map((ds) => ds.created_at),
     ].filter(Boolean);
     const daySet = new Set(stamps.map(dayKey));
 
@@ -273,7 +280,7 @@ export default function Dashboard({ userData }) {
       accDelta: accNow != null && accPrev != null ? accNow - accPrev : null,
       accCount: Math.min(withReport.length, 5),
     };
-  }, [results, plays, conceptPlays]);
+  }, [results, plays, conceptPlays, dailySubs]);
 
   // ── Derived display values ──
   const fullName = userData?.user_metadata?.full_name || "there";
@@ -358,7 +365,7 @@ export default function Dashboard({ userData }) {
           delta={
             dashStats.weekMocks + dashStats.weekTests > 0
               ? `${dashStats.weekMocks} ${dashStats.weekMocks === 1 ? "mock" : "mocks"} · ${dashStats.weekTests} practice`
-              : "Take your first"
+              : "Resets every Monday — take your first"
           }
           deltaTone={dashStats.weekMocks + dashStats.weekTests > 0 ? "success" : "muted"}
         />
