@@ -187,7 +187,17 @@ export default function Dashboard({ userData }) {
     supabase
       .rpc("get_weekly_ipmat_rank", { p_email: userData.email })
       .then(({ data, error }) => {
-        if (!error && Array.isArray(data) && data.length) setWeeklyRank(data[0]);
+        if (!error && Array.isArray(data) && data.length) {
+          setWeeklyRank({ ...data[0], scope: "week" });
+          return;
+        }
+        // No mock this week — fall back to the student's all-time rank.
+        supabase
+          .rpc("get_alltime_ipmat_rank", { p_email: userData.email })
+          .then(({ data: d2, error: e2 }) => {
+            if (!e2 && Array.isArray(d2) && d2.length)
+              setWeeklyRank({ ...d2[0], scope: "alltime" });
+          });
       });
   }, [userData?.email]);
 
@@ -375,8 +385,10 @@ export default function Dashboard({ userData }) {
           value={weeklyRank?.rank ? `#${weeklyRank.rank}` : "—"}
           delta={
             weeklyRank?.rank
-              ? `of ${weeklyRank.total} · avg mock score, this week`
-              : "Attempt a mock this week"
+              ? weeklyRank.scope === "week"
+                ? `of ${weeklyRank.total} · avg mock score, this week`
+                : `of ${weeklyRank.total} · all-time avg mocks`
+              : "Attempt a mock to unlock"
           }
           deltaTone={weeklyRank?.rank ? "gold" : "muted"}
         />
