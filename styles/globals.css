@@ -353,3 +353,12 @@ html[data-theme="dark"] {
   --c-mock-banner-line: rgba(249, 160, 27, 0.4);
   --c-brand-glow: rgba(255, 179, 71, 0.13);
 }
+
+
+/* Mobile QA pass — narrow-screen layout fixes */
+@media (max-width: 900px) {
+  .pyq-split { flex-wrap: wrap; }
+  .pyq-list-panel { flex: 1 1 100% !important; max-height: 320px; }
+  .pyq-reader-panel { flex: 1 1 100% !important; }
+  .mock-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}

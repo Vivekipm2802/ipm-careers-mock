@@ -350,6 +350,16 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     return upcoming[0] || null;
   }, [visibleTests, now]);
 
+  // A mock that is open RIGHT NOW (start passed, end not reached)
+  const liveMock = useMemo(() => {
+    const open = visibleTests
+      .filter((t) => t.start_time && t.end_time)
+      .map((t) => ({ test: t, startsAt: parseISO(t.start_time), endsAt: parseISO(t.end_time) }))
+      .filter((x) => !isAfter(x.startsAt, now) && isAfter(x.endsAt, now))
+      .sort((a, b) => a.endsAt - b.endsAt);
+    return open[0] || null;
+  }, [visibleTests, now]);
+
   // Countdown breakdown
   const countdown = useMemo(() => {
     if (!nextMock) return null;
@@ -734,7 +744,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 position: "relative",
               }}
             >
-              Next mock
+              {liveMock ? "Live now" : "Next mock"}
             </div>
             <div
               style={{
@@ -745,7 +755,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 position: "relative",
               }}
             >
-              No upcoming mocks scheduled
+              {liveMock ? liveMock.test.title + " is live" : "No upcoming mocks scheduled"}
             </div>
             <div
               style={{
@@ -755,8 +765,9 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 lineHeight: 1.4,
               }}
             >
-              New mocks open weekly during exam season. Check back soon, or take an
-              available one below.
+              {liveMock
+                ? "Open now - closes " + format(liveMock.endsAt, "EEE d MMM, h:mm a") + ". Find it in the list below and attempt it."
+                : "New mocks open weekly during exam season. Check back soon, or take an available one below."}
             </div>
             <div
               style={{
@@ -952,6 +963,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
 
       {/* ===== 4 stat tiles ===== */}
       <div
+        className="mock-stats-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",
@@ -1174,7 +1186,7 @@ function CountdownUnit({ value, label }) {
       <div
         style={{
           fontSize: 10.5,
-          color: "rgba(255,255,255,0.7)",
+          color: "var(--c-mock-banner-soft)",
           marginTop: 4,
           textTransform: "uppercase",
           letterSpacing: "0.08em",

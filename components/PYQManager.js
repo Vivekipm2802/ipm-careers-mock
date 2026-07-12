@@ -1534,9 +1534,10 @@ function Library({
       />
 
       {/* Body — list + reader as card panels, side by side with gap */}
-      <div style={{ flex: 1, display: "flex", minHeight: 0, gap: 18, padding: "18px 28px 24px" }}>
+      <div className="pyq-split" style={{ flex: 1, display: "flex", minHeight: 0, gap: 18, padding: "18px 28px 24px" }}>
         {/* Left: question list panel */}
         <div
+          className="pyq-list-panel"
           style={{
             flex: "0 0 340px",
             background: "var(--c-surface)",
@@ -1586,6 +1587,7 @@ function Library({
 
         {/* Right: reader panel */}
         <div
+          className="pyq-reader-panel"
           style={{
             flex: 1,
             background: "var(--c-surface)",
