@@ -285,7 +285,7 @@ export default function DSBChallenge({ userData }) {
                 <div style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>{m.sub}</div>
               </div>
               <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600, color: m.done ? "var(--c-success)" : "var(--c-brand-gold)", whiteSpace: "nowrap" }}>
-                {m.xp}
+                {m.done ? "banked ✓" : m.xp}
               </div>
             </div>
           ))}
