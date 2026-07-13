@@ -16,6 +16,7 @@ import { Flame, Target, Swords, Skull, Zap, ArrowRight } from "lucide-react";
 import SkipOrSolve from "./SkipOrSolve";
 import SuddenDeath from "./SuddenDeath";
 import GulpProtocol from "./GulpProtocol";
+import Duels from "./Duels";
 
 // Cumulative XP thresholds; index = level - 1
 const LEVELS = [0, 300, 800, 1500, 2400, 3500, 5000, 7000, 9500, 12500];
@@ -120,7 +121,7 @@ export default function DSBChallenge({ userData }) {
   const trainers = [
     { Icon: Target, name: "Skip or Solve", tag: "Decision trainer", desc: "8 seconds a question: solve the scorers, skip the traps.", live: true, open: () => setActiveTrainer("skip-or-solve") },
     { Icon: Zap, name: "Gulp Protocol", tag: "Speed reading", desc: "Process 3–5 word chunks at 350+ WPM. Built for VA's reading load.", live: true, open: () => setActiveTrainer("gulp-protocol") },
-    { Icon: Swords, name: "Duels", tag: "1v1 battle arena", desc: "Five-question MCQ battles. Ranked mode arrives with Phase C." },
+    { Icon: Swords, name: "Duels", tag: "1v1 battle arena", desc: "Five-question MCQ battles vs bots. Ranked mode arrives with Phase C.", live: true, open: () => setActiveTrainer("duels") },
     { Icon: Skull, name: "Sudden Death", tag: "One wrong = out", desc: "No second chances. How long can you survive?", red: true, live: true, open: () => setActiveTrainer("sudden-death") },
   ];
 
@@ -132,6 +133,9 @@ export default function DSBChallenge({ userData }) {
   }
   if (activeTrainer === "gulp-protocol") {
     return <GulpProtocol userData={userData} onExit={() => setActiveTrainer(null)} />;
+  }
+  if (activeTrainer === "duels") {
+    return <Duels userData={userData} onExit={() => setActiveTrainer(null)} />;
   }
 
   return (
