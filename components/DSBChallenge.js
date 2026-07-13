@@ -18,6 +18,7 @@ import SuddenDeath from "./SuddenDeath";
 import GulpProtocol from "./GulpProtocol";
 import Duels from "./Duels";
 import DailyQuiz from "./DailyQuiz";
+import BadgeVault from "./BadgeVault";
 
 // Cumulative XP thresholds; index = level - 1
 const LEVELS = [0, 300, 800, 1500, 2400, 3500, 5000, 7000, 9500, 12500];
@@ -363,6 +364,9 @@ export default function DSBChallenge({ userData }) {
           </div>
         ))}
       </div>
+
+      {/* ── Badge vault (Phase C) ── */}
+      <BadgeVault userData={userData} totalXp={xp?.total_xp || 0} />
 
       {/* ── Weekly arena ── */}
       <div className="flex justify-between items-baseline mb-3">
