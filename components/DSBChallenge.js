@@ -13,6 +13,7 @@ import { supabase } from "@/utils/supabaseClient";
 import { useEffect, useMemo, useState } from "react";
 import { useNMNContext } from "./NMNContext";
 import { Flame, Target, Swords, Skull, Zap, ArrowRight } from "lucide-react";
+import SkipOrSolve from "./SkipOrSolve";
 
 // Cumulative XP thresholds; index = level - 1
 const LEVELS = [0, 300, 800, 1500, 2400, 3500, 5000, 7000, 9500, 12500];
@@ -42,6 +43,7 @@ export default function DSBChallenge({ userData }) {
   const [todayDaily, setTodayDaily] = useState(false);
   const [todayPlay, setTodayPlay] = useState(false);
   const [todayMock, setTodayMock] = useState(false);
+  const [activeTrainer, setActiveTrainer] = useState(null); // "skip-or-solve" | null
 
   useEffect(() => {
     if (!userData?.email) return;
@@ -114,11 +116,15 @@ export default function DSBChallenge({ userData }) {
   ];
 
   const trainers = [
+    { Icon: Target, name: "Skip or Solve", tag: "Decision trainer", desc: "8 seconds a question: solve the scorers, skip the traps.", live: true, open: () => setActiveTrainer("skip-or-solve") },
     { Icon: Zap, name: "Gulp Protocol", tag: "Speed reading", desc: "Process 3–5 word chunks at 350+ WPM. Built for VA's reading load." },
-    { Icon: Target, name: "Skip or Solve", tag: "Decision trainer", desc: "8 seconds a question: solve the scorers, skip the traps." },
     { Icon: Swords, name: "Duels", tag: "1v1 battle arena", desc: "Five-question MCQ battles. Ranked mode arrives with Phase C." },
     { Icon: Skull, name: "Sudden Death", tag: "One wrong = out", desc: "No second chances. How long can you survive?", red: true },
   ];
+
+  if (activeTrainer === "skip-or-solve") {
+    return <SkipOrSolve userData={userData} onExit={() => setActiveTrainer(null)} />;
+  }
 
   return (
     <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
@@ -191,7 +197,8 @@ export default function DSBChallenge({ userData }) {
           <div style={{ marginTop: 16, borderTop: "1px dashed var(--c-border-soft)", paddingTop: 12, fontSize: 12, color: "var(--c-text-secondary)", lineHeight: 1.7 }}>
             XP comes from everything: <b style={{ color: "var(--c-brand-gold)" }}>mocks +100</b> ·{" "}
             <b style={{ color: "var(--c-brand-gold)" }}>tests +50</b> ·{" "}
-            <b style={{ color: "var(--c-brand-gold)" }}>daily quizzes +10/answer</b>. Your entire history already counts.
+            <b style={{ color: "var(--c-brand-gold)" }}>daily quizzes +10/answer</b> ·{" "}
+            <b style={{ color: "var(--c-brand-gold)" }}>trainer runs +30</b>. Your entire history already counts.
           </div>
         </div>
       </div>
@@ -199,18 +206,35 @@ export default function DSBChallenge({ userData }) {
       {/* ── Skill trainers (Phase B) ── */}
       <div className="flex justify-between items-baseline mb-3">
         <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>Skill trainers</div>
-        <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>arriving here soon — unique to IPM Careers</span>
+        <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>unique to IPM Careers</span>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-        {trainers.map(({ Icon, name, tag, desc, red }) => (
-          <div key={name} className="rounded-[14px] border p-5" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", opacity: 0.75 }}>
+        {trainers.map(({ Icon, name, tag, desc, red, live, open }) => (
+          <div
+            key={name}
+            onClick={live ? open : undefined}
+            className="rounded-[14px] border p-5 transition-all"
+            style={{
+              background: "var(--c-surface)",
+              borderColor: live ? "var(--c-mock-banner-line)" : "var(--c-border-faint)",
+              opacity: live ? 1 : 0.75,
+              cursor: live ? "pointer" : "default",
+              boxShadow: live ? "var(--c-shadow-xs)" : "none",
+            }}
+          >
             <div className="grid place-items-center mb-3" style={{ width: 38, height: 38, borderRadius: 12, background: red ? "var(--c-danger-soft)" : "var(--c-brand-gold-tint)", color: red ? "var(--c-danger)" : "var(--c-brand-gold)" }}>
               <Icon size={18} />
             </div>
             <div style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text-primary)" }}>{name}</div>
             <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: red ? "var(--c-danger)" : "var(--c-brand-gold)", margin: "3px 0 7px" }}>{tag}</div>
             <p style={{ fontSize: 12, color: "var(--c-text-secondary)", lineHeight: 1.55 }}>{desc}</p>
-            <div style={{ marginTop: 10, fontSize: 10.5, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>Coming soon</div>
+            {live ? (
+              <div className="inline-flex items-center gap-1.5" style={{ marginTop: 10, fontSize: 11.5, fontWeight: 700, color: "var(--c-brand-gold)" }}>
+                Play now <ArrowRight size={13} />
+              </div>
+            ) : (
+              <div style={{ marginTop: 10, fontSize: 10.5, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>Coming soon</div>
+            )}
           </div>
         ))}
       </div>
