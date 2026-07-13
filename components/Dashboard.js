@@ -414,13 +414,12 @@ export default function Dashboard({ userData }) {
           }}
         />
         <QuickAction
-          title="Today's quiz"
-          desc="Keep your streak alive with daily current affairs"
+          title="Today's missions"
+          desc="Daily quiz, trainers and the Sim Room — keep the streak alive"
           Icon={Flame}
           accent="gold"
           onClick={() => {
-            setCTXSlug("currentaffairs");
-            setSK(new Set(["3"]));
+            setCTXSlug("dsbchallenge");
           }}
         />
         <QuickAction

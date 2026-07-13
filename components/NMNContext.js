@@ -317,24 +317,9 @@ export const NMNContextProvider = ({ children }) => {
   } */
       ],
     },
-    {
-      title: "Daily Learn",
-      isExpanded: false,
-      demo: true,
-      icon: <CalendarDays size={20} />,
-      subtitle: "Learn through Test Quiz and more...",
-      items: [
-        {
-          title: "Daily Learn",
-          type: "user",
-          action: "currentaffairs",
-          id: 6,
-          icon: <Flame size={20} />,
-        },
-
-      ],
-    },
-
+    // Daily Learn retired (July 2026): the daily quiz now lives inside
+    // DSB Challenge (Sim Room). The "currentaffairs" slug and DailyLearn
+    // component are kept so old deep links and admin flows still work.
     {
       title: "DSB Challenge",
       isExpanded: false,

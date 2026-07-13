@@ -25,7 +25,7 @@ const SECTIONS = [
   // Phase 16 Ship A: shorter labels (Option C) — titles match the new ones in NMNContext.js navitems.
   {
     label: 'Study',
-    titles: ['Dashboard', 'Classes', 'Tests', 'Daily Learn', 'DSB Challenge'],
+    titles: ['Dashboard', 'Classes', 'Tests', 'DSB Challenge'],
   },
   {
     label: 'Resources',
