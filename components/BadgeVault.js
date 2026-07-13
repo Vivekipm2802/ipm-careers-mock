@@ -18,11 +18,11 @@ const TIER_ORDER = { legendary: 3, epic: 2, rare: 1, common: 0 };
 export function computeBadges(stats, totalXp) {
   const s = stats || {};
   const lvl = levelFromXp(totalXp || 0);
-  const prog = (cur, max, label) => ({
-    cur: Math.min(cur, max),
-    max,
-    label: label || `${Math.min(cur, max)} / ${max}`,
-  });
+  const prog = (cur, max, label) => {
+    const c = Math.max(0, Math.min(cur, max)); // clamp: no negative bars
+    return { cur: c, max, label: label || `${c} / ${max}` };
+  };
+  const sosBest = Math.max(0, s.sos_best || 0);
   return [
     // ── Consistency ──
     { id: "first-steps", section: "Consistency", tier: "common", em: "🌱", name: "First Steps", desc: "Complete your first daily mission", unlocked: (s.streak_days || 0) >= 1, progress: prog(s.streak_days || 0, 1) },
@@ -35,8 +35,8 @@ export function computeBadges(stats, totalXp) {
     { id: "grinder", section: "Mocks & Tests", tier: "rare", em: "📚", name: "Grinder", desc: "25 concept or sectional tests", unlocked: (s.test_count || 0) >= 25, progress: prog(s.test_count || 0, 25, `${Math.min(s.test_count || 0, 25)} / 25 tests`) },
     { id: "century-club", section: "Mocks & Tests", tier: "epic", em: "🏛️", name: "Century Club", desc: "100 tests attempted", unlocked: (s.test_count || 0) >= 100, progress: prog(s.test_count || 0, 100, `${Math.min(s.test_count || 0, 100)} / 100 tests`) },
     // ── Skill Trainers ──
-    { id: "decision-maker", section: "Skill Trainers", tier: "common", em: "🧠", name: "Decision Maker", desc: "Score 60+ in Skip or Solve", unlocked: (s.sos_best || 0) >= 60, progress: prog(s.sos_best || 0, 60, `best: ${s.sos_best || 0}`) },
-    { id: "trap-whisperer", section: "Skill Trainers", tier: "rare", em: "🎖️", name: "Trap Whisperer", desc: "Perfect Skip or Solve — no wrong answers, 80+ score", unlocked: !!s.sos_perfect, progress: prog(s.sos_perfect ? 1 : 0, 1, `best: ${s.sos_best || 0}`) },
+    { id: "decision-maker", section: "Skill Trainers", tier: "common", em: "🧠", name: "Decision Maker", desc: "Score 60+ in Skip or Solve", unlocked: sosBest >= 60, progress: prog(sosBest, 60, `best: ${sosBest}`) },
+    { id: "trap-whisperer", section: "Skill Trainers", tier: "rare", em: "🎖️", name: "Trap Whisperer", desc: "Perfect Skip or Solve — no wrong answers, 80+ score", unlocked: !!s.sos_perfect, progress: prog(s.sos_perfect ? 1 : 0, 1, `best: ${sosBest}`) },
     { id: "survivor", section: "Skill Trainers", tier: "rare", em: "💀", name: "Survivor", desc: "Survive 10 in Sudden Death", unlocked: (s.sd_best || 0) >= 10, progress: prog(s.sd_best || 0, 10, `best: ${s.sd_best || 0} / 10`) },
     { id: "immortal", section: "Skill Trainers", tier: "epic", em: "☠️", name: "Immortal", desc: "Survive 20 in Sudden Death", unlocked: (s.sd_best || 0) >= 20, progress: prog(s.sd_best || 0, 20, `best: ${s.sd_best || 0} / 20`) },
     { id: "speed-reader", section: "Skill Trainers", tier: "rare", em: "👁️", name: "Speed Reader", desc: "350+ effective WPM in Gulp Protocol", unlocked: (s.gulp_best || 0) >= 350, progress: prog(s.gulp_best || 0, 350, `best: ${s.gulp_best || 0}`) },
@@ -68,8 +68,19 @@ const TIER_STYLE = {
   legendary: { color: "var(--c-brand-gold)", bg: "var(--c-brand-gold-tint)" },
 };
 
+// Pure: the compact shelf — every unlocked badge + the N closest locked ones.
+export function compactShelf(badges, lockedCount = 4) {
+  const unlocked = badges.filter((b) => b.unlocked);
+  const closest = badges
+    .filter((b) => !b.unlocked)
+    .sort((a, b) => b.progress.cur / b.progress.max - a.progress.cur / a.progress.max)
+    .slice(0, lockedCount);
+  return [...unlocked, ...closest];
+}
+
 export default function BadgeVault({ userData, totalXp }) {
   const [stats, setStats] = useState(null);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     if (!userData?.email) return;
@@ -96,13 +107,15 @@ export default function BadgeVault({ userData, totalXp }) {
         </span>
       </div>
 
-      {sections.map((sec) => (
+      {(showAll ? sections : ["shelf"]).map((sec) => (
         <div key={sec}>
-          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", margin: "14px 0 8px" }}>
-            {sec}
-          </div>
+          {showAll && (
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", margin: "14px 0 8px" }}>
+              {sec}
+            </div>
+          )}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {badges.filter((b) => b.section === sec).map((b) => {
+            {(showAll ? badges.filter((b) => b.section === sec) : compactShelf(badges)).map((b) => {
               const ts = TIER_STYLE[b.tier];
               const pct = Math.round((100 * b.progress.cur) / b.progress.max);
               return (
@@ -143,6 +156,15 @@ export default function BadgeVault({ userData, totalXp }) {
           </div>
         </div>
       ))}
+
+      <button
+        type="button"
+        onClick={() => setShowAll((v) => !v)}
+        className="mt-3"
+        style={{ background: "transparent", border: "1px solid var(--c-border-soft, var(--c-border-faint))", color: "var(--c-text-secondary)", fontWeight: 600, fontSize: 12.5, borderRadius: 999, padding: "9px 20px", cursor: "pointer", fontFamily: "inherit" }}
+      >
+        {showAll ? "Show less" : `View full vault (${summary.total} badges) →`}
+      </button>
     </div>
   );
 }
