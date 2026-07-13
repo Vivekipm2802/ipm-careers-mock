@@ -249,7 +249,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
               </ul>
             </AccordionItem>
 
-            {accordian && accordian.map((i, d) => (
+            {accordian && accordian.filter((i) => !i.flat).map((i, d) => (
               <AccordionItem
                 key={i.title}
                 startContent={i.icon || ''}
@@ -278,6 +278,39 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
               </AccordionItem>
             ))}
           </Accordion>
+
+          {/* Flat items — direct links in the mobile drawer (no accordion) */}
+          {accordian && accordian.filter((i) => i.flat).map((i) => {
+            const target = i.items?.[0];
+            if (!target) return null;
+            const active = ctxSlug === target.action;
+            return (
+              <div
+                key={i.title}
+                onClick={() => { setCTXSlug(target.action); setIsActive(false); }}
+                className="flex items-center gap-2 mx-3 rounded-lg transition-all cursor-pointer"
+                style={{
+                  padding: '10px 12px',
+                  color: active ? 'var(--c-brand-primary)' : 'var(--c-text-secondary)',
+                  background: active ? 'var(--c-brand-primary-tint)' : 'transparent',
+                }}
+              >
+                {i.icon}
+                <span style={titleStyle}>{i.title}</span>
+                {i.badge && (
+                  <span
+                    style={{
+                      marginLeft: 'auto', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                      textTransform: 'uppercase', color: 'var(--c-brand-gold)',
+                      background: 'var(--c-brand-gold-tint)', borderRadius: 999, padding: '3px 8px',
+                    }}
+                  >
+                    {i.badge}
+                  </span>
+                )}
+              </div>
+            );
+          })}
 
           <div
             className="flex mt-auto flex-row items-center justify-between flex-shrink-0 w-full px-4 py-3 rounded-2xl"
@@ -371,6 +404,8 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
         {SECTIONS.map((section) => {
           const items = sectionItems[section.label] || [];
           if (items.length === 0) return null;
+          const accItems = items.filter((i) => !i.flat);
+          const flatItems = items.filter((i) => i.flat);
           return (
             <div key={section.label}>
               <div style={sectionLabelStyle}>{section.label}</div>
@@ -382,7 +417,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
                 fullWidth isCompact
                 className="px-1"
               >
-                {items.map((i, d) => (
+                {accItems.map((i, d) => (
                   <AccordionItem
                     isDisabled={isDemo && i.demo === false}
                     startContent={
@@ -400,6 +435,46 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
                   </AccordionItem>
                 ))}
               </Accordion>
+              {/* Flat items — direct links (no accordion), e.g. DSB Challenge */}
+              {flatItems.map((i) => {
+                const target = i.items?.[0];
+                if (!target) return null;
+                const active = ctxSlug === target.action;
+                return (
+                  <div
+                    key={i.title}
+                    onClick={() => setCTXSlug(target.action)}
+                    className="flex items-center gap-2 mx-2 rounded-lg transition-all cursor-pointer"
+                    style={{
+                      padding: '9px 10px',
+                      color: active ? 'var(--c-brand-primary)' : 'var(--c-text-secondary)',
+                      background: active ? 'var(--c-brand-primary-tint)' : 'transparent',
+                    }}
+                    onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--c-surface-muted)'; }}
+                    onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    {i.icon}
+                    <span style={titleStyle}>{i.title}</span>
+                    {i.badge && (
+                      <span
+                        style={{
+                          marginLeft: 'auto',
+                          fontSize: 9,
+                          fontWeight: 700,
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase',
+                          color: 'var(--c-brand-gold)',
+                          background: 'var(--c-brand-gold-tint)',
+                          borderRadius: 999,
+                          padding: '3px 8px',
+                        }}
+                      >
+                        {i.badge}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           );
         })}

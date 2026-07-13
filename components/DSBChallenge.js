@@ -168,14 +168,9 @@ export default function DSBChallenge({ userData }) {
               </div>
             </div>
           ))}
-          <button
-            type="button"
-            onClick={() => goTo("currentaffairs", "3")}
-            className="mt-3 inline-flex items-center gap-2"
-            style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 24px", border: "none", cursor: "pointer", fontFamily: "inherit" }}
-          >
-            Enter Sim Room <ArrowRight size={15} />
-          </button>
+          <div className="mt-3 inline-flex items-center gap-1.5" style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
+            Tap a mission to jump straight to it <ArrowRight size={13} />
+          </div>
         </div>
 
         <div className="rounded-[16px] border p-6 flex flex-col" style={{ background: "var(--c-surface)", borderColor: "var(--c-mock-banner-line)", boxShadow: "var(--c-shadow-xs)" }}>
