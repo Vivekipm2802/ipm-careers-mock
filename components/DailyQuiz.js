@@ -152,7 +152,7 @@ export default function DailyQuiz({ userData, onExit, onSimComplete }) {
           </div>
 
           {q.questionimage && (
-            <img src={q.questionimage} alt="Question" style={{ maxHeight: "24vh", marginBottom: 14, borderRadius: 12, border: "1px solid var(--c-border-faint)" }} />
+            <img src={q.questionimage} alt="Question" style={{ maxWidth: "100%", maxHeight: "24vh", marginBottom: 14, borderRadius: 12, border: "1px solid var(--c-border-faint)" }} />
           )}
           {q.title && (
             <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.5, color: "var(--c-text-primary)" }}>{q.title}</div>
@@ -160,7 +160,7 @@ export default function DailyQuiz({ userData, onExit, onSimComplete }) {
           {q.question && (
             <div
               className={"qcontent " + (q.title ? "mt-2" : "")}
-              style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-text-primary)", maxHeight: "30vh", overflowY: "auto" }}
+              style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-text-primary)", maxHeight: "30vh", overflowY: "auto", overflowX: "auto", wordBreak: "break-word" }}
               dangerouslySetInnerHTML={{ __html: q.question }}
             />
           )}

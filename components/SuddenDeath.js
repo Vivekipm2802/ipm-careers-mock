@@ -258,7 +258,7 @@ export default function SuddenDeath({ userData, onExit }) {
           </div>
 
           {q.questionimage && (
-            <img src={q.questionimage} alt="Question" style={{ maxHeight: "26vh", marginTop: 18, borderRadius: 12, border: "1px solid var(--c-border-faint)" }} />
+            <img src={q.questionimage} alt="Question" style={{ maxWidth: "100%", maxHeight: "26vh", marginTop: 18, borderRadius: 12, border: "1px solid var(--c-border-faint)" }} />
           )}
           {q.title && (
             <div className="mt-5" style={{ fontSize: 16.5, fontWeight: 600, lineHeight: 1.5, color: "var(--c-text-primary)" }}>
@@ -268,7 +268,7 @@ export default function SuddenDeath({ userData, onExit }) {
           {q.question && (
             <div
               className={"qcontent " + (q.title ? "mt-2" : "mt-5")}
-              style={{ fontSize: 15.5, lineHeight: 1.65, color: "var(--c-text-primary)", maxHeight: "34vh", overflowY: "auto" }}
+              style={{ fontSize: 15.5, lineHeight: 1.65, color: "var(--c-text-primary)", maxHeight: "34vh", overflowY: "auto", overflowX: "auto", wordBreak: "break-word" }}
               dangerouslySetInnerHTML={{ __html: q.question }}
             />
           )}

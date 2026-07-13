@@ -128,8 +128,9 @@ export default function DSBChallenge({ userData }) {
     setSimSummary(null);
     const start = firstPendingStage(0);
     if (start === -1) {
-      // everything already done today — run the full circuit anyway
-      setSim({ stage: 0, results: {} });
+      // everything already done today — run the FULL circuit again
+      // (forceAll: don't skip stages just because they're banked)
+      setSim({ stage: 0, results: {}, forceAll: true });
     } else {
       setSim({ stage: start, results: {} });
     }
@@ -139,7 +140,9 @@ export default function DSBChallenge({ userData }) {
       if (!prev) return prev;
       const results = { ...prev.results, [STAGE_KEYS[prev.stage]]: stats };
       let next = prev.stage + 1;
-      while (next < 3 && missionDone[next]) next += 1;
+      if (!prev.forceAll) {
+        while (next < 3 && missionDone[next]) next += 1;
+      }
       if (next >= 3) {
         setSimSummary(results);
         return null;

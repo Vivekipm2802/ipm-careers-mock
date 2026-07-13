@@ -341,10 +341,11 @@ export default function Duels({ userData, onExit }) {
       }),
     ];
     if (ranked) {
+      // duel_date is filled by the DB default (IST date, server clock) —
+      // never trust the student's device clock for the day boundary.
       inserts.push(
         supabase.from("duel_runs").insert({
           user: userData.email,
-          duel_date: istDate(),
           rounds: s.rounds,
         })
       );
@@ -559,13 +560,13 @@ export default function Duels({ userData, onExit }) {
           </div>
 
           {q.questionimage && (
-            <img src={q.questionimage} alt="Question" style={{ maxHeight: "24vh", marginBottom: 14, borderRadius: 12, border: "1px solid var(--c-border-faint)" }} />
+            <img src={q.questionimage} alt="Question" style={{ maxWidth: "100%", maxHeight: "24vh", marginBottom: 14, borderRadius: 12, border: "1px solid var(--c-border-faint)" }} />
           )}
           {q.title && (
             <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.5, color: "var(--c-text-primary)" }}>{q.title}</div>
           )}
           {q.question && (
-            <div className={"qcontent " + (q.title ? "mt-2" : "")} style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-text-primary)", maxHeight: "30vh", overflowY: "auto" }} dangerouslySetInnerHTML={{ __html: q.question }} />
+            <div className={"qcontent " + (q.title ? "mt-2" : "")} style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-text-primary)", maxHeight: "30vh", overflowY: "auto", overflowX: "auto", wordBreak: "break-word" }} dangerouslySetInnerHTML={{ __html: q.question }} />
           )}
 
           <div className="grid gap-2.5 mt-4">
