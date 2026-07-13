@@ -19,7 +19,7 @@ import { ArrowLeft, ArrowRight, Flame } from "lucide-react";
 
 export const RUN_LENGTH = 10;
 export const SECONDS_PER_Q = 8;
-export const XP_PER_RUN = 30;
+export const XP_PER_RUN = 50;
 
 export const initialRun = () => ({
   i: 0,
@@ -62,7 +62,7 @@ export function verdictFor(s) {
 
 const RING_C = 2 * Math.PI * 27; // circumference for r=27
 
-export default function SkipOrSolve({ userData, onExit }) {
+export default function SkipOrSolve({ userData, onExit, onSimComplete }) {
   const [phase, setPhase] = useState("start"); // start | loading | play | done | empty
   const [questions, setQuestions] = useState([]);
   const [run, setRun] = useState(initialRun());
@@ -98,6 +98,16 @@ export default function SkipOrSolve({ userData, onExit }) {
       clearInterval(timerRef.current);
       clearTimeout(advanceRef.current);
     };
+  }, []);
+
+  // Sim Room: skip the start screen and launch straight into the run.
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (onSimComplete && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      begin();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startTimer = () => {
@@ -411,12 +421,25 @@ export default function SkipOrSolve({ userData, onExit }) {
             XP earned this run: <b style={{ color: "var(--c-brand-gold)" }}>+{XP_PER_RUN} XP</b>
           </div>
           <div className="mt-6 flex gap-3">
-            <button type="button" onClick={begin} className="inline-flex items-center gap-2" style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 26px", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-              Run it again <ArrowRight size={15} />
-            </button>
-            <button type="button" onClick={onExit} style={{ background: "transparent", color: "var(--c-text-secondary)", fontWeight: 600, fontSize: 13, border: "1px solid var(--c-border-soft, var(--c-border-faint))", borderRadius: 999, padding: "11px 24px", cursor: "pointer", fontFamily: "inherit" }}>
-              Back to DSB
-            </button>
+            {onSimComplete ? (
+              <button
+                type="button"
+                onClick={() => onSimComplete(`${run.score} pts`)}
+                className="inline-flex items-center gap-2"
+                style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 26px", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Continue simulation <ArrowRight size={15} />
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={begin} className="inline-flex items-center gap-2" style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 26px", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                  Run it again <ArrowRight size={15} />
+                </button>
+                <button type="button" onClick={onExit} style={{ background: "transparent", color: "var(--c-text-secondary)", fontWeight: 600, fontSize: 13, border: "1px solid var(--c-border-soft, var(--c-border-faint))", borderRadius: 999, padding: "11px 24px", cursor: "pointer", fontFamily: "inherit" }}>
+                  Back to DSB
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

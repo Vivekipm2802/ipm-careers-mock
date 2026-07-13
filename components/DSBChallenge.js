@@ -17,6 +17,7 @@ import SkipOrSolve from "./SkipOrSolve";
 import SuddenDeath from "./SuddenDeath";
 import GulpProtocol from "./GulpProtocol";
 import Duels from "./Duels";
+import DailyQuiz from "./DailyQuiz";
 
 // Cumulative XP thresholds; index = level - 1
 const LEVELS = [0, 300, 800, 1500, 2400, 3500, 5000, 7000, 9500, 12500];
@@ -43,10 +44,13 @@ export default function DSBChallenge({ userData }) {
   const [xp, setXp] = useState(null); // { total_xp, weekly_xp }
   const [board, setBoard] = useState([]);
   const [myRank, setMyRank] = useState(null);
-  const [todayDaily, setTodayDaily] = useState(false);
-  const [todayPlay, setTodayPlay] = useState(false);
-  const [todayMock, setTodayMock] = useState(false);
-  const [activeTrainer, setActiveTrainer] = useState(null); // "skip-or-solve" | null
+  const [todayQuiz, setTodayQuiz] = useState(false);
+  const [todayGulp, setTodayGulp] = useState(false);
+  const [todaySos, setTodaySos] = useState(false);
+  const [activeTrainer, setActiveTrainer] = useState(null); // trainer id | null
+  // Sim Room: { stage: 0|1|2, results: { quiz, gulp, sos } } or null
+  const [sim, setSim] = useState(null);
+  const [simSummary, setSimSummary] = useState(null);
 
   useEffect(() => {
     if (!userData?.email) return;
@@ -60,63 +64,92 @@ export default function DSBChallenge({ userData }) {
       if (!error && Array.isArray(data) && data.length) setMyRank(data[0]);
     });
 
-    // Today's missions — computed from the student's own activity (RLS-scoped)
+    // Today's missions — one query over the student's own trainer runs
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
-    const iso = startOfToday.toISOString();
     supabase
-      .from("daily_rc_submissions")
-      .select("created_at")
-      .gte("created_at", iso)
-      .limit(1)
-      .then(({ data }) => setTodayDaily(!!(data && data.length)));
-    supabase
-      .from("plays")
-      .select("created_at")
+      .from("trainer_runs")
+      .select("trainer")
       .eq("user", userData.email)
-      .gte("created_at", iso)
-      .limit(1)
-      .then(({ data }) => setTodayPlay(!!(data && data.length)));
-    supabase
-      .from("mock_plays")
-      .select("created_at")
-      .eq("user", userData.email)
-      .gte("created_at", iso)
-      .limit(1)
-      .then(({ data }) => setTodayMock(!!(data && data.length)));
-  }, [userData?.email]);
+      .gte("created_at", startOfToday.toISOString())
+      .then(({ data }) => {
+        const done = new Set((data || []).map((r) => r.trainer));
+        setTodayQuiz(done.has("daily-quiz"));
+        setTodayGulp(done.has("gulp-protocol"));
+        setTodaySos(done.has("skip-or-solve"));
+      });
+  }, [userData?.email, activeTrainer, sim]);
 
   const lvl = useMemo(() => levelFromXp(xp?.total_xp || 0), [xp]);
-  const missionsDone = [todayDaily, todayPlay, todayMock].filter(Boolean).length;
+  const missionDone = [todayQuiz, todayGulp, todaySos];
+  const missionsDone = missionDone.filter(Boolean).length;
 
   const goTo = (slug, key) => {
     setCTXSlug(slug);
     if (key) setSK(new Set([key]));
   };
 
+  // The Sim Room trio — stage order matches the stepper.
+  const STAGES = ["daily-quiz", "gulp-protocol", "skip-or-solve"];
+  const STAGE_NAMES = ["QA Quiz", "Gulp", "Skip/Solve"];
+  const STAGE_KEYS = ["quiz", "gulp", "sos"];
+
   const missions = [
     {
-      done: todayDaily,
-      title: "Daily quiz",
-      sub: "QA, VA or LR — keep the streak alive",
+      done: todayQuiz,
+      title: "Daily QA quiz",
+      sub: "10 questions · same set for all of India today",
       xp: "+40 XP",
-      onClick: () => goTo("currentaffairs", "3"),
+      onClick: () => setActiveTrainer("daily-quiz"),
     },
     {
-      done: todayPlay,
-      title: "One concept or sectional test",
-      sub: "Fix one weak topic today",
+      done: todayGulp,
+      title: "Gulp Protocol — 1 passage",
+      sub: "Speed reading · 350+ WPM target",
+      xp: "+30 XP",
+      onClick: () => setActiveTrainer("gulp-protocol"),
+    },
+    {
+      done: todaySos,
+      title: "Skip or Solve — 10 rounds",
+      sub: "Trap detection · 8s per question",
       xp: "+50 XP",
-      onClick: () => goTo("test", "2"),
-    },
-    {
-      done: todayMock,
-      title: "Attempt the open mock",
-      sub: "Full length, exam conditions",
-      xp: "+100 XP",
-      onClick: () => goTo("mocks", "2"),
+      onClick: () => setActiveTrainer("skip-or-solve"),
     },
   ];
+
+  // ── Sim Room orchestration ──
+  const firstPendingStage = (from) => {
+    for (let i = from; i < 3; i++) if (!missionDone[i]) return i;
+    return -1;
+  };
+  const enterSimRoom = () => {
+    setSimSummary(null);
+    const start = firstPendingStage(0);
+    if (start === -1) {
+      // everything already done today — run the full circuit anyway
+      setSim({ stage: 0, results: {} });
+    } else {
+      setSim({ stage: start, results: {} });
+    }
+  };
+  const onStageComplete = (stats) => {
+    setSim((prev) => {
+      if (!prev) return prev;
+      const results = { ...prev.results, [STAGE_KEYS[prev.stage]]: stats };
+      let next = prev.stage + 1;
+      while (next < 3 && missionDone[next]) next += 1;
+      if (next >= 3) {
+        setSimSummary(results);
+        return null;
+      }
+      return { ...prev, stage: next, results };
+    });
+  };
+  const exitSim = () => {
+    setSim(null);
+    setSimSummary(null);
+  };
 
   const trainers = [
     { Icon: Target, name: "Skip or Solve", tag: "Decision trainer", desc: "8 seconds a question: solve the scorers, skip the traps.", live: true, open: () => setActiveTrainer("skip-or-solve") },
@@ -125,6 +158,76 @@ export default function DSBChallenge({ userData }) {
     { Icon: Skull, name: "Sudden Death", tag: "One wrong = out", desc: "No second chances. How long can you survive?", red: true, live: true, open: () => setActiveTrainer("sudden-death") },
   ];
 
+  // ── Sim Room: guided back-to-back session with stepper ──
+  if (sim) {
+    const StageComp = [DailyQuiz, GulpProtocol, SkipOrSolve][sim.stage];
+    return (
+      <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
+        <div className="flex items-center gap-2 mt-10 mb-2 max-w-[760px]">
+          {STAGE_NAMES.map((n, i) => {
+            const isDone = missionDone[i] || Object.keys(sim.results).includes(STAGE_KEYS[i]);
+            const isActive = i === sim.stage;
+            return (
+              <div key={n} className="flex items-center gap-2 flex-1" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: isActive ? "var(--c-brand-gold)" : isDone ? "var(--c-success)" : "var(--c-text-tertiary)" }}>
+                <span className="grid place-items-center shrink-0" style={{ width: 24, height: 24, borderRadius: 99, fontSize: 11, background: isActive ? "var(--c-brand-gold-tint)" : isDone ? "var(--c-success-soft)" : "var(--c-surface-sunken, var(--c-surface-muted))", border: isActive ? "1px solid var(--c-brand-gold)" : "none" }}>
+                  {isDone && !isActive ? "✓" : i + 1}
+                </span>
+                {n}
+                {i < 2 && <span className="flex-1" style={{ height: 2, background: "var(--c-surface-sunken, var(--c-surface-muted))" }} />}
+              </div>
+            );
+          })}
+        </div>
+        <StageComp key={sim.stage} userData={userData} onExit={exitSim} onSimComplete={onStageComplete} />
+      </div>
+    );
+  }
+
+  // ── Sim Room summary ──
+  if (simSummary) {
+    const earned =
+      (simSummary.quiz ? 40 : 0) + (simSummary.gulp ? 30 : 0) + (simSummary.sos ? 50 : 0);
+    return (
+      <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
+        <div className="p-6 md:p-7 max-w-[760px] mt-10 rounded-[16px] border" style={{ background: "var(--c-surface)", borderColor: "var(--c-mock-banner-line)", boxShadow: "var(--c-shadow-xs)" }}>
+          <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 8 }}>
+            🏁 Simulation complete
+          </div>
+          <h2 className="ds-display" style={{ fontSize: 26 }}>
+            Session banked: <span className="ds-grad-text">+{earned} XP</span>
+          </h2>
+          <div className="grid gap-3 mt-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))" }}>
+            {[
+              ["QA quiz", simSummary.quiz],
+              ["Gulp passage", simSummary.gulp],
+              ["Skip or Solve", simSummary.sos],
+            ].map(([l, v]) => (
+              <div key={l} className="rounded-[12px] border p-4" style={{ background: "var(--c-surface-muted, var(--c-bg))", borderColor: "var(--c-border-faint)" }}>
+                <div style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>{l}</div>
+                <div className="ds-display" style={{ fontSize: 21, marginTop: 6, color: v ? "var(--c-text-primary)" : "var(--c-text-tertiary)" }}>
+                  {v || "done earlier"}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-[12px] mt-5 p-4" style={{ background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", fontSize: 13.5, lineHeight: 1.65, color: "var(--c-text-secondary)" }}>
+            <b style={{ color: "var(--c-brand-gold)" }}>Simulation complete.</b> All reps done in one sitting — this is the daily habit that compounds. Come back tomorrow: a fresh shared quiz drops and the missions reset at midnight.
+          </div>
+          <button type="button" onClick={exitSim} className="mt-6 inline-flex items-center gap-2" style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 26px", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+            Back to missions <ArrowRight size={15} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeTrainer === "daily-quiz") {
+    return (
+      <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4 pt-8" style={{ textAlign: "left" }}>
+        <DailyQuiz userData={userData} onExit={() => setActiveTrainer(null)} />
+      </div>
+    );
+  }
   if (activeTrainer === "skip-or-solve") {
     return <SkipOrSolve userData={userData} onExit={() => setActiveTrainer(null)} />;
   }
@@ -186,8 +289,18 @@ export default function DSBChallenge({ userData }) {
               </div>
             </div>
           ))}
-          <div className="mt-3 inline-flex items-center gap-1.5" style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
-            Tap a mission to jump straight to it <ArrowRight size={13} />
+          <div className="mt-3 flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={enterSimRoom}
+              className="inline-flex items-center gap-2"
+              style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 24px", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Enter Sim Room <ArrowRight size={15} />
+            </button>
+            <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
+              runs all three back to back · or tap one mission
+            </span>
           </div>
         </div>
 
@@ -209,8 +322,8 @@ export default function DSBChallenge({ userData }) {
           <div style={{ marginTop: 16, borderTop: "1px dashed var(--c-border-soft)", paddingTop: 12, fontSize: 12, color: "var(--c-text-secondary)", lineHeight: 1.7 }}>
             XP comes from everything: <b style={{ color: "var(--c-brand-gold)" }}>mocks +100</b> ·{" "}
             <b style={{ color: "var(--c-brand-gold)" }}>tests +50</b> ·{" "}
-            <b style={{ color: "var(--c-brand-gold)" }}>daily quizzes +10/answer</b> ·{" "}
-            <b style={{ color: "var(--c-brand-gold)" }}>trainer runs +30</b>. Your entire history already counts.
+            <b style={{ color: "var(--c-brand-gold)" }}>daily quiz +40</b> ·{" "}
+            <b style={{ color: "var(--c-brand-gold)" }}>trainer runs +30–50</b>. Your entire history already counts.
           </div>
         </div>
       </div>

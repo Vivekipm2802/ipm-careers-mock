@@ -55,7 +55,7 @@ export function verdictFor(comp, avgWpm) {
   return "Too fast for today. Speed without understanding is just scrolling — drop one tier, rebuild comprehension, then climb back.";
 }
 
-export default function GulpProtocol({ userData, onExit }) {
+export default function GulpProtocol({ userData, onExit, onSimComplete }) {
   const [phase, setPhase] = useState("start"); // start | countdown | read | quiz | done
   const [wpm, setWpm] = useState(350);
   const [passage, setPassage] = useState(null);
@@ -92,6 +92,17 @@ export default function GulpProtocol({ userData, onExit }) {
   }, [userData?.email]);
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  // Sim Room: skip the start screen and launch straight into the read
+  // at the default target pace (the live slider still works mid-read).
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (onSimComplete && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      begin();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const begin = () => {
     const p = PASSAGES[Math.floor(Math.random() * PASSAGES.length)];
@@ -392,12 +403,25 @@ export default function GulpProtocol({ userData, onExit }) {
             XP earned this run: <b style={{ color: "var(--c-brand-gold)" }}>+{XP_PER_RUN} XP</b>
           </div>
           <div className="mt-6 flex gap-3">
-            <button type="button" onClick={() => setPhase("start")} className="inline-flex items-center gap-2" style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 26px", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-              New run <ArrowRight size={15} />
-            </button>
-            <button type="button" onClick={onExit} style={{ background: "transparent", color: "var(--c-text-secondary)", fontWeight: 600, fontSize: 13, border: "1px solid var(--c-border-soft, var(--c-border-faint))", borderRadius: 999, padding: "11px 24px", cursor: "pointer", fontFamily: "inherit" }}>
-              Back to DSB
-            </button>
+            {onSimComplete ? (
+              <button
+                type="button"
+                onClick={() => onSimComplete(`${avgWpm()} WPM · ${comp}%`)}
+                className="inline-flex items-center gap-2"
+                style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 26px", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Continue simulation <ArrowRight size={15} />
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={() => setPhase("start")} className="inline-flex items-center gap-2" style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 26px", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                  New run <ArrowRight size={15} />
+                </button>
+                <button type="button" onClick={onExit} style={{ background: "transparent", color: "var(--c-text-secondary)", fontWeight: 600, fontSize: 13, border: "1px solid var(--c-border-soft, var(--c-border-faint))", borderRadius: 999, padding: "11px 24px", cursor: "pointer", fontFamily: "inherit" }}>
+                  Back to DSB
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
