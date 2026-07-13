@@ -79,7 +79,9 @@ export default function SuddenDeath({ userData, onExit }) {
     fetchingRef.current = true;
     const { data } = await supabase.rpc("get_trainer_questions", { p_count: BATCH_SIZE });
     fetchingRef.current = false;
-    return (data || []).filter((q) => Array.isArray(q.options) && q.options.length >= 2);
+    return (data || []).filter(
+      (q) => Array.isArray(q.options) && q.options.length >= 2 && (q.title || q.question)
+    );
   };
 
   const begin = async () => {
@@ -258,11 +260,18 @@ export default function SuddenDeath({ userData, onExit }) {
           {q.questionimage && (
             <img src={q.questionimage} alt="Question" style={{ maxHeight: "26vh", marginTop: 18, borderRadius: 12, border: "1px solid var(--c-border-faint)" }} />
           )}
-          <div
-            className="mt-5"
-            style={{ fontSize: 16.5, lineHeight: 1.6, color: "var(--c-text-primary)" }}
-            dangerouslySetInnerHTML={{ __html: q.title }}
-          />
+          {q.title && (
+            <div className="mt-5" style={{ fontSize: 16.5, fontWeight: 600, lineHeight: 1.5, color: "var(--c-text-primary)" }}>
+              {q.title}
+            </div>
+          )}
+          {q.question && (
+            <div
+              className={"qcontent " + (q.title ? "mt-2" : "mt-5")}
+              style={{ fontSize: 15.5, lineHeight: 1.65, color: "var(--c-text-primary)", maxHeight: "34vh", overflowY: "auto" }}
+              dangerouslySetInnerHTML={{ __html: q.question }}
+            />
+          )}
 
           <div className="grid gap-2.5 mt-4">
             {q.options.map((o, d) => {

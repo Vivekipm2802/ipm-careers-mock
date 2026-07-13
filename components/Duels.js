@@ -118,7 +118,9 @@ export default function Duels({ userData, onExit }) {
   const begin = async () => {
     setPhase("loading");
     const { data, error } = await supabase.rpc("get_trainer_questions", { p_count: 10 });
-    const usable = (data || []).filter((q) => Array.isArray(q.options) && q.options.length >= 2);
+    const usable = (data || []).filter(
+      (q) => Array.isArray(q.options) && q.options.length >= 2 && (q.title || q.question)
+    );
     if (error || usable.length < ROUNDS) {
       setPhase("empty");
       return;
@@ -408,7 +410,18 @@ export default function Duels({ userData, onExit }) {
           {q.questionimage && (
             <img src={q.questionimage} alt="Question" style={{ maxHeight: "24vh", marginBottom: 14, borderRadius: 12, border: "1px solid var(--c-border-faint)" }} />
           )}
-          <div style={{ fontSize: 16, lineHeight: 1.6, color: "var(--c-text-primary)" }} dangerouslySetInnerHTML={{ __html: q.title }} />
+          {q.title && (
+            <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.5, color: "var(--c-text-primary)" }}>
+              {q.title}
+            </div>
+          )}
+          {q.question && (
+            <div
+              className={"qcontent " + (q.title ? "mt-2" : "")}
+              style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-text-primary)", maxHeight: "30vh", overflowY: "auto" }}
+              dangerouslySetInnerHTML={{ __html: q.question }}
+            />
+          )}
 
           <div className="grid gap-2.5 mt-4">
             {q.options.map((o, d) => {
