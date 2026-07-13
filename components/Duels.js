@@ -75,6 +75,9 @@ export default function Duels({ userData, onExit }) {
   const [lastStats, setLastStats] = useState(null);
 
   const t0Ref = useRef(0);
+  // Round number lives in a ref as well: settle() can be invoked from the
+  // bot's setTimeout, whose closure captured a stale `round` state value.
+  const roundNumRef = useRef(0);
   const tickRef = useRef(null);
   const botTimerRef = useRef(null);
   const advanceRef = useRef(null);
@@ -131,6 +134,8 @@ export default function Duels({ userData, onExit }) {
   };
 
   const startRound = (r) => {
+    roundNumRef.current = r;
+    setRound(r);
     lockRef.current = false;
     roundRef.current = { you: null, bot: null, botDone: false };
     setPicked(null);
@@ -174,8 +179,8 @@ export default function Duels({ userData, onExit }) {
     if (reveal || lockRef.current) return;
     lockRef.current = true;
     clearInterval(tickRef.current);
-    const q = questions[round];
-    const correct = !!q.options[idx]?.isCorrect;
+    const q = questions[roundNumRef.current];
+    const correct = !!q?.options[idx]?.isCorrect;
     setPicked(idx);
     setReveal(true);
     youLockIn(correct, (Date.now() - t0Ref.current) / 1000);
@@ -215,14 +220,11 @@ export default function Duels({ userData, onExit }) {
     setFlash({ text: msg, tone });
     clearTimeout(advanceRef.current);
     advanceRef.current = setTimeout(() => {
-      if (round + 1 >= ROUNDS) {
+      const nr = roundNumRef.current + 1;
+      if (nr >= ROUNDS) {
         finish();
       } else {
-        setRound((r) => {
-          const nr = r + 1;
-          startRound(nr);
-          return nr;
-        });
+        startRound(nr);
       }
     }, 1500);
   };
