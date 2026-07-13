@@ -69,6 +69,7 @@ import CustomTestGenerator from "@/components/CustomTestGenerator";
 import PerformanceUser from "@/components/PerformanceUser";
 import SectionalTest from "@/components/SectionalTest";
 import DailyLearn from "@/components/DailyLearn";
+import DSBChallenge from "@/components/DSBChallenge";
 import Link from "next/link";
 import BatchCreator from "@/components/BatchCreator";
 import Classes from "@/components/Classes";
@@ -3340,6 +3341,9 @@ export default function Home(props) {
                   <DailyLearn role={props?.type}></DailyLearn>
                 ) : (
                   ""
+                )}
+                {slug == "dsbchallenge" && (
+                  <DSBChallenge userData={userData}></DSBChallenge>
                 )}
                 {/* {slug == "mindmap2" ? <div className='w-full h-full flex flex-col justify-center align-middle items-center'>
 <h2 className='w-auto p-3 rounded-xl text-center font-bold bg-gray-200 flex flex-row'><svg className='mr-2' width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

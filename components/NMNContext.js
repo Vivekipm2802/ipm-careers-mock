@@ -1,5 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
-import { Award, BarChart3, BookOpen, CalendarDays, CalendarOff, CalendarRange, ClipboardList, FileEdit, FileText, Flame, Hash, HelpCircle, Layers, LayoutDashboard, Lightbulb, Map, MessageSquare, Phone, PlayCircle, PlusCircle, Printer, School, Settings, SlidersHorizontal, Sparkles, Target, TrendingUp, UserCog, UserPlus, Users, UsersRound, Video } from "lucide-react";
+import { Award, BarChart3, BookOpen, CalendarDays, CalendarOff, CalendarRange, ClipboardList, FileEdit, FileText, Flame, Hash, HelpCircle, Layers, LayoutDashboard, Lightbulb, Map, MessageSquare, Phone, PlayCircle, PlusCircle, Printer, School, Settings, SlidersHorizontal, Sparkles, Target, TrendingUp, UserCog, UserPlus, Users, UsersRound, Video, Zap } from "lucide-react";
 import { useRouter } from "next/router";
 import React, {
   createContext,
@@ -332,6 +332,23 @@ export const NMNContextProvider = ({ children }) => {
           icon: <Flame size={20} />,
         },
 
+      ],
+    },
+
+    {
+      title: "DSB Challenge",
+      isExpanded: false,
+      demo: true,
+      icon: <Zap size={20} />,
+      subtitle: "Earn XP, complete missions, climb the arena",
+      items: [
+        {
+          title: "DSB Challenge",
+          type: "user",
+          action: "dsbchallenge",
+          id: 61,
+          icon: <Zap size={20} />,
+        },
       ],
     },
 
