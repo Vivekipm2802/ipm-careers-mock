@@ -19,7 +19,11 @@ import { ArrowRight } from "lucide-react";
 import { useNMNContext } from "./NMNContext";
 
 // IPMAT exam date the countdown targets. Update once per season.
+// EXAM_CONFIRMED: flip to true the day IIM Indore announces the
+// official date (and correct EXAM_DATE if needed) — the "expected"
+// tag on the countdown disappears automatically.
 export const EXAM_DATE = "2027-05-02";
+export const EXAM_CONFIRMED = false;
 export const ATTACK_BELOW = 65;
 export const STRENGTH_FROM = 85;
 export const MIN_ATTEMPTS = 8; // answers needed before accuracy is trusted
@@ -220,14 +224,33 @@ export default function AdaptivePlan({ userData }) {
       {/* open stat strip */}
       <div className="flex items-center flex-wrap mt-7 mb-1">
         {[
-          ["Days to IPMAT", String(days), `IPMAT ${EXAM_DATE.slice(0, 4)} · week ${weekNum} of 46`, 30],
+          [
+            "Days to IPMAT",
+            String(days),
+            EXAM_CONFIRMED
+              ? `IPMAT ${EXAM_DATE.slice(0, 4)} · week ${weekNum} of 46`
+              : `IPMAT ${EXAM_DATE.slice(0, 4)} · week ${weekNum} of 46`,
+            30,
+          ],
           ["This week's focus", plan.task2 ? shortName(plan.task2.subject || "").replace(/Topic-wise\s*/i, "") || "Revision" : "—", plan.task2 ? `${shortName(plan.task2.chapter)}${plan.task3 ? " · " + shortName(plan.task3.chapter) : ""}` : "take a test to unlock", 21],
           ["Sunday", "Full mock", "fixed every week — exam rhythm", 21],
         ].map(([l, v, cap, size], i, arr) => (
           <div key={l} style={{ padding: "4px 34px 4px 0", marginRight: 34, borderRight: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none" }}>
-            <div style={{ fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--c-text-tertiary)" }}>{l}</div>
+            <div className="flex items-center gap-2" style={{ fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--c-text-tertiary)" }}>
+              {l}
+              {i === 0 && !EXAM_CONFIRMED && (
+                <span
+                  title="IIM Indore hasn't announced the official IPMAT 2027 date yet — this counts to the expected window and will adjust when it's out."
+                  style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", color: "var(--c-brand-gold)", background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "2px 8px", textTransform: "uppercase", cursor: "help" }}
+                >
+                  expected
+                </span>
+              )}
+            </div>
             <div style={{ ...grad, fontSize: size, marginTop: 3, lineHeight: 1.15, paddingTop: size < 30 ? 5 : 0 }}>{v}</div>
-            <div style={{ fontSize: 11, marginTop: 4, color: i === 1 ? "var(--c-brand-gold)" : "var(--c-text-tertiary)", fontWeight: 500 }}>{cap}</div>
+            <div style={{ fontSize: 11, marginTop: 4, color: i === 1 ? "var(--c-brand-gold)" : "var(--c-text-tertiary)", fontWeight: 500 }}>
+              {i === 0 && !EXAM_CONFIRMED ? `IPMAT ${EXAM_DATE.slice(0, 4)} · date not announced yet` : cap}
+            </div>
           </div>
         ))}
       </div>
