@@ -50,8 +50,14 @@ export function daysToExam(examDate = EXAM_DATE, now = new Date()) {
 
 // daySeed rotates the "new chapter" pick so it changes daily but is
 // stable within a day.
+// Bucket categories are collections, not chapters — useless as
+// "weaknesses" and excluded from the plan entirely.
+export const BUCKET_PATTERN = /topic\s*wise|mixed\s*test|full\s*mock|pyq/i;
+
 export function buildPlan(chapters, daySeed = 0) {
-  const withClass = (chapters || []).map((c) => ({ ...c, cls: classify(c), acc: accuracyOf(c) }));
+  const withClass = (chapters || [])
+    .filter((c) => !BUCKET_PATTERN.test(String(c.chapter || "")))
+    .map((c) => ({ ...c, cls: classify(c), acc: accuracyOf(c) }));
   const attack = withClass
     .filter((c) => c.cls === "attack" || c.cls === "warming")
     .sort((a, b) => (a.acc ?? 101) - (b.acc ?? 101) || Number(b.tests) - Number(a.tests));
@@ -214,7 +220,9 @@ export default function AdaptivePlan({ userData }) {
   const sortedForMap = (plan.withClass || [])
     .filter((c) => Number(c.tests) > 0)
     .sort((a, b) => {
-      const rank = { attack: 0, warming: 1, maintain: 2, strength: 3 };
+      // trusted weaknesses first; one-test "early days" rows demoted —
+      // a 0% from a single attempt shouldn't outrank a real 35%.
+      const rank = { attack: 0, maintain: 1, warming: 2, strength: 3 };
       return rank[a.cls] - rank[b.cls] || (a.acc ?? 101) - (b.acc ?? 101);
     });
 
