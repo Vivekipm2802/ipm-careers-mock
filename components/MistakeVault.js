@@ -88,6 +88,15 @@ export function insightFor(items) {
   return msgs[top] || null;
 }
 
+// Bucket categories ("Topic Wise", "Mixed Tests"…) are collections,
+// not chapters — label those mistakes by their source test instead.
+export const BUCKET = /topic\s*wise|mixed\s*test|full\s*mock|pyq/i;
+export function displayChapter(it) {
+  return BUCKET.test(String(it.chapter || ""))
+    ? (it.test_title || "Mixed practice")
+    : (it.chapter || "Other");
+}
+
 export default function MistakeVault({ userData }) {
   const [items, setItems] = useState(null);
   const [redosToday, setRedosToday] = useState(0);
@@ -266,14 +275,6 @@ export default function MistakeVault({ userData }) {
       ))}
     </span>
   );
-
-  // Bucket categories ("Topic Wise", "Mixed Tests"…) are collections,
-  // not chapters — label those mistakes by their source test instead.
-  const BUCKET = /topic\s*wise|mixed\s*test|full\s*mock|pyq/i;
-  const displayChapter = (it) =>
-    BUCKET.test(String(it.chapter || ""))
-      ? (it.test_title || "Mixed practice")
-      : (it.chapter || "Other");
 
   const snippet = (it) => {
     const raw = `${it.title || ""} ${String(it.question || "")}`
