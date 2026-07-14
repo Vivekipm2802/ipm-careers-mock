@@ -207,10 +207,16 @@ export default function AdaptivePlan({ userData }) {
     return { text: `${t} · maintain`, color: "var(--c-text-tertiary)" };
   };
 
-  const sortedForMap = (plan.withClass || []).slice().sort((a, b) => {
-    const rank = { attack: 0, warming: 1, new: 2, maintain: 3, strength: 4 };
-    return rank[a.cls] - rank[b.cls] || (a.acc ?? 101) - (b.acc ?? 101);
-  });
+  // The map shows ONLY chapters the student has actually worked on,
+  // weakest first. Untouched chapters live in the Tests section —
+  // repeating them here would be noise, not a plan. (The one new
+  // chapter worth starting today already appears as task 3.)
+  const sortedForMap = (plan.withClass || [])
+    .filter((c) => Number(c.tests) > 0)
+    .sort((a, b) => {
+      const rank = { attack: 0, warming: 1, maintain: 2, strength: 3 };
+      return rank[a.cls] - rank[b.cls] || (a.acc ?? 101) - (b.acc ?? 101);
+    });
 
   const dateLine = now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
 
@@ -296,7 +302,7 @@ export default function AdaptivePlan({ userData }) {
       {/* chapter map */}
       <div className="flex justify-between items-baseline mt-9 mb-3">
         <div style={sectLabel}>Your chapter map</div>
-        <span style={sectMeta}>why today&apos;s tasks were chosen</span>
+        <span style={sectMeta}>your attempted chapters, weakest first</span>
       </div>
       <div className="max-w-[860px]" style={card}>
         {chapters === null && (
@@ -304,10 +310,10 @@ export default function AdaptivePlan({ userData }) {
         )}
         {chapters !== null && sortedForMap.length === 0 && (
           <div style={{ padding: "16px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>
-            No chapters found yet — take a concept test and the map appears here.
+            Take a concept test and your weak-spot map appears here — weakest chapters first.
           </div>
         )}
-        {sortedForMap.slice(0, showAllMap ? sortedForMap.length : 7).map((c, i, arr) => {
+        {sortedForMap.slice(0, showAllMap ? sortedForMap.length : 6).map((c, i, arr) => {
           const cap = clsCaption(c);
           return (
             <div key={c.chapter_id} className="flex items-baseline gap-3.5" style={{ padding: "13px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none" }}>
@@ -323,13 +329,13 @@ export default function AdaptivePlan({ userData }) {
             </div>
           );
         })}
-        {sortedForMap.length > 7 && (
+        {sortedForMap.length > 6 && (
           <button
             type="button"
             onClick={() => setShowAllMap((v) => !v)}
             style={{ background: "none", border: "none", padding: "13px 0", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}
           >
-            {showAllMap ? "Show less" : `Show all ${sortedForMap.length} chapters →`}
+            {showAllMap ? "Show less" : `Show all ${sortedForMap.length} attempted chapters →`}
           </button>
         )}
       </div>
