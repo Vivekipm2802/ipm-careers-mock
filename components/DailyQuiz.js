@@ -159,7 +159,7 @@ export default function DailyQuiz({ userData, onExit, onSimComplete }) {
           )}
           {q.question && (
             <div
-              className={"qcontent " + (q.title ? "mt-2" : "")}
+              className={"qcontent qforce " + (q.title ? "mt-2" : "")}
               style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-text-primary)", maxHeight: "30vh", overflowY: "auto", overflowX: "auto", wordBreak: "break-word" }}
               dangerouslySetInnerHTML={{ __html: q.question }}
             />

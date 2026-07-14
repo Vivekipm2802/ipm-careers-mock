@@ -377,3 +377,8 @@ html[data-theme="dark"] {
   .result-meta-grid { grid-template-columns: repeat(2, 1fr) !important; }
   .video-hero-row { grid-template-columns: 1fr !important; }
 }
+
+/* Mistake Vault / trainers: bank question HTML often carries inline
+   dark colors from the editor — force theme color so it is readable
+   on both themes. */
+.qforce, .qforce * { color: var(--c-text-primary) !important; background-color: transparent !important; }

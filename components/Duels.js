@@ -566,7 +566,7 @@ export default function Duels({ userData, onExit }) {
             <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.5, color: "var(--c-text-primary)" }}>{q.title}</div>
           )}
           {q.question && (
-            <div className={"qcontent " + (q.title ? "mt-2" : "")} style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-text-primary)", maxHeight: "30vh", overflowY: "auto", overflowX: "auto", wordBreak: "break-word" }} dangerouslySetInnerHTML={{ __html: q.question }} />
+            <div className={"qcontent qforce " + (q.title ? "mt-2" : "")} style={{ fontSize: 15, lineHeight: 1.6, color: "var(--c-text-primary)", maxHeight: "30vh", overflowY: "auto", overflowX: "auto", wordBreak: "break-word" }} dangerouslySetInnerHTML={{ __html: q.question }} />
           )}
 
           <div className="grid gap-2.5 mt-4">

@@ -347,7 +347,7 @@ export default function SkipOrSolve({ userData, onExit, onSimComplete }) {
           )}
           {q.question && (
             <div
-              className={"qcontent " + (q.title ? "mt-2" : "mt-5")}
+              className={"qcontent qforce " + (q.title ? "mt-2" : "mt-5")}
               style={{ fontSize: 15.5, lineHeight: 1.65, color: "var(--c-text-primary)", maxHeight: "34vh", overflowY: "auto", overflowX: "auto", wordBreak: "break-word" }}
               dangerouslySetInnerHTML={{ __html: q.question }}
             />

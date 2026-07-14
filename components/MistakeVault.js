@@ -75,8 +75,8 @@ export default function MistakeVault({ userData }) {
   const listed = [...due, ...upcoming];
   const testsCount = new Set((items || []).map((it) => it.chapter)).size;
 
-  const startSession = () => {
-    const session = due.slice(0, SESSION_SIZE);
+  const startSession = (pick) => {
+    const session = (pick && pick.length ? pick : due).slice(0, SESSION_SIZE);
     if (!session.length) return;
     setQueue(session);
     setQi(0);
@@ -185,10 +185,12 @@ export default function MistakeVault({ userData }) {
 
           {due.length > 0 && (
             <div className="mt-6 flex items-center gap-3 flex-wrap">
-              <button type="button" onClick={startSession} style={goldBtn}>
+              <button type="button" onClick={() => startSession()} style={goldBtn}>
                 Redo session — {Math.min(due.length, SESSION_SIZE)} due {Math.min(due.length, SESSION_SIZE) === 1 ? "question" : "questions"} <ArrowRight size={15} />
               </button>
-              <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>+{XP_PER_SESSION} XP per session</span>
+              <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
+                +{XP_PER_SESSION} XP per session · sessions serve {SESSION_SIZE} at a time{due.length > SESSION_SIZE ? " — chain them to clear the backlog" : ""} · or tap any due question below
+              </span>
             </div>
           )}
 
@@ -206,7 +208,13 @@ export default function MistakeVault({ userData }) {
               </div>
             )}
             {listed.slice(0, showAll ? listed.length : 8).map((it, i, arr) => (
-              <div key={it.question_id} className="flex items-center gap-3.5" style={{ padding: "14px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none" }}>
+              <div
+                key={it.question_id}
+                onClick={it.st.dueNow ? () => startSession([it]) : undefined}
+                title={it.st.dueNow ? "Redo this one now" : "Not due yet — spaced repetition works best on schedule"}
+                className="flex items-center gap-3.5 group"
+                style={{ padding: "14px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none", cursor: it.st.dueNow ? "pointer" : "default" }}
+              >
                 <Ladder stage={it.st.stage} />
                 <span className="min-w-0 flex-1" style={{ fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {snippet(it)}
@@ -215,7 +223,8 @@ export default function MistakeVault({ userData }) {
                   {it.chapter || "—"}{it.st.stage > 0 ? ` · survived ${it.st.stage} ${it.st.stage === 1 ? "redo" : "redos"}` : ""}
                 </span>
                 <span className="shrink-0 text-right" style={{ fontSize: 11, fontWeight: 600, width: 90, color: it.st.dueNow ? "var(--c-brand-gold)" : "var(--c-text-tertiary)" }}>
-                  {dueLabel(it.st, now)}
+                  <span className={it.st.dueNow ? "group-hover:hidden" : ""}>{dueLabel(it.st, now)}</span>
+                  {it.st.dueNow && <span className="hidden group-hover:inline">redo now →</span>}
                 </span>
               </div>
             ))}
@@ -247,7 +256,7 @@ export default function MistakeVault({ userData }) {
             )}
             {q.title && <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.5 }}>{q.title}</div>}
             {q.question && (
-              <div className={"qcontent " + (q.title ? "mt-2" : "")} style={{ fontSize: 15, lineHeight: 1.6, maxHeight: "30vh", overflowY: "auto", overflowX: "auto", wordBreak: "break-word" }} dangerouslySetInnerHTML={{ __html: q.question }} />
+              <div className={"qcontent qforce " + (q.title ? "mt-2" : "")} style={{ fontSize: 15, lineHeight: 1.6, maxHeight: "30vh", overflowY: "auto", overflowX: "auto", wordBreak: "break-word" }} dangerouslySetInnerHTML={{ __html: q.question }} />
             )}
             <div className="grid gap-2.5 mt-4">
               {q.options.map((o, d) => {
@@ -295,8 +304,13 @@ export default function MistakeVault({ userData }) {
               </div>
             ))}
           </div>
-          <div className="mt-6 mb-12 flex items-center gap-3">
-            <button type="button" onClick={() => setPhase("home")} style={goldBtn}>
+          <div className="mt-6 mb-12 flex items-center gap-3 flex-wrap">
+            {due.length > 0 && (
+              <button type="button" onClick={() => startSession()} style={goldBtn}>
+                Next session — {Math.min(due.length, SESSION_SIZE)} still due <ArrowRight size={15} />
+              </button>
+            )}
+            <button type="button" onClick={() => setPhase("home")} style={{ background: "transparent", color: "var(--c-text-secondary)", fontWeight: 600, fontSize: 13, border: "1px solid var(--c-border-soft, var(--c-border-faint))", borderRadius: 999, padding: "11px 24px", cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 8 }}>
               <RotateCcw size={15} /> Back to vault
             </button>
             <span style={{ fontSize: 12, color: "var(--c-brand-gold)", fontWeight: 600 }}>+{XP_PER_SESSION} XP banked</span>

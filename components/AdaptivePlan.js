@@ -85,22 +85,25 @@ export function buildPlan(chapters, daySeed = 0) {
   return { task2, task3, queue, withClass };
 }
 
-// Mon..Sun labels for the week strip. dayIdx: 0=Mon.
+// Mon..Sun entries for the week strip. dayIdx: 0=Mon.
+// Each entry: { label, chapter? , vault?, mock? } — chapter is the
+// first chapter of that day so the whole day is clickable.
 export function weekPlan(queue, todayIdx) {
-  const labels = [];
+  const days = [];
   let qi = 0;
   for (let d = 0; d < 7; d++) {
-    if (d === 6) labels.push("Full mock");
-    else if (d === 5) labels.push("Mistake redo");
+    if (d === 6) days.push({ label: "Full mock", mock: true });
+    else if (d === 5) days.push({ label: "Mistake redo", vault: true });
     else {
       const names = [];
+      const first = queue[qi] || null;
       if (queue[qi]) names.push(shortName(queue[qi].chapter));
       if (d === todayIdx && queue[qi + 1]) names.push(shortName(queue[qi + 1].chapter));
-      labels.push(names.join(" · ") || "Revision");
+      days.push({ label: names.join(" · ") || "Revision", chapter: first });
       qi += d === todayIdx ? 2 : 1;
     }
   }
-  return labels;
+  return days;
 }
 
 export function shortName(t) {
@@ -115,7 +118,7 @@ export function shortName(t) {
 
 export default function AdaptivePlan({ userData }) {
   const router = useRouter();
-  const { setCTXSlug } = useNMNContext();
+  const { setCTXSlug, setSK } = useNMNContext();
   const [chapters, setChapters] = useState(null);
   const [missionsDone, setMissionsDone] = useState(false);
   const [opening, setOpening] = useState(null);
@@ -374,9 +377,21 @@ export default function AdaptivePlan({ userData }) {
                 <div style={{ fontSize: 10, fontWeight: isToday ? 600 : 500, letterSpacing: "0.1em", textTransform: "uppercase", color: isToday ? "var(--c-brand-gold)" : "var(--c-text-tertiary)" }}>{dw}</div>
                 <div
                   className={isMock ? "ds-accent ds-grad-text" : ""}
-                  style={{ fontSize: 12.5, fontWeight: isToday ? 600 : 500, marginTop: 5, lineHeight: 1.35, color: isMock ? undefined : isToday ? "var(--c-text-primary)" : "var(--c-text-secondary)", opacity: isPast ? 0.5 : 1, padding: "0 4px" }}
+                  onClick={
+                    isPast
+                      ? undefined
+                      : week[d].mock
+                        ? () => { setCTXSlug("mocks"); setSK(new Set(["2"])); }
+                        : week[d].vault
+                          ? () => { setCTXSlug("mistakevault"); setSK(new Set(["2"])); }
+                          : week[d].chapter
+                            ? () => openChapter(week[d].chapter)
+                            : undefined
+                  }
+                  style={{ fontSize: 12.5, fontWeight: isToday ? 600 : 500, marginTop: 5, lineHeight: 1.35, color: isMock ? undefined : isToday ? "var(--c-text-primary)" : "var(--c-text-secondary)", opacity: isPast ? 0.5 : 1, padding: "0 4px", cursor: isPast ? "default" : "pointer", textDecoration: "none" }}
+                  title={isPast ? undefined : "Start this now"}
                 >
-                  {isPast ? "done ✓" : week[d]}
+                  {isPast ? "done ✓" : week[d].label}
                 </div>
               </div>
             );
