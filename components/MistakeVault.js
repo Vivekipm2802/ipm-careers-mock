@@ -1,15 +1,22 @@
 // ============================================================
-// Mistake Vault — spaced-repetition redo of wrong answers.
-// Every question the student ever got wrong (derived from plays,
-// fully retroactive) sits in the vault. The ladder: due 3 days
-// after the miss → clean redo moves it to 7 days → then 21 →
-// third clean redo = MASTERED, leaves the vault. Any wrong redo
-// resets to day 3. Redo attempts write to mistake_redos; sessions
-// log to trainer_runs (trainer 'mistake-redo', +30 XP).
+// Mistake Vault v2 — spaced-repetition redo of wrong answers.
 //
-// Lives under Tests in the sidebar (slug "mistakevault").
-// Pure logic exported for tests: vaultState, LADDER_DAYS,
-// SESSION_SIZE, dueLabel.
+// Ladder: due 3 days after a miss → clean redo → 7 days → 21 →
+// third clean redo = MASTERED. Wrong redo resets to day 3.
+//
+// v2 additions (owner-approved structure):
+//  · DAILY_CAP: the vault only ASKS for 12/day ("Today's redo —
+//    12 · ~9 min"), prioritized: concept-gaps → oldest due.
+//    Backlogs drain automatically. Chapter chips & row clicks
+//    are student-initiated and bypass the cap.
+//  · Why-tags: after each reveal, one-tap reason chips (silly /
+//    concept / calculation / guessed) stored on the redo row.
+//  · Insight line: dominant mistake pattern on the vault home.
+//  · Chapter chips: redo all of one chapter on demand.
+//  · Source test label in the session header.
+//
+// Pure logic exported: vaultState, dueLabel, prioritize,
+// minutesFor, insightFor, REASONS, DAILY_CAP, LADDER_DAYS.
 // ============================================================
 
 import { supabase } from "@/utils/supabaseClient";
@@ -20,12 +27,19 @@ export const LADDER_DAYS = [3, 7, 21];
 export const SESSION_SIZE = 10;
 export const MASTER_STREAK = 3;
 export const XP_PER_SESSION = 30;
+export const DAILY_CAP = 12;
+
+export const REASONS = [
+  { id: "silly", label: "Silly mistake" },
+  { id: "concept", label: "Concept gap" },
+  { id: "calculation", label: "Calculation error" },
+  { id: "guessed", label: "Guessed" },
+];
 
 // Pure: item {streak, last_wrong_at, last_redo_at} → state.
 export function vaultState(item, now = new Date()) {
   const streak = Number(item.streak || 0);
   if (streak >= MASTER_STREAK) return { stage: MASTER_STREAK, mastered: true, dueNow: false, due: null };
-  // anchor: the most recent event (miss or redo — a failed redo also resets the clock)
   const lastWrong = item.last_wrong_at ? new Date(item.last_wrong_at) : null;
   const lastRedo = item.last_redo_at ? new Date(item.last_redo_at) : null;
   const anchor = !lastRedo || (lastWrong && lastWrong > lastRedo) ? lastWrong : lastRedo;
@@ -41,8 +55,42 @@ export function dueLabel(state, now = new Date()) {
   return `due in ${days} ${days === 1 ? "day" : "days"}`;
 }
 
+// Pure: priority for the daily ask — tagged concept gaps first,
+// then oldest due. items must carry .st (vaultState).
+export function prioritize(dueItems) {
+  return dueItems.slice().sort((a, b) => {
+    const ac = a.last_reason === "concept" ? 0 : 1;
+    const bc = b.last_reason === "concept" ? 0 : 1;
+    return ac - bc || a.st.due - b.st.due;
+  });
+}
+
+// Pure: rough session length. ~45 seconds a question.
+export function minutesFor(n) {
+  return Math.max(1, Math.ceil((n * 45) / 60));
+}
+
+// Pure: dominant mistake pattern across tagged items.
+export function insightFor(items) {
+  const tagged = (items || []).filter((it) => it.last_reason);
+  if (tagged.length < 3) return null;
+  const counts = {};
+  tagged.forEach((it) => { counts[it.last_reason] = (counts[it.last_reason] || 0) + 1; });
+  const [top, n] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  const pct = Math.round((100 * n) / tagged.length);
+  if (pct < 40) return null;
+  const msgs = {
+    silly: `${pct}% of your tagged mistakes are silly mistakes — accuracy, not knowledge, is your gap. Slow down on the easy ones.`,
+    concept: `${pct}% of your tagged mistakes are concept gaps — the plan will keep pushing those chapters. Revisit theory before redoing.`,
+    calculation: `${pct}% of your tagged mistakes are calculation errors — practice rough-work discipline, not more theory.`,
+    guessed: `${pct}% of your tagged mistakes were guesses — in IPMAT, a skip beats a guess. Train that instinct in Skip or Solve.`,
+  };
+  return msgs[top] || null;
+}
+
 export default function MistakeVault({ userData }) {
   const [items, setItems] = useState(null);
+  const [redosToday, setRedosToday] = useState(0);
   const [phase, setPhase] = useState("home"); // home | session | result
   const [queue, setQueue] = useState([]);
   const [qi, setQi] = useState(0);
@@ -51,9 +99,11 @@ export default function MistakeVault({ userData }) {
   const [flash, setFlash] = useState(null);
   const [moves, setMoves] = useState([]);
   const [showAll, setShowAll] = useState(false);
-  const advanceRef = useRef(null);
+  const [chapterFilter, setChapterFilter] = useState(null);
+  const [lastCorrect, setLastCorrect] = useState(null);
   const lockRef = useRef(false);
   const movesRef = useRef([]);
+  const pendingRef = useRef(null); // { question_id, correct } awaiting reason
 
   const load = () => {
     if (!userData?.email) return;
@@ -62,44 +112,69 @@ export default function MistakeVault({ userData }) {
         setItems(data.filter((it) => Array.isArray(it.options) && it.options.length >= 2 && (it.title || it.question)));
       } else setItems([]);
     });
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    supabase
+      .from("mistake_redos")
+      .select("id", { count: "exact", head: true })
+      .eq("user", userData.email)
+      .gte("created_at", startOfToday.toISOString())
+      .then(({ count }) => setRedosToday(count || 0));
   };
   useEffect(load, [userData?.email]);
-  useEffect(() => () => clearTimeout(advanceRef.current), []);
 
   const now = new Date();
   const withState = (items || []).map((it) => ({ ...it, st: vaultState(it, now) }));
   const active = withState.filter((it) => !it.st.mastered);
   const mastered = withState.filter((it) => it.st.mastered);
-  const due = active.filter((it) => it.st.dueNow).sort((a, b) => a.st.due - b.st.due);
+  const due = prioritize(active.filter((it) => it.st.dueNow));
   const upcoming = active.filter((it) => !it.st.dueNow).sort((a, b) => a.st.due - b.st.due);
-  const listed = [...due, ...upcoming];
-  const testsCount = new Set((items || []).map((it) => it.chapter)).size;
+
+  // daily ask: capped by what's already been redone today
+  const budget = Math.max(0, DAILY_CAP - redosToday);
+  const todaysAsk = due.slice(0, budget);
+
+  // chapters for chips
+  const chapterCounts = {};
+  active.forEach((it) => {
+    const c = it.chapter || "Other";
+    chapterCounts[c] = (chapterCounts[c] || 0) + 1;
+  });
+  const chapters = Object.entries(chapterCounts).sort((a, b) => b[1] - a[1]);
+
+  const listed = chapterFilter
+    ? active.filter((it) => (it.chapter || "Other") === chapterFilter)
+    : [...due, ...upcoming];
 
   const startSession = (pick) => {
-    const session = (pick && pick.length ? pick : due).slice(0, SESSION_SIZE);
+    const session = (pick && pick.length ? pick : todaysAsk).slice(0, SESSION_SIZE);
     if (!session.length) return;
     setQueue(session);
     setQi(0);
     setPicked(null);
     setReveal(false);
     setFlash(null);
+    setLastCorrect(null);
     movesRef.current = [];
     setMoves([]);
     lockRef.current = false;
+    pendingRef.current = null;
     setPhase("session");
   };
 
   const q = queue[qi];
 
-  const handleAnswer = async (idx) => {
+  const handleAnswer = (idx) => {
     if (reveal || lockRef.current || !q) return;
     lockRef.current = true;
     const correct = !!q.options[idx]?.isCorrect;
     setPicked(idx);
     setReveal(true);
+    setLastCorrect(correct);
     const newStreak = correct ? Number(q.streak || 0) + 1 : 0;
     const masteredNow = correct && newStreak >= MASTER_STREAK;
     movesRef.current.push({ q, correct, masteredNow, newStreak });
+    pendingRef.current = { question_id: q.question_id, correct };
     setFlash(
       correct
         ? masteredNow
@@ -107,40 +182,56 @@ export default function MistakeVault({ userData }) {
           : { text: `Right — climbs the ladder. Next redo in ${LADDER_DAYS[newStreak]} days.`, tone: "var(--c-success)" }
         : { text: "Still bites. Back to day 3 — you'll see it again soon.", tone: "var(--c-danger)" }
     );
-    if (userData?.email) {
-      supabase.from("mistake_redos").insert({ user: userData.email, question_id: q.question_id, correct });
-    }
-    clearTimeout(advanceRef.current);
-    advanceRef.current = setTimeout(async () => {
-      setPicked(null);
-      setReveal(false);
-      setFlash(null);
-      lockRef.current = false;
-      if (qi + 1 >= queue.length) {
-        const right = movesRef.current.filter((m) => m.correct).length;
-        if (userData?.email) {
-          await supabase.from("trainer_runs").insert({
-            user: userData.email,
-            trainer: "mistake-redo",
-            score: right,
-            details: { total: queue.length, mastered: movesRef.current.filter((m) => m.masteredNow).length },
-          });
-        }
-        setMoves(movesRef.current);
-        setPhase("result");
-        load();
-      } else {
-        setQi(qi + 1);
-      }
-    }, 1500);
   };
 
-  // ── styles (dashboard tokens, approved open layout) ──
+  // reason chip (or skip) → persist redo, then advance
+  const commitAndAdvance = async (reason) => {
+    const pending = pendingRef.current;
+    pendingRef.current = null;
+    if (pending && userData?.email) {
+      supabase.from("mistake_redos").insert({
+        user: userData.email,
+        question_id: pending.question_id,
+        correct: pending.correct,
+        reason: reason || null,
+      });
+    }
+    setPicked(null);
+    setReveal(false);
+    setFlash(null);
+    setLastCorrect(null);
+    lockRef.current = false;
+    if (qi + 1 >= queue.length) {
+      const right = movesRef.current.filter((m) => m.correct).length;
+      if (userData?.email) {
+        await supabase.from("trainer_runs").insert({
+          user: userData.email,
+          trainer: "mistake-redo",
+          score: right,
+          details: { total: queue.length, mastered: movesRef.current.filter((m) => m.masteredNow).length },
+        });
+      }
+      setMoves(movesRef.current);
+      setRedosToday((n) => n + queue.length);
+      setPhase("result");
+      load();
+    } else {
+      setQi(qi + 1);
+    }
+  };
+
+  // ── styles ──
   const grad = { fontFamily: "var(--font-display, 'Fraunces', serif)", fontWeight: 500, letterSpacing: "-0.02em", background: "var(--c-stat-grad)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" };
   const sectLabel = { fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" };
   const sectMeta = { fontSize: 11.5, color: "var(--c-text-tertiary)" };
   const card = { background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, padding: "8px 22px", boxShadow: "var(--c-shadow-xs)" };
   const goldBtn = { background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 14, borderRadius: 999, padding: "12px 28px", border: "none", cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 8 };
+  const chipBtn = (on) => ({
+    background: on ? "var(--c-brand-gold-tint)" : "var(--c-surface)",
+    border: `1px solid ${on ? "var(--c-brand-gold)" : "var(--c-border-faint)"}`,
+    color: on ? "var(--c-brand-gold)" : "var(--c-text-secondary)",
+    borderRadius: 999, padding: "7px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+  });
 
   const Ladder = ({ stage }) => (
     <span className="flex gap-1 items-center shrink-0" style={{ width: 62 }}>
@@ -154,6 +245,8 @@ export default function MistakeVault({ userData }) {
     const raw = it.title || String(it.question || "").replace(/<[^>]*>/g, " ");
     return raw.replace(/\s+/g, " ").trim();
   };
+  const reasonLabel = (id) => REASONS.find((r) => r.id === id)?.label?.toLowerCase();
+  const insight = insightFor(withState);
 
   return (
     <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
@@ -171,8 +264,8 @@ export default function MistakeVault({ userData }) {
 
           <div className="flex items-center flex-wrap mt-7">
             {[
-              ["Due today", String(due.length), due.length ? "redo them before they fade" : "nothing due — vault is calm", due.length ? "var(--c-brand-gold)" : "var(--c-text-tertiary)"],
-              ["In the vault", String(active.length), `across ${testsCount} ${testsCount === 1 ? "chapter" : "chapters"}`, "var(--c-text-tertiary)"],
+              ["Today's redo", String(todaysAsk.length), todaysAsk.length ? `~${minutesFor(todaysAsk.length)} min · ${due.length > todaysAsk.length ? `${due.length - todaysAsk.length} more queued for tomorrow` : "then you're clear"}` : redosToday >= DAILY_CAP ? "done for today — vault rests" : "nothing due — vault is calm", todaysAsk.length ? "var(--c-brand-gold)" : "var(--c-text-tertiary)"],
+              ["In the vault", String(active.length), `across ${chapters.length} ${chapters.length === 1 ? "chapter" : "chapters"}`, "var(--c-text-tertiary)"],
               ["Mastered forever", String(mastered.length), "this number only goes up", "var(--c-success)"],
             ].map(([l, v, cap, capColor], i, arr) => (
               <div key={l} style={{ padding: "4px 34px 4px 0", marginRight: 34, borderRight: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none" }}>
@@ -183,21 +276,46 @@ export default function MistakeVault({ userData }) {
             ))}
           </div>
 
-          {due.length > 0 && (
+          {insight && (
+            <div className="max-w-[860px] mt-5 rounded-[12px] px-4 py-3" style={{ background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", fontSize: 13, lineHeight: 1.6, color: "var(--c-text-secondary)" }}>
+              <b style={{ color: "var(--c-brand-gold)" }}>Your pattern:</b> {insight}
+            </div>
+          )}
+
+          {todaysAsk.length > 0 && (
             <div className="mt-6 flex items-center gap-3 flex-wrap">
               <button type="button" onClick={() => startSession()} style={goldBtn}>
-                Redo session — {Math.min(due.length, SESSION_SIZE)} due {Math.min(due.length, SESSION_SIZE) === 1 ? "question" : "questions"} <ArrowRight size={15} />
+                Start today&apos;s redo — {Math.min(todaysAsk.length, SESSION_SIZE)} {Math.min(todaysAsk.length, SESSION_SIZE) === 1 ? "question" : "questions"} <ArrowRight size={15} />
               </button>
               <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
-                +{XP_PER_SESSION} XP per session · sessions serve {SESSION_SIZE} at a time{due.length > SESSION_SIZE ? " — chain them to clear the backlog" : ""} · or tap any due question below
+                +{XP_PER_SESSION} XP · the vault asks for at most {DAILY_CAP} a day
               </span>
             </div>
           )}
 
-          <div className="flex justify-between items-baseline mt-9 mb-3">
-            <div style={sectLabel}>{due.length ? "Due for redo" : "The vault"}</div>
+          {/* chapter chips */}
+          {chapters.length > 1 && (
+            <div className="flex gap-2 flex-wrap mt-7">
+              <button type="button" style={chipBtn(!chapterFilter)} onClick={() => setChapterFilter(null)}>All</button>
+              {chapters.slice(0, 8).map(([c, n]) => (
+                <button key={c} type="button" style={chipBtn(chapterFilter === c)} onClick={() => setChapterFilter(chapterFilter === c ? null : c)}>
+                  {c} · {n}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-between items-baseline mt-6 mb-3">
+            <div style={sectLabel}>{chapterFilter ? chapterFilter : todaysAsk.length ? "The schedule" : "The vault"}</div>
             <span style={sectMeta}>wrong redo → back to day 3 · three rights → mastered</span>
           </div>
+
+          {chapterFilter && listed.length > 0 && (
+            <button type="button" onClick={() => startSession(listed)} className="self-start mb-3" style={{ ...goldBtn, fontSize: 13, padding: "10px 22px" }}>
+              Redo {Math.min(listed.length, SESSION_SIZE)} from {chapterFilter} <ArrowRight size={14} />
+            </button>
+          )}
+
           <div className="max-w-[860px] mb-12" style={card}>
             {items === null && <div style={{ padding: "16px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>Opening the vault…</div>}
             {items !== null && listed.length === 0 && (
@@ -210,27 +328,28 @@ export default function MistakeVault({ userData }) {
             {listed.slice(0, showAll ? listed.length : 8).map((it, i, arr) => (
               <div
                 key={it.question_id}
-                onClick={it.st.dueNow ? () => startSession([it]) : undefined}
-                title={it.st.dueNow ? "Redo this one now" : "Not due yet — spaced repetition works best on schedule"}
+                onClick={() => startSession([it])}
+                title="Redo this one now"
                 className="flex items-center gap-3.5 group"
-                style={{ padding: "14px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none", cursor: it.st.dueNow ? "pointer" : "default" }}
+                style={{ padding: "14px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none", cursor: "pointer" }}
               >
                 <Ladder stage={it.st.stage} />
                 <span className="min-w-0 flex-1" style={{ fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {snippet(it)}
                 </span>
-                <span className="hidden md:block shrink-0" style={{ fontSize: 11, color: "var(--c-text-tertiary)", width: 150 }}>
-                  {it.chapter || "—"}{it.st.stage > 0 ? ` · survived ${it.st.stage} ${it.st.stage === 1 ? "redo" : "redos"}` : ""}
+                <span className="hidden md:block shrink-0" style={{ fontSize: 11, color: "var(--c-text-tertiary)", width: 170 }}>
+                  {it.chapter || "—"}
+                  {it.last_reason ? ` · last time: ${reasonLabel(it.last_reason)}` : it.st.stage > 0 ? ` · survived ${it.st.stage}` : ""}
                 </span>
                 <span className="shrink-0 text-right" style={{ fontSize: 11, fontWeight: 600, width: 90, color: it.st.dueNow ? "var(--c-brand-gold)" : "var(--c-text-tertiary)" }}>
-                  <span className={it.st.dueNow ? "group-hover:hidden" : ""}>{dueLabel(it.st, now)}</span>
-                  {it.st.dueNow && <span className="hidden group-hover:inline">redo now →</span>}
+                  <span className="group-hover:hidden">{dueLabel(it.st, now)}</span>
+                  <span className="hidden group-hover:inline">redo now →</span>
                 </span>
               </div>
             ))}
             {listed.length > 8 && (
               <button type="button" onClick={() => setShowAll((v) => !v)} style={{ background: "none", border: "none", padding: "13px 0", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}>
-                {showAll ? "Show less" : `Show all ${listed.length} in the vault →`}
+                {showAll ? "Show less" : `Show all ${listed.length} →`}
               </button>
             )}
           </div>
@@ -247,8 +366,11 @@ export default function MistakeVault({ userData }) {
             <p className="mt-2" style={{ fontSize: 14.5, color: "var(--c-text-secondary)" }}>You got these wrong once. Prove that&apos;s history.</p>
           </header>
           <div className="max-w-[760px] mt-5 p-6 md:p-7" style={{ ...card, padding: undefined }}>
-            <div className="flex justify-between" style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
-              <span>{q.chapter || "Mistake"} · missed {q.wrong_count > 1 ? `${q.wrong_count} times` : "once"}</span>
+            <div className="flex justify-between flex-wrap gap-1" style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
+              <span>
+                {q.chapter || "Mistake"}
+                {q.test_title ? ` · from ${q.test_title}` : ""} · missed {q.wrong_count > 1 ? `${q.wrong_count} times` : "once"}
+              </span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{qi + 1} / {queue.length}</span>
             </div>
             {q.questionimage && (
@@ -274,6 +396,25 @@ export default function MistakeVault({ userData }) {
               })}
             </div>
             <div style={{ fontSize: 12.5, fontWeight: 600, minHeight: 20, marginTop: 14, color: flash?.tone }}>{flash?.text}</div>
+
+            {/* why-tags after reveal */}
+            {reveal && (
+              <div className="mt-3 pt-4" style={{ borderTop: "1px dashed var(--c-border-soft, var(--c-border-faint))" }}>
+                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
+                  {lastCorrect ? "Why had this gone wrong before? (optional)" : "Why did this go wrong? (optional)"}
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {REASONS.map((r) => (
+                    <button key={r.id} type="button" style={chipBtn(false)} onClick={() => commitAndAdvance(r.id)}>
+                      {r.label}
+                    </button>
+                  ))}
+                  <button type="button" onClick={() => commitAndAdvance(null)} style={{ background: "none", border: "none", fontSize: 12, fontWeight: 600, color: "var(--c-text-tertiary)", cursor: "pointer", fontFamily: "inherit", padding: "7px 10px" }}>
+                    Skip — continue →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -305,9 +446,9 @@ export default function MistakeVault({ userData }) {
             ))}
           </div>
           <div className="mt-6 mb-12 flex items-center gap-3 flex-wrap">
-            {due.length > 0 && (
+            {todaysAsk.length > 0 && (
               <button type="button" onClick={() => startSession()} style={goldBtn}>
-                Next session — {Math.min(due.length, SESSION_SIZE)} still due <ArrowRight size={15} />
+                Continue — {Math.min(todaysAsk.length, SESSION_SIZE)} left in today&apos;s {DAILY_CAP} <ArrowRight size={15} />
               </button>
             )}
             <button type="button" onClick={() => setPhase("home")} style={{ background: "transparent", color: "var(--c-text-secondary)", fontWeight: 600, fontSize: 13, border: "1px solid var(--c-border-soft, var(--c-border-faint))", borderRadius: 999, padding: "11px 24px", cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 8 }}>
