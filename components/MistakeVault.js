@@ -184,17 +184,43 @@ export default function MistakeVault({ userData }) {
     );
   };
 
-  // reason chip (or skip) → persist redo, then advance
+  // reason chip (or skip) → persist redo (AWAITED — supabase builders
+  // only execute when awaited), optimistically update local state,
+  // then advance.
   const commitAndAdvance = async (reason) => {
     const pending = pendingRef.current;
     pendingRef.current = null;
     if (pending && userData?.email) {
-      supabase.from("mistake_redos").insert({
+      let { error } = await supabase.from("mistake_redos").insert({
         user: userData.email,
         question_id: pending.question_id,
         correct: pending.correct,
         reason: reason || null,
       });
+      if (error && /reason/i.test(error.message || "")) {
+        // graceful fallback if the v2 column isn't there yet
+        ({ error } = await supabase.from("mistake_redos").insert({
+          user: userData.email,
+          question_id: pending.question_id,
+          correct: pending.correct,
+        }));
+      }
+      if (!error) {
+        // optimistic: move the ladder locally so the vault updates
+        // the moment the student returns — refetch reconciles later.
+        setItems((prev) =>
+          (prev || []).map((it) =>
+            it.question_id === pending.question_id
+              ? {
+                  ...it,
+                  streak: pending.correct ? Number(it.streak || 0) + 1 : 0,
+                  last_redo_at: new Date().toISOString(),
+                  last_reason: reason || it.last_reason,
+                }
+              : it
+          )
+        );
+      }
     }
     setPicked(null);
     setReveal(false);
@@ -242,8 +268,17 @@ export default function MistakeVault({ userData }) {
   );
 
   const snippet = (it) => {
-    const raw = it.title || String(it.question || "").replace(/<[^>]*>/g, " ");
-    return raw.replace(/\s+/g, " ").trim();
+    const raw = `${it.title || ""} ${String(it.question || "")}`
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;|&#160;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&[a-z]+;|&#\d+;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/^\d+\.\s*/, "");
+    return raw || `Question #${it.question_id}`;
   };
   const reasonLabel = (id) => REASONS.find((r) => r.id === id)?.label?.toLowerCase();
   const insight = insightFor(withState);
