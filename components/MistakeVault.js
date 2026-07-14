@@ -137,13 +137,13 @@ export default function MistakeVault({ userData }) {
   // chapters for chips
   const chapterCounts = {};
   active.forEach((it) => {
-    const c = it.chapter || "Other";
+    const c = displayChapter(it);
     chapterCounts[c] = (chapterCounts[c] || 0) + 1;
   });
   const chapters = Object.entries(chapterCounts).sort((a, b) => b[1] - a[1]);
 
   const listed = chapterFilter
-    ? active.filter((it) => (it.chapter || "Other") === chapterFilter)
+    ? active.filter((it) => displayChapter(it) === chapterFilter)
     : [...due, ...upcoming];
 
   const startSession = (pick) => {
@@ -267,6 +267,14 @@ export default function MistakeVault({ userData }) {
     </span>
   );
 
+  // Bucket categories ("Topic Wise", "Mixed Tests"…) are collections,
+  // not chapters — label those mistakes by their source test instead.
+  const BUCKET = /topic\s*wise|mixed\s*test|full\s*mock|pyq/i;
+  const displayChapter = (it) =>
+    BUCKET.test(String(it.chapter || ""))
+      ? (it.test_title || "Mixed practice")
+      : (it.chapter || "Other");
+
   const snippet = (it) => {
     const raw = `${it.title || ""} ${String(it.question || "")}`
       .replace(/<[^>]*>/g, " ")
@@ -345,11 +353,18 @@ export default function MistakeVault({ userData }) {
             <span style={sectMeta}>wrong redo → back to day 3 · three rights → mastered</span>
           </div>
 
-          {chapterFilter && listed.length > 0 && (
-            <button type="button" onClick={() => startSession(listed)} className="self-start mb-3" style={{ ...goldBtn, fontSize: 13, padding: "10px 22px" }}>
-              Redo {Math.min(listed.length, SESSION_SIZE)} from {chapterFilter} <ArrowRight size={14} />
-            </button>
-          )}
+          {chapterFilter && (() => {
+            const chapterDue = listed.filter((it) => it.st.dueNow);
+            return chapterDue.length > 0 ? (
+              <button type="button" onClick={() => startSession(chapterDue)} className="self-start mb-3" style={{ ...goldBtn, fontSize: 13, padding: "10px 22px" }}>
+                Redo {Math.min(chapterDue.length, SESSION_SIZE)} due from {chapterFilter} <ArrowRight size={14} />
+              </button>
+            ) : (
+              <div className="mb-3" style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
+                Nothing due in {chapterFilter} right now — the schedule will bring them back.
+              </div>
+            );
+          })()}
 
           <div className="max-w-[860px] mb-12" style={card}>
             {items === null && <div style={{ padding: "16px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>Opening the vault…</div>}
@@ -363,22 +378,22 @@ export default function MistakeVault({ userData }) {
             {listed.slice(0, showAll ? listed.length : 8).map((it, i, arr) => (
               <div
                 key={it.question_id}
-                onClick={() => startSession([it])}
-                title="Redo this one now"
+                onClick={it.st.dueNow ? () => startSession([it]) : undefined}
+                title={it.st.dueNow ? "Redo this one now" : "Locked until it's due — that's how the memory science works"}
                 className="flex items-center gap-3.5 group"
-                style={{ padding: "14px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none", cursor: "pointer" }}
+                style={{ padding: "14px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none", cursor: it.st.dueNow ? "pointer" : "default" }}
               >
                 <Ladder stage={it.st.stage} />
                 <span className="min-w-0 flex-1" style={{ fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {snippet(it)}
                 </span>
                 <span className="hidden md:block shrink-0" style={{ fontSize: 11, color: "var(--c-text-tertiary)", width: 170 }}>
-                  {it.chapter || "—"}
+                  {displayChapter(it)}
                   {it.last_reason ? ` · last time: ${reasonLabel(it.last_reason)}` : it.st.stage > 0 ? ` · survived ${it.st.stage}` : ""}
                 </span>
                 <span className="shrink-0 text-right" style={{ fontSize: 11, fontWeight: 600, width: 90, color: it.st.dueNow ? "var(--c-brand-gold)" : "var(--c-text-tertiary)" }}>
-                  <span className="group-hover:hidden">{dueLabel(it.st, now)}</span>
-                  <span className="hidden group-hover:inline">redo now →</span>
+                  <span className={it.st.dueNow ? "group-hover:hidden" : ""}>{dueLabel(it.st, now)}</span>
+                  {it.st.dueNow && <span className="hidden group-hover:inline">redo now →</span>}
                 </span>
               </div>
             ))}
@@ -403,8 +418,8 @@ export default function MistakeVault({ userData }) {
           <div className="max-w-[760px] mt-5 p-6 md:p-7" style={{ ...card, padding: undefined }}>
             <div className="flex justify-between flex-wrap gap-1" style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
               <span>
-                {q.chapter || "Mistake"}
-                {q.test_title ? ` · from ${q.test_title}` : ""} · missed {q.wrong_count > 1 ? `${q.wrong_count} times` : "once"}
+                {displayChapter(q)}
+                {q.test_title && !BUCKET.test(String(q.chapter || "")) && q.test_title !== q.chapter ? ` · from ${q.test_title}` : ""} · missed {q.wrong_count > 1 ? `${q.wrong_count} times` : "once"}
               </span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{qi + 1} / {queue.length}</span>
             </div>
