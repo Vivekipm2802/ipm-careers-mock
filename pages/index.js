@@ -70,6 +70,7 @@ import PerformanceUser from "@/components/PerformanceUser";
 import SectionalTest from "@/components/SectionalTest";
 import DailyLearn from "@/components/DailyLearn";
 import DSBChallenge from "@/components/DSBChallenge";
+import AdaptivePlan from "@/components/AdaptivePlan";
 import Link from "next/link";
 import BatchCreator from "@/components/BatchCreator";
 import Classes from "@/components/Classes";
@@ -2667,7 +2668,7 @@ export default function Home(props) {
                         userData={userData}
                       ></Generator>
                     ) : (
-                      <ComingSoon message="My Plan (Study Plan Generator) feature is currently under development. We're working hard to bring you this amazing feature soon!" />
+                      <AdaptivePlan userData={userData} />
                     )}
                   </>
                 ) : (

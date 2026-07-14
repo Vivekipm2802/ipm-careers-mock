@@ -413,7 +413,7 @@ export const NMNContextProvider = ({ children }) => {
       icon: <Map size={22} />,
       items: [
         {
-          title: "Study Plan Generator",
+          title: "Aaj Ka Plan",
           type: "user",
           action: "studyplan",
           id: 13,
