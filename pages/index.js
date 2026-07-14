@@ -2668,7 +2668,9 @@ export default function Home(props) {
                         userData={userData}
                       ></Generator>
                     ) : (
-                      <AdaptivePlan userData={userData} />
+                      <div className="flex flex-col w-full h-full">
+                        <AdaptivePlan userData={userData} />
+                      </div>
                     )}
                   </>
                 ) : (

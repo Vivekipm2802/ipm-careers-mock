@@ -98,9 +98,12 @@ export function weekPlan(queue, todayIdx) {
 }
 
 export function shortName(t) {
+  // Keep bracket qualifiers — "Topic Wise (VA)" and "(QA)" are
+  // different chapters and must stay distinguishable.
   return String(t || "")
-    .replace(/\s*\(.*?\)\s*/g, "")
+    .replace(/\s*\(([^)]+)\)\s*/g, " $1 ")
     .replace("Topic Wise", "Topic-wise")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -110,6 +113,7 @@ export default function AdaptivePlan({ userData }) {
   const [chapters, setChapters] = useState(null);
   const [missionsDone, setMissionsDone] = useState(false);
   const [opening, setOpening] = useState(null);
+  const [showAllMap, setShowAllMap] = useState(false);
   const openingRef = useRef(false);
 
   useEffect(() => {
@@ -197,7 +201,8 @@ export default function AdaptivePlan({ userData }) {
     if (c.cls === "new") return { text: `never attempted${isTarget ? " · today's target" : ""}`, color: isTarget ? "var(--c-brand-gold)" : "var(--c-text-tertiary)" };
     const t = `${c.tests} ${Number(c.tests) === 1 ? "test" : "tests"}`;
     if (isTarget) return { text: `${t} · today's target`, color: "var(--c-brand-gold)" };
-    if (c.cls === "attack" || c.cls === "warming") return { text: `${t} · next up`, color: "var(--c-brand-gold)" };
+    if (c.cls === "warming") return { text: `${t} · early days`, color: "var(--c-text-tertiary)" };
+    if (c.cls === "attack") return { text: `${t} · next up`, color: "var(--c-brand-gold)" };
     if (c.cls === "strength") return { text: `${t} · strength`, color: "var(--c-success)" };
     return { text: `${t} · maintain`, color: "var(--c-text-tertiary)" };
   };
@@ -302,7 +307,7 @@ export default function AdaptivePlan({ userData }) {
             No chapters found yet — take a concept test and the map appears here.
           </div>
         )}
-        {sortedForMap.slice(0, 12).map((c, i, arr) => {
+        {sortedForMap.slice(0, showAllMap ? sortedForMap.length : 7).map((c, i, arr) => {
           const cap = clsCaption(c);
           return (
             <div key={c.chapter_id} className="flex items-baseline gap-3.5" style={{ padding: "13px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none" }}>
@@ -318,6 +323,15 @@ export default function AdaptivePlan({ userData }) {
             </div>
           );
         })}
+        {sortedForMap.length > 7 && (
+          <button
+            type="button"
+            onClick={() => setShowAllMap((v) => !v)}
+            style={{ background: "none", border: "none", padding: "13px 0", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}
+          >
+            {showAllMap ? "Show less" : `Show all ${sortedForMap.length} chapters →`}
+          </button>
+        )}
       </div>
 
       {/* week ahead */}
