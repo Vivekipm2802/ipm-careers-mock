@@ -110,6 +110,7 @@ export default function MistakeVault({ userData }) {
   const [showAll, setShowAll] = useState(false);
   const [chapterFilter, setChapterFilter] = useState(null);
   const [lastCorrect, setLastCorrect] = useState(null);
+  const [showHow, setShowHow] = useState(false);
   const lockRef = useRef(false);
   const movesRef = useRef([]);
   const pendingRef = useRef(null); // { question_id, correct } awaiting reason
@@ -131,6 +132,17 @@ export default function MistakeVault({ userData }) {
       .then(({ count }) => setRedosToday(count || 0));
   };
   useEffect(load, [userData?.email]);
+
+  // first-visit explainer — one localStorage flag, no DB.
+  useEffect(() => {
+    try {
+      if (!window.localStorage.getItem("mv_how_seen")) setShowHow(true);
+    } catch (e) { /* private mode etc. — just skip */ }
+  }, []);
+  const dismissHow = () => {
+    setShowHow(false);
+    try { window.localStorage.setItem("mv_how_seen", "1"); } catch (e) { /* noop */ }
+  };
 
   const now = new Date();
   const withState = (items || []).map((it) => ({ ...it, st: vaultState(it, now) }));
@@ -298,17 +310,60 @@ export default function MistakeVault({ userData }) {
       {phase === "home" && (
         <>
           <header className="mt-10">
-            <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4.2vw, 40px)", lineHeight: 1.1 }}>
-              Mistake <span className="ds-accent ds-grad-text">Vault.</span>
-            </h1>
+            <div className="flex items-baseline justify-between gap-4 flex-wrap">
+              <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4.2vw, 40px)", lineHeight: 1.1 }}>
+                Mistake <span className="ds-accent ds-grad-text">Vault.</span>
+              </h1>
+              <button
+                type="button"
+                onClick={() => setShowHow(true)}
+                style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
+              >
+                How it works?
+              </button>
+            </div>
             <p className="mt-2" style={{ fontSize: 15, color: "var(--c-text-secondary)", lineHeight: 1.5 }}>
               Every question you&apos;ve ever missed, collected automatically. Redo them on schedule — 3, 7, 21 days — and they leave the vault forever.
             </p>
           </header>
 
+          {/* first-visit explainer, reopenable via the header link */}
+          {showHow && (
+            <div className="max-w-[860px] mt-5 relative overflow-hidden" style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, boxShadow: "var(--c-shadow-xs)", padding: "22px 24px" }}>
+              <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "var(--c-stat-grad)" }} />
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>⚡ How the vault works</div>
+              <div className="grid gap-3">
+                {[
+                  ["1", "Galti pakdi gayi.", "Every question you get wrong in any test lands here automatically. Nothing to add, nothing to maintain."],
+                  ["2", "Beat it 3 times.", "Redo it correctly after 3 days → again after 7 → again after 21. Three clean wins and it's mastered forever — it leaves the vault."],
+                  ["3", "No cheating the gap.", "A wrong redo resets the ladder to day 3. Locked questions unlock only when due — the waiting is what makes it stick."],
+                ].map(([n, b, rest]) => (
+                  <div key={n} className="flex gap-3 items-start">
+                    <span className="shrink-0 flex items-center justify-center" style={{ width: 22, height: 22, borderRadius: 999, background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", color: "var(--c-brand-gold)", fontSize: 12, fontWeight: 700, marginTop: 1 }}>{n}</span>
+                    <p style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--c-text-secondary)" }}>
+                      <b style={{ color: "var(--c-text-primary)" }}>{b}</b> {rest}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap" style={{ margin: "14px 0 4px", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                {["Miss", "→", "3 days", "→", "7 days", "→", "21 days", "→", "Mastered ✓"].map((s, i) =>
+                  s === "→" ? (
+                    <span key={i} style={{ color: "var(--c-text-tertiary)" }}>→</span>
+                  ) : (
+                    <span key={i} style={{ padding: "4px 12px", borderRadius: 999, border: `1px solid ${i === 0 || i === 8 ? "rgba(255, 182, 39, 0.35)" : "var(--c-border-faint)"}`, background: i === 0 || i === 8 ? "var(--c-brand-gold-tint)" : "var(--c-surface-muted, var(--c-bg))", fontWeight: 700, color: i === 0 || i === 8 ? "var(--c-brand-gold)" : "var(--c-text-secondary)" }}>{s}</span>
+                  )
+                )}
+              </div>
+              <button type="button" onClick={dismissHow} className="mt-4" style={{ ...goldBtn, fontSize: 13, padding: "9px 22px" }}>
+                Got it — start my redos
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center flex-wrap mt-7">
             {[
-              ["Today's redo", String(todaysAsk.length), todaysAsk.length ? `~${minutesFor(todaysAsk.length)} min · ${due.length > todaysAsk.length ? `${due.length - todaysAsk.length} more queued for tomorrow` : "then you're clear"}` : redosToday >= DAILY_CAP ? "done for today — vault rests" : "nothing due — vault is calm", todaysAsk.length ? "var(--c-brand-gold)" : "var(--c-text-tertiary)"],
+              ["Today's redo", String(todaysAsk.length), todaysAsk.length ? `your daily dose · ~${minutesFor(todaysAsk.length)} min · ${due.length > todaysAsk.length ? "backlog clears itself" : "then you're clear"}` : redosToday >= DAILY_CAP ? "done for today — vault rests" : "nothing due — vault is calm", todaysAsk.length ? "var(--c-brand-gold)" : "var(--c-text-tertiary)"],
               ["In the vault", String(active.length), `across ${chapters.length} ${chapters.length === 1 ? "chapter" : "chapters"}`, "var(--c-text-tertiary)"],
               ["Mastered forever", String(mastered.length), "this number only goes up", "var(--c-success)"],
             ].map(([l, v, cap, capColor], i, arr) => (
