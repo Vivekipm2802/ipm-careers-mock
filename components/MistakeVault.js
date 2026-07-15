@@ -368,7 +368,7 @@ export default function MistakeVault({ userData }) {
               Inline styles ONLY (no utility classes) — must survive
               stale CSS caches and extension cosmetic filters. */}
           {showHow && (
-            <div style={{ display: "block", maxWidth: 860, marginTop: 20, position: "relative", overflow: "hidden", background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, boxShadow: "var(--c-shadow-xs)", padding: "22px 24px" }}>
+            <div style={{ display: "block", flexShrink: 0, maxWidth: 860, marginTop: 20, position: "relative", overflow: "hidden", background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, boxShadow: "var(--c-shadow-xs)", padding: "22px 24px" }}>
               <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "var(--c-stat-grad)" }} />
               <div style={{ display: "block", fontSize: 15, fontWeight: 700, marginBottom: 14, color: "var(--c-text-primary)" }}>⚡ How the vault works</div>
               {[
