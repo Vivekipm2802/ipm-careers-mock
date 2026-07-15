@@ -5,14 +5,31 @@
 // a short Hinglish explanation.
 // ============================================================
 
-// Google rotates which models have free-tier quota — try newest first.
-const MODELS = [
-  process.env.GEMINI_MODEL,
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-].filter(Boolean);
+// Google rotates model availability per account generation, so we
+// ask the API which models THIS key can use and pick a flash-family
+// text model. Cached per warm lambda; env GEMINI_MODEL overrides.
+let cachedModels = null;
+async function candidateModels(key) {
+  if (process.env.GEMINI_MODEL) return [process.env.GEMINI_MODEL];
+  if (cachedModels) return cachedModels;
+  try {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}&pageSize=100`);
+    const j = await r.json();
+    const names = (j.models || [])
+      .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
+      .map((m) => String(m.name).replace("models/", ""))
+      .filter((n) => !/embed|image|video|audio|tts|live|thinking|exp|preview/i.test(n));
+    // flash family first (cheap/fast), newest version first, then the rest
+    const flash = names.filter((n) => /flash/i.test(n)).sort().reverse();
+    const rest = names.filter((n) => !/flash/i.test(n)).sort().reverse();
+    const picked = [...flash, ...rest].slice(0, 4);
+    console.log("gemini models for this key:", picked.join(", ") || "(none)");
+    if (picked.length) cachedModels = picked;
+    return picked.length ? picked : ["gemini-2.0-flash"];
+  } catch (e) {
+    return ["gemini-2.0-flash"];
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
@@ -37,7 +54,8 @@ export default async function handler(req, res) {
   ].join("\n");
 
   try {
-    for (const model of MODELS) {
+    const models = await candidateModels(key);
+    for (const model of models) {
       const r = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
         {
