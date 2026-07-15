@@ -44,7 +44,9 @@ export default async function handler(req, res) {
     const j = await r.json();
     const text = j?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
     if (!r.ok || !text) {
-      return res.status(502).json({ error: j?.error?.message || "no explanation generated" });
+      // never pass upstream error text through — it can contain the key
+      console.error("gemini error:", j?.error?.status, j?.error?.message?.slice(0, 80));
+      return res.status(502).json({ error: "no explanation generated" });
     }
     return res.status(200).json({ explanation: text.trim() });
   } catch (e) {
