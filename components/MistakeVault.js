@@ -172,16 +172,8 @@ export default function MistakeVault({ userData }) {
   };
   useEffect(load, [userData?.email]);
 
-  // first-visit explainer — one localStorage flag, no DB.
-  useEffect(() => {
-    try {
-      if (!window.localStorage.getItem("mv_how_seen")) setShowHow(true);
-    } catch (e) { /* private mode etc. — just skip */ }
-  }, []);
-  const dismissHow = () => {
-    setShowHow(false);
-    try { window.localStorage.setItem("mv_how_seen", "1"); } catch (e) { /* noop */ }
-  };
+  // explainer card is opt-in only — opens from the "How it works?"
+  // link in the header, closes on "Got it". Never auto-shows.
 
   const now = new Date();
   const withState = (items || []).map((it) => ({ ...it, st: vaultState(it, now) }));
@@ -353,7 +345,7 @@ export default function MistakeVault({ userData }) {
               </h1>
               <button
                 type="button"
-                onClick={() => setShowHow(true)}
+                onClick={() => setShowHow((v) => !v)}
                 style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
               >
                 How it works?
@@ -392,7 +384,7 @@ export default function MistakeVault({ userData }) {
                   )
                 )}
               </div>
-              <button type="button" onClick={dismissHow} style={{ ...goldBtn, fontSize: 13, padding: "9px 22px", marginTop: 16 }}>
+              <button type="button" onClick={() => setShowHow(false)} style={{ ...goldBtn, fontSize: 13, padding: "9px 22px", marginTop: 16 }}>
                 Got it — start my redos
               </button>
             </div>
