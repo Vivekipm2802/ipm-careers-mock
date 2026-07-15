@@ -5,7 +5,14 @@
 // a short Hinglish explanation.
 // ============================================================
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+// Google rotates which models have free-tier quota — try newest first.
+const MODELS = [
+  process.env.GEMINI_MODEL,
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+].filter(Boolean);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
@@ -30,25 +37,28 @@ export default async function handler(req, res) {
   ].join("\n");
 
   try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 500 },
-        }),
+    for (const model of MODELS) {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.4, maxOutputTokens: 500 },
+          }),
+        }
+      );
+      const j = await r.json();
+      const text = j?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
+      if (r.ok && text) {
+        console.log("gemini ok via", model);
+        return res.status(200).json({ explanation: text.trim() });
       }
-    );
-    const j = await r.json();
-    const text = j?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
-    if (!r.ok || !text) {
       // never pass upstream error text through — it can contain the key
-      console.error("gemini error:", j?.error?.status, j?.error?.message?.slice(0, 80));
-      return res.status(502).json({ error: "no explanation generated" });
+      console.error("gemini error on", model, ":", j?.error?.status, j?.error?.message?.slice(0, 80));
     }
-    return res.status(200).json({ explanation: text.trim() });
+    return res.status(502).json({ error: "no explanation generated" });
   } catch (e) {
     return res.status(502).json({ error: "gemini unreachable" });
   }
