@@ -121,11 +121,9 @@ export default function Home(props) {
   const [activeLevel, setActiveLevel] = useState(0);
   const [activeLevelData, setActiveLevelData] = useState(0);
   const [activeExcerpt, setActiveExcerpt] = useState();
-  const [history, setHistory] = useState();
   const [panel, setPanel] = useState();
   const [questions, setQuestions] = useState();
   const [questionToggle, setQuestionToggle] = useState(false);
-  const [scores, setScores] = useState();
   const [mindMapData, setMindMapData] = useState();
   const [mindmaps, setMindMaps] = useState();
   const [activeMind, setActiveMind] = useState();
@@ -221,7 +219,6 @@ export default function Home(props) {
     getCategories();
     getGameCategories();
     getPanel();
-    getScores();
     getMindMapCategories();
     getTutorialCategories();
     getTutorials();
@@ -290,24 +287,9 @@ export default function Home(props) {
       value: "iq",
     },
   ];
-  async function getScores() {
-    const { data, error } = await supabase
-      .from("plays")
-      .select("*,game(id,title)")
-      .order("score", { ascending: false })
-      .limit(10);
-
-    if (data) {
-      setScores(data);
-    } else {
-    }
-  }
-
-  useEffect(() => {
-    if (userData != undefined) {
-      getHistory(userData.email);
-    }
-  }, [userData]);
+  // getScores / getHistory removed — legacy arcade queries against a
+  // dropped plays→game relationship (were 400ing on every load) and
+  // their results were never rendered.
 
   const [questionData, setQuestionData] = useState({
     active: false,
@@ -508,7 +490,6 @@ export default function Home(props) {
         (getDiscussions(), getReplies());
         break;
       case "dashboard":
-        getHistory(userData?.email);
         break;
       case "profile":
         // Handle profile page navigation
@@ -975,22 +956,6 @@ export default function Home(props) {
       setLevelData(data);
     } else {
       setLevelData();
-    }
-  }
-
-  async function getHistory(a) {
-    if (a == undefined) {
-      return null;
-    }
-    const { data, error } = await supabase
-      .from("plays")
-      .select("score,game(title,parent(title))")
-      .eq("user", a)
-      .limit(10);
-
-    if (data != undefined) {
-      setHistory(data);
-    } else {
     }
   }
 
