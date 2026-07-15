@@ -97,6 +97,44 @@ export function displayChapter(it) {
     : (it.chapter || "Other");
 }
 
+// Pure: case-insensitive chapter key ("NUMBER SYSTEM" and
+// "Number System" are the same chapter).
+export function chapterKey(it) {
+  return displayChapter(it).trim().toLowerCase();
+}
+
+// Pure: group items into chapters, merged case-insensitively.
+// Label = the casing used by the most mistakes. Sorted by count.
+export function chapterGroups(items) {
+  const map = {};
+  (items || []).forEach((it) => {
+    const label = displayChapter(it);
+    const key = label.trim().toLowerCase();
+    if (!map[key]) map[key] = { key, count: 0, variants: {} };
+    map[key].count += 1;
+    map[key].variants[label] = (map[key].variants[label] || 0) + 1;
+  });
+  return Object.values(map)
+    .map((g) => ({
+      key: g.key,
+      count: g.count,
+      label: Object.entries(g.variants).sort((a, b) => b[1] - a[1])[0][0],
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+// Pure: when several rows share the same opening (question sets with
+// a common instruction preamble, e.g. Narration), show each row by
+// its distinct tail instead so the list isn't 8 identical lines.
+export function distinctSnippets(texts) {
+  const prefixOf = (s) => s.slice(0, 60);
+  const counts = {};
+  (texts || []).forEach((t) => { counts[prefixOf(t)] = (counts[prefixOf(t)] || 0) + 1; });
+  return (texts || []).map((t) =>
+    counts[prefixOf(t)] > 1 && t.length > 70 ? "…" + t.slice(-90).trimStart() : t
+  );
+}
+
 export default function MistakeVault({ userData }) {
   const [items, setItems] = useState(null);
   const [redosToday, setRedosToday] = useState(0);
@@ -111,6 +149,7 @@ export default function MistakeVault({ userData }) {
   const [chapterFilter, setChapterFilter] = useState(null);
   const [lastCorrect, setLastCorrect] = useState(null);
   const [showHow, setShowHow] = useState(false);
+  const [showAllChips, setShowAllChips] = useState(false);
   const lockRef = useRef(false);
   const movesRef = useRef([]);
   const pendingRef = useRef(null); // { question_id, correct } awaiting reason
@@ -155,16 +194,14 @@ export default function MistakeVault({ userData }) {
   const budget = Math.max(0, DAILY_CAP - redosToday);
   const todaysAsk = due.slice(0, budget);
 
-  // chapters for chips
-  const chapterCounts = {};
-  active.forEach((it) => {
-    const c = displayChapter(it);
-    chapterCounts[c] = (chapterCounts[c] || 0) + 1;
-  });
-  const chapters = Object.entries(chapterCounts).sort((a, b) => b[1] - a[1]);
+  // chapters for chips — merged case-insensitively
+  const chapters = chapterGroups(active);
+  const chapterLabel = chapterFilter
+    ? chapters.find((g) => g.key === chapterFilter)?.label || chapterFilter
+    : null;
 
   const listed = chapterFilter
-    ? active.filter((it) => displayChapter(it) === chapterFilter)
+    ? active.filter((it) => chapterKey(it) === chapterFilter)
     : [...due, ...upcoming];
 
   const startSession = (pick) => {
@@ -327,35 +364,35 @@ export default function MistakeVault({ userData }) {
             </p>
           </header>
 
-          {/* first-visit explainer, reopenable via the header link */}
+          {/* first-visit explainer, reopenable via the header link.
+              Inline styles ONLY (no utility classes) — must survive
+              stale CSS caches and extension cosmetic filters. */}
           {showHow && (
-            <div className="max-w-[860px] mt-5 relative overflow-hidden" style={{ background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, boxShadow: "var(--c-shadow-xs)", padding: "22px 24px" }}>
+            <div style={{ display: "block", maxWidth: 860, marginTop: 20, position: "relative", overflow: "hidden", background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, boxShadow: "var(--c-shadow-xs)", padding: "22px 24px" }}>
               <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "var(--c-stat-grad)" }} />
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>⚡ How the vault works</div>
-              <div className="grid gap-3">
-                {[
-                  ["1", "Galti pakdi gayi.", "Every question you get wrong in any test lands here automatically. Nothing to add, nothing to maintain."],
-                  ["2", "Beat it 3 times.", "Redo it correctly after 3 days → again after 7 → again after 21. Three clean wins and it's mastered forever — it leaves the vault."],
-                  ["3", "No cheating the gap.", "A wrong redo resets the ladder to day 3. Locked questions unlock only when due — the waiting is what makes it stick."],
-                ].map(([n, b, rest]) => (
-                  <div key={n} className="flex gap-3 items-start">
-                    <span className="shrink-0 flex items-center justify-center" style={{ width: 22, height: 22, borderRadius: 999, background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", color: "var(--c-brand-gold)", fontSize: 12, fontWeight: 700, marginTop: 1 }}>{n}</span>
-                    <p style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--c-text-secondary)" }}>
-                      <b style={{ color: "var(--c-text-primary)" }}>{b}</b> {rest}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center gap-1.5 flex-wrap" style={{ margin: "14px 0 4px", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              <div style={{ display: "block", fontSize: 15, fontWeight: 700, marginBottom: 14, color: "var(--c-text-primary)" }}>⚡ How the vault works</div>
+              {[
+                ["1", "Galti pakdi gayi.", "Every question you get wrong in any test lands here automatically. Nothing to add, nothing to maintain."],
+                ["2", "Beat it 3 times.", "Redo it correctly after 3 days → again after 7 → again after 21. Three clean wins and it's mastered forever — it leaves the vault."],
+                ["3", "No cheating the gap.", "A wrong redo resets the ladder to day 3. Locked questions unlock only when due — the waiting is what makes it stick."],
+              ].map(([n, b, rest]) => (
+                <div key={n} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
+                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, width: 22, height: 22, borderRadius: 999, background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", color: "var(--c-brand-gold)", fontSize: 12, fontWeight: 700, marginTop: 1 }}>{n}</span>
+                  <p style={{ display: "block", margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "var(--c-text-secondary)" }}>
+                    <b style={{ color: "var(--c-text-primary)" }}>{b}</b> {rest}
+                  </p>
+                </div>
+              ))}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", margin: "14px 0 4px", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                 {["Miss", "→", "3 days", "→", "7 days", "→", "21 days", "→", "Mastered ✓"].map((s, i) =>
                   s === "→" ? (
                     <span key={i} style={{ color: "var(--c-text-tertiary)" }}>→</span>
                   ) : (
-                    <span key={i} style={{ padding: "4px 12px", borderRadius: 999, border: `1px solid ${i === 0 || i === 8 ? "rgba(255, 182, 39, 0.35)" : "var(--c-border-faint)"}`, background: i === 0 || i === 8 ? "var(--c-brand-gold-tint)" : "var(--c-surface-muted, var(--c-bg))", fontWeight: 700, color: i === 0 || i === 8 ? "var(--c-brand-gold)" : "var(--c-text-secondary)" }}>{s}</span>
+                    <span key={i} style={{ display: "inline-block", padding: "4px 12px", borderRadius: 999, border: `1px solid ${i === 0 || i === 8 ? "rgba(255, 182, 39, 0.35)" : "var(--c-border-faint)"}`, background: i === 0 || i === 8 ? "var(--c-brand-gold-tint)" : "var(--c-surface-muted, var(--c-bg))", fontWeight: 700, color: i === 0 || i === 8 ? "var(--c-brand-gold)" : "var(--c-text-secondary)" }}>{s}</span>
                   )
                 )}
               </div>
-              <button type="button" onClick={dismissHow} className="mt-4" style={{ ...goldBtn, fontSize: 13, padding: "9px 22px" }}>
+              <button type="button" onClick={dismissHow} style={{ ...goldBtn, fontSize: 13, padding: "9px 22px", marginTop: 16 }}>
                 Got it — start my redos
               </button>
             </div>
@@ -396,16 +433,21 @@ export default function MistakeVault({ userData }) {
           {chapters.length > 1 && (
             <div className="flex gap-2 flex-wrap mt-7">
               <button type="button" style={chipBtn(!chapterFilter)} onClick={() => setChapterFilter(null)}>All</button>
-              {chapters.slice(0, 8).map(([c, n]) => (
-                <button key={c} type="button" style={chipBtn(chapterFilter === c)} onClick={() => setChapterFilter(chapterFilter === c ? null : c)}>
-                  {c} · {n}
+              {(showAllChips ? chapters : chapters.slice(0, 6)).map((g) => (
+                <button key={g.key} type="button" style={chipBtn(chapterFilter === g.key)} onClick={() => setChapterFilter(chapterFilter === g.key ? null : g.key)}>
+                  {g.label} · {g.count}
                 </button>
               ))}
+              {chapters.length > 6 && (
+                <button type="button" style={{ ...chipBtn(false), color: "var(--c-brand-gold)" }} onClick={() => setShowAllChips((v) => !v)}>
+                  {showAllChips ? "show less" : `+${chapters.length - 6} more`}
+                </button>
+              )}
             </div>
           )}
 
           <div className="flex justify-between items-baseline mt-6 mb-3">
-            <div style={sectLabel}>{chapterFilter ? chapterFilter : todaysAsk.length ? "The schedule" : "The vault"}</div>
+            <div style={sectLabel}>{chapterFilter ? chapterLabel : "Your mistakes — auto-collected from your tests"}</div>
             <span style={sectMeta}>wrong redo → back to day 3 · three rights → mastered</span>
           </div>
 
@@ -413,11 +455,11 @@ export default function MistakeVault({ userData }) {
             const chapterDue = listed.filter((it) => it.st.dueNow);
             return chapterDue.length > 0 ? (
               <button type="button" onClick={() => startSession(chapterDue)} className="self-start mb-3" style={{ ...goldBtn, fontSize: 13, padding: "10px 22px" }}>
-                Redo {Math.min(chapterDue.length, SESSION_SIZE)} due from {chapterFilter} <ArrowRight size={14} />
+                Redo {Math.min(chapterDue.length, SESSION_SIZE)} due from {chapterLabel} <ArrowRight size={14} />
               </button>
             ) : (
               <div className="mb-3" style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
-                Nothing due in {chapterFilter} right now — the schedule will bring them back.
+                Nothing due in {chapterLabel} right now — the schedule will bring them back.
               </div>
             );
           })()}
@@ -431,7 +473,7 @@ export default function MistakeVault({ userData }) {
                   : "No mistakes collected yet. Take a concept test — anything you miss lands here automatically."}
               </div>
             )}
-            {listed.slice(0, showAll ? listed.length : 8).map((it, i, arr) => (
+            {(() => { const rowSnips = distinctSnippets(listed.map(snippet)); return listed.slice(0, showAll ? listed.length : 8).map((it, i, arr) => (
               <div
                 key={it.question_id}
                 onClick={it.st.dueNow ? () => startSession([it]) : undefined}
@@ -441,7 +483,7 @@ export default function MistakeVault({ userData }) {
               >
                 <Ladder stage={it.st.stage} />
                 <span className="min-w-0 flex-1" style={{ fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {snippet(it)}
+                  {rowSnips[i]}
                 </span>
                 <span className="hidden md:block shrink-0" style={{ fontSize: 11, color: "var(--c-text-tertiary)", width: 170 }}>
                   {displayChapter(it)}
@@ -452,7 +494,7 @@ export default function MistakeVault({ userData }) {
                   {it.st.dueNow && <span className="hidden group-hover:inline">redo now →</span>}
                 </span>
               </div>
-            ))}
+            )); })()}
             {listed.length > 8 && (
               <button type="button" onClick={() => setShowAll((v) => !v)} style={{ background: "none", border: "none", padding: "13px 0", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}>
                 {showAll ? "Show less" : `Show all ${listed.length} →`}
