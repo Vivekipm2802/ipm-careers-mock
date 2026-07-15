@@ -28,6 +28,7 @@ export const SESSION_SIZE = 10;
 export const MASTER_STREAK = 3;
 export const XP_PER_SESSION = 30;
 export const DAILY_CAP = 12;
+export const DAILY_DOUBTS = 10;
 
 export const REASONS = [
   { id: "silly", label: "Silly mistake" },
@@ -156,6 +157,8 @@ export default function MistakeVault({ userData }) {
   const [addChapter, setAddChapter] = useState("");
   const [addAnswer, setAddAnswer] = useState("");
   const [addSaving, setAddSaving] = useState(false);
+  const [explain, setExplain] = useState(null); // null | {loading} | {text} | {error}
+  const [doubtsToday, setDoubtsToday] = useState(0);
   const lockRef = useRef(false);
   const movesRef = useRef([]);
   const pendingRef = useRef(null); // { question_id, correct } awaiting reason
@@ -198,6 +201,12 @@ export default function MistakeVault({ userData }) {
       .eq("user", userData.email)
       .gte("created_at", startOfToday.toISOString())
       .then(({ count }) => setRedosToday(count || 0));
+    supabase
+      .from("doubt_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("user", userData.email)
+      .gte("created_at", startOfToday.toISOString())
+      .then(({ count }) => setDoubtsToday(count || 0));
   };
   useEffect(load, [userData?.email]);
 
@@ -236,6 +245,7 @@ export default function MistakeVault({ userData }) {
     setLastCorrect(null);
     movesRef.current = [];
     setMoves([]);
+    setExplain(null);
     lockRef.current = false;
     pendingRef.current = null;
     setPhase("session");
@@ -305,6 +315,54 @@ export default function MistakeVault({ userData }) {
     }
   };
 
+  // AI Doubts: cached-first Hinglish explanation for the current
+  // question. Gemini is called at most once per question ever
+  // (shared doubt_explanations cache); students get DAILY_DOUBTS/day.
+  const stripHtml = (s) => String(s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const askExplain = async () => {
+    if (!q || explain?.loading || !userData?.email) return;
+    setExplain({ loading: true });
+    const { data: cached } = await supabase
+      .from("doubt_explanations")
+      .select("explanation")
+      .eq("question_id", q.question_id)
+      .maybeSingle();
+    if (cached?.explanation) {
+      setExplain({ text: cached.explanation });
+      return;
+    }
+    if (doubtsToday >= DAILY_DOUBTS) {
+      setExplain({ error: `Aaj ke ${DAILY_DOUBTS} Samjhao ho gaye — baaki kal. Ya Doubts tab se mentor se poochho.` });
+      return;
+    }
+    try {
+      const optsText = (q.options || []).map((o, i) => `${String.fromCharCode(65 + i)}. ${stripHtml(o.title)}`).join(" | ");
+      const correctText = (q.options || []).filter((o) => o.isCorrect).map((o) => stripHtml(o.title)).join(", ");
+      const pickedText = !lastCorrect && picked != null && q.options?.[picked] ? stripHtml(q.options[picked].title) : null;
+      const r = await fetch("/api/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: `${q.title || ""} ${stripHtml(q.question)}`.trim(),
+          options: optsText,
+          correct: correctText,
+          picked: pickedText,
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.explanation) {
+        setExplain({ error: "Samjhao abhi available nahi — thodi der mein try karo." });
+        return;
+      }
+      setExplain({ text: j.explanation });
+      setDoubtsToday((n) => n + 1);
+      await supabase.from("doubt_requests").insert({ user: userData.email, question_id: q.question_id });
+      await supabase.from("doubt_explanations").insert({ question_id: q.question_id, explanation: j.explanation });
+    } catch (e) {
+      setExplain({ error: "Samjhao abhi available nahi — thodi der mein try karo." });
+    }
+  };
+
   // reason chip (or skip) → persist redo (AWAITED — supabase builders
   // only execute when awaited), optimistically update local state,
   // then advance.
@@ -348,6 +406,7 @@ export default function MistakeVault({ userData }) {
     setReveal(false);
     setFlash(null);
     setLastCorrect(null);
+    setExplain(null);
     lockRef.current = false;
     if (qi + 1 >= queue.length) {
       const right = movesRef.current.filter((m) => m.correct).length;
@@ -695,6 +754,28 @@ export default function MistakeVault({ userData }) {
               </div>
             )}
             <div style={{ fontSize: 12.5, fontWeight: 600, minHeight: 20, marginTop: 14, color: flash?.tone }}>{flash?.text}</div>
+
+            {/* AI Doubts — Samjhao */}
+            {reveal && !q.is_own && (
+              <div style={{ marginTop: 12 }}>
+                {!explain && (
+                  <button type="button" onClick={askExplain} style={{ background: "var(--c-brand-gold-tint)", border: "1px solid rgba(255, 182, 39, 0.35)", color: "var(--c-brand-gold)", borderRadius: 999, padding: "8px 18px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    ✨ Samjhao — explain this
+                  </button>
+                )}
+                {explain?.loading && (
+                  <div style={{ fontSize: 13, color: "var(--c-text-tertiary)" }}>Samjha rahe hain…</div>
+                )}
+                {explain?.error && (
+                  <div style={{ fontSize: 13, color: "var(--c-danger)" }}>{explain.error}</div>
+                )}
+                {explain?.text && (
+                  <div style={{ borderRadius: 12, padding: "14px 16px", background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", fontSize: 13.5, lineHeight: 1.7, color: "var(--c-text-secondary)", whiteSpace: "pre-wrap" }}>
+                    <b style={{ color: "var(--c-brand-gold)" }}>Samjhao:</b> {explain.text}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* why-tags after reveal */}
             {reveal && (
