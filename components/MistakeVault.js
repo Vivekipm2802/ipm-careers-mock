@@ -150,6 +150,12 @@ export default function MistakeVault({ userData }) {
   const [lastCorrect, setLastCorrect] = useState(null);
   const [showHow, setShowHow] = useState(false);
   const [showAllChips, setShowAllChips] = useState(false);
+  const [ownItems, setOwnItems] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addQ, setAddQ] = useState("");
+  const [addChapter, setAddChapter] = useState("");
+  const [addAnswer, setAddAnswer] = useState("");
+  const [addSaving, setAddSaving] = useState(false);
   const lockRef = useRef(false);
   const movesRef = useRef([]);
   const pendingRef = useRef(null); // { question_id, correct } awaiting reason
@@ -160,6 +166,29 @@ export default function MistakeVault({ userData }) {
       if (!error && Array.isArray(data)) {
         setItems(data.filter((it) => Array.isArray(it.options) && it.options.length >= 2 && (it.title || it.question)));
       } else setItems([]);
+    });
+    // student-added mistakes (self-graded, negative ids in mistake_redos)
+    supabase.rpc("get_my_own_mistakes", { p_email: userData.email }).then(({ data, error }) => {
+      if (!error && Array.isArray(data)) {
+        setOwnItems(
+          data.map((m) => ({
+            question_id: -m.id,
+            is_own: true,
+            title: null,
+            question: m.question,
+            questionimage: null,
+            options: null,
+            answer: m.answer,
+            chapter: m.chapter || "Other",
+            test_title: "Added by you",
+            wrong_count: 1,
+            last_wrong_at: m.created_at,
+            streak: m.streak,
+            last_redo_at: m.last_redo_at,
+            last_reason: m.last_reason,
+          }))
+        );
+      } else setOwnItems([]);
     });
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -176,7 +205,7 @@ export default function MistakeVault({ userData }) {
   // link in the header, closes on "Got it". Never auto-shows.
 
   const now = new Date();
-  const withState = (items || []).map((it) => ({ ...it, st: vaultState(it, now) }));
+  const withState = [...(items || []), ...(ownItems || [])].map((it) => ({ ...it, st: vaultState(it, now) }));
   const active = withState.filter((it) => !it.st.mastered);
   const mastered = withState.filter((it) => it.st.mastered);
   const due = prioritize(active.filter((it) => it.st.dueNow));
@@ -234,6 +263,48 @@ export default function MistakeVault({ userData }) {
     );
   };
 
+  // self-graded verdict for student-added mistakes (no options)
+  const handleSelfGrade = (correct) => {
+    if (reveal || lockRef.current || !q) return;
+    lockRef.current = true;
+    setReveal(true);
+    setLastCorrect(correct);
+    const newStreak = correct ? Number(q.streak || 0) + 1 : 0;
+    const masteredNow = correct && newStreak >= MASTER_STREAK;
+    movesRef.current.push({ q, correct, masteredNow, newStreak });
+    pendingRef.current = { question_id: q.question_id, correct };
+    setFlash(
+      correct
+        ? masteredNow
+          ? { text: "Third clean redo — MASTERED. It leaves the vault forever.", tone: "var(--c-brand-gold)" }
+          : { text: `Right — climbs the ladder. Next redo in ${LADDER_DAYS[newStreak]} days.`, tone: "var(--c-success)" }
+        : { text: "Still bites. Back to day 3 — you'll see it again soon.", tone: "var(--c-danger)" }
+    );
+  };
+
+  // save a student-added mistake (AWAITED insert, optimistic prepend)
+  const saveOwn = async () => {
+    const qText = addQ.trim();
+    if (!qText || addSaving || !userData?.email) return;
+    setAddSaving(true);
+    const { data, error } = await supabase
+      .from("user_mistakes")
+      .insert({ user: userData.email, question: qText, chapter: addChapter.trim() || null, answer: addAnswer.trim() || null })
+      .select()
+      .single();
+    setAddSaving(false);
+    if (!error && data) {
+      setOwnItems((prev) => [
+        { question_id: -data.id, is_own: true, title: null, question: data.question, questionimage: null, options: null, answer: data.answer, chapter: data.chapter || "Other", test_title: "Added by you", wrong_count: 1, last_wrong_at: data.created_at, streak: 0, last_redo_at: null, last_reason: null },
+        ...(prev || []),
+      ]);
+      setAddQ("");
+      setAddChapter("");
+      setAddAnswer("");
+      setShowAdd(false);
+    }
+  };
+
   // reason chip (or skip) → persist redo (AWAITED — supabase builders
   // only execute when awaited), optimistically update local state,
   // then advance.
@@ -258,7 +329,7 @@ export default function MistakeVault({ userData }) {
       if (!error) {
         // optimistic: move the ladder locally so the vault updates
         // the moment the student returns — refetch reconciles later.
-        setItems((prev) =>
+        const bump = (prev) =>
           (prev || []).map((it) =>
             it.question_id === pending.question_id
               ? {
@@ -268,8 +339,9 @@ export default function MistakeVault({ userData }) {
                   last_reason: reason || it.last_reason,
                 }
               : it
-          )
-        );
+          );
+        setItems(bump);
+        setOwnItems(bump);
       }
     }
     setPicked(null);
@@ -343,13 +415,22 @@ export default function MistakeVault({ userData }) {
               <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4.2vw, 40px)", lineHeight: 1.1 }}>
                 Mistake <span className="ds-accent ds-grad-text">Vault.</span>
               </h1>
-              <button
-                type="button"
-                onClick={() => setShowHow((v) => !v)}
-                style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
-              >
-                How it works?
-              </button>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 18 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAdd((v) => !v)}
+                  style={{ background: "transparent", border: "1px solid rgba(255, 182, 39, 0.4)", borderRadius: 999, padding: "8px 18px", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--c-brand-gold)" }}
+                >
+                  + Add a mistake
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowHow((v) => !v)}
+                  style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
+                >
+                  How it works?
+                </button>
+              </span>
             </div>
             <p className="mt-2" style={{ fontSize: 15, color: "var(--c-text-secondary)", lineHeight: 1.5 }}>
               Every question you&apos;ve ever missed, collected automatically. Redo them on schedule — 3, 7, 21 days — and they leave the vault forever.
@@ -387,6 +468,57 @@ export default function MistakeVault({ userData }) {
               <button type="button" onClick={() => setShowHow(false)} style={{ ...goldBtn, fontSize: 13, padding: "9px 22px", marginTop: 16 }}>
                 Got it — start my redos
               </button>
+            </div>
+          )}
+
+          {/* add-your-own-mistake form */}
+          {showAdd && (
+            <div style={{ display: "block", flexShrink: 0, maxWidth: 860, marginTop: 20, background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, boxShadow: "var(--c-shadow-xs)", padding: "22px 24px" }}>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 7 }}>
+                The question that got you
+              </div>
+              <textarea
+                rows={3}
+                value={addQ}
+                onChange={(e) => setAddQ(e.target.value)}
+                placeholder="Type or paste it — from a book, a class, anywhere."
+                style={{ width: "100%", background: "var(--c-surface-muted, var(--c-bg))", border: "1px solid var(--c-border-faint)", borderRadius: 12, color: "var(--c-text-primary)", fontFamily: "inherit", fontSize: 14, padding: "12px 14px", resize: "vertical" }}
+              />
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", margin: "14px 0 7px" }}>
+                Chapter
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                {chapters.slice(0, 5).map((g) => (
+                  <button key={g.key} type="button" style={chipBtn(addChapter.trim().toLowerCase() === g.key)} onClick={() => setAddChapter(g.label)}>
+                    {g.label}
+                  </button>
+                ))}
+                <input
+                  type="text"
+                  value={addChapter}
+                  onChange={(e) => setAddChapter(e.target.value)}
+                  placeholder="or type one…"
+                  style={{ background: "var(--c-surface-muted, var(--c-bg))", border: "1px solid var(--c-border-faint)", borderRadius: 999, color: "var(--c-text-primary)", fontFamily: "inherit", fontSize: 12.5, padding: "8px 16px", width: 170 }}
+                />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", margin: "14px 0 7px" }}>
+                Correct answer — optional but smart
+              </div>
+              <input
+                type="text"
+                value={addAnswer}
+                onChange={(e) => setAddAnswer(e.target.value)}
+                placeholder="Future-you will thank you on redo day."
+                style={{ width: "100%", background: "var(--c-surface-muted, var(--c-bg))", border: "1px solid var(--c-border-faint)", borderRadius: 12, color: "var(--c-text-primary)", fontFamily: "inherit", fontSize: 14, padding: "11px 14px" }}
+              />
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 18, flexWrap: "wrap" }}>
+                <button type="button" onClick={saveOwn} disabled={addSaving || !addQ.trim()} style={{ ...goldBtn, fontSize: 13.5, padding: "11px 26px", opacity: addSaving || !addQ.trim() ? 0.5 : 1 }}>
+                  {addSaving ? "Saving…" : "Into the vault → first redo in 3 days"}
+                </button>
+                <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
+                  Same 3 → 7 → 21 ladder · self-graded on redo day
+                </span>
+              </div>
             </div>
           )}
 
@@ -474,6 +606,11 @@ export default function MistakeVault({ userData }) {
                 style={{ padding: "14px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none", cursor: it.st.dueNow ? "pointer" : "default" }}
               >
                 <Ladder stage={it.st.stage} />
+                {it.is_own && (
+                  <span className="shrink-0" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", color: "var(--c-brand-gold)", border: "1px solid rgba(255, 182, 39, 0.35)", background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "2px 9px" }}>
+                    YOURS
+                  </span>
+                )}
                 <span className="min-w-0 flex-1" style={{ fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {rowSnips[i]}
                 </span>
@@ -508,8 +645,10 @@ export default function MistakeVault({ userData }) {
           <div className="max-w-[760px] mt-5 p-6 md:p-7" style={{ ...card, padding: undefined }}>
             <div className="flex justify-between flex-wrap gap-1" style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
               <span>
+                {q.is_own ? "Your own mistake · " : ""}
                 {displayChapter(q)}
-                {q.test_title && !BUCKET.test(String(q.chapter || "")) && q.test_title !== q.chapter ? ` · from ${q.test_title}` : ""} · missed {q.wrong_count > 1 ? `${q.wrong_count} times` : "once"}
+                {!q.is_own && q.test_title && !BUCKET.test(String(q.chapter || "")) && q.test_title !== q.chapter ? ` · from ${q.test_title}` : ""}
+                {q.is_own ? "" : ` · missed ${q.wrong_count > 1 ? `${q.wrong_count} times` : "once"}`}
               </span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{qi + 1} / {queue.length}</span>
             </div>
@@ -521,7 +660,7 @@ export default function MistakeVault({ userData }) {
               <div className={"qcontent qforce " + (q.title ? "mt-2" : "")} style={{ fontSize: 15, lineHeight: 1.6, maxHeight: "30vh", overflowY: "auto", overflowX: "auto", wordBreak: "break-word" }} dangerouslySetInnerHTML={{ __html: q.question }} />
             )}
             <div className="grid gap-2.5 mt-4">
-              {q.options.map((o, d) => {
+              {Array.isArray(q.options) && q.options.map((o, d) => {
                 let border = "var(--c-border-faint)";
                 let bg = "var(--c-surface-muted, var(--c-bg))";
                 if (reveal && o.isCorrect) { border = "var(--c-success)"; bg = "var(--c-success-soft)"; }
@@ -535,6 +674,26 @@ export default function MistakeVault({ userData }) {
                 );
               })}
             </div>
+            {q.is_own && !reveal && (
+              <>
+                <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                  <button type="button" onClick={() => handleSelfGrade(true)} style={{ flex: 1, borderRadius: 12, padding: 13, fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", border: "1px solid var(--c-success)", background: "var(--c-success-soft)", color: "var(--c-text-primary)" }}>
+                    ✓ Got it right
+                  </button>
+                  <button type="button" onClick={() => handleSelfGrade(false)} style={{ flex: 1, borderRadius: 12, padding: 13, fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", border: "1px solid var(--c-danger)", background: "var(--c-danger-soft)", color: "var(--c-text-primary)" }}>
+                    ✗ Got it wrong
+                  </button>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 10 }}>
+                  Solve it on paper like exam day — then be honest. The ladder only works if you are.
+                </div>
+              </>
+            )}
+            {q.is_own && reveal && q.answer && (
+              <div style={{ marginTop: 14, borderRadius: 12, padding: "12px 16px", background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", fontSize: 13.5, color: "var(--c-text-secondary)" }}>
+                Correct answer: <b style={{ color: "var(--c-brand-gold)" }}>{q.answer}</b>
+              </div>
+            )}
             <div style={{ fontSize: 12.5, fontWeight: 600, minHeight: 20, marginTop: 14, color: flash?.tone }}>{flash?.text}</div>
 
             {/* why-tags after reveal */}
