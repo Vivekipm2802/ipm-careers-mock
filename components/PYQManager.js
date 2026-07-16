@@ -1508,6 +1508,12 @@ function Library({
       const r = attemptsSnap[String(q.id)];
       if (statusFilter === "unattempted") return r !== "right" && r !== "wrong";
       if (statusFilter === "wrong") return r === "wrong";
+      if (statusFilter === "starred") {
+        try {
+          const marks = JSON.parse(window.localStorage.getItem("pyq_bookmarks") || "[]").map(String);
+          return marks.includes(String(q.id));
+        } catch (e) { return false; }
+      }
       return true;
     });
   }, [questions, statusFilter, attemptsSnap]);
@@ -1582,9 +1588,10 @@ function Library({
         </div>
       </div>
 
-      {/* Filters — chip rows + search pill */}
-      <div style={{ padding: "16px 28px", borderBottom: "1px solid var(--c-border-faint)", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
+      {/* Filters — labelled chip rows + search pill */}
+      <div style={{ padding: "16px 28px", borderBottom: "1px solid var(--c-border-faint)", display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", width: 50, flexShrink: 0 }}>Year</span>
           <PChip label="All years" active={yearFilter == null} onClick={() => setYearFilter(null)} />
           {years.map((y) => (
             <PChip key={y} label={String(y)} active={yearFilter != null && sameId(yearFilter, y)} onClick={() => setYearFilter(y)} />
@@ -1610,23 +1617,27 @@ function Library({
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", width: 50, flexShrink: 0 }}>Topic</span>
           <PChip label="All topics" active={topicFilter == null} onClick={() => setTopicFilter(null)} />
-          {(showAllTopics ? topics : topics.slice(0, 7)).map((t) => (
+          {(showAllTopics ? topics : topics.slice(0, 5)).map((t) => (
             <PChip key={t.id} label={titleCaseTopic(t.name)} active={topicFilter != null && sameId(topicFilter, t.id)} onClick={() => setTopicFilter(t.id)} />
           ))}
-          {topics.length > 7 && (
+          {topics.length > 5 && (
             <button
               type="button"
               onClick={() => setShowAllTopics((v) => !v)}
               style={{ background: "none", border: "none", padding: "7px 6px", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}
             >
-              {showAllTopics ? "show less" : `+${topics.length - 7} more`}
+              {showAllTopics ? "show less" : `+${topics.length - 5} more`}
             </button>
           )}
-          <span style={{ width: 1, height: 18, background: "var(--c-border-faint)", margin: "0 6px", flexShrink: 0 }} />
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", width: 50, flexShrink: 0 }}>Status</span>
           <PChip label="All" active={statusFilter == null} onClick={() => setStatusFilter(null)} />
           <PChip label="Unattempted" active={statusFilter === "unattempted"} onClick={() => setStatusFilter("unattempted")} />
           <PChip label="Got wrong" active={statusFilter === "wrong"} onClick={() => setStatusFilter("wrong")} />
+          <PChip label="★ Starred" active={statusFilter === "starred"} onClick={() => setStatusFilter("starred")} />
         </div>
       </div>
 

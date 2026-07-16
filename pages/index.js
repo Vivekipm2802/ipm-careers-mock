@@ -36,51 +36,50 @@ import {
   ButtonGroup,
   Avatar,
 } from "@nextui-org/react";
-import { Document, Page, pdfjs } from "react-pdf";
 import { CtoLocal, formatCreatedAt } from "@/utils/DateUtil";
 import dynamic from "next/dynamic";
 import { logoutUser } from "@/supabase/userUtility";
 import ImageUploader from "@/components/ImageUploader";
 import GameCard from "@/components/GameCard";
-import Webinars from "@/components/Webinars";
+const Webinars = dynamic(() => import("@/components/Webinars"), { ssr: false, loading: () => null });
 import ComingSoon from "@/components/ComingSoon";
-import Generator from "@/components/Generator";
-import BookBySubject from "@/components/BookBySubject";
-import SWOTEditor from "@/components/SWOTEditor";
-import Scheduler from "@/components/Scheduler";
-import KYCManager from "@/components/KYCManager";
+const Generator = dynamic(() => import("@/components/Generator"), { ssr: false, loading: () => null });
+const BookBySubject = dynamic(() => import("@/components/BookBySubject"), { ssr: false, loading: () => null });
+const SWOTEditor = dynamic(() => import("@/components/SWOTEditor"), { ssr: false, loading: () => null });
+const Scheduler = dynamic(() => import("@/components/Scheduler"), { ssr: false, loading: () => null });
+const KYCManager = dynamic(() => import("@/components/KYCManager"), { ssr: false, loading: () => null });
 import { Toaster, toast } from "react-hot-toast";
 import DashTrack from "@/components/DashTrack";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import UserManager from "@/components/UserManager";
+const UserManager = dynamic(() => import("@/components/UserManager"), { ssr: false, loading: () => null });
 import { useNMNContext } from "@/components/NMNContext";
-import ResultManager from "@/components/ResultManager";
-import PrintManager from "@/components/PrintManager";
-import Submissions from "@/components/Submission";
-import CallSubmissions from "@/components/CallSubmissions";
-import ResponseSubmissions from "@/components/ResponseSubmissions";
+const ResultManager = dynamic(() => import("@/components/ResultManager"), { ssr: false, loading: () => null });
+const PrintManager = dynamic(() => import("@/components/PrintManager"), { ssr: false, loading: () => null });
+const Submissions = dynamic(() => import("@/components/Submission"), { ssr: false, loading: () => null });
+const CallSubmissions = dynamic(() => import("@/components/CallSubmissions"), { ssr: false, loading: () => null });
+const ResponseSubmissions = dynamic(() => import("@/components/ResponseSubmissions"), { ssr: false, loading: () => null });
 import Dashboard from "@/components/Dashboard";
-import MockTests from "@/components/MockTests";
-import Concept from "@/components/ConceptTest";
-import ConceptTestStudent from "@/components/ConceptTestStudent";
-import MockTestEditor from "@/components/MockTestEditor";
-import CustomTestGenerator from "@/components/CustomTestGenerator";
-import PerformanceUser from "@/components/PerformanceUser";
-import SectionalTest from "@/components/SectionalTest";
-import DailyLearn from "@/components/DailyLearn";
-import DSBChallenge from "@/components/DSBChallenge";
-import AdaptivePlan from "@/components/AdaptivePlan";
-import MistakeVault from "@/components/MistakeVault";
-import DoubtSamjhao from "@/components/DoubtSamjhao";
+const MockTests = dynamic(() => import("@/components/MockTests"), { ssr: false, loading: () => null });
+const Concept = dynamic(() => import("@/components/ConceptTest"), { ssr: false, loading: () => null });
+const ConceptTestStudent = dynamic(() => import("@/components/ConceptTestStudent"), { ssr: false, loading: () => null });
+const MockTestEditor = dynamic(() => import("@/components/MockTestEditor"), { ssr: false, loading: () => null });
+const CustomTestGenerator = dynamic(() => import("@/components/CustomTestGenerator"), { ssr: false, loading: () => null });
+const PerformanceUser = dynamic(() => import("@/components/PerformanceUser"), { ssr: false, loading: () => null });
+const SectionalTest = dynamic(() => import("@/components/SectionalTest"), { ssr: false, loading: () => null });
+const DailyLearn = dynamic(() => import("@/components/DailyLearn"), { ssr: false, loading: () => null });
+const DSBChallenge = dynamic(() => import("@/components/DSBChallenge"), { ssr: false, loading: () => null });
+const AdaptivePlan = dynamic(() => import("@/components/AdaptivePlan"), { ssr: false, loading: () => null });
+const MistakeVault = dynamic(() => import("@/components/MistakeVault"), { ssr: false, loading: () => null });
+const DoubtSamjhao = dynamic(() => import("@/components/DoubtSamjhao"), { ssr: false, loading: () => null });
 import Link from "next/link";
-import BatchCreator from "@/components/BatchCreator";
-import Classes from "@/components/Classes";
-import TeacherManager from "@/components/TeacherManager";
-import PreRecorded from "@/components/PreRecorded";
-import BulkUser from "@/components/BulkUser";
-import VideoGroups from "@/components/VideoGroups";
-import ConceptGroups from "@/components/ConceptGroups";
+const BatchCreator = dynamic(() => import("@/components/BatchCreator"), { ssr: false, loading: () => null });
+const Classes = dynamic(() => import("@/components/Classes"), { ssr: false, loading: () => null });
+const TeacherManager = dynamic(() => import("@/components/TeacherManager"), { ssr: false, loading: () => null });
+const PreRecorded = dynamic(() => import("@/components/PreRecorded"), { ssr: false, loading: () => null });
+const BulkUser = dynamic(() => import("@/components/BulkUser"), { ssr: false, loading: () => null });
+const VideoGroups = dynamic(() => import("@/components/VideoGroups"), { ssr: false, loading: () => null });
+const ConceptGroups = dynamic(() => import("@/components/ConceptGroups"), { ssr: false, loading: () => null });
 import {
   Clock1,
   Clock3,
@@ -89,18 +88,18 @@ import {
   MessageSquareWarningIcon,
   Trash2,
 } from "lucide-react";
-import CourseManager from "@/components/CourseManager";
-import HolidayManager from "@/components/HolidayManager";
-import RCManager from "@/components/RCManager";
-import WordManager from "@/components/WordofTheDayManager";
+const CourseManager = dynamic(() => import("@/components/CourseManager"), { ssr: false, loading: () => null });
+const HolidayManager = dynamic(() => import("@/components/HolidayManager"), { ssr: false, loading: () => null });
+const RCManager = dynamic(() => import("@/components/RCManager"), { ssr: false, loading: () => null });
+const WordManager = dynamic(() => import("@/components/WordofTheDayManager"), { ssr: false, loading: () => null });
 import Loader from "@/components/Loader";
-import EnrollmentManager from "@/components/EnrollmentManager";
-import PYQManager from "@/components/PYQManager";
-import ConfigManager from "@/components/Configurator";
-import FileUploader from "@/components/FileUploader";
-import PDFViewer from "@/components/PDFViewer";
+const EnrollmentManager = dynamic(() => import("@/components/EnrollmentManager"), { ssr: false, loading: () => null });
+const PYQManager = dynamic(() => import("@/components/PYQManager"), { ssr: false, loading: () => null });
+const ConfigManager = dynamic(() => import("@/components/Configurator"), { ssr: false, loading: () => null });
+const FileUploader = dynamic(() => import("@/components/FileUploader"), { ssr: false, loading: () => null });
+const PDFViewer = dynamic(() => import("@/components/PDFViewer"), { ssr: false, loading: () => null });
 import WelcomeScreen from "@/components/WelcomeScreen";
-import PackPlayer from "@/components/PackPlayer";
+const PackPlayer = dynamic(() => import("@/components/PackPlayer"), { ssr: false, loading: () => null });
 const CustomEditor = dynamic(() => import("@/components/CustomEditor"), {
   ssr: false,
 });
@@ -203,8 +202,6 @@ export default function Home(props) {
   const setSlug = (a) => {
     setCTXSlug(a);
   };
-
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax//libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
   const [activeCA, setActiveCA] = useState({
     title: "Daily News Analysis",

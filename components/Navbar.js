@@ -430,9 +430,12 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
                     <div
                       key={i.title}
                       onClick={() => setCTXSlug(target.action)}
-                      className="flex items-center gap-2 mx-2 rounded-lg transition-all cursor-pointer"
+                      className="flex items-center rounded-lg transition-all cursor-pointer"
                       style={{
-                        padding: '8px 8px',
+                        // measured against accordion triggers: icon x=16, text x=46
+                        margin: '2px 8px 2px 2px',
+                        padding: '9px 10px 9px 2px',
+                        columnGap: 10,
                         color: active ? 'var(--c-brand-primary)' : 'var(--c-text-secondary)',
                         background: active ? 'var(--c-brand-primary-tint)' : 'transparent',
                       }}
