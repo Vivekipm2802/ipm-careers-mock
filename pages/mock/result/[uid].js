@@ -6,6 +6,7 @@
 // ============================================================
 
 import Loader from "@/components/Loader";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useNMNContext } from "@/components/NMNContext";
 import { CtoLocal } from "@/utils/DateUtil";
 import { serversupabase, supabase } from "@/utils/supabaseClient";
@@ -289,6 +290,7 @@ export default function MockResult({ result }) {
             <img src="/newlog.svg" style={{ height: 32, width: "auto" }} />
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <ThemeToggle />
             <button onClick={() => router.push("/")} style={pillGhost}>
               <ArrowLeft size={14} /> Back to dashboard
             </button>

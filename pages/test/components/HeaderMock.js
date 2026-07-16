@@ -4,6 +4,7 @@
 // ============================================================
 
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from "@nextui-org/react";
+import ThemeToggle from "@/components/ThemeToggle";
 import _ from "lodash";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -56,6 +57,7 @@ export default function HeaderMock({ title, isHintVisible, onSetVisible, setIsHi
         <img src="/newlog.svg" alt="IPM Careers" style={{ height: 36, width: "auto" }} />
 
         <div className="flex flex-row items-center" style={{ gap: 10 }}>
+          <ThemeToggle />
           {state == 1 && calc == true && (
             <button onClick={() => openCalculator()} aria-label="Calculator" title="Calculator" style={iconBtn}>
               <Calculator size={18} />

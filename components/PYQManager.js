@@ -1616,21 +1616,29 @@ function Library({
             />
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", width: 50, flexShrink: 0 }}>Topic</span>
-          <PChip label="All topics" active={topicFilter == null} onClick={() => setTopicFilter(null)} />
-          {(showAllTopics ? topics : topics.slice(0, 5)).map((t) => (
-            <PChip key={t.id} label={titleCaseTopic(t.name)} active={topicFilter != null && sameId(topicFilter, t.id)} onClick={() => setTopicFilter(t.id)} />
-          ))}
-          {topics.length > 5 && (
-            <button
-              type="button"
-              onClick={() => setShowAllTopics((v) => !v)}
-              style={{ background: "none", border: "none", padding: "7px 6px", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}
-            >
-              {showAllTopics ? "show less" : `+${topics.length - 5} more`}
-            </button>
-          )}
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", width: 50, flexShrink: 0, marginTop: 9 }}>Topic</span>
+          <div
+            style={
+              showAllTopics
+                ? { flex: 1, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(215px, 1fr))", gap: 8 }
+                : { flex: 1, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }
+            }
+          >
+            <PChip label="All topics" active={topicFilter == null} onClick={() => setTopicFilter(null)} />
+            {(showAllTopics ? topics : topics.slice(0, 5)).map((t) => (
+              <PChip key={t.id} label={titleCaseTopic(t.name)} active={topicFilter != null && sameId(topicFilter, t.id)} onClick={() => setTopicFilter(t.id)} />
+            ))}
+            {topics.length > 5 && (
+              <button
+                type="button"
+                onClick={() => setShowAllTopics((v) => !v)}
+                style={{ background: "none", border: "none", padding: "7px 6px", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+              >
+                {showAllTopics ? "show less" : `+${topics.length - 5} more`}
+              </button>
+            )}
+          </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", width: 50, flexShrink: 0 }}>Status</span>

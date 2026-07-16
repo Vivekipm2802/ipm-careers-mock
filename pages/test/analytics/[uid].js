@@ -5,6 +5,7 @@
 // ============================================================
 
 import React, { useEffect, useState, useMemo } from "react";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useNMNContext } from "@/components/NMNContext";
 import Loader from "@/components/Loader";
 import { CtoLocal } from "@/utils/DateUtil";
@@ -216,6 +217,7 @@ const ConceptAnalytics = ({ result }) => {
             <img src="/newlog.svg" style={{ height: 32, width: "auto" }} />
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <ThemeToggle />
             <button onClick={() => router.push("/")} style={pillGhost}>
               <ArrowLeft size={14} /> Back to dashboard
             </button>

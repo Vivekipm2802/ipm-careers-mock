@@ -6,6 +6,7 @@
 // ============================================================
 
 import React, { useState, useMemo } from "react";
+import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@nextui-org/react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -194,6 +195,7 @@ const ResultPage = ({ result, questions, leaderboard }) => {
             <img src="/newlog.svg" style={{ height: 32, width: "auto" }} />
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <ThemeToggle />
             <button onClick={() => router.push("/")} style={pillGhost}>
               <Home size={14} /> Back to dashboard
             </button>

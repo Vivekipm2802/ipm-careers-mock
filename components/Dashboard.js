@@ -41,6 +41,7 @@ export default function Dashboard({ userData }) {
   const [dailySubs, setDailySubs] = useState([]);
   const [weeklyRank, setWeeklyRank] = useState(null);
   const [today3, setToday3] = useState(null); // {quizDone, redosLeft, attack:{name,acc,done}}
+  const [cardBits, setCardBits] = useState(null); // {resume, pyqDone, pyqTotal}
 
   const { setCTXSlug, sk, setSK, userCourses, isDemo } = useNMNContext();
 
@@ -243,6 +244,25 @@ export default function Dashboard({ userData }) {
         redosDone: (redoRuns.count || 0) > 0 && Math.min(due, budget) === 0,
         attack: t2 ? { name: t2.chapter, acc: t2.acc, done: Number(t2.tests_today || 0) > 0 } : null,
       });
+    });
+  }, [userData?.email]);
+
+  // ── Live quick-action cards: resume target + PYQ progress ──
+  useEffect(() => {
+    if (!userData?.email) return;
+    Promise.all([
+      supabase.from("plays").select("test_uuid, created_at").eq("user", userData.email).order("created_at", { ascending: false }).limit(1),
+      supabase.from("pyq_attempts").select("question_id").eq("user", userData.email).limit(3000),
+      supabase.from("pyq_questions").select("id", { count: "exact", head: true }),
+    ]).then(async ([lastPlay, att, tot]) => {
+      let resume = null;
+      const uuid = lastPlay.data?.[0]?.test_uuid;
+      if (uuid) {
+        const { data: lv } = await supabase.from("levels").select("title").eq("uuid", uuid).maybeSingle();
+        resume = lv?.title || null;
+      }
+      const pyqDone = new Set((att.data || []).map((r) => r.question_id)).size;
+      setCardBits({ resume, pyqDone, pyqTotal: tot.count || 0 });
     });
   }, [userData?.email]);
 
@@ -479,7 +499,13 @@ export default function Dashboard({ userData }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
         <QuickAction
           title="Continue practice"
-          desc="Pick up a mock test where you left off"
+          desc={
+            cardBits?.resume ? (
+              <>Resume: <b style={{ color: "var(--c-brand-gold)", fontWeight: 600 }}>{cardBits.resume}</b> →</>
+            ) : (
+              "Pick up a mock test where you left off"
+            )
+          }
           Icon={Target}
           accent="gold"
           onClick={() => {
@@ -525,7 +551,13 @@ export default function Dashboard({ userData }) {
         />
         <QuickAction
           title="Previous year papers"
-          desc="Actual exam questions, year by year"
+          desc={
+            cardBits && cardBits.pyqTotal > 0 && cardBits.pyqDone > 0 ? (
+              <><b style={{ color: "var(--c-brand-gold)", fontWeight: 600 }}>{cardBits.pyqDone}/{cardBits.pyqTotal}</b> done · continue →</>
+            ) : (
+              "Actual exam questions, year by year"
+            )
+          }
           Icon={BookOpen}
           accent="gold"
           onClick={() => {
