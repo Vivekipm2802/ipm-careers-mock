@@ -22,6 +22,28 @@
 import { supabase } from "@/utils/supabaseClient";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, RotateCcw } from "lucide-react";
+import PortalTour, { useFirstVisitTour } from "./PortalTour";
+
+// First-visit mini-tour steps. The redo-button step falls back to
+// the list card when nothing is due (querySelector returns the
+// first match in document order).
+const VAULT_TOUR_STEPS = [
+  {
+    target: "[data-tour='vault-stats']",
+    title: "Teen numbers",
+    desc: "Aaj kitne redo due, vault mein kitne, kitne hamesha ke liye master ho gaye.",
+  },
+  {
+    target: "[data-tour='vault-redo'], [data-tour='vault-list']",
+    title: "Roz ka kaam",
+    desc: "Bas is button se shuru karo — vault khud prioritize karta hai.",
+  },
+  {
+    target: "[data-tour='vault-chapters']",
+    title: "Chapter pakdo",
+    desc: "Kisi ek chapter ke saare due ek saath bhi kar sakte ho.",
+  },
+];
 
 export const LADDER_DAYS = [3, 7, 21];
 export const SESSION_SIZE = 10;
@@ -162,6 +184,9 @@ export default function MistakeVault({ userData }) {
   const lockRef = useRef(false);
   const movesRef = useRef([]);
   const pendingRef = useRef(null); // { question_id, correct } awaiting reason
+  // auto mini-tour on first visit only — the existing "How it works?"
+  // explainer card stays untouched as the manual replay.
+  const [tourRun, setTourRun] = useFirstVisitTour("tour_vault_v1");
 
   const load = () => {
     if (!userData?.email) return;
@@ -581,7 +606,7 @@ export default function MistakeVault({ userData }) {
             </div>
           )}
 
-          <div className="flex items-center flex-wrap mt-7">
+          <div className="flex items-center flex-wrap mt-7" data-tour="vault-stats">
             {[
               ["Today's redo", String(todaysAsk.length), todaysAsk.length ? `your daily dose · ~${minutesFor(todaysAsk.length)} min · ${due.length > todaysAsk.length ? "backlog clears itself" : "then you're clear"}` : redosToday >= DAILY_CAP ? "done for today — vault rests" : "nothing due — vault is calm", todaysAsk.length ? "var(--c-brand-gold)" : "var(--c-text-tertiary)"],
               ["In the vault", String(active.length), `across ${chapters.length} ${chapters.length === 1 ? "chapter" : "chapters"}`, "var(--c-text-tertiary)"],
@@ -602,7 +627,7 @@ export default function MistakeVault({ userData }) {
           )}
 
           {todaysAsk.length > 0 && (
-            <div className="mt-6 flex items-center gap-3 flex-wrap">
+            <div className="mt-6 flex items-center gap-3 flex-wrap" data-tour="vault-redo">
               <button type="button" onClick={() => startSession()} style={goldBtn}>
                 Start today&apos;s redo — {Math.min(todaysAsk.length, SESSION_SIZE)} {Math.min(todaysAsk.length, SESSION_SIZE) === 1 ? "question" : "questions"} <ArrowRight size={15} />
               </button>
@@ -614,7 +639,7 @@ export default function MistakeVault({ userData }) {
 
           {/* chapter chips */}
           {chapters.length > 1 && (
-            <div className="flex gap-2 flex-wrap mt-7">
+            <div className="flex gap-2 flex-wrap mt-7" data-tour="vault-chapters">
               <button type="button" style={chipBtn(!chapterFilter)} onClick={() => setChapterFilter(null)}>All</button>
               {(showAllChips ? chapters : chapters.slice(0, 6)).map((g) => (
                 <button key={g.key} type="button" style={chipBtn(chapterFilter === g.key)} onClick={() => setChapterFilter(chapterFilter === g.key ? null : g.key)}>
@@ -647,7 +672,7 @@ export default function MistakeVault({ userData }) {
             );
           })()}
 
-          <div className="max-w-[860px] mb-12" style={card}>
+          <div className="max-w-[860px] mb-12" style={card} data-tour="vault-list">
             {items === null && <div style={{ padding: "16px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>Opening the vault…</div>}
             {items !== null && listed.length === 0 && (
               <div style={{ padding: "16px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>
@@ -689,6 +714,14 @@ export default function MistakeVault({ userData }) {
               </button>
             )}
           </div>
+
+          <PortalTour
+            steps={VAULT_TOUR_STEPS}
+            storageKey="tour_vault_v1"
+            run={tourRun}
+            onClose={() => setTourRun(false)}
+            labelPrefix="Vault tour"
+          />
         </>
       )}
 

@@ -83,6 +83,7 @@ const ConceptGroups = dynamic(() => import("@/components/ConceptGroups"), { ssr:
 import {
   Clock1,
   Clock3,
+  Compass,
   Edit2,
   MailWarning,
   MessageSquareWarningIcon,
@@ -2089,6 +2090,17 @@ export default function Home(props) {
                       }}
                     >
                       <p className="">Report an Issue</p>
+                    </DropdownItem>
+                    <DropdownItem
+                      startContent={<Compass size={24} className="-mb-1" />}
+                      onPress={() => {
+                        setCTXSlug("dashboard");
+                        setTimeout(() => {
+                          window.dispatchEvent(new CustomEvent("ipm-portal-tour"));
+                        }, 400);
+                      }}
+                    >
+                      <p className="">Portal tour</p>
                     </DropdownItem>
                     <DropdownItem
                       startContent={

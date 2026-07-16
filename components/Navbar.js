@@ -73,6 +73,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
     { title: 'Courses Enrolled', action: () => { setCoursesModal(true); }, itemClass: '' },
     { title: 'Redeem Code', action: () => { setRedeemActive(true); }, itemClass: '' },
     { title: 'Report an Issue', action: () => { setRedeemActive(true); }, itemClass: '' },
+    { title: 'Portal tour', action: () => { setCTXSlug('dashboard'); setTimeout(() => window.dispatchEvent(new CustomEvent('ipm-portal-tour')), 400); }, itemClass: '' },
     { title: 'Logout', action: () => { logoutUser(router); }, itemClass: '!text-red-500' },
   ];
 
@@ -99,6 +100,9 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
     color: 'var(--c-text-tertiary)',
     padding: '14px 18px 6px',
   };
+
+  // Tour anchors — flat sidebar items the grand tour spotlights.
+  const TOUR_FLAT = { 'DSB Challenge': 'nav-dsb', 'Doubts': 'nav-doubts', 'My Plan': 'nav-myplan' };
 
   // Group accordian items by section, preserving original order within each section
   const sectionItems = (accordian || []).reduce((acc, item) => {
@@ -429,6 +433,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
                   return (
                     <div
                       key={i.title}
+                      {...(TOUR_FLAT[i.title] ? { 'data-tour': TOUR_FLAT[i.title] } : {})}
                       onClick={() => setCTXSlug(target.action)}
                       className="flex items-center rounded-lg transition-all cursor-pointer"
                       style={{
@@ -466,7 +471,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
                   );
                 }
                 // single-item accordion so flats can sit between groups
-                return (
+                const accordion = (
                   <Accordion
                     key={i.title}
                     itemClasses={accordionItemClasses}
@@ -498,6 +503,13 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
                       {renderSubItems(i)}
                     </AccordionItem>
                   </Accordion>
+                );
+                // Accordions already stack — a plain wrapper div here does
+                // not change layout, and gives the tour a stable anchor.
+                return i.title === 'Tests' ? (
+                  <div key={i.title} data-tour="nav-tests">{accordion}</div>
+                ) : (
+                  accordion
                 );
               })}
             </div>

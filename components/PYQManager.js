@@ -42,6 +42,26 @@ import ImageUploader from "./ImageUploader";
 import { supabase } from "@/utils/supabaseClient";
 import dynamic from "next/dynamic";
 import FileUploader from "./FileUploader";
+import PortalTour, { useFirstVisitTour } from "./PortalTour";
+
+// Student bank mini-tour — runs in the Library view only.
+const PYQ_TOUR_STEPS = [
+  {
+    target: "[data-tour='pyq-filters']",
+    title: "Filter karo",
+    desc: "Year, topic, status — jo chahiye wahi dikhega.",
+  },
+  {
+    target: "[data-tour='pyq-palette']",
+    title: "Tumhara naksha",
+    desc: "Green sahi, red galat, khali baaki — apni history ek nazar mein.",
+  },
+  {
+    target: "[data-tour='pyq-reader']",
+    title: "Solve aur check",
+    desc: "Answer type karo, Check dabao — portal hamesha yaad rakhega.",
+  },
+];
 
 const QuillWrapper = dynamic(() => import("@/components/QuillSSRWrapper"), {
   ssr: false,
@@ -1492,6 +1512,8 @@ function Library({
   // null = all · 'unattempted' = no right/wrong yet · 'wrong' = latest is wrong
   const [statusFilter, setStatusFilter] = useState(null);
   const [showAllTopics, setShowAllTopics] = useState(false);
+  // mini-tour: auto on first visit, replay via "How it works?"
+  const [tourRun, setTourRun] = useFirstVisitTour("tour_pyq_v1");
 
   // Snapshot attempts for filtering so the visible list doesn't reshuffle the
   // instant a student answers (e.g. a question vanishing from "Got wrong"
@@ -1562,6 +1584,13 @@ function Library({
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
           <button
+            type="button"
+            onClick={() => setTourRun(true)}
+            style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
+          >
+            How it works?
+          </button>
+          <button
             onClick={() => setPracticeMode(!practiceMode)}
             style={{
               display: "inline-flex", alignItems: "center", gap: 8,
@@ -1589,7 +1618,7 @@ function Library({
       </div>
 
       {/* Filters — labelled chip rows + search pill */}
-      <div style={{ padding: "16px 28px", borderBottom: "1px solid var(--c-border-faint)", display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}>
+      <div data-tour="pyq-filters" style={{ padding: "16px 28px", borderBottom: "1px solid var(--c-border-faint)", display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", width: 50, flexShrink: 0 }}>Year</span>
           <PChip label="All years" active={yearFilter == null} onClick={() => setYearFilter(null)} />
@@ -1654,6 +1683,7 @@ function Library({
         {/* Left: number palette card */}
         <div
           className="pyq-list-panel"
+          data-tour="pyq-palette"
           style={{
             flex: "0.62 1 0",
             minWidth: 230,
@@ -1679,6 +1709,7 @@ function Library({
         {/* Right: question card */}
         <div
           className="pyq-reader-panel"
+          data-tour="pyq-reader"
           style={{
             flex: "1.6 1 0",
             minWidth: 0,
@@ -1727,6 +1758,14 @@ function Library({
           )}
         </div>
       </div>
+
+      <PortalTour
+        steps={PYQ_TOUR_STEPS}
+        storageKey="tour_pyq_v1"
+        run={tourRun}
+        onClose={() => setTourRun(false)}
+        labelPrefix="PYQ tour"
+      />
     </div>
   );
 }

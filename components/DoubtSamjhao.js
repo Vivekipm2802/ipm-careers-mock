@@ -20,6 +20,25 @@ import { supabase } from "@/utils/supabaseClient";
 import { useEffect, useState } from "react";
 import { ArrowRight, PenLine, Play, RotateCcw, Search, Sparkles } from "lucide-react";
 import { DAILY_DOUBTS } from "./MistakeVault";
+import PortalTour, { useFirstVisitTour } from "./PortalTour";
+
+const DOUBTS_TOUR_STEPS = [
+  {
+    target: "[data-tour='doubts-modes']",
+    title: "Do raaste",
+    desc: "Apne galat questions se poochho, ya koi bhi sawaal type karo.",
+  },
+  {
+    target: "[data-tour='doubts-list']",
+    title: "Sawaal chuno",
+    desc: "Portal ke questions ka answer AI ko already pata hai — explanation sharp milti hai.",
+  },
+  {
+    target: "[data-tour='doubts-mentor']",
+    title: "Mentor hamesha hai",
+    desc: "AI se na samjhe toh DoubtsPad pe video solution.",
+  },
+];
 
 export function plainText(s) {
   return String(s || "")
@@ -53,6 +72,8 @@ export default function DoubtSamjhao({ userData }) {
   const [freeText, setFreeText] = useState("");
   const [state, setState] = useState(null); // null | {loading} | {text, chapter} | {error}
   const [doubtsToday, setDoubtsToday] = useState(0);
+  // mini-tour: auto on first visit, replay via "How it works?"
+  const [tourRun, setTourRun] = useFirstVisitTour("tour_doubts_v1");
 
   useEffect(() => {
     if (!userData?.email) return;
@@ -179,16 +200,25 @@ export default function DoubtSamjhao({ userData }) {
   return (
     <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
       <header className="mt-10" style={{ flexShrink: 0 }}>
-        <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4vw, 40px)", lineHeight: 1.08 }}>
-          Pehle AI se <span className="ds-accent ds-grad-text">Samjho.</span>
-        </h1>
+        <div className="flex items-baseline justify-between gap-4 flex-wrap">
+          <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4vw, 40px)", lineHeight: 1.08 }}>
+            Pehle AI se <span className="ds-accent ds-grad-text">Samjho.</span>
+          </h1>
+          <button
+            type="button"
+            onClick={() => setTourRun(true)}
+            style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
+          >
+            How it works?
+          </button>
+        </div>
         <p className="mt-2" style={{ fontSize: 15, color: "var(--c-text-secondary)", lineHeight: 1.6, maxWidth: 700 }}>
           Koi bhi sawaal — portal ka, book ka, class ka. Seconds mein step-by-step Hinglish explanation.
         </p>
       </header>
 
       {/* mode: QuickAction cards */}
-      <div className="grid md:grid-cols-2 gap-4 mt-6 max-w-[1000px]" style={{ flexShrink: 0 }}>
+      <div className="grid md:grid-cols-2 gap-4 mt-6 max-w-[1000px]" style={{ flexShrink: 0 }} data-tour="doubts-modes">
         <QARow
           Icon={RotateCcw}
           title="Mere galat questions"
@@ -206,7 +236,7 @@ export default function DoubtSamjhao({ userData }) {
       </div>
 
       {/* the list / the textarea — one card, rows inside */}
-      <div className="max-w-[1000px] mt-5" style={{ ...card, padding: "6px 22px" }}>
+      <div className="max-w-[1000px] mt-5" style={{ ...card, padding: "6px 22px" }} data-tour="doubts-list">
         <div className="flex items-center justify-between gap-3 flex-wrap" style={{ padding: "16px 0 12px", borderBottom: "1px solid var(--c-border-faint)" }}>
           <span className="ds-display" style={{ fontSize: 17 }}>
             {mode === "mine" ? "Tumhare galat questions" : "Tumhara sawaal"}
@@ -328,7 +358,7 @@ export default function DoubtSamjhao({ userData }) {
       )}
 
       {/* mentor escalation — QuickAction card */}
-      <div className="max-w-[1000px] mt-5 mb-12" style={{ flexShrink: 0 }}>
+      <div className="max-w-[1000px] mt-5 mb-12" style={{ flexShrink: 0 }} data-tour="doubts-mentor">
         <QARow
           Icon={Play}
           title="Ya seedha mentor se poochho"
@@ -336,6 +366,14 @@ export default function DoubtSamjhao({ userData }) {
           href="https://t.me/ipmatdoubtspad"
         />
       </div>
+
+      <PortalTour
+        steps={DOUBTS_TOUR_STEPS}
+        storageKey="tour_doubts_v1"
+        run={tourRun}
+        onClose={() => setTourRun(false)}
+        labelPrefix="Doubts tour"
+      />
     </div>
   );
 }

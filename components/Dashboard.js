@@ -11,6 +11,7 @@ import axios from "axios";
 import { ArrowRight, Target, Flame, BookOpen } from "lucide-react";
 import { vaultState, DAILY_CAP } from "./MistakeVault";
 import { buildPlan } from "./AdaptivePlan";
+import PortalTour, { useFirstVisitTour } from "./PortalTour";
 import { parseISO, isAfter, format, differenceInSeconds, startOfWeek } from "date-fns";
 
 /**
@@ -43,7 +44,28 @@ export default function Dashboard({ userData }) {
   const [today3, setToday3] = useState(null); // {quizDone, redosLeft, attack:{name,acc,done}}
   const [cardBits, setCardBits] = useState(null); // {resume, pyqDone, pyqTotal}
 
-  const { setCTXSlug, sk, setSK, userCourses, isDemo } = useNMNContext();
+  const { setCTXSlug, sk, setSK, userCourses, isDemo, sidebarCollapsed, setSidebarCollapsed } =
+    useNMNContext();
+
+  // ── Grand tour (first login + replay via profile menu) ──
+  const [tourRun, setTourRun] = useFirstVisitTour("tour_grand_v1");
+
+  // The tour spotlights sidebar items — make sure it's expanded.
+  useEffect(() => {
+    if (tourRun && sidebarCollapsed) setSidebarCollapsed(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourRun]);
+
+  // Replay: profile menu dispatches 'ipm-portal-tour' after routing here.
+  useEffect(() => {
+    const openTour = () => {
+      setSidebarCollapsed(false);
+      setTourRun(true);
+    };
+    window.addEventListener("ipm-portal-tour", openTour);
+    return () => window.removeEventListener("ipm-portal-tour", openTour);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Data fetching (preserved) ──
   async function getClasses() {
@@ -363,6 +385,42 @@ export default function Dashboard({ userData }) {
     subtitle = "Ready when you are.";
   }
 
+  // Grand tour steps — Hinglish copy approved in the interactive preview.
+  const GRAND_STEPS = [
+    {
+      target: "[data-tour='stats']",
+      title: "Tumhara scoreboard",
+      desc: "Streak, tests, accuracy, all-India rank — ye numbers tumhare kaam se bharte hain. Abhi khali hain, ek hafte mein bolne lagenge.",
+    },
+    {
+      target: "[data-tour='nav-myplan']",
+      title: "Aaj Ka Plan — roz yahan se shuru",
+      desc: "Portal khud batata hai aaj kya karna hai: kaunsa chapter, kitne redos, kaunsa mission. Sochna nahi padta.",
+    },
+    {
+      target: "[data-tour='nav-tests']",
+      title: "Tests — concept se full mock tak",
+      desc: "Har topic ke Easy/Moderate/Difficult levels. Jo bhi galat hoga, portal yaad rakhega…",
+    },
+    {
+      target: "[data-tour='nav-tests']",
+      title: "…Mistake Vault mein",
+      desc: "Har galat question yahan collect hota hai aur sahi time pe wapas aata hai — 3, 7, 21 din. Teen baar sahi = mastered forever.",
+    },
+    {
+      target: "[data-tour='nav-dsb']",
+      title: "DSB Challenge — XP aur arena",
+      desc: "Daily missions, skill trainers, aur all-India leaderboard. Padhai ko game banao — har rep XP deta hai.",
+    },
+    {
+      target: "[data-tour='missions']",
+      title: "Ab khud karo — Daily Quiz",
+      desc: "Tour khatam. Ye raha aaj ka pehla kaam: 10 questions, saare India ke students ke wahi 10.",
+      doit: "last step: yahan click karke quiz START karna hai — padhna nahi, karna",
+      nextLabel: "Start Daily Quiz →",
+    },
+  ];
+
   if (loading) {
     return (
       <div
@@ -442,7 +500,7 @@ export default function Dashboard({ userData }) {
       </header>
 
       {/* ── Stats (4 cards) ──────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" data-tour="stats">
         <Stat
           label="Study streak"
           value={dashStats.streak > 0 ? `${dashStats.streak} ${dashStats.streak === 1 ? "day" : "days"}` : "—"}
@@ -513,6 +571,7 @@ export default function Dashboard({ userData }) {
             setSK(new Set(["2"]));
           }}
         />
+        <div style={{ display: "contents" }} data-tour="missions">
         <QuickAction
           title="Today's missions"
           desc={
@@ -549,6 +608,7 @@ export default function Dashboard({ userData }) {
             setCTXSlug("dsbchallenge");
           }}
         />
+        </div>
         <QuickAction
           title="Previous year papers"
           desc={
@@ -833,6 +893,16 @@ export default function Dashboard({ userData }) {
           </div>
         </div>
       )}
+
+      {/* ── Grand tour overlay ─────────────────────────────────── */}
+      <PortalTour
+        steps={GRAND_STEPS}
+        storageKey="tour_grand_v1"
+        run={tourRun}
+        onClose={() => setTourRun(false)}
+        onFinish={() => setCTXSlug("dsbchallenge")}
+        labelPrefix="Portal tour"
+      />
     </div>
   );
 }

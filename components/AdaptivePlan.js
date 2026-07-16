@@ -17,6 +17,25 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { ArrowRight } from "lucide-react";
 import { useNMNContext } from "./NMNContext";
+import PortalTour, { useFirstVisitTour } from "./PortalTour";
+
+const PLAN_TOUR_STEPS = [
+  {
+    target: "[data-tour='plan-stats']",
+    title: "Countdown se plan tak",
+    desc: "Exam tak kitna time, aur aaj kya karna hai — sab ek jagah.",
+  },
+  {
+    target: "[data-tour='plan-tasks']",
+    title: "Aaj ke kaam",
+    desc: "Ye cards tumhari accuracy se bante hain — sabse zaroori pehle.",
+  },
+  {
+    target: "[data-tour='plan-week']",
+    title: "Poora hafta",
+    desc: "Har din ka plan — click karke seedha us kaam pe jao.",
+  },
+];
 
 // IPMAT exam date the countdown targets. Update once per season.
 // EXAM_CONFIRMED: flip to true the day IIM Indore announces the
@@ -124,6 +143,8 @@ export default function AdaptivePlan({ userData }) {
   const [opening, setOpening] = useState(null);
   const [showAllMap, setShowAllMap] = useState(false);
   const openingRef = useRef(false);
+  // mini-tour: auto on first visit, replay via "How it works?"
+  const [tourRun, setTourRun] = useFirstVisitTour("tour_plan_v1");
 
   useEffect(() => {
     if (!userData?.email) return;
@@ -235,16 +256,25 @@ export default function AdaptivePlan({ userData }) {
     <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
       {/* header */}
       <header className="mb-1 mt-10">
-        <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4.2vw, 40px)", lineHeight: 1.1 }}>
-          Aaj ka <span className="ds-accent ds-grad-text">plan.</span>
-        </h1>
+        <div className="flex items-baseline justify-between gap-4 flex-wrap">
+          <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4.2vw, 40px)", lineHeight: 1.1 }}>
+            Aaj ka <span className="ds-accent ds-grad-text">plan.</span>
+          </h1>
+          <button
+            type="button"
+            onClick={() => setTourRun(true)}
+            style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
+          >
+            How it works?
+          </button>
+        </div>
         <p className="mt-2" style={{ fontSize: 15, color: "var(--c-text-secondary)", lineHeight: 1.5 }}>
           Built from your test history every morning — your weakest chapters get the spotlight, automatically.
         </p>
       </header>
 
       {/* open stat strip */}
-      <div className="flex items-center flex-wrap mt-7 mb-1">
+      <div className="flex items-center flex-wrap mt-7 mb-1" data-tour="plan-stats">
         {[
           [
             "Days to IPMAT",
@@ -282,7 +312,7 @@ export default function AdaptivePlan({ userData }) {
         <div style={sectLabel}>Today&apos;s three</div>
         <span style={sectMeta}>{dateLine} · {tasksDone} of 3 done</span>
       </div>
-      <div className="max-w-[860px]" style={card}>
+      <div className="max-w-[860px]" style={card} data-tour="plan-tasks">
         {taskRow(1, missionsDone, "Daily missions — Sim Room", "Quiz, Gulp and Skip or Solve — the daily base.", () => setCTXSlug("dsbchallenge"), "Open →")}
         {taskRow(
           2,
@@ -356,7 +386,7 @@ export default function AdaptivePlan({ userData }) {
         <div style={sectLabel}>The week ahead</div>
         <span style={sectMeta}>reshuffles as your scores change · Sunday never moves</span>
       </div>
-      <div className="max-w-[860px] relative mt-6 mb-2">
+      <div className="max-w-[860px] relative mt-6 mb-2" data-tour="plan-week">
         <div style={{ position: "absolute", top: 6, left: 0, right: 0, height: 1, background: "var(--c-border-soft)" }} />
         <div className="grid relative" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dw, d) => {
@@ -402,6 +432,14 @@ export default function AdaptivePlan({ userData }) {
         Clear {plan.task2 ? shortName(plan.task2.chapter) : "today's target"} and tomorrow quietly switches to your next weakest chapter.
         <ArrowRight size={11} style={{ display: "inline", verticalAlign: "-1px", marginLeft: 4 }} />
       </div>
+
+      <PortalTour
+        steps={PLAN_TOUR_STEPS}
+        storageKey="tour_plan_v1"
+        run={tourRun}
+        onClose={() => setTourRun(false)}
+        labelPrefix="Plan tour"
+      />
     </div>
   );
 }

@@ -19,6 +19,25 @@ import GulpProtocol from "./GulpProtocol";
 import Duels from "./Duels";
 import DailyQuiz from "./DailyQuiz";
 import BadgeVault from "./BadgeVault";
+import PortalTour, { useFirstVisitTour } from "./PortalTour";
+
+const DSB_TOUR_STEPS = [
+  {
+    target: "[data-tour='dsb-missions']",
+    title: "Aaj ke missions",
+    desc: "Teen chhote kaam, roz reset — Sim Room se teeno back-to-back.",
+  },
+  {
+    target: "[data-tour='dsb-trainers']",
+    title: "Skill trainers",
+    desc: "Speed, accuracy, decision-making — har trainer ek exam-skill ke liye.",
+  },
+  {
+    target: "[data-tour='dsb-arena']",
+    title: "Vault aur arena",
+    desc: "Badges kamao, aur dekho is hafte all-India mein kaun aage hai.",
+  },
+];
 
 // Cumulative XP thresholds; index = level - 1
 const LEVELS = [0, 300, 800, 1500, 2400, 3500, 5000, 7000, 9500, 12500];
@@ -53,6 +72,9 @@ export default function DSBChallenge({ userData }) {
   // Sim Room: { stage: 0|1|2, results: { quiz, gulp, sos } } or null
   const [sim, setSim] = useState(null);
   const [simSummary, setSimSummary] = useState(null);
+  // mini-tour: auto on first visit, replay via "How it works?".
+  // Only rendered on the home view (trainers/sim take over the page).
+  const [tourRun, setTourRun] = useFirstVisitTour("tour_dsb_v1");
 
   useEffect(() => {
     if (!userData?.email) return;
@@ -253,9 +275,18 @@ export default function DSBChallenge({ userData }) {
         <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 8 }}>
           DSB Challenge
         </div>
-        <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4.2vw, 40px)", lineHeight: 1.1, color: "var(--c-text-primary)" }}>
-          Level up your <span className="ds-accent ds-grad-text">IPMAT game.</span>
-        </h1>
+        <div className="flex items-baseline justify-between gap-4 flex-wrap">
+          <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4.2vw, 40px)", lineHeight: 1.1, color: "var(--c-text-primary)" }}>
+            Level up your <span className="ds-accent ds-grad-text">IPMAT game.</span>
+          </h1>
+          <button
+            type="button"
+            onClick={() => setTourRun(true)}
+            style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
+          >
+            How it works?
+          </button>
+        </div>
         <p className="mt-2" style={{ fontSize: 15, color: "var(--c-text-secondary)" }}>
           Daily missions, skill trainers and the all-India arena — every rep earns XP.
         </p>
@@ -263,7 +294,7 @@ export default function DSBChallenge({ userData }) {
 
       {/* ── Missions + Level ── */}
       <div className="grid lg:grid-cols-[1.55fr_1fr] gap-4 mb-8">
-        <div className="rounded-[16px] border p-6" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)" }}>
+        <div className="rounded-[16px] border p-6" data-tour="dsb-missions" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)" }}>
           <div className="flex justify-between items-baseline mb-4">
             <h2 className="ds-display" style={{ fontSize: 20, color: "var(--c-text-primary)" }}>Today's missions</h2>
             <span style={{ fontSize: 12, color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
@@ -338,7 +369,7 @@ export default function DSBChallenge({ userData }) {
         <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>Skill trainers</div>
         <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>unique to IPM Careers</span>
       </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8" data-tour="dsb-trainers">
         {trainers.map(({ Icon, name, tag, desc, red, live, open }) => (
           <div
             key={name}
@@ -377,7 +408,7 @@ export default function DSBChallenge({ userData }) {
         <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>Vault &amp; arena</div>
         <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>weekly league · resets Monday</span>
       </div>
-      <div className={(vaultOpen ? "flex flex-col" : "grid lg:grid-cols-2 items-start") + " gap-4 mb-10"}>
+      <div className={(vaultOpen ? "flex flex-col" : "grid lg:grid-cols-2 items-start") + " gap-4 mb-10"} data-tour="dsb-arena">
         <BadgeVault userData={userData} totalXp={xp?.total_xp || 0} onExpandChange={setVaultOpen} />
 
         <div className="rounded-[16px] border p-6" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)", flexShrink: 0 }}>
@@ -417,6 +448,14 @@ export default function DSBChallenge({ userData }) {
           </div>
         </div>
       </div>
+
+      <PortalTour
+        steps={DSB_TOUR_STEPS}
+        storageKey="tour_dsb_v1"
+        run={tourRun}
+        onClose={() => setTourRun(false)}
+        labelPrefix="DSB tour"
+      />
     </div>
   );
 }
