@@ -420,7 +420,7 @@ export default function PerformanceUser() {
         {cells.map((c, i, arr) => (
           <div key={c.label} style={{ padding: "4px 30px 4px 0", marginRight: 30, marginBottom: 8, borderRight: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none", maxWidth: 300 }}>
             <div style={{ fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--c-text-tertiary)" }}>{c.label}</div>
-            <div className="ds-accent ds-grad-text" style={{ fontSize: 27, marginTop: 3, lineHeight: 1.15 }}>{c.value}</div>
+            <div className="ds-stat-value" style={{ fontSize: 27, marginTop: 3, lineHeight: 1.15 }}>{c.value}</div>
             <div style={{ fontSize: 11, marginTop: 4, fontWeight: 500, color: c.capColor }}>{c.cap}</div>
           </div>
         ))}
