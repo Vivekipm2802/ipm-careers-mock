@@ -9,6 +9,8 @@ import { toast } from "react-hot-toast";
 import Loader from "./Loader";
 import axios from "axios";
 import { ArrowRight, Target, Flame, BookOpen } from "lucide-react";
+import { vaultState, DAILY_CAP } from "./MistakeVault";
+import { buildPlan } from "./AdaptivePlan";
 import { parseISO, isAfter, format, differenceInSeconds, startOfWeek } from "date-fns";
 
 /**
@@ -38,6 +40,7 @@ export default function Dashboard({ userData }) {
   const [conceptPlays, setConceptPlays] = useState([]);
   const [dailySubs, setDailySubs] = useState([]);
   const [weeklyRank, setWeeklyRank] = useState(null);
+  const [today3, setToday3] = useState(null); // {quizDone, redosLeft, attack:{name,acc,done}}
 
   const { setCTXSlug, sk, setSK, userCourses, isDemo } = useNMNContext();
 
@@ -207,6 +210,42 @@ export default function Dashboard({ userData }) {
       });
   }, [userData?.email]);
 
+  // ── Aaj ke 3 kaam: quiz done? · redos due? · weakest chapter ──
+  // Same engines as Aaj Ka Plan and the Mistake Vault, so the
+  // dashboard never disagrees with either page.
+  useEffect(() => {
+    if (!userData?.email) return;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const iso = startOfToday.toISOString();
+    Promise.all([
+      supabase.from("trainer_runs").select("id", { count: "exact", head: true }).eq("user", userData.email).eq("trainer", "daily-quiz").gte("created_at", iso),
+      supabase.from("mistake_redos").select("id", { count: "exact", head: true }).eq("user", userData.email).gte("created_at", iso),
+      supabase.rpc("get_my_mistakes", { p_email: userData.email }),
+      supabase.rpc("get_my_own_mistakes", { p_email: userData.email }),
+      supabase.rpc("get_my_chapter_stats", { p_email: userData.email }),
+    ]).then(([quizRuns, redoRuns, mine, own, chapters]) => {
+      const now = new Date();
+      const all = [
+        ...(Array.isArray(mine.data) ? mine.data : []),
+        ...(Array.isArray(own.data) ? own.data : []).map((m) => ({ streak: m.streak, last_wrong_at: m.created_at, last_redo_at: m.last_redo_at })),
+      ];
+      const due = all.filter((it) => {
+        const st = vaultState(it, now);
+        return !st.mastered && st.dueNow;
+      }).length;
+      const budget = Math.max(0, DAILY_CAP - (redoRuns.count || 0));
+      const plan = buildPlan(Array.isArray(chapters.data) ? chapters.data : []);
+      const t2 = plan.task2;
+      setToday3({
+        quizDone: (quizRuns.count || 0) > 0,
+        redosLeft: Math.min(due, budget),
+        redosDone: (redoRuns.count || 0) > 0 && Math.min(due, budget) === 0,
+        attack: t2 ? { name: t2.chapter, acc: t2.acc, done: Number(t2.tests_today || 0) > 0 } : null,
+      });
+    });
+  }, [userData?.email]);
+
   // ── Computed stats: streak, weekly counts, accuracy trend ──
   const dashStats = useMemo(() => {
     const dayKey = (d) => {
@@ -343,7 +382,42 @@ export default function Dashboard({ userData }) {
             lineHeight: 1.5,
           }}
         >
-          {subtitle}
+          {today3 ? (
+            (() => {
+              const allDone = today3.quizDone && today3.redosLeft === 0 && (!today3.attack || today3.attack.done);
+              const linky = { color: "var(--c-brand-gold)", fontWeight: 600, cursor: "pointer" };
+              const classBit = classCount > 0 ? `${classCount} ${classCount === 1 ? "class" : "classes"} today` : null;
+              if (allDone && (today3.quizDone || today3.attack)) {
+                return (
+                  <>
+                    <span style={{ color: "var(--c-success)", fontWeight: 600 }}>Aaj ke 3 kaam done ✓</span>
+                    {classBit ? ` — ${classBit} left. ` : " — "}Kal fresh plan.
+                  </>
+                );
+              }
+              return (
+                <>
+                  {classBit ? `${classBit} · ` : ""}
+                  {today3.redosLeft > 0 ? (
+                    <>
+                      <span style={linky} onClick={() => setCTXSlug("mistakevault")}>
+                        {today3.redosLeft} {today3.redosLeft === 1 ? "redo" : "redos"} due
+                      </span>
+                      {" · "}
+                    </>
+                  ) : (
+                    ""
+                  )}
+                  {today3.attack && !today3.attack.done ? `${today3.attack.name} needs you — ` : ""}
+                  <span style={linky} onClick={() => setCTXSlug("studyplan")}>
+                    Aaj Ka Plan →
+                  </span>
+                </>
+              );
+            })()
+          ) : (
+            subtitle
+          )}
         </p>
       </header>
 
@@ -415,7 +489,34 @@ export default function Dashboard({ userData }) {
         />
         <QuickAction
           title="Today's missions"
-          desc="Daily quiz, trainers and the Sim Room — keep the streak alive"
+          desc={
+            today3 ? (
+              <>
+                {today3.quizDone ? <span style={{ color: "var(--c-success)", fontWeight: 600 }}>Quiz ✓</span> : "Daily quiz"}
+                {" · "}
+                {today3.redosLeft > 0 ? (
+                  <b style={{ color: "var(--c-brand-gold)", fontWeight: 600 }}>{today3.redosLeft} redos due</b>
+                ) : (
+                  <span style={{ color: "var(--c-success)", fontWeight: 600 }}>Redos ✓</span>
+                )}
+                {today3.attack ? (
+                  <>
+                    {" · "}
+                    {today3.attack.done ? (
+                      <span style={{ color: "var(--c-success)", fontWeight: 600 }}>{today3.attack.name} ✓</span>
+                    ) : (
+                      `attack ${today3.attack.name}`
+                    )}
+                  </>
+                ) : (
+                  ""
+                )}
+                {" →"}
+              </>
+            ) : (
+              "Daily quiz, trainers and the Sim Room — keep the streak alive"
+            )
+          }
           Icon={Flame}
           accent="gold"
           onClick={() => {
