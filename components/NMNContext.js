@@ -347,24 +347,6 @@ export const NMNContextProvider = ({ children }) => {
       ],
     },
 
-    {
-      title: "Doubts",
-      demo: true,
-      subtitle: "AI Samjhao + mentor video solutions",
-      isExpanded: false,
-      flat: true, // direct link — no dropdown for a single destination
-      badge: "NEW",
-      icon: <Lightbulb size={22} />,
-      items: [
-        {
-          title: "Doubts",
-          type: "user",
-          action: "dbts",
-          id: 7,
-          icon: <HelpCircle size={20} />,
-        },
-      ],
-    },
 
     {
       title: "Videos",
@@ -412,6 +394,24 @@ export const NMNContextProvider = ({ children }) => {
           action: "pyqconcept",
           id: 21,
           icon: <FileText size={20} />,
+        },
+      ],
+    },
+    {
+      title: "Doubts",
+      demo: true,
+      subtitle: "AI Samjhao + mentor video solutions",
+      isExpanded: false,
+      flat: true, // direct link — no dropdown for a single destination
+      badge: "NEW",
+      icon: <Lightbulb size={22} />,
+      items: [
+        {
+          title: "Doubts",
+          type: "user",
+          action: "dbts",
+          id: 7,
+          icon: <HelpCircle size={20} />,
         },
       ],
     },
