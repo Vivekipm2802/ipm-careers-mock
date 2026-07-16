@@ -5,12 +5,12 @@
 // and scoring logic preserved from the original file.
 // ============================================================
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@nextui-org/react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { serversupabase } from "@/utils/supabaseClient";
+import { serversupabase, supabase } from "@/utils/supabaseClient";
 import { motion } from "framer-motion";
 import {
   Play,
@@ -25,7 +25,21 @@ import {
 } from "lucide-react";
 import Leaderboard from "../components/Leaderboard2";
 
-const ResultPage = ({ result, questions, leaderboard }) => {
+const ResultPage = ({ result, questions: ssrQuestions, leaderboard }) => {
+  // Perf round 3: questions are no longer shipped in the SSR payload
+  // (~480kB of page data) — the shell paints instantly and the review
+  // data streams in client-side.
+  const [questions, setQuestions] = useState(ssrQuestions ?? null);
+  useEffect(() => {
+    if (!questions && result?.test_uuid?.id) {
+      supabase
+        .from("questions")
+        .select("*")
+        .eq("parent", result.test_uuid.id)
+        .then(({ data }) => setQuestions(data || []));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [activeExplanation, setActiveExplanation] = useState(undefined);
   const [activeVideo, setActiveVideo] = useState();
   const [activeFilter, setActiveFilter] = useState("all");
@@ -563,12 +577,9 @@ export async function getServerSideProps(context) {
     .eq("uid", context.query.uid);
   if (!data || data.length === 0 || error) return { notFound: true };
   const result = data[0];
-  let questions = [];
-  if (result?.test_uuid?.id) {
-    const { data: qData } = await serversupabase
-      .from("questions").select("*").eq("parent", result.test_uuid.id);
-    questions = qData || [];
-  }
+  // Perf round 3: questions intentionally NOT fetched server-side —
+  // the client loads them after first paint (see ResultPage).
+  const questions = null;
   let leaderboard = [];
   if (result?.test_uuid?.uuid) {
     // Ship 2 fix: SELECT was missing `uid` (the play's primary key),

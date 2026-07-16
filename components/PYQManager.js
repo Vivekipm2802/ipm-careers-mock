@@ -123,6 +123,10 @@ export default function PYQManager({
   const [attempts, setAttempts] = useState({});
   const [userEmail, setUserEmail] = useState(null);
 
+  // Starred questions — DB-backed (pyq_bookmarks). Set of String(id);
+  // null until the fetch lands (localStorage stays as offline fallback).
+  const [bookmarks, setBookmarks] = useState(null);
+
   // Library filters
   const [yearFilter, setYearFilter] = useState(null);
   const [topicFilter, setTopicFilter] = useState(null);
@@ -170,6 +174,44 @@ export default function PYQManager({
           if (r.question_id != null && r.result) map[String(r.question_id)] = r.result;
         });
         setAttempts(map);
+
+        // Starred questions — DB is the source of truth now (RLS scopes
+        // rows to this user; the explicit .eq is belt-and-braces).
+        try {
+          const { data: bm } = await supabase
+            .from("pyq_bookmarks")
+            .select("question_id")
+            .eq("user", email);
+          if (cancelled) return;
+          const set = new Set((bm || []).map((r) => String(r.question_id)));
+          // ONE-TIME MIGRATION: push localStorage-only stars into the DB.
+          // localStorage itself stays as-is — it's a harmless offline cache.
+          try {
+            const raw = window.localStorage.getItem("pyq_bookmarks") || "[]";
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) {
+              for (const id of arr) {
+                const key = String(id);
+                if (set.has(key)) continue;
+                const n = Number(id);
+                if (!Number.isFinite(n)) continue;
+                try {
+                  const { error: insErr } = await supabase
+                    .from("pyq_bookmarks")
+                    .insert({ user: email, question_id: n });
+                  if (!insErr) set.add(key);
+                } catch {
+                  /* one bad row must not sink the rest */
+                }
+              }
+            }
+          } catch {
+            /* malformed localStorage — skip migration */
+          }
+          if (!cancelled) setBookmarks(set);
+        } catch {
+          /* bookmarks stay null → UI falls back to localStorage */
+        }
       } catch {
         /* attempt history is a progressive enhancement — never break the UI */
       }
@@ -197,6 +239,61 @@ export default function PYQManager({
         .insert({ user: userEmail, question_id: questionId, result });
     } catch {
       /* swallow — persistence failures must never break practice flow */
+    }
+  };
+
+  // Star / unstar — optimistic Set update, AWAITED DB write, localStorage
+  // kept in sync as the offline fallback. Ids may arrive as string or
+  // number, so everything goes through String()/sameId.
+  const toggleBookmark = async (questionId) => {
+    const key = String(questionId);
+    let wasStarred;
+    if (bookmarks instanceof Set) {
+      wasStarred = bookmarks.has(key);
+    } else {
+      // fetch hasn't landed — trust the localStorage cache for direction
+      try {
+        const arr = JSON.parse(window.localStorage.getItem("pyq_bookmarks") || "[]");
+        wasStarred = Array.isArray(arr) && arr.some((x) => sameId(x, questionId));
+      } catch {
+        wasStarred = false;
+      }
+    }
+    setBookmarks((prev) => {
+      const next = new Set(prev instanceof Set ? prev : []);
+      if (wasStarred) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+    try {
+      if (typeof window !== "undefined") {
+        const raw = window.localStorage.getItem("pyq_bookmarks") || "[]";
+        let arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) arr = [];
+        const rest = arr.filter((x) => !sameId(x, questionId));
+        window.localStorage.setItem(
+          "pyq_bookmarks",
+          JSON.stringify(wasStarred ? rest : [...rest, questionId]),
+        );
+      }
+    } catch {
+      /* localStorage is best-effort */
+    }
+    try {
+      if (!userEmail) return;
+      if (wasStarred) {
+        await supabase
+          .from("pyq_bookmarks")
+          .delete()
+          .eq("user", userEmail)
+          .eq("question_id", questionId);
+      } else {
+        await supabase
+          .from("pyq_bookmarks")
+          .insert({ user: userEmail, question_id: questionId });
+      }
+    } catch {
+      /* star persistence failures must never break the reader */
     }
   };
 
@@ -715,6 +812,8 @@ export default function PYQManager({
           isAdmin={isAdmin}
           attempts={attempts}
           recordAttempt={recordAttempt}
+          bookmarks={bookmarks}
+          onToggleBookmark={toggleBookmark}
           selectedQuestion={selectedQuestion}
           setSelectedQuestion={setSelectedQuestion}
           yearFilter={yearFilter}
@@ -1489,6 +1588,8 @@ function Library({
   isAdmin,
   attempts,
   recordAttempt,
+  bookmarks,
+  onToggleBookmark,
   selectedQuestion,
   setSelectedQuestion,
   yearFilter, setYearFilter,
@@ -1524,6 +1625,14 @@ function Library({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, questions]);
 
+  // Same snapshot pattern for stars: unstarring mid-review shouldn't make
+  // the row vanish from the "★ Starred" list until the filter refreshes.
+  const [bookmarksSnap, setBookmarksSnap] = useState(bookmarks);
+  useEffect(() => {
+    setBookmarksSnap(bookmarks);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, questions]);
+
   const visible = useMemo(() => {
     if (!statusFilter) return questions;
     return questions.filter((q) => {
@@ -1531,6 +1640,9 @@ function Library({
       if (statusFilter === "unattempted") return r !== "right" && r !== "wrong";
       if (statusFilter === "wrong") return r === "wrong";
       if (statusFilter === "starred") {
+        // DB-backed Set first; localStorage only while the fetch hasn't
+        // landed (snap === null). String-normalised on both sides.
+        if (bookmarksSnap instanceof Set) return bookmarksSnap.has(String(q.id));
         try {
           const marks = JSON.parse(window.localStorage.getItem("pyq_bookmarks") || "[]").map(String);
           return marks.includes(String(q.id));
@@ -1538,7 +1650,7 @@ function Library({
       }
       return true;
     });
-  }, [questions, statusFilter, attemptsSnap]);
+  }, [questions, statusFilter, attemptsSnap, bookmarksSnap]);
 
   // Auto-select first visible question if none selected / stale selection
   useEffect(() => {
@@ -1735,6 +1847,8 @@ function Library({
                 isAdmin={isAdmin}
                 attempts={attempts}
                 recordAttempt={recordAttempt}
+                bookmarks={bookmarks}
+                onToggleBookmark={onToggleBookmark}
                 showExplanationSection={showExplanationSection}
                 setShowExplanationSection={setShowExplanationSection}
                 onEdit={() => onEditQuestion(selectedQuestion)}
@@ -1898,6 +2012,7 @@ function QuestionReader({
   q, practiceMode, pickedOptionIdx, setPickedOptionIdx,
   revealed, setRevealed,
   isAdmin, attempts, recordAttempt,
+  bookmarks, onToggleBookmark,
   showExplanationSection, setShowExplanationSection,
   onEdit, onDelete,
   total, indexInList, onPrev, onNext,
@@ -1946,27 +2061,20 @@ function QuestionReader({
     setRevealed(true);
     recordAttempt(q.id, correct ? "right" : "wrong");
   };
-  // Per-question bookmark, persisted in localStorage so it survives reloads.
-  const [bookmarked, setBookmarked] = useState(false);
+  // Per-question star — DB-backed Set from the parent. localStorage is
+  // only consulted while the fetch hasn't landed (bookmarks === null).
+  const [fallbackMarked, setFallbackMarked] = useState(false);
   useEffect(() => {
     try {
       if (typeof window === "undefined") return;
-      const raw = window.localStorage.getItem("pyq_bookmarks") || "[]";
-      const arr = JSON.parse(raw);
-      setBookmarked(Array.isArray(arr) && arr.includes(q.id));
-    } catch { setBookmarked(false); }
+      const arr = JSON.parse(window.localStorage.getItem("pyq_bookmarks") || "[]");
+      setFallbackMarked(Array.isArray(arr) && arr.some((x) => sameId(x, q.id)));
+    } catch { setFallbackMarked(false); }
   }, [q.id]);
+  const bookmarked = bookmarks instanceof Set ? bookmarks.has(String(q.id)) : fallbackMarked;
   const toggleBookmark = () => {
-    try {
-      if (typeof window === "undefined") return;
-      const raw = window.localStorage.getItem("pyq_bookmarks") || "[]";
-      let arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) arr = [];
-      const has = arr.includes(q.id);
-      const next = has ? arr.filter((x) => x !== q.id) : [...arr, q.id];
-      window.localStorage.setItem("pyq_bookmarks", JSON.stringify(next));
-      setBookmarked(!has);
-    } catch {}
+    setFallbackMarked((v) => !v); // optimistic for the fallback path
+    if (onToggleBookmark) onToggleBookmark(q.id);
   };
 
   // Keyboard shortcuts — Space reveals, J = prev, K = next.

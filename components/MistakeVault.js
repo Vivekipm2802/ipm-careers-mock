@@ -158,6 +158,61 @@ export function distinctSnippets(texts) {
   );
 }
 
+// ── PYQ wrongs — third vault source ─────────────────────────────
+// Vault id space: -(PYQ_ID_OFFSET + pyq_questions.id). user_mistakes
+// ids stay < 1e6, so this never collides with portal-test wrongs
+// (positive questions.id) or student-added mistakes (-1 … -999999).
+export const PYQ_ID_OFFSET = 1000000;
+
+// PYQ MCQs store options as JSON [{text, is_correct}] (the same shape
+// PYQManager's reader renders/checks). Map into the vault's
+// [{title, isCorrect}] shape. Returns null when the format isn't
+// confidently mappable → caller falls back to the self-graded flow.
+export function mapPyqOptions(raw) {
+  try {
+    const arr = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!Array.isArray(arr) || arr.length < 2) return null;
+    if (!arr.some((o) => o && o.is_correct)) return null;
+    if (!arr.every((o) => o && typeof o.text === "string")) return null;
+    return arr.map((o) => ({ title: o.text, isCorrect: !!o.is_correct }));
+  } catch {
+    return null;
+  }
+}
+
+// PYQ answers can be rich HTML — flatten to plain text for the
+// self-grade "Correct answer:" line (rendered as text, not HTML).
+export function pyqPlainText(s) {
+  return String(s || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// One get_my_pyq_mistakes row → vault item shape.
+export function mapPyqRow(m) {
+  const opts = m.answer_type === "mcq" ? mapPyqOptions(m.options) : null;
+  return {
+    question_id: -(PYQ_ID_OFFSET + Number(m.id)),
+    is_pyq: true,
+    // no mappable options → reuse the existing self-graded UI path
+    is_own: !opts,
+    title: null,
+    question: m.question,
+    questionimage: null,
+    options: opts,
+    answer: pyqPlainText(m.answer) || null,
+    chapter: m.topic || "PYQ",
+    test_title: "IPMAT PYQ" + (m.year ? ` ${m.year}` : ""),
+    wrong_count: 1,
+    last_wrong_at: m.last_wrong_at,
+    streak: m.streak,
+    last_redo_at: m.last_redo_at,
+    last_reason: m.last_reason,
+  };
+}
+
 export default function MistakeVault({ userData }) {
   const [items, setItems] = useState(null);
   const [redosToday, setRedosToday] = useState(0);
@@ -174,6 +229,7 @@ export default function MistakeVault({ userData }) {
   const [showHow, setShowHow] = useState(false);
   const [showAllChips, setShowAllChips] = useState(false);
   const [ownItems, setOwnItems] = useState(null);
+  const [pyqItems, setPyqItems] = useState(null); // PYQ wrongs — null until fetched
   const [showAdd, setShowAdd] = useState(false);
   const [addQ, setAddQ] = useState("");
   const [addChapter, setAddChapter] = useState("");
@@ -218,6 +274,12 @@ export default function MistakeVault({ userData }) {
         );
       } else setOwnItems([]);
     });
+    // PYQ wrongs (latest pyq_attempts row = 'wrong') — third source,
+    // ids live at -(1000000 + pyq id) in mistake_redos.
+    supabase.rpc("get_my_pyq_mistakes", { p_email: userData.email }).then(({ data, error }) => {
+      if (!error && Array.isArray(data)) setPyqItems(data.map(mapPyqRow));
+      else setPyqItems([]);
+    });
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     supabase
@@ -239,7 +301,11 @@ export default function MistakeVault({ userData }) {
   // link in the header, closes on "Got it". Never auto-shows.
 
   const now = new Date();
-  const withState = [...(items || []), ...(ownItems || [])].map((it) => ({ ...it, st: vaultState(it, now) }));
+  const withState = [
+    ...(Array.isArray(items) ? items : []),
+    ...(Array.isArray(ownItems) ? ownItems : []),
+    ...(Array.isArray(pyqItems) ? pyqItems : []),
+  ].map((it) => ({ ...it, st: vaultState(it, now) }));
   const active = withState.filter((it) => !it.st.mastered);
   const mastered = withState.filter((it) => it.st.mastered);
   const due = prioritize(active.filter((it) => it.st.dueNow));
@@ -413,18 +479,21 @@ export default function MistakeVault({ userData }) {
         // optimistic: move the ladder locally so the vault updates
         // the moment the student returns — refetch reconciles later.
         const bump = (prev) =>
-          (prev || []).map((it) =>
-            it.question_id === pending.question_id
-              ? {
-                  ...it,
-                  streak: pending.correct ? Number(it.streak || 0) + 1 : 0,
-                  last_redo_at: new Date().toISOString(),
-                  last_reason: reason || it.last_reason,
-                }
-              : it
-          );
+          !Array.isArray(prev)
+            ? prev // keep null (not fetched) states untouched
+            : prev.map((it) =>
+                it.question_id === pending.question_id
+                  ? {
+                      ...it,
+                      streak: pending.correct ? Number(it.streak || 0) + 1 : 0,
+                      last_redo_at: new Date().toISOString(),
+                      last_reason: reason || it.last_reason,
+                    }
+                  : it
+              );
         setItems(bump);
         setOwnItems(bump);
+        setPyqItems(bump);
       }
     }
     setPicked(null);
@@ -690,11 +759,17 @@ export default function MistakeVault({ userData }) {
                 style={{ padding: "14px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none", cursor: it.st.dueNow ? "pointer" : "default" }}
               >
                 <Ladder stage={it.st.stage} />
-                {it.is_own && (
+                {/* is_pyq wins — PYQ self-grade items also carry is_own,
+                    but they must never read as "YOURS" */}
+                {it.is_pyq ? (
+                  <span className="shrink-0" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", color: "var(--c-brand-gold)", border: "1px solid rgba(255, 182, 39, 0.35)", background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "2px 9px" }}>
+                    PYQ
+                  </span>
+                ) : it.is_own ? (
                   <span className="shrink-0" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", color: "var(--c-brand-gold)", border: "1px solid rgba(255, 182, 39, 0.35)", background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "2px 9px" }}>
                     YOURS
                   </span>
-                )}
+                ) : null}
                 <span className="min-w-0 flex-1" style={{ fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {rowSnips[i]}
                 </span>
@@ -737,10 +812,16 @@ export default function MistakeVault({ userData }) {
           <div className="max-w-[760px] mt-5 p-6 md:p-7" style={{ ...card, padding: undefined }}>
             <div className="flex justify-between flex-wrap gap-1" style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
               <span>
-                {q.is_own ? "Your own mistake · " : ""}
-                {displayChapter(q)}
-                {!q.is_own && q.test_title && !BUCKET.test(String(q.chapter || "")) && q.test_title !== q.chapter ? ` · from ${q.test_title}` : ""}
-                {q.is_own ? "" : ` · missed ${q.wrong_count > 1 ? `${q.wrong_count} times` : "once"}`}
+                {q.is_pyq ? (
+                  <>IPMAT PYQ · {q.chapter || "PYQ"}</>
+                ) : (
+                  <>
+                    {q.is_own ? "Your own mistake · " : ""}
+                    {displayChapter(q)}
+                    {!q.is_own && q.test_title && !BUCKET.test(String(q.chapter || "")) && q.test_title !== q.chapter ? ` · from ${q.test_title}` : ""}
+                    {q.is_own ? "" : ` · missed ${q.wrong_count > 1 ? `${q.wrong_count} times` : "once"}`}
+                  </>
+                )}
               </span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{qi + 1} / {queue.length}</span>
             </div>
