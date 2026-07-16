@@ -32,52 +32,46 @@ export default function ConceptTestStudent({ group, onBack, role }) {
     if (!group) return;
     (async () => {
       setLoading(true);
-      // Step 1: fetch categories for this collection (fast — only ones we care about)
-      const { data: catData } = await supabase
-        .from("categories").select("*").eq("parent", group);
-      if (catData) setCategories(catData);
-      if (!catData || catData.length === 0) {
-        setLoading(false);
-        return;
-      }
-      const catIds = catData.map(c => c.id);
-
-      // Step 2: fetch m_categories + plays in parallel (m_categories now filtered by parent)
+      // Perf round 2: one RPC round trip for the whole collection
+      // tree (categories + m_categories + levels), plays in parallel.
       const playsPromise = userDetails?.email
         ? supabase.from("plays")
             .select("uid, test_uuid, score, isPassed")
             .eq("user", userDetails.email)
         : Promise.resolve({ data: [] });
 
-      const [gcRes, playsRes] = await Promise.all([
-        supabase.from("m_categories").select("*").in("parent", catIds).order("created_at", { ascending: true }),
+      const [treeRes, playsRes] = await Promise.all([
+        supabase.rpc("get_concept_tree", { p_group: group }),
         playsPromise,
       ]);
-      if (gcRes.data) setGameCategories(gcRes.data);
+      const tree = treeRes.data || {};
+      const catData = Array.isArray(tree.categories) ? tree.categories : [];
+      if (catData) setCategories(catData);
+      if (!catData || catData.length === 0) {
+        setLoading(false);
+        return;
+      }
 
-      // Process plays
+      const gcData = Array.isArray(tree.m_categories) ? tree.m_categories : [];
+      setGameCategories(gcData);
+
       if (playsRes.data) {
         const m = {};
         playsRes.data.forEach((p) => { m[p.test_uuid] = p; });
         setPlays(m);
       }
 
-      // Step 3: fetch levels (tests) for these m_categories
-      if (gcRes.data && gcRes.data.length > 0) {
-        const mCatIds = gcRes.data.map(m => m.id);
-        const { data: levelsData } = await supabase
-          .from("levels").select("id, uuid, parent").in("parent", mCatIds);
-        if (levelsData) {
-          const counts = {};
-          const byMCat = {};
-          levelsData.forEach(l => {
-            counts[l.parent] = (counts[l.parent] || 0) + 1;
-            if (!byMCat[l.parent]) byMCat[l.parent] = [];
-            byMCat[l.parent].push({ id: l.id, uuid: l.uuid });
-          });
-          setTestCountByMCat(counts);
-          setLevelsByMCat(byMCat);
-        }
+      const levelsData = Array.isArray(tree.levels) ? tree.levels : [];
+      if (levelsData.length > 0) {
+        const counts = {};
+        const byMCat = {};
+        levelsData.forEach(l => {
+          counts[l.parent] = (counts[l.parent] || 0) + 1;
+          if (!byMCat[l.parent]) byMCat[l.parent] = [];
+          byMCat[l.parent].push({ id: l.id, uuid: l.uuid });
+        });
+        setTestCountByMCat(counts);
+        setLevelsByMCat(byMCat);
       }
       setLoading(false);
     })();

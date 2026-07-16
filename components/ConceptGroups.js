@@ -101,11 +101,15 @@ const Selector = ({ type, onSelect, role, title }) => {
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [] });
 
-    const [groupsRes, playsRes] = await Promise.all([
-      supabase.from("test_groups").select("*").eq("type", type),
+    // Perf round 2: one RPC round trip returns the whole tree
+    // (groups + categories + m_categories + levels) instead of
+    // 4 chained queries each paying full client→DB latency.
+    const [treeRes, playsRes] = await Promise.all([
+      supabase.rpc("get_concept_tree", { p_type: type }),
       playsPromise,
     ]);
-    const groupsData = groupsRes.data;
+    const tree = treeRes.data || {};
+    const groupsData = Array.isArray(tree.groups) ? tree.groups : null;
     let plays = playsRes.data || [];
 
     if (!groupsData) {
@@ -113,29 +117,14 @@ const Selector = ({ type, onSelect, role, title }) => {
       return;
     }
     setGroups(groupsData);
-    const groupIds = groupsData.map(g => g.id);
-
-    if (groupIds.length === 0) {
+    if (groupsData.length === 0) {
       setLoading(false);
       return;
     }
 
-    // Sequential fetch — categories → m_categories → levels (each depends on previous)
-    const { data: categoriesData } = await supabase
-      .from("categories").select("id, parent").in("parent", groupIds);
-    const categories = categoriesData || [];
-
-    const categoryIds = categories.map(c => c.id);
-    const mCategoriesData = categoryIds.length > 0
-      ? (await supabase.from("m_categories").select("id, parent").in("parent", categoryIds)).data
-      : [];
-    const mCategories = mCategoriesData || [];
-
-    const mCatIds = mCategories.map(m => m.id);
-    const levelsData = mCatIds.length > 0
-      ? (await supabase.from("levels").select("uuid, parent, title").in("parent", mCatIds)).data
-      : [];
-    const levels = levelsData || [];
+    const categories = Array.isArray(tree.categories) ? tree.categories : [];
+    const mCategories = Array.isArray(tree.m_categories) ? tree.m_categories : [];
+    const levels = Array.isArray(tree.levels) ? tree.levels : [];
 
     // Diagnostic — helps debug if level lookups fail
     if (typeof window !== "undefined" && plays.length > 0) {

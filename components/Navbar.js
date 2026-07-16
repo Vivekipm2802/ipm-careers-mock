@@ -151,7 +151,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
               <div className={styles.clickable} onClick={() => handleItemClick(z.action)}>
                 <a>
                   {z.icon}
-                  <p className="hidden md:block">{z.title}</p>
+                  <p className="hidden md:block" style={{ whiteSpace: 'nowrap' }}>{z.title}</p>
                   {z.badge && (
                     <span
                       className="hidden md:inline-block"
