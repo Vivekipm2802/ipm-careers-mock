@@ -1281,6 +1281,17 @@ export default function PYQManager({
 // ════════════════════════════════════════════════════════════════
 // SHELF — exam picker (student library)
 // ════════════════════════════════════════════════════════════════
+// Topic names arrive in mixed casing ("SURDS AND INDICES", "Time & Work") —
+// normalise to Title Case for chips so the row reads calm and consistent.
+export function titleCaseTopic(name) {
+  const small = new Set(["and", "or", "of", "the", "in", "on", "a", "an", "to", "&"]);
+  return String(name || "")
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w, i) => (i > 0 && small.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(" ");
+}
+
 function Shelf({ exams, meta, attempts, onPick }) {
   const available = exams.filter((e) => e.status === "active");
   const comingSoon = exams.filter((e) => e.status !== "active");
@@ -1300,7 +1311,7 @@ function Shelf({ exams, meta, attempts, onPick }) {
   const revisitCount = attemptedKeys.length - rightCount;
 
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto", padding: "48px 28px 80px", display: "flex", flexDirection: "column" }}>
+    <div style={{ maxWidth: 1080, margin: "0 auto", padding: "48px 28px 80px", display: "flex", flexDirection: "column", textAlign: "left", width: "100%" }}>
       {/* Hero */}
       <div style={{ marginBottom: 34, flexShrink: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 16 }}>
@@ -1480,6 +1491,7 @@ function Library({
   // Status filter (client-side, driven by the attempts map):
   // null = all · 'unattempted' = no right/wrong yet · 'wrong' = latest is wrong
   const [statusFilter, setStatusFilter] = useState(null);
+  const [showAllTopics, setShowAllTopics] = useState(false);
 
   // Snapshot attempts for filtering so the visible list doesn't reshuffle the
   // instant a student answers (e.g. a question vanishing from "Got wrong"
@@ -1599,11 +1611,19 @@ function Library({
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <PChip label="All topics" active={topicFilter == null} onClick={() => setTopicFilter(null)} />
-          {topics.map((t) => (
-            <PChip key={t.id} label={t.name} active={topicFilter != null && sameId(topicFilter, t.id)} onClick={() => setTopicFilter(t.id)} />
+          {(showAllTopics ? topics : topics.slice(0, 7)).map((t) => (
+            <PChip key={t.id} label={titleCaseTopic(t.name)} active={topicFilter != null && sameId(topicFilter, t.id)} onClick={() => setTopicFilter(t.id)} />
           ))}
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {topics.length > 7 && (
+            <button
+              type="button"
+              onClick={() => setShowAllTopics((v) => !v)}
+              style={{ background: "none", border: "none", padding: "7px 6px", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}
+            >
+              {showAllTopics ? "show less" : `+${topics.length - 7} more`}
+            </button>
+          )}
+          <span style={{ width: 1, height: 18, background: "var(--c-border-faint)", margin: "0 6px", flexShrink: 0 }} />
           <PChip label="All" active={statusFilter == null} onClick={() => setStatusFilter(null)} />
           <PChip label="Unattempted" active={statusFilter === "unattempted"} onClick={() => setStatusFilter("unattempted")} />
           <PChip label="Got wrong" active={statusFilter === "wrong"} onClick={() => setStatusFilter("wrong")} />

@@ -333,7 +333,6 @@ export const NMNContextProvider = ({ children }) => {
       isExpanded: false,
       demo: true,
       flat: true, // renders as a direct link in the sidebar, no accordion
-      indent: true, // sits visually under Tests
       badge: "NEW",
       icon: <Zap size={20} />,
       subtitle: "Earn XP, complete missions, climb the arena",

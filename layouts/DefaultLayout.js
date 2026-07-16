@@ -86,7 +86,13 @@ function DefaultLayout(props){
             <img src="/favicon_ipm.svg" width={44} height={44} alt="IPM Careers" style={{ objectFit: 'contain' }} />
           </div>
         ) : (
-          <img className={styles.logo + " px-6"} width={300} src='/newlog.svg' alt="IPM Careers" />
+          <img
+            className={styles.logo + " px-6"}
+            width={300}
+            src='/newlog.svg'
+            alt="IPM Careers"
+            style={{ filter: 'drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)' }}
+          />
         )}
 
         {/* Toggle button — hangs off the right edge of the sidebar */}

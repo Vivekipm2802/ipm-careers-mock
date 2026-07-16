@@ -415,76 +415,86 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
         {SECTIONS.map((section) => {
           const items = sectionItems[section.label] || [];
           if (items.length === 0) return null;
-          const accItems = items.filter((i) => !i.flat);
-          const flatItems = items.filter((i) => i.flat);
           return (
             <div key={section.label}>
               <div style={sectionLabelStyle}>{section.label}</div>
-              <Accordion
-                itemClasses={accordionItemClasses}
-                selectedKeys={sk}
-                onSelectionChange={(e) => { setSK(new Set(e)); }}
-                showDivider={false}
-                fullWidth isCompact
-                className="px-1"
-              >
-                {accItems.map((i, d) => (
-                  <AccordionItem
-                    isDisabled={isDemo && i.demo === false}
-                    startContent={
-                      isDemo && i.demo === false ? (
-                        <Lock size={18} />
-                      ) : (
-                        i.icon || ''
-                      )
-                    }
-                    key={i.title}
-                    className="w-full font-sans"
-                    title={<span style={titleStyle}>{i.title}</span>}
-                  >
-                    {renderSubItems(i)}
-                  </AccordionItem>
-                ))}
-              </Accordion>
-              {/* Flat items — direct links (no accordion), e.g. DSB Challenge */}
-              {flatItems.map((i) => {
-                const target = i.items?.[0];
-                if (!target) return null;
-                const active = ctxSlug === target.action;
+              {/* Items render IN NAV ORDER — flats interleave with
+                  accordions (DSB right under Tests, Doubts above
+                  Videos), each at the same main level. */}
+              {items.map((i) => {
+                if (i.flat) {
+                  const target = i.items?.[0];
+                  if (!target) return null;
+                  const active = ctxSlug === target.action;
+                  return (
+                    <div
+                      key={i.title}
+                      onClick={() => setCTXSlug(target.action)}
+                      className="flex items-center gap-2 mx-2 rounded-lg transition-all cursor-pointer"
+                      style={{
+                        padding: '8px 8px',
+                        color: active ? 'var(--c-brand-primary)' : 'var(--c-text-secondary)',
+                        background: active ? 'var(--c-brand-primary-tint)' : 'transparent',
+                      }}
+                      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--c-surface-muted)'; }}
+                      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      {i.icon}
+                      <span style={{ ...titleStyle, whiteSpace: 'nowrap' }}>{i.title}</span>
+                      {i.badge && (
+                        <span
+                          style={{
+                            marginLeft: 'auto',
+                            fontSize: 9,
+                            fontWeight: 700,
+                            letterSpacing: '0.1em',
+                            textTransform: 'uppercase',
+                            color: 'var(--c-brand-gold)',
+                            background: 'var(--c-brand-gold-tint)',
+                            borderRadius: 999,
+                            padding: '3px 8px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {i.badge}
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+                // single-item accordion so flats can sit between groups
                 return (
-                  <div
+                  <Accordion
                     key={i.title}
-                    onClick={() => setCTXSlug(target.action)}
-                    className="flex items-center gap-2 mx-2 rounded-lg transition-all cursor-pointer"
-                    style={{
-                      padding: '9px 10px',
-                      marginLeft: i.indent ? 26 : undefined, // e.g. DSB Challenge tucks under Tests
-                      color: active ? 'var(--c-brand-primary)' : 'var(--c-text-secondary)',
-                      background: active ? 'var(--c-brand-primary-tint)' : 'transparent',
+                    itemClasses={accordionItemClasses}
+                    selectedKeys={sk}
+                    onSelectionChange={(e) => {
+                      setSK((prev) => {
+                        const next = new Set([...prev].filter((k) => k !== i.title));
+                        [...e].forEach((k) => next.add(k));
+                        return next;
+                      });
                     }}
-                    onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--c-surface-muted)'; }}
-                    onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                    showDivider={false}
+                    fullWidth isCompact
+                    className="px-1"
                   >
-                    {i.icon}
-                    <span style={titleStyle}>{i.title}</span>
-                    {i.badge && (
-                      <span
-                        style={{
-                          marginLeft: 'auto',
-                          fontSize: 9,
-                          fontWeight: 700,
-                          letterSpacing: '0.1em',
-                          textTransform: 'uppercase',
-                          color: 'var(--c-brand-gold)',
-                          background: 'var(--c-brand-gold-tint)',
-                          borderRadius: 999,
-                          padding: '3px 8px',
-                        }}
-                      >
-                        {i.badge}
-                      </span>
-                    )}
-                  </div>
+                    <AccordionItem
+                      isDisabled={isDemo && i.demo === false}
+                      startContent={
+                        isDemo && i.demo === false ? (
+                          <Lock size={18} />
+                        ) : (
+                          i.icon || ''
+                        )
+                      }
+                      key={i.title}
+                      className="w-full font-sans"
+                      title={<span style={titleStyle}>{i.title}</span>}
+                    >
+                      {renderSubItems(i)}
+                    </AccordionItem>
+                  </Accordion>
                 );
               })}
             </div>

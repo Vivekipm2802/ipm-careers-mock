@@ -78,9 +78,13 @@ export function compactShelf(badges, lockedCount = 4) {
   return [...unlocked, ...closest];
 }
 
-export default function BadgeVault({ userData, totalXp }) {
+export default function BadgeVault({ userData, totalXp, onExpandChange }) {
   const [stats, setStats] = useState(null);
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAllRaw] = useState(false);
+  const setShowAll = (v) => {
+    setShowAllRaw(v);
+    if (onExpandChange) onExpandChange(typeof v === "function" ? v(showAll) : v);
+  };
 
   useEffect(() => {
     if (!userData?.email) return;
@@ -95,8 +99,50 @@ export default function BadgeVault({ userData, totalXp }) {
   const summary = vaultSummary(badges);
   const sections = ["Consistency", "Mocks & Tests", "Skill Trainers", "Levels"];
 
+  // ── Compact mode: one card of small tiles (lives beside the arena) ──
+  if (!showAll) {
+    return (
+      <div className="rounded-[16px] border p-6" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)", flexShrink: 0 }}>
+        <div className="ds-display" style={{ fontSize: 19 }}>Your vault</div>
+        <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 3 }}>
+          {summary.unlockedCount} of {summary.total} unlocked
+          {summary.next && ` · next closest: ${summary.next.name}`}
+        </div>
+        <div className="grid grid-cols-4 gap-2.5 mt-4">
+          {compactShelf(badges).map((b) => (
+            <div
+              key={b.id}
+              title={`${b.name} — ${b.desc}${b.unlocked ? "" : ` (${b.progress.label})`}`}
+              style={{
+                border: `1px solid ${b.unlocked ? "rgba(255, 182, 39, 0.45)" : "var(--c-border-faint)"}`,
+                background: b.unlocked ? "var(--c-brand-gold-tint)" : "var(--c-surface-muted, var(--c-bg))",
+                borderRadius: 12,
+                padding: "13px 4px 9px",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: 20, filter: b.unlocked ? "none" : "grayscale(1)", opacity: b.unlocked ? 1 : 0.4 }}>{b.em}</div>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", marginTop: 6, color: b.unlocked ? "var(--c-brand-gold)" : "var(--c-text-tertiary)", lineHeight: 1.35 }}>
+                {b.name}
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="mt-4"
+          style={{ background: "none", border: "none", padding: 0, fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}
+        >
+          View full vault ({summary.total} badges) →
+        </button>
+      </div>
+    );
+  }
+
+  // ── Expanded mode: the full sectioned vault (unchanged) ──
   return (
-    <div className="mb-10">
+    <div className="mb-2">
       <div className="flex justify-between items-baseline mb-3 flex-wrap gap-2">
         <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>
           Badge vault

@@ -45,6 +45,7 @@ export default function DSBChallenge({ userData }) {
   const [xp, setXp] = useState(null); // { total_xp, weekly_xp }
   const [board, setBoard] = useState([]);
   const [myRank, setMyRank] = useState(null);
+  const [vaultOpen, setVaultOpen] = useState(false);
   const [todayQuiz, setTodayQuiz] = useState(false);
   const [todayGulp, setTodayGulp] = useState(false);
   const [todaySos, setTodaySos] = useState(false);
@@ -371,33 +372,50 @@ export default function DSBChallenge({ userData }) {
       </div>
 
       {/* ── Badge vault (Phase C) ── */}
-      <BadgeVault userData={userData} totalXp={xp?.total_xp || 0} />
-
-      {/* ── Weekly arena ── */}
+      {/* ── Vault & arena — side by side (stacks when vault expands) ── */}
       <div className="flex justify-between items-baseline mb-3">
-        <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>This week's arena</div>
-        <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>XP earned this week · resets Monday</span>
+        <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>Vault &amp; arena</div>
+        <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>weekly league · resets Monday</span>
       </div>
-      <div className="rounded-[16px] border p-6 mb-10" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)" }}>
-        {board.length === 0 && (
-          <div style={{ fontSize: 13, color: "var(--c-text-tertiary)", textAlign: "center", padding: "18px 0" }}>
-            The arena fills as students earn XP this week — be the first on the board.
+      <div className={(vaultOpen ? "flex flex-col" : "grid lg:grid-cols-2 items-start") + " gap-4 mb-10"}>
+        <BadgeVault userData={userData} totalXp={xp?.total_xp || 0} onExpandChange={setVaultOpen} />
+
+        <div className="rounded-[16px] border p-6" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)", flexShrink: 0 }}>
+          <div className="ds-display" style={{ fontSize: 19 }}>This week&apos;s arena</div>
+          <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 3 }}>XP earned this week · all IPM Careers students</div>
+          <div className="mt-3">
+            {board.length === 0 && (
+              <div style={{ fontSize: 13, color: "var(--c-text-tertiary)", textAlign: "center", padding: "18px 0" }}>
+                The arena fills as students earn XP this week — be the first on the board.
+              </div>
+            )}
+            {board.slice(0, 6).map((r, i, arr) => (
+              <div key={i} className="flex items-center gap-3" style={{ padding: "10px 0", borderBottom: i < arr.length - 1 || myRank?.rank ? "1px solid var(--c-border-faint)" : "none" }}>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, fontWeight: 600, color: i < 3 ? "var(--c-brand-gold)" : "var(--c-text-tertiary)", width: 30, flexShrink: 0 }}>#{r.rank ?? i + 1}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--c-text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</span>
+                <span style={{ marginLeft: "auto", fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, fontWeight: 600, color: "var(--c-text-primary)", flexShrink: 0 }}>{r.xp}</span>
+              </div>
+            ))}
+            {myRank?.rank && (() => {
+              const third = board[2];
+              const gap = third && myRank.rank > 3 ? Number(third.xp) - Number(myRank.xp) : null;
+              return (
+                <div className="flex items-center gap-3 rounded-[10px] mt-2" style={{ padding: "10px 10px", background: "linear-gradient(90deg, var(--c-brand-gold-tint), transparent 80%)" }}>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, fontWeight: 600, color: "var(--c-brand-gold)", width: 30, flexShrink: 0 }}>#{myRank.rank}</span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--c-brand-gold)" }}>You</span>
+                    {gap > 0 && (
+                      <span style={{ display: "block", fontSize: 10, letterSpacing: "0.06em", color: "var(--c-text-tertiary)" }}>
+                        {gap} XP TO #3 — ek quiz aur ek trainer run
+                      </span>
+                    )}
+                  </span>
+                  <span style={{ marginLeft: "auto", fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, fontWeight: 600, color: "var(--c-brand-gold)", flexShrink: 0 }}>{myRank.xp}</span>
+                </div>
+              );
+            })()}
           </div>
-        )}
-        {board.slice(0, 10).map((r, i) => (
-          <div key={i} className="flex items-center gap-3 rounded-[10px] px-4 py-2.5 mb-1.5" style={{ background: i < 3 ? "var(--c-brand-gold-tint)" : "transparent" }}>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600, color: i < 3 ? "var(--c-brand-gold)" : "var(--c-text-tertiary)", width: 30 }}>#{r.rank ?? i + 1}</span>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--c-text-primary)" }}>{r.name}</span>
-            <span style={{ marginLeft: "auto", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)" }}>{r.xp}</span>
-          </div>
-        ))}
-        {myRank?.rank && (
-          <div className="flex items-center gap-3 rounded-[10px] px-4 py-2.5 mt-2 border" style={{ background: "var(--c-brand-gold-tint)", borderColor: "var(--c-mock-banner-line)" }}>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", width: 30 }}>#{myRank.rank}</span>
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--c-brand-gold)" }}>You</span>
-            <span style={{ marginLeft: "auto", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)" }}>{myRank.xp}</span>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
