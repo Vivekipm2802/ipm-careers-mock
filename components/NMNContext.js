@@ -1,5 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
-import { Award, BarChart3, BookOpen, CalendarDays, CalendarOff, CalendarRange, ClipboardList, FileEdit, FileText, Flame, Hash, HelpCircle, Layers, LayoutDashboard, Lightbulb, Map, MessageSquare, Phone, PlayCircle, PlusCircle, Printer, School, Settings, ShieldCheck, SlidersHorizontal, Sparkles, Target, TrendingUp, UserCog, UserPlus, Users, UsersRound, Video, Zap, RotateCcw } from "lucide-react";
+import { Award, BarChart3, BookOpen, CalendarCheck, CalendarDays, CalendarOff, CalendarRange, ClipboardList, FileEdit, FileText, Flame, Hash, HelpCircle, Layers, LayoutDashboard, Lightbulb, Map, MessageSquare, Phone, PlayCircle, PlusCircle, Printer, School, Settings, ShieldCheck, SlidersHorizontal, Sparkles, Target, TrendingUp, UserCog, UserPlus, Users, UsersRound, Video, Zap, RotateCcw } from "lucide-react";
 import { useRouter } from "next/router";
 import React, {
   createContext,
@@ -242,6 +242,13 @@ export const NMNContextProvider = ({ children }) => {
           teacher: true,
           id: 41,
           icon: <PlusCircle size={20} />,
+        },
+        {
+          title: "Attendance",
+          type: "admin",
+          action: "attendance",
+          id: 240,
+          icon: <CalendarCheck size={20} />,
         },
         {
           title: "Teacher Manager",
