@@ -1512,7 +1512,7 @@ function ShelfStat({ label, value, caption, last }) {
       <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 6 }}>
         {label}
       </div>
-      <div className="ds-grad-text ds-accent" style={{ fontSize: 34, lineHeight: 1 }}>{value}</div>
+      <div className="ds-stat-value" style={{ fontSize: 34, lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 6 }}>{caption}</div>
     </div>
   );
