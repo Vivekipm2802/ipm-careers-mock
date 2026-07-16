@@ -1,5 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
-import { Award, BarChart3, BookOpen, CalendarDays, CalendarOff, CalendarRange, ClipboardList, FileEdit, FileText, Flame, Hash, HelpCircle, Layers, LayoutDashboard, Lightbulb, Map, MessageSquare, Phone, PlayCircle, PlusCircle, Printer, School, Settings, SlidersHorizontal, Sparkles, Target, TrendingUp, UserCog, UserPlus, Users, UsersRound, Video, Zap, RotateCcw } from "lucide-react";
+import { Award, BarChart3, BookOpen, CalendarDays, CalendarOff, CalendarRange, ClipboardList, FileEdit, FileText, Flame, Hash, HelpCircle, Layers, LayoutDashboard, Lightbulb, Map, MessageSquare, Phone, PlayCircle, PlusCircle, Printer, School, Settings, ShieldCheck, SlidersHorizontal, Sparkles, Target, TrendingUp, UserCog, UserPlus, Users, UsersRound, Video, Zap, RotateCcw } from "lucide-react";
 import { useRouter } from "next/router";
 import React, {
   createContext,
@@ -191,6 +191,13 @@ export const NMNContextProvider = ({ children }) => {
           action: "ressubmission",
           id: 238,
           icon: <MessageSquare size={20} />,
+        },
+        {
+          title: "Question Audit",
+          type: "admin",
+          action: "questionaudit",
+          id: 239,
+          icon: <ShieldCheck size={20} />,
         },
         {
           title: "Manage Admit Card Prints",
