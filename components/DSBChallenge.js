@@ -345,11 +345,13 @@ export default function DSBChallenge({ userData }) {
             className="rounded-[14px] border p-5 transition-all"
             style={{
               background: "var(--c-surface)",
-              borderColor: live ? "var(--c-mock-banner-line)" : "var(--c-border-faint)",
+              borderColor: "var(--c-border-faint)", // gold only on hover
               opacity: live ? 1 : 0.75,
               cursor: live ? "pointer" : "default",
               boxShadow: live ? "var(--c-shadow-xs)" : "none",
             }}
+            onMouseEnter={(e) => { if (live) e.currentTarget.style.borderColor = "var(--c-brand-gold)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--c-border-faint)"; }}
           >
             <div className="grid place-items-center mb-3" style={{ width: 38, height: 38, borderRadius: 12, background: red ? "var(--c-danger-soft)" : "var(--c-brand-gold-tint)", color: red ? "var(--c-danger)" : "var(--c-brand-gold)" }}>
               <Icon size={18} />

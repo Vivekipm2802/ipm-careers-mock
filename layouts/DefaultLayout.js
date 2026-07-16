@@ -83,17 +83,7 @@ function DefaultLayout(props){
             className={styles.logo + " flex items-center justify-center"}
             style={{ width: '100%', height: 80, position: 'absolute', top: 20, left: 0 }}
           >
-            <div
-              style={{
-                width: 44, height: 44, borderRadius: 12,
-                background: 'var(--c-brand-primary)',
-                color: 'white',
-                display: 'grid', placeItems: 'center',
-                fontWeight: 700, fontSize: 14,
-              }}
-            >
-              IPM
-            </div>
+            <img src="/favicon_ipm.svg" width={44} height={44} alt="IPM Careers" style={{ objectFit: 'contain' }} />
           </div>
         ) : (
           <img className={styles.logo + " px-6"} width={300} src='/newlog.svg' alt="IPM Careers" />

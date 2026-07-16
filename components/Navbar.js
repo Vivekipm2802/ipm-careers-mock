@@ -149,7 +149,18 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
           >
             <>
               <div className={styles.clickable} onClick={() => handleItemClick(z.action)}>
-                <a>{z.icon}<p className="hidden md:block">{z.title}</p></a>
+                <a>
+                  {z.icon}
+                  <p className="hidden md:block">{z.title}</p>
+                  {z.badge && (
+                    <span
+                      className="hidden md:inline-block"
+                      style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--c-brand-gold)', background: 'var(--c-brand-gold-tint)', borderRadius: 999, padding: '3px 8px' }}
+                    >
+                      {z.badge}
+                    </span>
+                  )}
+                </a>
               </div>
               <p
                 className="md:hidden absolute left-[70px] text-left top-[50%] rounded-xl shadow-md p-2 w-auto -translate-y-[50%]"
@@ -447,6 +458,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
                     className="flex items-center gap-2 mx-2 rounded-lg transition-all cursor-pointer"
                     style={{
                       padding: '9px 10px',
+                      marginLeft: i.indent ? 26 : undefined, // e.g. DSB Challenge tucks under Tests
                       color: active ? 'var(--c-brand-primary)' : 'var(--c-text-secondary)',
                       background: active ? 'var(--c-brand-primary-tint)' : 'transparent',
                     }}

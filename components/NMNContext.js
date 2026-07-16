@@ -317,6 +317,7 @@ export const NMNContextProvider = ({ children }) => {
           type: "user",
           action: "mistakevault",
           id: 63,
+          badge: "NEW",
           icon: <RotateCcw size={20} />,
         },
         /*  { title: 'Assigned Tests', type: 'admin',demo:false ,action:'assigned-tests',id:53,
@@ -332,6 +333,7 @@ export const NMNContextProvider = ({ children }) => {
       isExpanded: false,
       demo: true,
       flat: true, // renders as a direct link in the sidebar, no accordion
+      indent: true, // sits visually under Tests
       badge: "NEW",
       icon: <Zap size={20} />,
       subtitle: "Earn XP, complete missions, climb the arena",
@@ -349,12 +351,14 @@ export const NMNContextProvider = ({ children }) => {
     {
       title: "Doubts",
       demo: true,
-      subtitle: "Explore knowledge with vibrant mind maps.",
+      subtitle: "AI Samjhao + mentor video solutions",
       isExpanded: false,
+      flat: true, // direct link — no dropdown for a single destination
+      badge: "NEW",
       icon: <Lightbulb size={22} />,
       items: [
         {
-          title: "Get your Doubts Solved",
+          title: "Doubts",
           type: "user",
           action: "dbts",
           id: 7,
@@ -417,10 +421,12 @@ export const NMNContextProvider = ({ children }) => {
       demo: false,
       subtitle: "access your personalized study plan over here",
       isExpanded: false,
+      flat: true, // direct link — no dropdown for a single destination
+      badge: "NEW",
       icon: <Map size={22} />,
       items: [
         {
-          title: "Aaj Ka Plan",
+          title: "My Plan",
           type: "user",
           action: "studyplan",
           id: 13,
