@@ -404,7 +404,7 @@ export const NMNContextProvider = ({ children }) => {
       isExpanded: false,
       flat: true, // direct link — no dropdown for a single destination
       badge: "NEW",
-      icon: <Lightbulb size={22} />,
+      icon: <Lightbulb size={20} />,
       items: [
         {
           title: "Doubts",
@@ -422,7 +422,7 @@ export const NMNContextProvider = ({ children }) => {
       isExpanded: false,
       flat: true, // direct link — no dropdown for a single destination
       badge: "NEW",
-      icon: <Map size={22} />,
+      icon: <Map size={20} />,
       items: [
         {
           title: "My Plan",
