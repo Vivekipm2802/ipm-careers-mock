@@ -250,13 +250,9 @@ export const NMNContextProvider = ({ children }) => {
           id: 421,
           icon: <CalendarOff size={20} />,
         },
-        {
-          title: "Progress Tracker",
-          type: "user",
-          action: "topic-wise",
-          id: 11,
-          icon: <BarChart3 size={20} />,
-        },
+        // Progress Tracker retired (July 2026) — Your Performance is
+        // the single "how am I doing" home. Slug "topic-wise" kept
+        // in index.js so old deep links don't 404.
       ],
     },
     {
