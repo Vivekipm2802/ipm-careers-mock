@@ -15,7 +15,12 @@ import {
   parseAbsoluteToLocal,
   parseZonedDateTime,
 } from "@internationalized/date";
-import { Plus, Edit, Trash2, Calendar, Link } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, Link, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
+import { supabase } from "@/utils/supabaseClient";
+import { getAuthHeaders } from "@/utils/authHeaders";
+import { recordingSource } from "@/lib/recordings";
 
 export default function ManageClasses({
   batches,
@@ -479,6 +484,247 @@ export default function ManageClasses({
       {(!classes || classes.length === 0) && (
         <div className="border-1 my-16 border-gray-100 bg-gray-100 rounded-xl text-gray-500 w-full px-2 py-8">
           No Classes scheduled for today
+        </div>
+      )}
+
+      <RecordingsPanel currentBatch={currentBatch} />
+    </div>
+  );
+}
+
+// ============================================================
+// Ship A — RecordingsPanel: the recordings students actually see
+// live on classes_history (one capsule per past class), not on the
+// schedule rows above. Each capsule shows its source (STORAGE ✓ /
+// ZOOM AUTO / LINK / NONE) and takes a direct video upload into the
+// private 'recordings' bucket (signed upload URL → progress → commit).
+// ============================================================
+function RecordingsPanel({ currentBatch }) {
+  const [capsules, setCapsules] = useState();
+  const [uploads, setUploads] = useState({}); // capsuleId → { pct, error }
+  const fileInputRef = useRef(null);
+  const pendingCapsuleRef = useRef(null);
+
+  async function loadCapsules() {
+    if (currentBatch == null) return;
+    const { data, error } = await supabase
+      .from("classes_history")
+      .select("id, title, recording, recording_path, recording_passcode, created_at")
+      .eq("batch_id", currentBatch)
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("Unable to load recordings");
+      return;
+    }
+    setCapsules(data || []);
+  }
+
+  useEffect(() => {
+    setCapsules(undefined);
+    loadCapsules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentBatch]);
+
+  function setUpload(id, patch) {
+    setUploads((prev) => ({ ...prev, [id]: { ...(prev[id] || {}), ...patch } }));
+  }
+
+  // PUT straight to the signed upload URL so we get real progress events;
+  // uploadToSignedUrl (supabase-js 2.38 / storage-js 2.5.4) is the
+  // no-progress fallback if the XHR is blocked for any reason.
+  function putWithProgress(signedUrl, file, onPct) {
+    return new Promise((resolve, reject) => {
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", signedUrl, true);
+        xhr.setRequestHeader("x-upsert", "false");
+        if (file.type) xhr.setRequestHeader("Content-Type", file.type);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && e.total > 0) {
+            onPct(Math.round((e.loaded / e.total) * 100));
+          }
+        };
+        xhr.onload = () =>
+          xhr.status >= 200 && xhr.status < 300
+            ? resolve()
+            : reject(new Error("Upload failed (HTTP " + xhr.status + ")"));
+        xhr.onerror = () => reject(new Error("Upload failed — network error"));
+        xhr.send(file);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  async function uploadFor(capsule, file) {
+    if (!capsule || !file) return;
+    setUpload(capsule.id, { pct: 0, error: null });
+    try {
+      const headers = await getAuthHeaders();
+      const r = await fetch("/api/recordings/upload-url", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ classId: capsule.id, fileName: file.name }),
+      });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j?.path || !j?.token) {
+        throw new Error(j?.error || "Could not start upload");
+      }
+
+      try {
+        await putWithProgress(j.signedUrl, file, (pct) =>
+          setUpload(capsule.id, { pct })
+        );
+      } catch (_xhrErr) {
+        // no-progress fallback via supabase-js
+        setUpload(capsule.id, { pct: null });
+        const { error: upErr } = await supabase.storage
+          .from("recordings")
+          .uploadToSignedUrl(j.path, j.token, file);
+        if (upErr) throw new Error(upErr.message || "Upload failed");
+      }
+
+      const c = await fetch("/api/recordings/commit", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ classId: capsule.id, path: j.path }),
+      });
+      const cj = await c.json().catch(() => null);
+      if (!c.ok) throw new Error(cj?.error || "Could not save recording");
+
+      setUploads((prev) => {
+        const next = { ...prev };
+        delete next[capsule.id];
+        return next;
+      });
+      toast.success("Recording uploaded");
+      loadCapsules();
+    } catch (e) {
+      setUpload(capsule.id, { pct: undefined, error: e.message || "Upload failed" });
+      toast.error(e.message || "Upload failed");
+    }
+  }
+
+  function pickFile(capsule) {
+    pendingCapsuleRef.current = capsule;
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  }
+
+  const sourceChip = (capsule) => {
+    const src = recordingSource(capsule);
+    if (src === "STORAGE")
+      return (
+        <Chip size="sm" color="success" variant="flat">
+          STORAGE ✓
+        </Chip>
+      );
+    if (src === "ZOOM AUTO")
+      return (
+        <Chip size="sm" color="warning" variant="flat">
+          ZOOM AUTO
+        </Chip>
+      );
+    if (src === "LINK")
+      return (
+        <Chip size="sm" color="primary" variant="flat">
+          LINK
+        </Chip>
+      );
+    return (
+      <Chip size="sm" color="default" variant="flat">
+        NONE
+      </Chip>
+    );
+  };
+
+  return (
+    <div className="w-full mt-10 mb-8">
+      <h3 className="font-semibold text-lg text-gray-900 mb-1">Recordings</h3>
+      <p className="text-sm text-gray-500 mb-4">
+        These are the class capsules students see under Recordings. Upload a
+        video to serve it from private storage (takes precedence over any
+        link), or let &quot;Fetch recording links&quot; fill in Zoom share URLs.
+      </p>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files && e.target.files[0];
+          const capsule = pendingCapsuleRef.current;
+          pendingCapsuleRef.current = null;
+          if (file && capsule) uploadFor(capsule, file);
+        }}
+      />
+
+      {!capsules ? (
+        <div className="text-sm text-gray-500 py-4">Loading recordings…</div>
+      ) : capsules.length === 0 ? (
+        <div className="border-1 border-gray-100 bg-gray-100 rounded-xl text-gray-500 w-full px-4 py-6 text-sm">
+          No class capsules for this batch yet — they land here after each
+          live class.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {capsules.map((cap) => {
+            const up = uploads[cap.id];
+            const dateStr = cap.created_at
+              ? new Date(cap.created_at).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "—";
+            return (
+              <div
+                key={cap.id}
+                className="w-full rounded-lg bg-white border border-gray-200 px-4 py-3 flex items-center gap-3 flex-wrap"
+              >
+                <div className="flex-1 min-w-[200px]">
+                  <div className="font-medium text-sm text-gray-900">
+                    {cap.title || "Recorded class"}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {dateStr}
+                    {cap.recording_path
+                      ? " · " + cap.recording_path
+                      : cap.recording
+                      ? " · " +
+                        (cap.recording.length > 60
+                          ? cap.recording.slice(0, 60) + "…"
+                          : cap.recording)
+                      : ""}
+                  </div>
+                </div>
+                {sourceChip(cap)}
+                {up && up.error ? (
+                  <span className="text-xs text-danger">{up.error}</span>
+                ) : null}
+                {up && up.error == null ? (
+                  <span className="text-xs text-gray-600 tabular-nums">
+                    {up.pct == null ? "Uploading…" : "Uploading " + up.pct + "%"}
+                  </span>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    color="secondary"
+                    startContent={<Upload size={14} />}
+                    onPress={() => pickFile(cap)}
+                  >
+                    {recordingSource(cap) === "STORAGE"
+                      ? "Replace video"
+                      : "Upload video"}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

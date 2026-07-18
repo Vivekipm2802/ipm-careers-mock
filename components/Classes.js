@@ -15,7 +15,7 @@ import { supabase } from "@/utils/supabaseClient";
 import { getAuthHeaders } from "@/utils/authHeaders";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -54,6 +54,10 @@ export default function Classes() {
   const [userEmail, setUserEmail] = useState(null);
   const [reviewedIds, setReviewedIds] = useState(new Set());
   const [studyClass, setStudyClass] = useState(null); // history item currently open
+
+  // Ship A: this student's effective start date for the open batch
+  // (batch_admits.effective_start_date — null means no gating).
+  const [effectiveStart, setEffectiveStart] = useState(null);
 
   // Fetch user email directly (NMNContext might not have it on /demo)
   useEffect(() => {
@@ -162,11 +166,36 @@ export default function Classes() {
     if (data) setAttendance(data);
   }
 
+  // Ship A: the student's own admit row for this batch → start-date gate.
+  // Failure is silent: null start date = no filtering (backward compatible),
+  // and the real gate for the video itself lives in /api/recordings/play.
+  async function getEffectiveStart(a) {
+    setEffectiveStart(null);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.email) return;
+      const { data } = await supabase
+        .from("batch_admits")
+        .select("effective_start_date")
+        .eq("batch_id", a)
+        .ilike("student_id", user.email)
+        .limit(1);
+      if (data?.[0]?.effective_start_date) {
+        setEffectiveStart(data[0].effective_start_date);
+      }
+    } catch (_e) {
+      /* silent — no gating when the row can't be read */
+    }
+  }
+
   async function getHistory(a) {
+    getEffectiveStart(a);
     const { data, error } = await supabase
       .from("classes_history")
       .select(
-        "id, title, recording, notes_url, faculty_name, duration_seconds, created_at, batch_id"
+        "id, title, recording, recording_path, notes_url, faculty_name, duration_seconds, created_at, batch_id"
       )
       .eq("batch_id", a)
       .order("created_at", { ascending: false });
@@ -303,6 +332,7 @@ export default function Classes() {
               attendance={attendance}
               history={history}
               reviewedIds={reviewedIds}
+              effectiveStart={effectiveStart}
               isDemo={isDemo}
               onOpenStudy={(item) => setStudyClass(item)}
               onSwitchTab={(tab) => {
@@ -324,6 +354,7 @@ export default function Classes() {
           {studyClass && (
             <StudyView
               item={studyClass}
+              userEmail={userEmail}
               isReviewed={reviewedIds.has(studyClass.id)}
               onToggleReview={() => toggleReview(studyClass.id)}
               onBack={() => setStudyClass(null)}
@@ -553,6 +584,7 @@ function InnerBatchView({
   attendance,
   history,
   reviewedIds,
+  effectiveStart,
   isDemo,
   onOpenStudy,
   onSwitchTab,
@@ -599,6 +631,7 @@ function InnerBatchView({
         <HistoryPane
           history={history}
           reviewedIds={reviewedIds}
+          effectiveStart={effectiveStart}
           onOpenStudy={onOpenStudy}
         />
       )}
@@ -782,7 +815,22 @@ function ClassRow({ classItem, attended }) {
 // ============================================================
 // HistoryPane — recordings list, now Class Capsules
 // ============================================================
-function HistoryPane({ history, reviewedIds, onOpenStudy }) {
+function HistoryPane({ history, reviewedIds, effectiveStart, onOpenStudy }) {
+  // Ship A: hide capsules dated before the student's effective start
+  // date (null = show everything). The server enforces the same rule
+  // in /api/recordings/play — this is just the honest UI for it.
+  const visible = Array.isArray(history)
+    ? history.filter(
+        (h) =>
+          !effectiveStart ||
+          !h?.created_at ||
+          String(h.created_at).slice(0, 10) >= String(effectiveStart).slice(0, 10),
+      )
+    : history;
+  const hiddenCount = Array.isArray(history)
+    ? history.length - visible.length
+    : 0;
+
   return (
     <>
       <div style={{ ...eyebrowStyle, marginBottom: 6 }}>Recordings</div>
@@ -797,24 +845,96 @@ function HistoryPane({ history, reviewedIds, onOpenStudy }) {
         Catch up on <span style={serifStyle}>past</span> sessions.
       </h2>
 
-      {history && history.length > 0 ? (
-        history.map((h) => (
-          <CapsuleRow
-            key={h.id || h.created_at}
-            item={h}
-            isReviewed={reviewedIds?.has(h.id)}
-            onClick={() => onOpenStudy(h)}
-          />
-        ))
-      ) : history?.length === 0 ? (
-        <EmptyState
-          title="No recordings yet"
-          body="When a live class ends, the recording will land here within a few hours."
-        />
+      {Array.isArray(history) ? (
+        <>
+          {visible.map((h) => (
+            <CapsuleRow
+              key={h.id || h.created_at}
+              item={h}
+              isReviewed={reviewedIds?.has(h.id)}
+              onClick={() => onOpenStudy(h)}
+            />
+          ))}
+          {visible.length === 0 && hiddenCount === 0 && (
+            <EmptyState
+              title="No recordings yet"
+              body="When a live class ends, the recording will land here within a few hours."
+            />
+          )}
+          {hiddenCount > 0 && <LockedHistoryRow date={effectiveStart} />}
+        </>
       ) : (
         <Spinner />
       )}
     </>
+  );
+}
+
+// Ship A: single collapsed row standing in for all pre-start-date classes.
+function LockedHistoryRow({ date }) {
+  let pretty = String(date || "");
+  try {
+    const d = new Date(String(date));
+    if (!isNaN(d.getTime())) {
+      pretty = d.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    }
+  } catch (_e) {}
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 18,
+        padding: "18px 22px",
+        background: "transparent",
+        border: "1px dashed var(--c-border-soft)",
+        borderRadius: 14,
+        marginBottom: 12,
+      }}
+    >
+      <span
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          background: "var(--c-bg-elev)",
+          border: "1px solid var(--c-border-faint)",
+          display: "grid",
+          placeItems: "center",
+          color: "var(--c-text-tertiary)",
+          flexShrink: 0,
+        }}
+      >
+        <Lock size={16} />
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h4
+          style={{
+            margin: "0 0 4px",
+            fontSize: 15,
+            fontWeight: 600,
+            letterSpacing: "-0.012em",
+            color: "var(--c-text-secondary)",
+          }}
+        >
+          Classes before {pretty}
+        </h4>
+        <div
+          style={{
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: "var(--c-text-tertiary)",
+          }}
+        >
+          Your plan starts from your join date — earlier recordings aren&apos;t
+          part of it. Think this is wrong? Ask your counsellor.
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1016,8 +1136,41 @@ function MiniBadge({ tone, children }) {
 // ============================================================
 // StudyView — split-pane: video left, notes right, Reviewed toggle on top
 // ============================================================
-function StudyView({ item, isReviewed, onToggleReview, onBack }) {
+function StudyView({ item, userEmail, isReviewed, onToggleReview, onBack }) {
   const dt = item.created_at ? CtoLocal(item.created_at) : null;
+
+  // Ship A: ask the server how this capsule should be played.
+  //   'signed' → private storage upload, short-lived signed URL, <video>
+  //   'link'   → external URL (Zoom share / Drive / YT), embed as before
+  //   'fallback' → API unavailable/denied — old behaviour (item.recording)
+  const [playback, setPlayback] = useState({ status: "loading" });
+  useEffect(() => {
+    let alive = true;
+    setPlayback({ status: "loading" });
+    (async () => {
+      try {
+        const headers = await getAuthHeaders();
+        const r = await fetch("/api/recordings/play", {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ classId: item.id }),
+        });
+        const j = await r.json().catch(() => null);
+        if (!alive) return;
+        if (r.ok && j && (j.type === "signed" || j.type === "link")) {
+          setPlayback({ status: "ready", ...j });
+        } else {
+          setPlayback({ status: "fallback" });
+        }
+      } catch (_e) {
+        if (alive) setPlayback({ status: "fallback" });
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [item.id]);
+
   const recordingSrc = item.recording ? buildEmbed(item.recording) : null;
 
   return (
@@ -1136,6 +1289,7 @@ function StudyView({ item, isReviewed, onToggleReview, onBack }) {
         <div>
           <div
             style={{
+              position: "relative",
               background: "#000",
               borderRadius: 16,
               aspectRatio: "16 / 9",
@@ -1146,7 +1300,33 @@ function StudyView({ item, isReviewed, onToggleReview, onBack }) {
               color: "rgba(255,255,255,0.5)",
             }}
           >
-            {recordingSrc ? (
+            {playback.status === "loading" ? (
+              <span>Loading recording…</span>
+            ) : playback.status === "ready" && playback.type === "signed" ? (
+              <>
+                <video
+                  controls
+                  playsInline
+                  controlsList="nodownload"
+                  src={playback.url}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    display: "block",
+                  }}
+                />
+                <Watermark text={userEmail} />
+              </>
+            ) : playback.status === "ready" && playback.type === "link" ? (
+              <iframe
+                src={buildEmbed(playback.url)}
+                title={item.title || "Class recording"}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ width: "100%", height: "100%", border: 0 }}
+              />
+            ) : recordingSrc ? (
               <iframe
                 src={recordingSrc}
                 title={item.title || "Class recording"}
@@ -1158,6 +1338,28 @@ function StudyView({ item, isReviewed, onToggleReview, onBack }) {
               <span>No recording URL on this class</span>
             )}
           </div>
+          {playback.status === "ready" &&
+            playback.type === "link" &&
+            playback.passcode && (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 12.5,
+                  color: "var(--c-text-secondary)",
+                }}
+              >
+                Passcode:{" "}
+                <b
+                  style={{
+                    color: "var(--c-text-primary)",
+                    fontVariantNumeric: "tabular-nums",
+                    userSelect: "all",
+                  }}
+                >
+                  {playback.passcode}
+                </b>
+              </div>
+            )}
         </div>
 
         {/* Notes panel */}
@@ -1535,6 +1737,45 @@ function Spinner() {
 // ============================================================
 // Phase 23 Ship B helpers
 // ============================================================
+
+// Ship A: faint identity watermark over storage-served videos.
+// Hops to a random corner every ~40s so it can't be cropped out once.
+function Watermark({ text }) {
+  const corners = [
+    { top: 14, left: 16 },
+    { top: 14, right: 16 },
+    { bottom: 20, left: 16 },
+    { bottom: 20, right: 16 },
+  ];
+  const [corner, setCorner] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCorner(Math.floor(Math.random() * corners.length));
+    }, 40000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  if (!text) return null;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        ...corners[corner % corners.length],
+        opacity: 0.18,
+        fontSize: 12,
+        fontWeight: 500,
+        letterSpacing: "0.02em",
+        color: "white",
+        pointerEvents: "none",
+        userSelect: "none",
+        zIndex: 2,
+        textShadow: "0 1px 2px rgba(0,0,0,0.6)",
+      }}
+    >
+      {text}
+    </div>
+  );
+}
 
 function formatDurationLong(seconds) {
   if (!seconds || seconds <= 0) return "";

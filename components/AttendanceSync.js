@@ -22,6 +22,7 @@ import {
   Link2,
   UserRoundSearch,
   KeyRound,
+  Film,
 } from "lucide-react";
 
 const card = {
@@ -155,6 +156,8 @@ export default function AttendanceSync() {
   const [fromDate, setFromDate] = useState(() => isoDay(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const [toDate, setToDate] = useState(() => isoDay(Date.now()));
   const [sync, setSync] = useState({ active: false, sessions: 0, records: 0, unmatched: 0, error: null, notes: [] });
+  // Ship A: fetch-recording-links state (same card, own status line)
+  const [recFetch, setRecFetch] = useState({ active: false, found: null, linked: 0, skipped: 0, error: null, notes: [] });
   const [absentSessionId, setAbsentSessionId] = useState(undefined);
   const [assigning, setAssigning] = useState(undefined); // record/session id mid-post
   const [searches, setSearches] = useState({}); // recordId → picker search text
@@ -269,6 +272,46 @@ export default function AttendanceSync() {
     }
     stopRef.current = false;
     loadData(selBatch, fromDate, toDate);
+  };
+
+  // Ship A: pull Zoom cloud-recording share links into classes_history
+  // over the same date range as the attendance sync.
+  const runFetchRecordings = async () => {
+    if (recFetch.active) return;
+    setRecFetch({ active: true, found: null, linked: 0, skipped: 0, error: null, notes: [] });
+    try {
+      const headers = (await getAuthHeaders()) || {};
+      const r = await fetch("/api/recordings/fetch-zoom", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ from: fromDate, to: toDate }),
+      });
+      let j = null;
+      try {
+        j = await r.json();
+      } catch (e) {
+        j = null;
+      }
+      if (!r.ok || !j) {
+        setRecFetch((p) => ({ ...(p || {}), active: false, error: (j && j.error) || "Fetch failed — try again." }));
+        return;
+      }
+      if (j.configured === false) {
+        setRecFetch({ active: false, found: null, linked: 0, skipped: 0, error: j.message || "Zoom not configured yet.", notes: [] });
+        return;
+      }
+      setRecFetch({
+        active: false,
+        found: Number(j.found) || 0,
+        linked: Number(j.linked) || 0,
+        skipped: Number(j.skipped) || 0,
+        error: null,
+        notes: Array.isArray(j.notes) ? j.notes.slice(0, 6) : [],
+      });
+      toast.success("Linked " + (Number(j.linked) || 0) + " recordings");
+    } catch (e) {
+      setRecFetch((p) => ({ ...(p || {}), active: false, error: "Network hiccup — try Fetch again." }));
+    }
   };
 
   const assignRecord = async (rec, email) => {
@@ -440,6 +483,15 @@ export default function AttendanceSync() {
           <button type="button" onClick={() => loadData(selBatch, fromDate, toDate)} style={ghostBtn}>
             Refresh
           </button>
+          <button
+            type="button"
+            onClick={runFetchRecordings}
+            disabled={!!recFetch.active || configured === false}
+            style={{ ...ghostBtn, opacity: recFetch.active || configured === false ? 0.55 : 1, cursor: recFetch.active || configured === false ? "default" : "pointer" }}
+          >
+            <Film size={13} />
+            {recFetch.active ? "Fetching recording links…" : "Fetch recording links"}
+          </button>
         </div>
         {syncState.active || syncState.sessions ? (
           <div className="mt-3" style={{ fontSize: 13, color: "var(--c-text-secondary)" }}>
@@ -455,6 +507,24 @@ export default function AttendanceSync() {
         {Array.isArray(syncState.notes) && syncState.notes.length ? (
           <div className="mt-2" style={{ fontSize: 12, color: "var(--c-text-tertiary)", lineHeight: 1.6 }}>
             {syncState.notes.map((n, i) => (
+              <div key={i}>{String(n)}</div>
+            ))}
+          </div>
+        ) : null}
+        {recFetch.active || recFetch.found != null ? (
+          <div className="mt-3" style={{ fontSize: 13, color: "var(--c-text-secondary)" }}>
+            <b style={{ color: "var(--c-text-primary)" }}>{Number(recFetch.found) || 0}</b> recordings found ·{" "}
+            <b style={{ color: "var(--c-text-primary)" }}>{Number(recFetch.linked) || 0}</b> linked to capsules ·{" "}
+            <b style={{ color: "var(--c-brand-gold)" }}>{Number(recFetch.skipped) || 0}</b> skipped
+            {recFetch.active ? " — still fetching…" : " — done."}
+          </div>
+        ) : null}
+        {recFetch.error ? (
+          <div className="mt-3" style={{ fontSize: 13, color: "var(--c-danger)" }}>{recFetch.error}</div>
+        ) : null}
+        {Array.isArray(recFetch.notes) && recFetch.notes.length ? (
+          <div className="mt-2" style={{ fontSize: 12, color: "var(--c-text-tertiary)", lineHeight: 1.6 }}>
+            {recFetch.notes.map((n, i) => (
               <div key={i}>{String(n)}</div>
             ))}
           </div>

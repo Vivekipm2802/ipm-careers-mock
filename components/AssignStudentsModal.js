@@ -50,9 +50,24 @@ export default function AssignStudentsModal({
   filterUser,
   assignStudents,
   removeFromBatch,
+  updateAdmitStartDate,
   currentBatch,
 }) {
   const PAGE_SIZE = 50;
+
+  // Ship A: tiny "saved ✓" flash per batch_admits row after a start-date
+  // update lands.
+  const [savedFlash, setSavedFlash] = React.useState({});
+  const flashSaved = React.useCallback((admitId) => {
+    setSavedFlash((prev) => ({ ...prev, [admitId]: true }));
+    setTimeout(() => {
+      setSavedFlash((prev) => {
+        const next = { ...prev };
+        delete next[admitId];
+        return next;
+      });
+    }, 1600);
+  }, []);
 
   const [fetchedStudents, setFetchedStudents] = React.useState([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -365,27 +380,54 @@ export default function AssignStudentsModal({
                   }}
                 >
                   {selectedStudentsSorted.map((s) => {
-                    const alreadyAssigned = currentStudents?.some(
+                    const admit = currentStudents?.find(
                       (item) => item.student_id === s
                     );
+                    const alreadyAssigned = !!admit;
                     return (
-                      <Checkbox value={s} key={s}>
-                        {s}{" "}
-                        {alreadyAssigned && localSelected.includes(s) && (
-                          <Chip
-                            size="sm"
-                            color="danger"
-                            onClick={() => {
-                              const found = currentStudents?.find(
-                                (item) => item.student_id == s
-                              );
-                              if (found) removeFromBatch(found.id);
-                            }}
-                          >
-                            Remove
-                          </Chip>
+                      <div
+                        key={s}
+                        className="flex items-center gap-2 flex-wrap py-0.5"
+                      >
+                        <Checkbox value={s}>
+                          {s}{" "}
+                          {alreadyAssigned && localSelected.includes(s) && (
+                            <Chip
+                              size="sm"
+                              color="danger"
+                              onClick={() => {
+                                if (admit) removeFromBatch(admit.id);
+                              }}
+                            >
+                              Remove
+                            </Chip>
+                          )}
+                        </Checkbox>
+                        {alreadyAssigned && (
+                          <span className="flex items-center gap-1 ml-auto">
+                            <input
+                              type="date"
+                              title="Effective start date — recordings before this date stay hidden for this student (empty = no limit)"
+                              className="text-xs border border-default-200 rounded-md px-1.5 py-0.5 text-default-600 bg-transparent"
+                              value={admit.effective_start_date || ""}
+                              onChange={async (e) => {
+                                const ok = await Promise.resolve(
+                                  updateAdmitStartDate?.(
+                                    admit.id,
+                                    e.target.value
+                                  )
+                                );
+                                if (ok) flashSaved(admit.id);
+                              }}
+                            />
+                            {savedFlash[admit.id] && (
+                              <span className="text-success text-xs font-semibold">
+                                ✓
+                              </span>
+                            )}
+                          </span>
                         )}
-                      </Checkbox>
+                      </div>
                     );
                   })}
                 </CheckboxGroup>

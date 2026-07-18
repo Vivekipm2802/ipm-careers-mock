@@ -139,6 +139,26 @@ export default function BatchCreator() {
     }
   }
 
+  // Ship A: per-student effective start date (batch_admits row id + date
+  // string or "" to clear). Recordings before this date are hidden for
+  // that student; null means no gating.
+  async function updateAdmitStartDate(admitId, value) {
+    const { error } = await supabase
+      .from("batch_admits")
+      .update({ effective_start_date: value || null })
+      .eq("id", admitId);
+    if (error) {
+      toast.error("Could not save start date");
+      return false;
+    }
+    setCurrentStudents((prev) =>
+      (prev || []).map((s) =>
+        s?.id === admitId ? { ...s, effective_start_date: value || null } : s
+      )
+    );
+    return true;
+  }
+
   async function removeFromBatch(a) {
     const { error } = await supabase.from("batch_admits").delete().eq("id", a);
     if (!error) {
@@ -615,6 +635,7 @@ export default function BatchCreator() {
         filterUser={filterUser}
         assignStudents={assignStudents}
         removeFromBatch={removeFromBatch}
+        updateAdmitStartDate={updateAdmitStartDate}
         currentBatch={currentBatch}
       />
     </div>
