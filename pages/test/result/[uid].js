@@ -75,15 +75,12 @@ const ResultPage = ({ result, questions: ssrQuestions, leaderboard }) => {
     return delta >= 0 ? delta : 0;
   }
 
-  if (!result || !questions) {
-    return (
-      <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", height: "100vh", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
-        Loading…
-      </div>
-    );
-  }
-
-  const report = result.report || [];
+  // NOTE: the "Loading…" early return lives BELOW every hook (see after
+  // timeTakenMin). Returning before useMemo while questions stream in
+  // client-side changed the hook count between renders and crashed the
+  // whole review page ("Rendered more hooks than during the previous
+  // render") the moment the questions arrived.
+  const report = result?.report || [];
   const increment = result?.config?.increment ?? 4;
   const decrement = result?.config?.decrement ?? 1;
   const score = useMemo(() => {
@@ -103,7 +100,7 @@ const ResultPage = ({ result, questions: ssrQuestions, leaderboard }) => {
 
   const correctCount = report.filter((item) => item.isCorrect === true).length;
   const wrongCount = report.filter((item) => item.isCorrect === false).length;
-  const totalQ = questions.length;
+  const totalQ = (questions || []).length;
   const skippedCount = Math.max(0, totalQ - correctCount - wrongCount);
   const attempted = correctCount + wrongCount;
   const accuracy = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
@@ -120,6 +117,16 @@ const ResultPage = ({ result, questions: ssrQuestions, leaderboard }) => {
     const maxT = report.reduce((m, r) => (typeof r.timestamp === "number" && r.timestamp > m ? r.timestamp : m), 0);
     return Math.round(maxT / 60);
   }, [report, result]);
+
+  // All hooks above this line — safe to bail out now.
+  if (!result || !questions) {
+    return (
+      <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", height: "100vh", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
+        Loading…
+      </div>
+    );
+  }
+
   const testTitle = result?.test_uuid?.parent?.title || result?.test_uuid?.title || "Concept test";
 
   function printPage() { window.print(); }
