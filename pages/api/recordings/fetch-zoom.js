@@ -120,6 +120,7 @@ export default async function handler(req, res) {
               meeting_id: m.id != null ? String(m.id) : "",
               topic: m.topic || "",
               start_time: m.start_time || null,
+              duration_min: Number.isFinite(Number(m.duration)) ? Number(m.duration) : null,
               share_url: m.share_url,
               passcode: extractPasscode(m),
             });
@@ -181,8 +182,37 @@ export default async function handler(req, res) {
       const candidates = (capsulesByBatch[batchId] || []).filter((c) => !takenCapsules.has(c.id));
       const capsule = pickCapsuleForMeeting(m.start_time, candidates);
       if (!capsule) {
-        skipped++;
-        notes.push(`"${m.topic || m.meeting_id}": no linkable capsule in batch ${batchId} near ${String(m.start_time || "").slice(0, 10)} (manual links are never overwritten).`);
+        // No capsule near this date → CREATE one so the recording reaches
+        // students with zero staff action. (Manual capsules, when they
+        // exist, still win via pickCapsuleForMeeting above; this branch
+        // only fires when the team never made one.)
+        const { data: created, error: insErr } = await serversupabase
+          .from("classes_history")
+          .insert({
+            batch_id: batchId,
+            title: m.topic || "Class recording",
+            recording: m.share_url,
+            recording_passcode: m.passcode,
+            duration_seconds: m.duration_min != null ? m.duration_min * 60 : null,
+            created_at: m.start_time || undefined,
+          })
+          .select("id")
+          .single();
+        if (insErr) {
+          skipped++;
+          notes.push(`"${m.topic || m.meeting_id}": capsule create failed — ${insErr.message}`);
+          continue;
+        }
+        if (created && created.id != null) takenCapsules.add(created.id);
+        (capsulesByBatch[batchId] = capsulesByBatch[batchId] || []).push({
+          id: created && created.id,
+          batch_id: batchId,
+          recording: m.share_url,
+          recording_path: null,
+          created_at: m.start_time,
+        });
+        notes.push(`"${m.topic || m.meeting_id}": capsule created for batch ${batchId} (${String(m.start_time || "").slice(0, 10)}).`);
+        linked++;
         continue;
       }
       const { error: upErr } = await serversupabase
