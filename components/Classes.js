@@ -192,6 +192,35 @@ export default function Classes() {
 
   async function getHistory(a) {
     getEffectiveStart(a);
+    // Preferred path: server-side list (service role + case-insensitive
+    // membership). The direct classes_history read below stays as a
+    // fallback, but it depends on an RLS chain (check_admin / teacher
+    // role / enrollments) with case-sensitive email checks that silently
+    // hides capsules from some students.
+    try {
+      const headers = await getAuthHeaders();
+      const r = await fetch("/api/recordings/list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({ batchId: a }),
+      });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && Array.isArray(j.capsules)) {
+          setHistory(j.capsules);
+          if (j.effectiveStart) setEffectiveStart(j.effectiveStart);
+          if (userEmail && j.capsules.length > 0) {
+            getReviewedIds(
+              userEmail,
+              j.capsules.map((h) => h.id),
+            );
+          }
+          return;
+        }
+      }
+    } catch (_e) {
+      /* fall through to the direct read */
+    }
     const { data, error } = await supabase
       .from("classes_history")
       .select(
