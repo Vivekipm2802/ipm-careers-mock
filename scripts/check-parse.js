@@ -44,6 +44,10 @@ const files = [
   "components/BadgeVault.js",
   "components/DSBChallenge.js",
   "pages/index.js",
+  // 2026-08 four-fix pass: sidebar flow, topics search/grid,
+  // vault 7-tile cap, due-count reconcile
+  "components/Navbar.js",
+  "components/MistakeVault.js",
 ];
 
 let failed = 0;

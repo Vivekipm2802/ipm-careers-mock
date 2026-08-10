@@ -61,23 +61,19 @@ export function vaultSummary(badges) {
   return { total: badges.length, unlockedCount: unlocked.length, rarest, next };
 }
 
-// Pure: the compact shelf — every unlocked badge + the N closest locked ones.
-export function compactShelf(badges, lockedCount = 4) {
+// Pure: the shelf — EXACTLY `size` tiles (2026-08 hard cap, owner call:
+// only 7 tiles, no expansion). Unlocked badges first (list order),
+// then the closest locked ones fill the remaining slots.
+export function compactShelf(badges, size = 7) {
   const unlocked = badges.filter((b) => b.unlocked);
   const closest = badges
     .filter((b) => !b.unlocked)
-    .sort((a, b) => b.progress.cur / b.progress.max - a.progress.cur / a.progress.max)
-    .slice(0, lockedCount);
-  return [...unlocked, ...closest];
+    .sort((a, b) => b.progress.cur / b.progress.max - a.progress.cur / a.progress.max);
+  return [...unlocked, ...closest].slice(0, size);
 }
 
-export default function BadgeVault({ userData, totalXp, onExpandChange }) {
+export default function BadgeVault({ userData, totalXp }) {
   const [stats, setStats] = useState(null);
-  const [showAll, setShowAllRaw] = useState(false);
-  const setShowAll = (v) => {
-    setShowAllRaw(v);
-    if (onExpandChange) onExpandChange(typeof v === "function" ? v(showAll) : v);
-  };
 
   useEffect(() => {
     if (!userData?.email) return;
@@ -91,10 +87,9 @@ export default function BadgeVault({ userData, totalXp, onExpandChange }) {
   const badges = computeBadges(stats, totalXp);
   const summary = vaultSummary(badges);
 
-  // ── One card, one grid (2026-08 cap): the compact shelf of small
-  // tiles; "View full vault" wraps MORE tiles into the same grid —
-  // the old elongated sectioned list is gone for good. ──
-  const shelf = showAll ? badges : compactShelf(badges);
+  // ── One card, one grid, exactly 7 tiles (2026-08 hard cap):
+  // no "View full vault", no expanded mode — the shelf IS the vault. ──
+  const shelf = compactShelf(badges);
   return (
     <div className="rounded-[16px] border p-6" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)", flexShrink: 0 }}>
       <div className="ds-display" style={{ fontSize: 19 }}>Your vault</div>
@@ -122,14 +117,6 @@ export default function BadgeVault({ userData, totalXp, onExpandChange }) {
           </div>
         ))}
       </div>
-      <button
-        type="button"
-        onClick={() => setShowAll(!showAll)}
-        className="mt-4"
-        style={{ background: "none", border: "none", padding: 0, fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}
-      >
-        {showAll ? "Show less" : `View full vault (${summary.total} badges) →`}
-      </button>
     </div>
   );
 }

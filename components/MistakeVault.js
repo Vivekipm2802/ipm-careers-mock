@@ -771,7 +771,7 @@ export default function MistakeVault({ userData }) {
   const insight = insightFor(withState);
 
   return (
-    <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
+    <div className="w-full flex flex-col pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
       {/* ══ HOME ══ */}
       {phase === "home" && (
         <>
@@ -910,10 +910,19 @@ export default function MistakeVault({ userData }) {
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 15.5, fontWeight: 600 }}>Today&apos;s redo</div>
                   <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 3 }}>
+                    {/* 2026-08 reconcile fix: `due` is the ONE source of truth
+                        for "due today" (vaultState per item) — the chapter
+                        chips sum to due.length. The session stays capped at
+                        DAILY_CAP, so when a backlog exists the copy says so
+                        honestly instead of pretending only n are due. */}
                     {n > 0
-                      ? `${n} ${n === 1 ? "question" : "questions"} due · about ${minutesFor(n)} ${minutesFor(n) === 1 ? "minute" : "minutes"} · ${due.length > n ? "clears the backlog on its own" : "then you're clear"}`
+                      ? due.length > n
+                        ? `Starting with ${n} of ${due.length} due today · about ${minutesFor(n)} ${minutesFor(n) === 1 ? "minute" : "minutes"} · the backlog clears day by day`
+                        : `${n} ${n === 1 ? "question" : "questions"} due · about ${minutesFor(n)} ${minutesFor(n) === 1 ? "minute" : "minutes"} · then you're clear`
                       : redosToday >= DAILY_CAP
-                        ? "Done for today — the vault rests."
+                        ? due.length > 0
+                          ? `Done for today — ${due.length} still due, back on the list tomorrow.`
+                          : "Done for today — the vault rests."
                         : "Nothing due — the vault is calm."}
                   </div>
                 </div>

@@ -1,18 +1,19 @@
 // ============================================================
 // ConceptTestStudent — Concept practice, INNER topics page.
-// 2026-08 approved preview 2 (preview-concept-pages.html),
-// adapted to topics within a collection:
-//   · left sticky filter panel (Status / Difficulty checkboxes,
-//     collapsible, counts right-aligned, Clear all) — replaces
-//     the horizontal chips row;
-//   · "Continue" protagonist card (ring + "k of n tests done ·
-//     next: {level}" + gold-gradient Resume straight into the
-//     next unattempted test);
-//   · "Suggested for you" group (weak topics: ≥2 tests under a
-//     50% pass rate — scores reason only on this page);
-//   · "All topics" compact rows (36px mini ring, one fact line,
-//     Start / Continue / Review actions). Row click opens the
-//     topic's test drawer exactly as the old card tap did.
+// 2026-08 approved preview (preview-topics-v6.html): the topics
+// page deliberately mirrors the collections page's SectionRow
+// card grammar — same 16-radius card, 38px tinted initial tile,
+// serif count, 4px coverage bar, quiet foot line:
+//   · single column — no left filter panel, no in-card search;
+//   · Continue banner (gold-tint play tile + "k of n done ·
+//     next: {level} · you left it {ago}" + gold-gradient Resume
+//     straight into the next unattempted test);
+//   · search pill + ONE "Status: All" PillDropdown;
+//   · "Suggested for you" card grid (weak topics — scores reason
+//     only on this page; Vault data isn't fetched here);
+//   · "All topics · N" card grid, tile tints rotating gold /
+//     info / violet (mastered = success, suggested = danger).
+// Card click opens the topic's test drawer exactly as before.
 // Admin role still uses the existing Concept component; the
 // drawer keeps the admin Preview affordance.
 // ============================================================
@@ -21,9 +22,10 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/utils/supabaseClient";
 import { useNMNContext } from "@/components/NMNContext";
 import { useRouter } from "next/router";
-import { ArrowLeft, ChevronDown, ChevronRight, X } from "lucide-react";
+import { ArrowLeft, ChevronRight, Search, X } from "lucide-react";
 import { CircularProgress } from "@nextui-org/react";
 import PageHeader from "@/components/PageHeader";
+import PillDropdown from "@/components/ui/PillDropdown";
 
 // ── Difficulty band from a sub-level (m_category) title ──
 function diffBandOf(title) {
@@ -36,6 +38,57 @@ function diffBandOf(title) {
 const DIFF_ORDER = ["easy", "moderate", "hard"];
 const DIFF_LABEL = { easy: "Easy", moderate: "Moderate", hard: "Difficult" };
 
+// ── Human-readable "X ago" (same helper as the collections page) ──
+function timeAgo(dateString) {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMs / 3600000);
+  const diffDay = Math.floor(diffMs / 86400000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin} min ago`;
+  if (diffHr < 24) return `${diffHr} ${diffHr === 1 ? "hour" : "hours"} ago`;
+  if (diffDay < 7) return `${diffDay} ${diffDay === 1 ? "day" : "days"} ago`;
+  if (diffDay < 30) return `${Math.floor(diffDay / 7)} ${Math.floor(diffDay / 7) === 1 ? "week" : "weeks"} ago`;
+  return `${Math.floor(diffDay / 30)} ${Math.floor(diffDay / 30) === 1 ? "month" : "months"} ago`;
+}
+
+// ── 2-letter initial for the tile (same logic as sectionAbbrev
+//    on the collections page, applied to the topic title) ──
+function topicAbbrev(title) {
+  const t = String(title || "??").trim();
+  const words = t.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return t.slice(0, 2).toUpperCase();
+}
+
+// Tile tints — the portal palette the collections page uses, plus
+// success (mastered) and danger (suggested). The gold/info/violet
+// trio rotates deterministically by the topic's position in the
+// collection so tints never shuffle between renders.
+const TILE_TINTS = {
+  gold: { bg: "var(--c-brand-gold-tint)", fg: "var(--c-brand-gold)" },
+  info: { bg: "var(--c-info-soft)", fg: "var(--c-info)" },
+  violet: {
+    bg: "rgba(151,113,224,0.14)" /* violet tint — no portal var; reads on light + dark */,
+    fg: "rgba(151,113,224,1)" /* violet — approved-preview accent, no portal var */,
+  },
+  success: { bg: "var(--c-success-soft)", fg: "var(--c-success)" },
+  danger: { bg: "var(--c-danger-soft)", fg: "var(--c-danger)" },
+};
+const TINT_ROTATION = ["gold", "info", "violet"];
+
+const STATUS_OPTIONS = [
+  { value: null, label: "All" },
+  { value: "suggested", label: "Suggested" },
+  { value: "in-progress", label: "In progress" },
+  { value: "untouched", label: "Not started" },
+  { value: "completed", label: "Completed" },
+  { value: "mastered", label: "Mastered" },
+];
+
 export default function ConceptTestStudent({ group, onBack, role, initialCat }) {
   const [categories, setCategories] = useState();
   const [gamecategories, setGameCategories] = useState();
@@ -45,9 +98,10 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
   const [activeLevel, setActiveLevel] = useState(null); // selected m_category (difficulty sub-level)
   const [levelData, setLevelData] = useState(null);
   const [plays, setPlays] = useState({}); // test_uuid -> { uid, score, isPassed, created_at }
-  const [statusSel, setStatusSel] = useState(new Set()); // multi-select; empty = all
-  const [diffSel, setDiffSel] = useState(new Set());     // multi-select; empty = all
-  const [collapsed, setCollapsed] = useState({});        // panel section -> bool
+  const [statusFilter, setStatusFilter] = useState(null); // null = All (single-select pill)
+  // Live search over both grids — hook stays ABOVE the loading
+  // early return (hooks-order rule).
+  const [topicQuery, setTopicQuery] = useState("");
   const { userDetails } = useNMNContext();
   const router = useRouter();
   const isAdmin = role === "admin";
@@ -146,10 +200,13 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
       const pct = testCount > 0 ? Math.round((attemptedCount / testCount) * 100) : 0;
       let state = "untouched";
       if (attemptedCount > 0) {
-        // "Mastered" = all tests attempted (regardless of pass/fail).
-        // Pass rate is a separate quality signal we surface elsewhere.
-        if (attemptedCount === testCount && testCount > 0) state = "mastered";
-        else state = "in-progress";
+        // 2026-08 owner fix: "Mastered" must be EARNED — all tests
+        // attempted AND passed. All-attempted-but-not-passed is
+        // "completed" (shows honestly as needing revision; a topic can
+        // never read Mastered while sitting in Suggested).
+        if (attemptedCount === testCount && testCount > 0) {
+          state = passedCount === testCount ? "mastered" : "completed";
+        } else state = "in-progress";
       }
       // Weak — suggested: meaningfully attempted, under a 50% pass rate
       // (same heuristic as the collections page "Weak areas" KPI).
@@ -159,39 +216,27 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
     return map;
   }, [categories, gamecategories, levelsByMCat, plays]);
 
-  // ── Panel counts ──
+  // ── Status counts for the dropdown ──
   const counts = useMemo(() => {
-    const c = { suggested: 0, "in-progress": 0, untouched: 0, mastered: 0, easy: 0, moderate: 0, hard: 0 };
+    const c = { suggested: 0, "in-progress": 0, untouched: 0, completed: 0, mastered: 0 };
     Object.values(topicModel).forEach(p => {
       if (p.weak) c.suggested++;
       c[p.state]++;
-      p.bands.forEach(b => { c[b]++; });
     });
     return c;
   }, [topicModel]);
 
-  // Difficulty section only appears when the tests carry those levels.
-  const hasDifficulty = useMemo(
-    () => Object.values(topicModel).some(p => p.bands.size > 0),
-    [topicModel]
-  );
-
-  // ── Filtered topics (empty selection = everything) ──
+  // ── Status-filtered topics for the All-topics grid ──
   const visibleCategories = useMemo(() => {
     if (!categories) return [];
+    if (!statusFilter) return categories;
     return categories.filter(cat => {
       const p = topicModel[cat.id];
-      if (!p) return statusSel.size === 0 && diffSel.size === 0;
-      const statusOk =
-        statusSel.size === 0 ||
-        statusSel.has(p.state) ||
-        (statusSel.has("suggested") && p.weak);
-      const diffOk =
-        diffSel.size === 0 ||
-        Array.from(p.bands).some(b => diffSel.has(b));
-      return statusOk && diffOk;
+      if (!p) return false;
+      if (statusFilter === "suggested") return p.weak;
+      return p.state === statusFilter;
     });
-  }, [categories, topicModel, statusSel, diffSel]);
+  }, [categories, topicModel, statusFilter]);
 
   // ── Protagonist: most recently practised in-progress topic ──
   const continueTopic = useMemo(() => {
@@ -253,30 +298,59 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
     );
   }
 
-  const anyFilter = statusSel.size > 0 || diffSel.size > 0;
-  function toggleIn(set, setter, key) {
-    const next = new Set(set);
-    if (next.has(key)) next.delete(key); else next.add(key);
-    setter(next);
-  }
+  // live search over both grids (plain derivation — no hook, so the
+  // early return above stays safe)
+  const q = topicQuery.trim().toLowerCase();
+  const matchesQuery = (cat) => !q || String(cat.title || "").toLowerCase().includes(q);
+  const searchedSuggested = suggestedTopics.filter(matchesQuery);
+  const searchedCategories = visibleCategories.filter(matchesQuery);
 
-  // Fact line for an All-topics row.
-  function factLine(p) {
+  // Stable tint index per topic — position in the FULL collection,
+  // so filtering/search never reshuffles a card's colour.
+  const tintKeyByCat = {};
+  categories.forEach((cat, i) => { tintKeyByCat[cat.id] = TINT_ROTATION[i % TINT_ROTATION.length]; });
+
+  // Meta line for an All-topics card: test count + level range.
+  function metaLine(p) {
     if (p.testCount === 0) return "No tests available yet";
-    if (p.state === "mastered") {
-      return `${p.testCount} ${p.testCount === 1 ? "test" : "tests"} · all attempted` +
-        (p.passedCount < p.attemptedCount ? ` · ${p.passedCount} passed` : "");
-    }
-    if (p.state === "in-progress") {
-      return `${p.attemptedCount} of ${p.testCount} attempted` +
-        (p.passedCount > 0 ? ` · ${p.passedCount} passed` : "");
-    }
     const ordered = DIFF_ORDER.filter(b => p.bands.has(b));
     const range = ordered.length > 1
       ? ` · ${DIFF_LABEL[ordered[0]]} → ${DIFF_LABEL[ordered[ordered.length - 1]]}`
       : ordered.length === 1 ? ` · ${DIFF_LABEL[ordered[0]]}` : "";
     return `${p.testCount} ${p.testCount === 1 ? "test" : "tests"}${range}`;
   }
+
+  // Foot: quiet status left + gold CTA right, by state.
+  function footOf(p) {
+    if (p.testCount === 0) return { label: "No tests yet", cta: "", muted: true };
+    if (p.state === "mastered") return { label: "mastered · all passed", cta: "Review →", muted: true };
+    if (p.state === "completed") {
+      return {
+        label: p.passedCount === 0
+          ? `all ${p.testCount} tried · none passed`
+          : `all ${p.testCount} tried · ${p.passedCount} passed`,
+        cta: "Revise →", muted: false,
+      };
+    }
+    if (p.state === "in-progress") {
+      return { label: `${p.attemptedCount} of ${p.testCount} done`, cta: "Continue →", muted: false };
+    }
+    return { label: "Not started yet", cta: "Start →", muted: false };
+  }
+
+  // Suggested reason — scores only on this page (Vault isn't fetched
+  // here; the collections page owns the cross-source signals).
+  function suggestReason(p) {
+    return p.attemptedCount === 2
+      ? "under 50% both attempts — worth a revisit"
+      : `under 50% across ${p.attemptedCount} attempts — worth a revisit`;
+  }
+
+  const grid = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+    gap: 14,
+  };
 
   return (
     <div style={{ width: "100%", padding: "12px 4px 60px", textAlign: "left" }}>
@@ -320,193 +394,177 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
       )}
 
       {categories.length > 0 && (
-        <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <>
+          {/* ── Continue banner — only when a topic is in progress ── */}
+          {continueTopic && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 16,
+              padding: "16px 20px", marginBottom: 16,
+              background: "var(--c-surface)",
+              border: "1px solid var(--c-brand-gold-tint)",
+              borderRadius: 16, boxShadow: "var(--c-shadow-xs)",
+            }}>
+              <span style={{
+                width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                background: "var(--c-brand-gold-tint)", color: "var(--c-brand-gold)",
+                display: "grid", placeItems: "center",
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ display: "block" }}>
+                  <path d="M6 4l14 8-14 8z" />
+                </svg>
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em" }}>
+                  Continue {continueTopic.cat.title}
+                </div>
+                <div style={{ fontSize: 11.5, color: "var(--c-text-tertiary)", marginTop: 2 }}>
+                  {continueTopic.p.attemptedCount} of {continueTopic.p.testCount} done
+                  {continueTopic.p.nextTest?.band ? <> · next: {DIFF_LABEL[continueTopic.p.nextTest.band]}</> : null}
+                  {continueTopic.p.lastPlayAt ? <> · you left it {timeAgo(continueTopic.p.lastPlayAt)}</> : null}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const next = continueTopic.p.nextTest;
+                  if (next?.uuid) router.push(`/test/${next.uuid}`);
+                  else openTopic(continueTopic.cat);
+                }}
+                style={{
+                  marginLeft: "auto", flexShrink: 0,
+                  background: "var(--c-accent-grad)",
+                  color: "var(--c-text-on-brand)",
+                  border: "none", borderRadius: 999,
+                  padding: "9px 20px", fontSize: 12.5, fontWeight: 600,
+                  fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap",
+                }}
+              >
+                Resume →
+              </button>
+            </div>
+          )}
 
-          {/* ── Left sticky filter panel ── */}
-          <div style={{
-            width: 218, flexShrink: 0,
-            position: "sticky", top: 20,
-            background: "var(--c-surface)",
-            border: "1px solid var(--c-border-faint)",
-            borderRadius: 16, boxShadow: "var(--c-shadow-xs)",
-            padding: "16px 0 6px",
-          }}>
-            <PanelSection
-              title="Status"
-              collapsed={!!collapsed.status}
-              onToggle={() => setCollapsed(c => ({ ...c, status: !c.status }))}
-            >
-              <PanelRow label="Suggested for you" count={counts.suggested}
-                on={statusSel.has("suggested")} onClick={() => toggleIn(statusSel, setStatusSel, "suggested")} />
-              <PanelRow label="In progress" count={counts["in-progress"]}
-                on={statusSel.has("in-progress")} onClick={() => toggleIn(statusSel, setStatusSel, "in-progress")} />
-              <PanelRow label="Untouched" count={counts.untouched}
-                on={statusSel.has("untouched")} onClick={() => toggleIn(statusSel, setStatusSel, "untouched")} />
-              <PanelRow label="Mastered" count={counts.mastered}
-                on={statusSel.has("mastered")} onClick={() => toggleIn(statusSel, setStatusSel, "mastered")} />
-            </PanelSection>
-
-            {hasDifficulty && (
-              <>
-                <div style={{ height: 1, background: "var(--c-border-faint)", margin: "10px 18px" }} />
-                <PanelSection
-                  title="Difficulty"
-                  collapsed={!!collapsed.difficulty}
-                  onToggle={() => setCollapsed(c => ({ ...c, difficulty: !c.difficulty }))}
+          {/* ── Search pill + Status dropdown ── */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 18, alignItems: "center" }}>
+            <div style={{
+              flex: 1, display: "flex", alignItems: "center", gap: 10,
+              background: "var(--c-surface)",
+              border: "1px solid var(--c-border-faint)",
+              borderRadius: 999, padding: "10px 16px",
+              boxShadow: "var(--c-shadow-xs)",
+            }}>
+              <Search size={15} style={{ color: "var(--c-text-tertiary)", flexShrink: 0 }} />
+              <input
+                type="text"
+                value={topicQuery}
+                onChange={(e) => setTopicQuery(e.target.value)}
+                placeholder="Search a topic…"
+                style={{
+                  flex: 1, minWidth: 0,
+                  background: "none", border: "none", outline: "none",
+                  font: "inherit", fontSize: 13,
+                  color: "var(--c-text-primary)",
+                }}
+              />
+              {topicQuery && (
+                <button
+                  type="button"
+                  onClick={() => setTopicQuery("")}
+                  aria-label="Clear search"
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--c-text-tertiary)", display: "grid", placeItems: "center" }}
                 >
-                  <PanelRow label="Easy" count={counts.easy}
-                    on={diffSel.has("easy")} onClick={() => toggleIn(diffSel, setDiffSel, "easy")} />
-                  <PanelRow label="Moderate" count={counts.moderate}
-                    on={diffSel.has("moderate")} onClick={() => toggleIn(diffSel, setDiffSel, "moderate")} />
-                  <PanelRow label="Difficult" count={counts.hard}
-                    on={diffSel.has("hard")} onClick={() => toggleIn(diffSel, setDiffSel, "hard")} />
-                </PanelSection>
-              </>
-            )}
-
-            <div style={{ height: 1, background: "var(--c-border-faint)", margin: "10px 18px" }} />
-            <button
-              onClick={() => { setStatusSel(new Set()); setDiffSel(new Set()); }}
-              style={{
-                background: "none", border: "none",
-                font: "inherit", fontSize: 11, fontWeight: 600,
-                color: anyFilter ? "var(--c-brand-gold)" : "var(--c-text-tertiary)",
-                padding: "4px 18px 12px", cursor: anyFilter ? "pointer" : "default",
-                display: "block", textAlign: "left",
-              }}
-            >
-              Clear all
-            </button>
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+            <PillDropdown
+              label="Status"
+              value={statusFilter}
+              options={STATUS_OPTIONS.map((o) => ({
+                ...o,
+                count: o.value === null
+                  ? categories.length
+                  : o.value === "suggested" ? counts.suggested : counts[o.value],
+              }))}
+              onChange={(v) => setStatusFilter(v)}
+            />
           </div>
 
-          {/* ── Main column ── */}
-          <div style={{ flex: 1, minWidth: 280 }}>
-
-            {/* Continue protagonist card */}
-            {continueTopic && (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 18,
-                padding: "18px 22px", marginBottom: 18,
-                background: "var(--c-surface)",
-                border: "1px solid var(--c-border-faint)",
-                borderRadius: 16, boxShadow: "var(--c-shadow-xs)",
-                position: "relative", overflow: "hidden",
-              }}>
-                <div aria-hidden style={{
-                  position: "absolute", top: 0, left: 24, right: 24, height: 1,
-                  background: "linear-gradient(90deg, transparent, var(--c-brand-gold), transparent)",
-                  opacity: 0.55,
-                }} />
-                <Ring size={52} stroke={5} pct={continueTopic.p.pct} color="var(--c-brand-gold)" fontSize={13} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em" }}>
-                    Continue {continueTopic.cat.title}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 2 }}>
-                    {continueTopic.p.attemptedCount} of {continueTopic.p.testCount} tests done
-                    {continueTopic.p.nextTest?.band ? <> · next: {DIFF_LABEL[continueTopic.p.nextTest.band]}</> : null}
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    const next = continueTopic.p.nextTest;
-                    if (next?.uuid) router.push(`/test/${next.uuid}`);
-                    else openTopic(continueTopic.cat);
-                  }}
-                  style={{
-                    marginLeft: "auto", flexShrink: 0,
-                    background: "var(--c-accent-grad)",
-                    color: "var(--c-text-on-brand)",
-                    border: "none", borderRadius: 999,
-                    padding: "10px 22px", fontSize: 12.5, fontWeight: 600,
-                    fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap",
-                  }}
-                >
-                  Resume →
-                </button>
-              </div>
-            )}
-
-            {/* Suggested for you */}
-            {suggestedTopics.length > 0 && (
-              <>
-                <GroupLabel gold="Suggested for you" rest="· from your recent test scores" first={!continueTopic} />
-                <div style={{
-                  background: "var(--c-surface)",
-                  border: "1px solid var(--c-border-faint)",
-                  borderRadius: 16, boxShadow: "var(--c-shadow-xs)",
-                  overflow: "hidden",
-                }}>
-                  {suggestedTopics.map((cat, i) => {
-                    const p = topicModel[cat.id];
-                    return (
-                      <TopicRow
-                        key={cat.id}
-                        first={i === 0}
-                        ring={<Ring size={36} stroke={4} pct={p.pct} color="var(--c-brand-gold)" fontSize={9} mini />}
-                        title={cat.title}
-                        sub="scored under 50% twice — worth a revisit"
-                        chip={<Chip gold>Suggested</Chip>}
-                        action="Revise →"
-                        actionMuted={false}
-                        onOpen={() => openTopic(cat)}
-                      />
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            {/* All topics */}
-            <GroupLabel rest="All topics" first={!continueTopic && suggestedTopics.length === 0} />
-            {visibleCategories.length === 0 ? (
-              <div style={{
-                padding: "32px 28px", borderRadius: 16,
-                background: "var(--c-surface-muted, var(--c-bg))",
-                border: "1px dashed var(--c-border-soft)",
-                color: "var(--c-text-tertiary)", fontSize: 14,
-                textAlign: "center",
-              }}>
-                No topics match these filters. Try clearing one.
-              </div>
-            ) : (
-              <div style={{
-                background: "var(--c-surface)",
-                border: "1px solid var(--c-border-faint)",
-                borderRadius: 16, boxShadow: "var(--c-shadow-xs)",
-                overflow: "hidden",
-              }}>
-                {visibleCategories.map((cat, i) => {
-                  const p = topicModel[cat.id] || { subs: [], testCount: 0, attemptedCount: 0, passedCount: 0, pct: 0, state: "untouched", weak: false, bands: new Set() };
-                  const hasContent = p.subs.length > 0;
-                  const ring = p.state === "mastered"
-                    ? <Ring size={36} stroke={4} pct={100} color="var(--c-success)" fontSize={10} mini check />
-                    : p.state === "in-progress"
-                      ? <Ring size={36} stroke={4} pct={p.pct} color="var(--c-brand-gold)" fontSize={9} mini />
-                      : <Ring size={36} stroke={4} pct={0} color="var(--c-brand-gold)" fontSize={9} mini dot />;
-                  const action = !hasContent ? ""
-                    : p.state === "mastered" ? "Review →"
-                    : p.state === "in-progress" ? "Continue →"
-                    : "Start →";
+          {/* ── Suggested for you ── */}
+          {searchedSuggested.length > 0 && (
+            <>
+              <GroupLabel gold="Suggested for you" rest="· from your scores and your Vault" first />
+              <div style={grid}>
+                {searchedSuggested.map((cat) => {
+                  const p = topicModel[cat.id];
+                  const foot = footOf(p);
                   return (
-                    <TopicRow
-                      key={cat.id}
-                      first={i === 0}
-                      ring={ring}
+                    <TopicCard
+                      key={`sug-${cat.id}`}
+                      abbrev={topicAbbrev(cat.title)}
+                      tint={TILE_TINTS.danger}
+                      count={p.testCount}
                       title={cat.title}
-                      sub={factLine(p)}
-                      chip={p.state === "mastered" ? <Chip green>Mastered</Chip> : null}
-                      action={action}
-                      actionMuted={p.state === "mastered"}
-                      disabled={!hasContent}
+                      meta={suggestReason(p)}
+                      pct={p.pct}
+                      started={p.attemptedCount > 0}
+                      mastered={false}
+                      footLabel={foot.label}
+                      cta="Revise →"
+                      ctaMuted={false}
                       onOpen={() => openTopic(cat)}
                     />
                   );
                 })}
               </div>
-            )}
-          </div>
-        </div>
+            </>
+          )}
+
+          {/* ── All topics ── */}
+          <GroupLabel rest={`All topics · ${searchedCategories.length}`} first={searchedSuggested.length === 0} />
+          {searchedCategories.length === 0 ? (
+            <div style={{
+              padding: "32px 28px", borderRadius: 16,
+              background: "var(--c-surface-muted, var(--c-bg))",
+              border: "1px dashed var(--c-border-soft)",
+              color: "var(--c-text-tertiary)", fontSize: 14,
+              textAlign: "center",
+            }}>
+              {q
+                ? <>No topic matches &quot;{topicQuery}&quot;.</>
+                : "No topics match this filter. Try switching Status back to All."}
+            </div>
+          ) : (
+            <div style={grid}>
+              {searchedCategories.map((cat) => {
+                const p = topicModel[cat.id] || { subs: [], testCount: 0, attemptedCount: 0, passedCount: 0, pct: 0, state: "untouched", weak: false, bands: new Set() };
+                const hasContent = p.subs.length > 0;
+                const mastered = p.state === "mastered";
+                const tint = mastered ? TILE_TINTS.success : TILE_TINTS[tintKeyByCat[cat.id] || "gold"];
+                const foot = footOf(p);
+                return (
+                  <TopicCard
+                    key={cat.id}
+                    abbrev={topicAbbrev(cat.title)}
+                    tint={tint}
+                    count={p.testCount}
+                    title={cat.title}
+                    meta={metaLine(p)}
+                    pct={p.pct}
+                    started={p.attemptedCount > 0}
+                    mastered={mastered}
+                    footLabel={foot.label}
+                    cta={hasContent ? foot.cta : ""}
+                    ctaMuted={foot.muted}
+                    disabled={!hasContent}
+                    onOpen={() => openTopic(cat)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Drawer for level detail ── */}
@@ -529,99 +587,83 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
   );
 }
 
-// ── Progress ring (52px hero / 36px mini). Mastered = green ✓,
-//    partial = gold %, untouched = quiet neutral dot (never "—"). ──
-function Ring({ size, stroke, pct, color, fontSize, mini, check, dot }) {
-  const r = (size - stroke * 2 - 2) / 2;
-  const circ = 2 * Math.PI * r;
-  return (
-    <div style={{ width: size, height: size, flexShrink: 0, position: "relative" }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)", display: "block" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} stroke="var(--c-border-faint)" />
-        {pct > 0 && (
-          <circle
-            cx={size / 2} cy={size / 2} r={r}
-            fill="none" strokeWidth={stroke}
-            stroke={color} strokeLinecap="round"
-            strokeDasharray={`${(pct / 100) * circ} ${circ}`}
-          />
-        )}
-      </svg>
-      <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
-        {dot ? (
-          <span aria-hidden style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--c-text-tertiary)", display: "block" }} />
-        ) : check ? (
-          <span style={{ fontSize: fontSize + 1, color: "var(--c-success)", fontWeight: 600, lineHeight: 1 }}>✓</span>
-        ) : pct >= 100 ? (
-          // "100%" crammed inside a 36px ring reads badly (owner feedback) —
-          // a full ring already says complete, so show a small tick in the
-          // ring's own colour instead of the number.
-          <span style={{ fontSize: fontSize + 1, color, fontWeight: 600, lineHeight: 1 }}>✓</span>
-        ) : (
-          <span style={{
-            fontFamily: "var(--font-accent)", fontStyle: "italic",
-            fontSize, color: mini ? "var(--c-text-secondary)" : color,
-            lineHeight: 1,
-          }}>
-            {pct}%
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Compact topic row ──
-function TopicRow({ first, ring, title, sub, chip, action, actionMuted, disabled, onOpen }) {
+// ── Topic card — EXACT SectionRow anatomy from the collections
+//    page: tinted 38px initial tile + serif count, title, meta,
+//    4px coverage bar, quiet foot + gold CTA. ──
+function TopicCard({ abbrev, tint, count, title, meta, pct, started, mastered, footLabel, cta, ctaMuted, disabled, onOpen }) {
   return (
     <div
+      className="concept-row td-lift"
       role="button"
       tabIndex={disabled ? -1 : 0}
       onClick={disabled ? undefined : onOpen}
       onKeyDown={(e) => { if (!disabled && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onOpen(); } }}
-      onMouseOver={(e) => { if (!disabled) e.currentTarget.style.background = "var(--c-surface-muted, var(--c-bg))"; }}
-      onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
       style={{
-        display: "flex", alignItems: "center", gap: 14,
-        padding: "13px 18px",
-        borderTop: first ? "none" : "1px solid var(--c-border-faint)",
+        background: "var(--c-surface)",
+        border: "1px solid var(--c-border-faint)",
+        borderRadius: 16,
+        boxShadow: "var(--c-shadow-xs)",
+        padding: "16px 18px",
+        display: "flex", flexDirection: "column",
         cursor: disabled ? "default" : "pointer",
         opacity: disabled ? 0.55 : 1,
       }}
     >
-      {ring}
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em" }}>
-          {title}
-        </div>
-        <div style={{ fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 2 }}>
-          {sub}
-        </div>
-      </div>
-      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-        {chip}
-        <span style={{
-          fontSize: 12, fontWeight: actionMuted ? 500 : 600,
-          color: actionMuted ? "var(--c-text-tertiary)" : "var(--c-brand-gold)",
-          whiteSpace: "nowrap",
+      {/* Icon tile + test count */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: 11,
+          background: tint.bg, color: tint.fg,
+          display: "grid", placeItems: "center",
+          fontWeight: 600, fontSize: 13,
+          letterSpacing: "-0.01em", flexShrink: 0,
         }}>
-          {action}
+          {abbrev}
+        </div>
+        <span className="ds-stat-value" style={{ fontSize: 18, fontVariantNumeric: "tabular-nums" }}>
+          {count}
+        </span>
+      </div>
+
+      {/* Title + meta */}
+      <div style={{ fontSize: 13.5, fontWeight: 500, color: "var(--c-text-primary)", letterSpacing: "-0.005em" }}>
+        {title}
+      </div>
+      <div style={{ fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 1, fontVariantNumeric: "tabular-nums" }}>
+        {meta}
+      </div>
+
+      {/* Thin coverage bar — attempted / total (green when mastered) */}
+      <div style={{
+        height: 4, borderRadius: 2, marginTop: 10,
+        background: "var(--c-surface-sunken, var(--c-surface-muted))",
+        overflow: "hidden",
+      }}>
+        <div style={{
+          height: "100%", borderRadius: 2,
+          width: `${Math.max(started ? 2 : 0, pct || 0)}%`,
+          background: mastered ? "var(--c-success)" : "var(--c-accent-grad)",
+          transition: "width 0.4s ease",
+        }} />
+      </div>
+
+      {/* Foot: status + CTA */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        marginTop: 10, gap: 8,
+      }}>
+        <span style={{ fontSize: 11, color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
+          {footLabel}
+        </span>
+        <span style={{
+          fontSize: 12, fontWeight: ctaMuted ? 500 : 600,
+          color: ctaMuted ? "var(--c-text-tertiary)" : "var(--c-brand-gold)",
+          whiteSpace: "nowrap", marginLeft: "auto",
+        }}>
+          {cta}
         </span>
       </div>
     </div>
-  );
-}
-
-function Chip({ gold, green, children }) {
-  return (
-    <span style={{
-      fontSize: 9.5, letterSpacing: "0.07em", textTransform: "uppercase",
-      fontWeight: 600, borderRadius: 999, padding: "4px 10px", whiteSpace: "nowrap",
-      background: green ? "var(--c-success-soft)" : gold ? "var(--c-brand-gold-tint)" : "var(--c-surface-muted)",
-      color: green ? "var(--c-success)" : gold ? "var(--c-brand-gold)" : "var(--c-text-secondary)",
-    }}>
-      {children}
-    </span>
   );
 }
 
@@ -635,65 +677,6 @@ function GroupLabel({ gold, rest, first }) {
     }}>
       {gold && <span style={{ color: "var(--c-brand-gold)" }}>{gold}</span>}
       <span>{rest}</span>
-    </div>
-  );
-}
-
-// ── Filter panel building blocks ──
-function PanelSection({ title, collapsed, onToggle, children }) {
-  return (
-    <div>
-      <button
-        onClick={onToggle}
-        style={{
-          width: "100%", background: "none", border: "none",
-          font: "inherit", fontSize: 10, letterSpacing: "0.14em",
-          textTransform: "uppercase", color: "var(--c-text-tertiary)",
-          fontWeight: 600, padding: "0 18px 8px",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          cursor: "pointer", textAlign: "left",
-        }}
-      >
-        {title}
-        <ChevronDown size={12} style={{ transform: collapsed ? "rotate(-90deg)" : "none", transition: "transform 0.15s" }} />
-      </button>
-      {!collapsed && children}
-    </div>
-  );
-}
-
-function PanelRow({ label, count, on, onClick }) {
-  return (
-    <div
-      role="checkbox"
-      aria-checked={on}
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
-      style={{
-        display: "flex", alignItems: "center", gap: 9,
-        padding: "7px 18px", fontSize: 12.5,
-        color: on ? "var(--c-text-primary)" : "var(--c-text-secondary)",
-        fontWeight: on ? 500 : 400, cursor: "pointer",
-      }}
-    >
-      <span style={{
-        width: 15, height: 15, borderRadius: 5, flexShrink: 0,
-        border: `1.5px solid ${on ? "var(--c-brand-gold)" : "var(--c-border-soft)"}`,
-        background: on ? "var(--c-brand-gold)" : "transparent",
-        display: "grid", placeItems: "center",
-      }}>
-        {on && (
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
-            stroke="var(--c-text-on-brand)" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 12.5l5 5L20 6.5" />
-          </svg>
-        )}
-      </span>
-      {label}
-      <span style={{ marginLeft: "auto", fontSize: 10.5, color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
-        {count}
-      </span>
     </div>
   );
 }

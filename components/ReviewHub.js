@@ -1195,7 +1195,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
   );
 
   return (
-    <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" data-tick={contentTick} style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
+    <div className="w-full flex flex-col pr-0 md:pr-4" data-tick={contentTick} style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
       <header className="td-r1 mt-6">
         <PageHeader
           kicker="Review"

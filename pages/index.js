@@ -3257,7 +3257,7 @@ export default function Home(props) {
                   ""
                 )}
                 {slug == "dbts" && (
-                  <div className="flex flex-col w-full h-full">
+                  <div className="flex flex-col w-full">
                     <DoubtSamjhao userData={userData} />
                   </div>
                 )}
@@ -3278,13 +3278,15 @@ export default function Home(props) {
                 {slug == "dsbchallenge" && (
                   <DSBChallenge userData={userData}></DSBChallenge>
                 )}
+                {/* 2026-08 scroll fix: h-full froze these pages' scroll —
+                    content must grow so the pane scrolls like other tabs */}
                 {slug == "mistakevault" && (
-                  <div className="flex flex-col w-full h-full">
+                  <div className="flex flex-col w-full">
                     <MistakeVault userData={userData} />
                   </div>
                 )}
                 {slug == "reviewhub" && (
-                  <div className="flex flex-col w-full h-full">
+                  <div className="flex flex-col w-full">
                     <ReviewHub userData={userData} goPractice={() => setSlug("play")} />
                   </div>
                 )}

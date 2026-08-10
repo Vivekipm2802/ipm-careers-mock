@@ -65,7 +65,6 @@ export default function DSBChallenge({ userData }) {
   const [xp, setXp] = useState(null); // { total_xp, weekly_xp }
   const [board, setBoard] = useState([]);
   const [myRank, setMyRank] = useState(null);
-  const [vaultOpen, setVaultOpen] = useState(false);
   const [todayQuiz, setTodayQuiz] = useState(false);
   const [todayGulp, setTodayGulp] = useState(false);
   const [todaySos, setTodaySos] = useState(false);
@@ -416,13 +415,14 @@ export default function DSBChallenge({ userData }) {
       </div>
 
       {/* ── Badge vault (Phase C) ── */}
-      {/* ── Vault & arena — side by side (stacks when vault expands) ── */}
+      {/* ── Vault & arena — always side by side (2026-08: vault is a
+          fixed 7-tile card, no expanded mode) ── */}
       <div className="flex justify-between items-baseline mb-3">
         <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>Vault &amp; arena</div>
         <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>weekly league · resets Monday</span>
       </div>
-      <div className={(vaultOpen ? "flex flex-col" : "grid lg:grid-cols-2 items-start") + " gap-4 mb-10"} data-tour="dsb-arena">
-        <BadgeVault userData={userData} totalXp={xp?.total_xp || 0} onExpandChange={setVaultOpen} />
+      <div className="grid lg:grid-cols-2 items-start gap-4 mb-10" data-tour="dsb-arena">
+        <BadgeVault userData={userData} totalXp={xp?.total_xp || 0} />
 
         <div className="rounded-[16px] border p-6" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)", flexShrink: 0 }}>
           <div className="ds-display" style={{ fontSize: 19 }}>This week&apos;s arena</div>

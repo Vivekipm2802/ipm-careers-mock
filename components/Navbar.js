@@ -187,7 +187,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
   );
 
   return (
-    <nav className={styles.nav}>
+    <nav className={styles.nav + ' lg:mt-[100px] lg:mb-auto'}>
       {/* ── Mobile toggle button ────────────────────────────────── */}
       <div
         onClick={() => { setIsActive(!isActive); }}
@@ -357,8 +357,12 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
       </div>
 
       {/* ── Desktop sidebar — COLLAPSED MODE (icon-only with hover tooltip) ───── */}
+      {/* mb-auto (collapsed only): auto bottom margin soaks up the free space in the
+          centered .left column, so the icon rail pins to the top at its mt-[100px]
+          offset (just below the absolute logo) instead of floating at mid-height.
+          Expanded mode and mobile (below lg, where this div is display:none) untouched. */}
       {sidebarCollapsed && (
-        <div className="hidden lg:flex w-full flex-col items-stretch flex-nowrap max-h-[70vh] overflow-y-auto overflow-x-visible mt-[100px] pt-2 px-0">
+        <div className="hidden lg:flex w-full flex-col items-stretch flex-nowrap max-h-[70vh] overflow-y-auto overflow-x-visible pt-2 px-0">
           {SECTIONS.map((section, secIdx) => {
             const items = sectionItems[section.label] || [];
             if (items.length === 0) return null;

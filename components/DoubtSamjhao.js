@@ -350,7 +350,7 @@ export default function DoubtSamjhao({ userData }) {
   );
 
   return (
-    <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
+    <div className="w-full flex flex-col pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
       <header className="mt-6" style={{ flexShrink: 0 }}>
         <PageHeader
           kicker="Review"

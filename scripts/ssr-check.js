@@ -105,7 +105,7 @@ Module._load = function (request, parent, isMain) {
   if (Object.prototype.hasOwnProperty.call(mocks, request)) return mocks[request];
   if (
     request === "react" && parent && parent.filename &&
-    /pages[\\/]|components[\\/](ConceptGroups|ConceptTestStudent|BadgeVault)\.js/.test(parent.filename)
+    /pages[\\/]|components[\\/](ConceptGroups|ConceptTestStudent|BadgeVault|MistakeVault)\.js/.test(parent.filename)
   ) {
     return reactShim;
   }
@@ -404,7 +404,7 @@ const ConceptGroups = require(path.join(root, "components", "ConceptGroups.js"))
   check(html.length > 0, "collections page loading state renders without crashing");
 }
 
-console.log("\n[5b] components/ConceptTestStudent.js — preview-2 topics page");
+console.log("\n[5b] components/ConceptTestStudent.js — card-grid topics page (preview-topics-v6)");
 const ConceptTestStudent = require(path.join(root, "components", "ConceptTestStudent.js")).default;
 const cats5 = [
   { id: 11, parent: 1, title: "Number System" },
@@ -458,50 +458,129 @@ const plays5 = {
 {
   // DATA branch — state order: categories, gamecategories,
   // testCountByMCat, levelsByMCat, loading, activeLevel, levelData,
-  // plays, statusSel, diffSel, collapsed, autoOpened.
-  stateQueue = [cats5, mcats5, counts5, levelsByMCat5, false, null, null, plays5, new Set(), new Set(), {}, false];
+  // plays, statusFilter, topicQuery, autoOpened.
+  stateQueue = [cats5, mcats5, counts5, levelsByMCat5, false, null, null, plays5, null, "", false];
   const html = clean(ReactDOMServer.renderToString(
     React.createElement(ConceptTestStudent, { group: 1, role: "user", onBack: () => {} })
   ));
   stateQueue = null;
+  const src5b = fs.readFileSync(path.join(root, "components", "ConceptTestStudent.js"), "utf8");
   check(html.includes("Back to collections") && html.includes("Master each topic"),
     "back button + page heading block kept");
-  check(html.includes("Status") && html.includes("Suggested for you") && html.includes("Untouched") && html.includes("Mastered") && html.includes("Clear all"),
-    "left filter panel renders (Status checkboxes + Clear all)");
-  check(html.includes("Difficulty") && html.includes("Moderate") && html.includes("Difficult"),
-    "difficulty filter section present (tests carry levels)");
-  check(html.includes("Continue AP/GP") && html.includes("1 of 3 tests done") && html.includes("next: Moderate") && html.includes("Resume"),
-    "continue protagonist card: title + sub-line + Resume");
-  check(html.includes("scored under 50% twice — worth a revisit") && html.includes("Revise →"),
-    "suggested group: reason line + Revise action");
-  check(html.includes("All topics") && html.includes("3 tests · Easy → Difficult"),
-    "'All topics' rows with untouched fact line");
-  check(html.includes("Mastered") && html.includes("Review →") && html.includes("Start →") && html.includes("Continue →"),
-    "row actions: Review / Start / Continue + Mastered chip");
-  check(!html.includes("tests inside") && !html.includes("Tap to browse"),
-    "old card grammar gone (no 'tests inside' / 'Tap to browse')");
-  check(!html.includes(">—<"), "no empty '—' rings (untouched shows a quiet dot)");
+  check(!src5b.includes("PanelRow") && !html.includes("Clear all"),
+    "left filter panel is gone (no PanelRow, no Clear all)");
+  check(html.includes("Search a topic") && html.includes("Status:") && html.includes(">All</b>"),
+    "search pill + single 'Status: All' dropdown pill render");
+  check(html.includes("Continue AP/GP") && html.includes("1 of 3 done") && html.includes("next: Moderate") && html.includes("you left it") && html.includes("Resume"),
+    "continue banner: title + 'k of n done · next · you left it' + Resume");
+  check(html.includes("Suggested for you") && html.includes("from your scores and your Vault"),
+    "suggested group label with Vault-aware copy");
+  check(html.includes("worth a revisit") && html.includes("Revise →") && html.includes("var(--c-danger-soft)"),
+    "suggested card: reason meta + Revise CTA + danger-tint tile");
+  check(html.includes("All topics · 4") && html.includes("3 tests · Easy → Difficult"),
+    "'All topics · N' label + untouched meta with level range");
+  check(html.includes("Not started yet") && html.includes("Start →") && html.includes("Continue →"),
+    "card states: Not started yet / Start / Continue");
+  check(html.includes("mastered · all passed") && html.includes("Review →"),
+    "mastered card: green-state foot + muted Review CTA");
+  check(html.includes(">NS<") && html.includes(">AP<") && html.includes(">FU<"),
+    "tile abbrevs render (NS / AP / FU via sectionAbbrev logic)");
+  check(html.includes("minmax(280px"), "card grid uses repeat(auto-fill, minmax(280px, 1fr))");
+  check(html.includes("ds-stat-value") && html.includes("td-lift"),
+    "SectionRow anatomy reused (serif count + lift hover)");
+}
+{
+  // live search: query "AP" must keep AP/GP and drop Number System
+  stateQueue = [cats5, mcats5, counts5, levelsByMCat5, false, null, null, plays5, null, "AP", false];
+  const html = clean(ReactDOMServer.renderToString(
+    React.createElement(ConceptTestStudent, { group: 1, role: "user", onBack: () => {} })
+  ));
+  stateQueue = null;
+  const allIdx = html.indexOf("All topics");
+  const tail = allIdx >= 0 ? html.slice(allIdx) : "";
+  check(tail.includes("AP/GP") && !tail.includes("Alligations"), "search filters the All-topics rows live");
 }
 
-// ── 6 · BadgeVault (grid-only cap — no elongated list) ──────────
+// ── 6 · BadgeVault (2026-08 hard cap: EXACTLY 7 tiles, no expansion) ──
 console.log("\n[6] components/BadgeVault.js");
 const BadgeVault = require(path.join(root, "components", "BadgeVault.js")).default;
+const { compactShelf: shelf6, computeBadges: badges6 } = require(path.join(root, "components", "BadgeVault.js"));
 const stats6 = { streak_days: 7, mock_count: 1, test_count: 30, sos_best: 65, sos_perfect: false, sd_best: 5, gulp_best: 100, duel_wins: 1, air1_slain: false };
 {
-  stateQueue = [stats6, false];
+  stateQueue = [stats6];
   const html = clean(ReactDOMServer.renderToString(React.createElement(BadgeVault, { userData: { email: "me@x.com" }, totalXp: 500 })));
   stateQueue = null;
-  check(html.includes("Your vault") && html.includes("View full vault"), "compact vault card + expand toggle render");
-  check(!html.includes("AIR 1 Material"), "compact shelf stays capped (far-off badges hidden)");
-}
-{
-  stateQueue = [stats6, true];
-  const html = clean(ReactDOMServer.renderToString(React.createElement(BadgeVault, { userData: { email: "me@x.com" }, totalXp: 500 })));
-  stateQueue = null;
-  check(html.includes("AIR 1 Material") && html.includes("Iron Month") && html.includes("Show less"),
-    "expanded vault = ALL badges as more tiles in the same grid");
+  check(html.includes("Your vault"), "vault card renders");
+  // each tile carries the distinctive tile padding exactly once
+  const tiles = (html.match(/padding:13px 4px 9px/g) || []).length;
+  check(tiles === 7, `exactly 7 tiles render (got ${tiles})`);
+  check(!html.includes("View full vault") && !html.includes("Show less"),
+    "no 'View full vault' / 'Show less' — the cap is hard");
+  check(!html.includes("AIR 1 Material"), "far-off badges stay hidden (no expanded mode)");
   check(!html.includes("Skill Trainers") && !html.includes("✓ Unlocked"),
     "elongated sectioned list is gone (no section headers / list markers)");
+}
+{
+  // pure-logic cap: the shelf is exactly 7 for a sparse profile too
+  // (0 unlocked → 7 closest locked fill the shelf)
+  const sparse = shelf6(badges6({}, 0));
+  check(sparse.length === 7 && sparse.every((b) => !b.unlocked),
+    "compactShelf fills to exactly 7 even with nothing unlocked");
+}
+
+// ── 7 · MistakeVault (due-count reconcile: hero vs chapter chips) ──
+// Fixture built so the chapters' due sum (14) ≠ the old hero number
+// (the capped 12): 9 due in Algebra + 5 due in Geometry, plus one
+// upcoming and one mastered. The hero must say "12 of 14 due" (cap
+// kept, copy honest) and the chips must sum to the same 14.
+console.log("\n[7] components/MistakeVault.js");
+const MistakeVault = require(path.join(root, "components", "MistakeVault.js")).default;
+const mk7 = (id, chapter, extra) => ({
+  question_id: id,
+  title: "Q" + id,
+  question: "<p>q</p>",
+  options: [{ title: "A", isCorrect: true }, { title: "B" }],
+  chapter,
+  test_title: chapter + " Test",
+  wrong_count: 1,
+  last_wrong_at: "2026-07-01T00:00:00Z", // long past day-3 → due today
+  streak: 0,
+  last_redo_at: null,
+  last_reason: null,
+  ...extra,
+});
+const items7 = [];
+for (let i = 1; i <= 9; i++) items7.push(mk7(i, "Algebra"));
+for (let i = 10; i <= 14; i++) items7.push(mk7(i, "Geometry"));
+// one Geometry item not yet due (missed moments ago → due in 3 days)
+items7.push(mk7(15, "Geometry", { last_wrong_at: new Date().toISOString() }));
+// one mastered Algebra item (streak 3) — in the vault, never "due"
+items7.push(mk7(16, "Algebra", { streak: 3 }));
+{
+  // state order: items, redosToday, phase, queue, qi, picked, reveal,
+  // flash, moves, openChapter, sourceFilter, lastCorrect, showHow,
+  // ownItems, pyqItems, guessItems, showGuessBanner, showAdd, addQ,
+  // addChapter, addAnswer, addSaving, explain, doubtsToday.
+  stateQueue = [items7, 0, "home", [], 0, null, false, null, [], null, null, null, false, [], [], [], false, false, "", "", "", false, null, 0];
+  const html = clean(ReactDOMServer.renderToString(React.createElement(MistakeVault, { userData: { email: "me@x.com" } })));
+  stateQueue = null;
+  check(html.includes("Starting with 12 of 14 due today"),
+    "hero is honest about the cap: 'Starting with 12 of 14 due today'");
+  check(html.includes("9 due today") && html.includes("5 due today"),
+    "chapter chips show per-chapter due (9 + 5 = the hero's 14)");
+  check(!html.includes("14 questions due") && !html.includes("12 questions due"),
+    "old flat 'N questions due' copy is gone when a backlog exists");
+  check(html.includes(">16<"), "stat line: 16 in the vault (all items incl. mastered)");
+  check(html.includes(">2<"), "stat line: 2 chapters — same dataset as the chip rows");
+}
+{
+  // no backlog: 3 due only → plain copy, no "Starting with"
+  stateQueue = [items7.slice(0, 3), 0, "home", [], 0, null, false, null, [], null, null, null, false, [], [], [], false, false, "", "", "", false, null, 0];
+  const html = clean(ReactDOMServer.renderToString(React.createElement(MistakeVault, { userData: { email: "me@x.com" } })));
+  stateQueue = null;
+  // SSR escapes the apostrophe ("you&#x27;re") — match around it
+  check(html.includes("3 questions due") && /then you.{0,8}re clear/.test(html) && !html.includes("Starting with"),
+    "under the cap the copy stays simple: '3 questions due … then you're clear'");
 }
 
 console.log(failed === 0 ? "\nSSR checks green." : `\n${failed} failure(s).`);
