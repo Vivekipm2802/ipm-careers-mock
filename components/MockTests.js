@@ -44,7 +44,6 @@ import {
   Trash2,
   Play,
   ArrowRight,
-  Clock,
   Bell,
 } from "lucide-react";
 
@@ -58,6 +57,25 @@ function formatMinutes(seconds) {
   if (!seconds || seconds <= 0) return "—";
   const mins = Math.round(seconds / 60);
   return `${mins} min`;
+}
+
+// Small stroked icon wrapper — same drawn-SVG grammar as the D2 dashboard.
+function Ic({ size = 16, children }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: "block" }}
+    >
+      {children}
+    </svg>
+  );
 }
 
 function difficultyLabel(d) {
@@ -536,7 +554,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                         padding: "0 12px",
                         borderRadius: 999,
                         background: "var(--c-brand-primary)",
-                        color: "#fff",
+                        color: "var(--c-text-on-brand)",
                         fontSize: 12,
                         fontWeight: 500,
                         display: "inline-flex",
@@ -655,7 +673,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 width: 180,
                 height: 180,
                 background:
-                  "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)",
+                  "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" /* soft sheen on the gold banner — intentional, both themes */,
                 borderRadius: "50%",
                 pointerEvents: "none",
               }}
@@ -728,7 +746,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 width: 180,
                 height: 180,
                 background:
-                  "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)",
+                  "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" /* soft sheen on the gold banner — intentional, both themes */,
                 borderRadius: "50%",
                 pointerEvents: "none",
               }}
@@ -842,7 +860,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 padding: "0 14px",
                 borderRadius: 999,
                 background: "var(--c-brand-primary)",
-                color: "#fff",
+                color: "var(--c-text-on-brand)",
                 border: "none",
                 fontSize: 12.5,
                 fontWeight: 500,
@@ -890,7 +908,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
               key={i}
               style={{
                 background: hasMock
-                  ? "var(--c-brand-soft, rgba(199,57,47,0.08))"
+                  ? "var(--c-brand-gold-tint)"
                   : "var(--c-surface)",
                 border: `1px solid ${
                   hasMock ? "var(--c-brand-primary)" : "var(--c-border-faint)"
@@ -1055,7 +1073,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 <span
                   style={{
                     background: isActive
-                      ? "var(--c-brand-soft, rgba(199,57,47,0.08))"
+                      ? "var(--c-brand-gold-tint)"
                       : "var(--c-surface-sunken, var(--c-surface-muted))",
                     color: isActive
                       ? "var(--c-brand-primary)"
@@ -1128,37 +1146,50 @@ export default function MockTests({ enrolled = [], role = "user" }) {
               <div>New mocks will appear here soon.</div>
             </div>
           ) : (
-            filteredCategoryTests.map((test, idx) => {
-              const status = resolveMockStatus(test, results);
-              // Phase 20.2: respect config.public_access for demo users too.
-              // Previous logic (`isDemo ? idx > 0`) only ever unlocked the first
-              // test in the list and ignored the admin's "Public access" toggle,
-              // so a mock marked free-for-demo still rendered locked.
-              const isPublic = test.config?.public_access === true;
-              const isLockedByEnrollment = isDemo
-                ? !isPublic
-                : !isPublic &&
-                  !enrolled?.some(
-                    (e) =>
-                      e?.course?.id === test.course ||
-                      test.config?.courses?.includes(e?.course?.id),
-                  );
-              const isHidden = !!test.config?.hidden;
-              return (
-                <MockRow
-                  key={test.id}
-                  test={test}
-                  index={idx + 1}
-                  status={status}
-                  locked={isLockedByEnrollment && !isAdmin}
-                  isAdmin={isAdmin}
-                  isHidden={isHidden}
-                  onDelete={() => deleteTest(test.id)}
-                  onToggleVisibility={() => toggleVisibility(test.id, isHidden)}
-                  openAttempts={() => setActiveResult(test.id)}
-                />
-              );
-            })
+            // Consistency sweep (preview section 2): one card container,
+            // rows divided by faint borders — icon tile / meta / chip / action.
+            <div
+              style={{
+                background: "var(--c-surface)",
+                border: "1px solid var(--c-border-faint)",
+                borderRadius: 16,
+                boxShadow: "var(--c-shadow-xs)",
+                overflow: "hidden",
+              }}
+            >
+              {filteredCategoryTests.map((test, idx) => {
+                const status = resolveMockStatus(test, results);
+                // Phase 20.2: respect config.public_access for demo users too.
+                // Previous logic (`isDemo ? idx > 0`) only ever unlocked the first
+                // test in the list and ignored the admin's "Public access" toggle,
+                // so a mock marked free-for-demo still rendered locked.
+                const isPublic = test.config?.public_access === true;
+                const isLockedByEnrollment = isDemo
+                  ? !isPublic
+                  : !isPublic &&
+                    !enrolled?.some(
+                      (e) =>
+                        e?.course?.id === test.course ||
+                        test.config?.courses?.includes(e?.course?.id),
+                    );
+                const isHidden = !!test.config?.hidden;
+                return (
+                  <MockRow
+                    key={test.id}
+                    test={test}
+                    index={idx + 1}
+                    isLast={idx === filteredCategoryTests.length - 1}
+                    status={status}
+                    locked={isLockedByEnrollment && !isAdmin}
+                    isAdmin={isAdmin}
+                    isHidden={isHidden}
+                    onDelete={() => deleteTest(test.id)}
+                    onToggleVisibility={() => toggleVisibility(test.id, isHidden)}
+                    openAttempts={() => setActiveResult(test.id)}
+                  />
+                );
+              })}
+            </div>
           )}
         </motion.div>
       </AnimatePresence>
@@ -1267,6 +1298,7 @@ function StatTile({ label, value, unit, foot }) {
 function MockRow({
   test,
   index,
+  isLast,
   status,
   locked,
   isAdmin,
@@ -1282,24 +1314,55 @@ function MockRow({
     ? format(parseISO(test.start_time), "d MMM")
     : null;
 
-  let pill = null;
+  // Icon tile — clock (window open, gold) / check (attempted, success)
+  // / lock (upcoming, closed or enrollment-locked, muted).
+  let tile;
   if (status.kind === "attempted") {
-    pill = {
-      label: status.attempts > 1 ? `${status.attempts} attempts` : "Attempted",
-      bg: "var(--c-success-soft, #E4F2EA)",
-      fg: "var(--c-success, #1A7F4E)",
+    tile = {
+      bg: "var(--c-success-soft)",
+      fg: "var(--c-success)",
+      icon: (
+        <Ic size={15}>
+          <path d="M4 12.5l5 5L20 6.5" />
+        </Ic>
+      ),
     };
-  } else if (status.kind === "live" || status.kind === "available") {
+  } else if (!locked && (status.kind === "live" || status.kind === "available")) {
+    tile = {
+      bg: "var(--c-brand-gold-tint)",
+      fg: "var(--c-brand-gold)",
+      icon: (
+        <Ic size={16}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 3" />
+        </Ic>
+      ),
+    };
+  } else {
+    tile = {
+      bg: "var(--c-surface-sunken, var(--c-surface-muted))",
+      fg: "var(--c-text-tertiary)",
+      icon: (
+        <Ic size={15}>
+          <rect x="5" y="11" width="14" height="9" rx="2" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+        </Ic>
+      ),
+    };
+  }
+
+  let pill = null;
+  if (status.kind === "live" || status.kind === "available") {
     pill = {
-      label: "Available now",
-      bg: "var(--c-brand-soft, rgba(199,57,47,0.08))",
-      fg: "var(--c-brand-primary)",
+      label: status.kind === "live" ? "Window open" : "Available now",
+      bg: "var(--c-success-soft)",
+      fg: "var(--c-success)",
     };
   } else if (status.kind === "upcoming") {
     pill = {
-      label: `Opens ${format(status.opensAt, "d MMM")}`,
-      bg: "var(--c-warning-soft, #FBEED2)",
-      fg: "var(--c-warning, #B66C00)",
+      label: "Upcoming",
+      bg: "var(--c-surface-sunken, var(--c-surface-muted))",
+      fg: "var(--c-text-tertiary)",
     };
   } else if (status.kind === "closed") {
     pill = {
@@ -1308,6 +1371,8 @@ function MockRow({
       fg: "var(--c-text-tertiary)",
     };
   }
+  // Attempted rows carry their story in the meta line (preview grammar);
+  // no status chip needed.
 
   let action = null;
   if (locked) {
@@ -1315,14 +1380,14 @@ function MockRow({
       <button
         onClick={() => toast.success("Please contact us to unlock.")}
         style={{
-          height: 36,
+          height: 34,
           padding: "0 16px",
           borderRadius: 999,
           background: "transparent",
           border: "1px solid var(--c-border-soft)",
           color: "var(--c-text-secondary)",
-          fontSize: 12.5,
-          fontWeight: 500,
+          fontSize: 12,
+          fontWeight: 600,
           fontFamily: "inherit",
           display: "inline-flex",
           alignItems: "center",
@@ -1331,48 +1396,24 @@ function MockRow({
           flexShrink: 0,
         }}
       >
-        <Lock size={14} /> Unlock
+        <Lock size={13} /> Unlock
       </button>
     );
   } else if (status.kind === "attempted") {
+    // Ghost review action — links to the latest result (unchanged route).
     action = (
       <Link
         href={`/mock/result/${status.latestPlay.uid}`}
         target="_blank"
         style={{
-          height: 36,
+          height: 34,
           padding: "0 16px",
           borderRadius: 999,
           background: "transparent",
-          border: "1px solid var(--c-success, #1A7F4E)",
-          color: "var(--c-success, #1A7F4E)",
-          fontSize: 12.5,
-          fontWeight: 500,
-          fontFamily: "inherit",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          cursor: "pointer",
-          flexShrink: 0,
-          textDecoration: "none",
-        }}
-      >
-        <ChartBarIncreasing size={14} /> View result
-      </Link>
-    );
-  } else if (status.kind === "live" || status.kind === "available") {
-    action = (
-      <Link
-        href={`/mock/${test.uid}`}
-        target="_blank"
-        style={{
-          height: 36,
-          padding: "0 16px",
-          borderRadius: 999,
-          background: "var(--c-brand-primary)",
-          color: "#fff",
-          fontSize: 12.5,
-          fontWeight: 500,
+          border: "1px solid var(--c-border-soft)",
+          color: "var(--c-brand-gold)",
+          fontSize: 12,
+          fontWeight: 600,
           fontFamily: "inherit",
           display: "inline-flex",
           alignItems: "center",
@@ -1380,9 +1421,37 @@ function MockRow({
           cursor: "pointer",
           flexShrink: 0,
           textDecoration: "none",
+          whiteSpace: "nowrap",
         }}
       >
-        Start <ArrowRight size={14} />
+        Review →
+      </Link>
+    );
+  } else if (status.kind === "live" || status.kind === "available") {
+    // Gold attempt action (unchanged route).
+    action = (
+      <Link
+        href={`/mock/${test.uid}`}
+        target="_blank"
+        style={{
+          height: 34,
+          padding: "0 16px",
+          borderRadius: 999,
+          background: "var(--c-brand-gold)",
+          color: "var(--c-text-on-brand)",
+          fontSize: 12,
+          fontWeight: 600,
+          fontFamily: "inherit",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          cursor: "pointer",
+          flexShrink: 0,
+          textDecoration: "none",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Attempt →
       </Link>
     );
   } else if (status.kind === "upcoming") {
@@ -1423,41 +1492,58 @@ function MockRow({
     );
   }
 
+  // Meta line — preview grammar: real data only (no total marks or rank
+  // available on this table, so those preview fields are skipped).
+  const metaParts = [];
+  if (status.kind === "attempted") {
+    if (status.latestPlay?.created_at) {
+      metaParts.push(`Attempted ${format(parseISO(status.latestPlay.created_at), "d MMM")}`);
+    } else {
+      metaParts.push("Attempted");
+    }
+    if (typeof status.latestPlay?.score === "number") {
+      metaParts.push(`scored ${status.latestPlay.score}`);
+    }
+    if (status.attempts > 1) metaParts.push(`${status.attempts} attempts`);
+  } else {
+    if (duration !== "—") metaParts.push(duration);
+    if (sectionsCount) metaParts.push(`${sectionsCount} sections`);
+    if (diff) metaParts.push(diff);
+    if (status.kind === "live" && test.end_time) {
+      metaParts.push(`closes ${format(parseISO(test.end_time), "EEE d MMM, h:mm a")}`);
+    } else if (status.kind === "upcoming") {
+      metaParts.push(`opens ${format(status.opensAt, "EEE d MMM, h:mm a")}`);
+    } else if (scheduledDate) {
+      metaParts.push(scheduledDate);
+    }
+  }
+
   return (
     <div
       className="mock-row"
       style={{
-        background: "var(--c-surface)",
-        border: `1px solid ${
-          isAdmin && isHidden
-            ? "var(--c-warning, #B66C00)"
-            : "var(--c-border-faint)"
-        }`,
-        borderRadius: 14,
-        padding: "14px 16px",
-        marginBottom: 8,
+        padding: "13px 18px",
+        borderBottom: isLast ? "none" : "1px solid var(--c-border-faint)",
         display: "flex",
         alignItems: "center",
-        gap: 14,
+        gap: 13,
+        opacity: status.kind === "upcoming" || status.kind === "closed" ? 0.7 : 1,
       }}
     >
+      {/* Status icon tile */}
       <div
         style={{
           flexShrink: 0,
-          width: 48,
-          height: 48,
-          background: "var(--c-surface-sunken, var(--c-surface-muted))",
-          borderRadius: 12,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 16,
-          fontWeight: 600,
-          color: "var(--c-text-secondary)",
-          fontVariantNumeric: "tabular-nums",
+          width: 38,
+          height: 38,
+          background: tile.bg,
+          color: tile.fg,
+          borderRadius: 11,
+          display: "grid",
+          placeItems: "center",
         }}
       >
-        {String(index).padStart(2, "0")}
+        {tile.icon}
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -1471,30 +1557,14 @@ function MockRow({
         >
           <div
             style={{
-              fontSize: 14,
-              fontWeight: 600,
+              fontSize: 13.5,
+              fontWeight: 500,
               color: "var(--c-text-primary)",
               letterSpacing: "-0.005em",
             }}
           >
             {test.title}
           </div>
-          {pill && (
-            <div
-              style={{
-                fontSize: 10.5,
-                fontWeight: 600,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                padding: "2px 8px",
-                borderRadius: 999,
-                background: pill.bg,
-                color: pill.fg,
-              }}
-            >
-              {pill.label}
-            </div>
-          )}
           {isAdmin && isHidden && (
             <div
               style={{
@@ -1502,8 +1572,8 @@ function MockRow({
                 fontWeight: 600,
                 padding: "1px 6px",
                 borderRadius: 4,
-                background: "var(--c-warning-soft, #FBEED2)",
-                color: "var(--c-warning, #B66C00)",
+                background: "var(--c-warning-soft)",
+                color: "var(--c-warning)",
               }}
             >
               HIDDEN
@@ -1512,61 +1582,37 @@ function MockRow({
         </div>
         <div
           style={{
-            display: "flex",
-            gap: 14,
-            fontSize: 12.5,
+            fontSize: 11,
             color: "var(--c-text-tertiary)",
-            marginTop: 6,
-            flexWrap: "wrap",
+            marginTop: 2,
+            fontVariantNumeric: "tabular-nums",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
           }}
         >
-          <span
-            style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
-          >
-            <Clock size={12} /> {duration}
-          </span>
-          {sectionsCount && <span>{sectionsCount} sections</span>}
-          {diff && <span>{diff}</span>}
-          {scheduledDate && <span>{scheduledDate}</span>}
+          {metaParts.join(" · ")}
         </div>
       </div>
 
-      {status.kind === "attempted" &&
-        typeof status.latestPlay?.score === "number" && (
-          <div
-            className="mock-row-score"
-            style={{
-              flexShrink: 0,
-              textAlign: "right",
-              padding: "0 14px 0 4px",
-              borderRight: "1px solid var(--c-border-faint)",
-              marginRight: 2,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 16,
-                fontWeight: 600,
-                color: "var(--c-text-primary)",
-                fontVariantNumeric: "tabular-nums",
-                lineHeight: 1,
-              }}
-            >
-              {status.latestPlay.score}
-            </div>
-            <div
-              style={{
-                fontSize: 10.5,
-                color: "var(--c-text-tertiary)",
-                marginTop: 4,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
-            >
-              Score
-            </div>
-          </div>
-        )}
+      {pill && (
+        <div
+          style={{
+            flexShrink: 0,
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            padding: "4px 10px",
+            borderRadius: 999,
+            background: pill.bg,
+            color: pill.fg,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {pill.label}
+        </div>
+      )}
 
       {isAdmin && (
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>

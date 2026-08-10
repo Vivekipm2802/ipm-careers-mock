@@ -15,14 +15,15 @@ export default function Document() {
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap"
           rel="stylesheet"
         />
-        {/* Set theme before paint — no flash of light mode for dark users */}
+        {/* Set theme before paint — stored preference wins; with no
+            stored preference the portal now DEFAULTS TO LIGHT (approved
+            D2 direction) instead of following prefers-color-scheme.
+            Runs before first paint, so a stored "dark" never flashes. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{
-              var t = localStorage.getItem('ipm-theme');
-              if (!t) {
-                t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-              }
+              var t = localStorage.getItem('ipm-theme') || 'light';
+              if (t !== 'dark') { t = 'light'; }
               document.documentElement.setAttribute('data-theme', t);
               if (t === 'dark') { document.documentElement.classList.add('dark'); }
             }catch(e){}})();`,

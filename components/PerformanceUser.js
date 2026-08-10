@@ -26,6 +26,7 @@ import { useRouter } from "next/router";
 import { useNMNContext } from "./NMNContext";
 import { BUCKET_PATTERN, accuracyOf, classify, shortName } from "./AdaptivePlan";
 import { vaultState, DAILY_CAP } from "./MistakeVault";
+import PageHeader from "./PageHeader";
 
 // ── pure helpers ──────────────────────────────────────────────
 
@@ -402,17 +403,14 @@ export default function PerformanceUser() {
 
   return (
     <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
-      {/* 1 · header */}
-      <header className="mt-10">
-        <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>
-          Your Performance
-        </div>
-        <h1 className="ds-display" style={{ fontSize: "clamp(26px, 3.8vw, 38px)", lineHeight: 1.1 }}>
-          Your numbers, <span className="ds-accent ds-grad-text">decoded.</span>
-        </h1>
-        <p className="mt-2" style={{ fontSize: 15, color: "var(--c-text-secondary)", lineHeight: 1.5 }}>
-          Not just scores — what&apos;s improving, what&apos;s slipping, and exactly what to do next.
-        </p>
+      {/* 1 · header — D1 quiet chrome */}
+      <header className="mt-6">
+        <PageHeader
+          kicker="Your Performance"
+          title="Your numbers,"
+          accent="decoded."
+          subtitle="What's improving, what's slipping, and what to do next."
+        />
       </header>
 
       {/* 2 · open stat strip */}

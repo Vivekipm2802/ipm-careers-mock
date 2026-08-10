@@ -10,7 +10,11 @@
 //   totals: { bankTotal, pyqTotal, bankAudited, pyqAudited,
 //             flagged, fixed, keptMarked, dismissed },
 //   queue:  [ up to 50 unreviewed non-ok audits, newest-flagged
-//             first by id, with question content joined in ]
+//             first by id, with question content joined in ],
+//   reports: [ D4 — up to 50 OPEN student question_reports
+//              (resolved = false), newest first, with question
+//              content joined (bank/pyq/mock). Empty array when
+//              the table hasn't shipped yet. ]
 // }
 // ============================================================
 
@@ -145,9 +149,53 @@ export default async function handler(req, res) {
       })
       .filter(Boolean);
 
+    // ── D4: open student reports (latest 50), question text joined ──
+    // question_reports may not exist yet (ship-result-coaching.sql
+    // not run) — degrade to an empty list, never fail status.
+    let reports = [];
+    try {
+      const { data: repRaw, error: repErr } = await serversupabase
+        .from("question_reports")
+        .select("id,user,source,question_id,reason,note,created_at")
+        .eq("resolved", false)
+        .order("id", { ascending: false })
+        .limit(50);
+      if (!repErr && Array.isArray(repRaw) && repRaw.length) {
+        const idsBy = { bank: [], pyq: [], mock: [] };
+        repRaw.forEach((r) => {
+          if (idsBy[r.source]) idsBy[r.source].push(r.question_id);
+        });
+        const [rb, rp, rm] = await Promise.all([
+          idsBy.bank.length
+            ? serversupabase.from("questions").select("id,title,question").in("id", idsBy.bank)
+            : Promise.resolve({ data: [] }),
+          idsBy.pyq.length
+            ? serversupabase.from("pyq_questions").select("id,question").in("id", idsBy.pyq)
+            : Promise.resolve({ data: [] }),
+          idsBy.mock.length
+            ? serversupabase.from("mock_questions").select("id,title,question").in("id", idsBy.mock)
+            : Promise.resolve({ data: [] }),
+        ]);
+        const byKey = {};
+        (rb.data || []).forEach((q) => (byKey[`bank:${q.id}`] = q));
+        (rp.data || []).forEach((q) => (byKey[`pyq:${q.id}`] = q));
+        (rm.data || []).forEach((q) => (byKey[`mock:${q.id}`] = q));
+        reports = repRaw.map((r) => {
+          const q = byKey[`${r.source}:${r.question_id}`];
+          return {
+            ...r,
+            question: { html: String((q && (q.question || q.title)) || "") },
+          };
+        });
+      }
+    } catch (e) {
+      // table not shipped yet — reports section stays empty
+    }
+
     return res.status(200).json({
       totals: { bankTotal, pyqTotal, bankAudited, pyqAudited, flagged, fixed, keptMarked, dismissed },
       queue,
+      reports,
     });
   } catch (e) {
     console.error("audit status failed:", e?.message);

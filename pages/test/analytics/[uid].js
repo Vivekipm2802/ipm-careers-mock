@@ -17,6 +17,9 @@ import {
 import { Printer, ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+// 2026-08 correctness audit: canonical scoring + verdict re-derivation
+// (SA wrongs cost 0, content-first MCQ matching, numeric-aware SA compare).
+import { scoreConceptPlay } from "@/lib/scoring";
 
 const ConceptAnalytics = ({ result }) => {
   const [questions, setQuestions] = useState();
@@ -60,21 +63,33 @@ const ConceptAnalytics = ({ result }) => {
     if (data) setHistory(data.reverse());
   }
   async function getTopperData(testUuid) {
+    // 2026-08 correctness audit: the old direct plays query read the raw
+    // stored score column (legacy percentages, no dedupe, RLS-limited) and
+    // had no attempted/correct/time data → the topper row rendered "—".
+    // /api/leaderboard re-scores canonically and returns the full field set.
     if (!testUuid) return;
     try {
-      const { data } = await supabase
-        .from("plays")
-        .select("uid,score,name")
-        .eq("test_uuid", testUuid)
-        .order("score", { ascending: false })
-        .limit(50);
-      if (data && data.length > 0) {
-        setTopper({ score: data[0].score, name: data[0].name || "Top scorer", count: data.length });
-        const top10Count = Math.max(1, Math.ceil(data.length * 0.1));
-        const top10 = data.slice(0, top10Count);
-        const avg = top10.reduce((s, r) => s + (r.score || 0), 0) / top10.length;
-        setTop10Avg(Math.round(avg));
+      const { getAuthHeaders } = await import("@/utils/authHeaders");
+      const headers = await getAuthHeaders();
+      const res = await fetch(
+        `/api/leaderboard?type=concept&testId=${encodeURIComponent(testUuid)}`,
+        { headers },
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const t = data?.top?.[0];
+      if (t) {
+        setTopper({
+          score: Math.max(0, t.scoreMarks),
+          maxMarks: t.maxMarks,
+          attempted: t.attempted,
+          correct: t.correct,
+          timeMin: t.timeMin,
+          name: t.isYou ? "You" : t.name || "Top scorer",
+          count: data.totalPlayers,
+        });
       }
+      if (data?.top10pctAvg) setTop10Avg(data.top10pctAvg);
     } catch (e) { /* silent */ }
   }
 
@@ -83,26 +98,26 @@ const ConceptAnalytics = ({ result }) => {
 
   const stats = useMemo(() => {
     if (!questions || !result) return null;
-    const report = result.report || [];
-    const correctCount = report.filter((r) => r.isCorrect === true).length;
-    const wrongCount = report.filter((r) => r.isCorrect === false).length;
+    // 2026-08 correctness audit: recompute from the raw stored answers via
+    // lib/scoring — canonical +increment/−decrement, SA wrongs cost 0,
+    // verdicts re-derived (stored isCorrect only as fallback). Historical
+    // rows were marked under broken comparison rules.
+    const s = scoreConceptPlay(questions, result.report || [], result?.config);
     const totalQ = questions.length;
-    const skippedCount = Math.max(0, totalQ - correctCount - wrongCount);
-    const attempted = correctCount + wrongCount;
-    const positiveScore = correctCount * increment;
-    const negativeScore = wrongCount * decrement;
-    const totalScore = positiveScore - negativeScore;
-    const maxScore = totalQ * increment;
-    // Ship 4: align with the Ship 2 result-page fix — accuracy is
-    // correct / attempted, not correct / total.
-    const accuracy = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
-    return { correctCount, wrongCount, skippedCount, attempted, totalQ,
-             positiveScore, negativeScore, totalScore, maxScore, accuracy };
-  }, [questions, result, increment, decrement]);
+    const skippedCount = Math.max(0, totalQ - s.correct - s.wrong);
+    const accuracy = s.attempted > 0 ? Math.round((s.correct / s.attempted) * 100) : 0;
+    return { correctCount: s.correct, wrongCount: s.wrong, skippedCount, attempted: s.attempted, totalQ,
+             positiveScore: s.positive, negativeScore: s.negative, totalScore: s.score,
+             maxScore: s.maxMarks, accuracy, verdictById: s.verdictById };
+  }, [questions, result]);
 
   function getQStatus(q) {
+    // 2026-08: re-derived verdict first; stored isCorrect as fallback.
+    const v = stats?.verdictById?.[String(q.id)];
+    if (v === true) return "correct";
+    if (v === false) return "wrong";
+    if (v === null) return "skipped";
     if (!result?.report) return "skipped";
-    // Ship 4: String compare — strict === misses string/number id mismatches
     const r = result.report.find((rep) => String(rep.id) === String(q.id));
     if (!r) return "skipped";
     if (r.isCorrect === true) return "correct";
@@ -258,8 +273,25 @@ const ConceptAnalytics = ({ result }) => {
             <div style={{ border: "1px solid var(--c-border-faint)", borderRadius: 12, overflow: "hidden", fontSize: 13 }}>
               <CompareRow header />
               <CompareRow name="You" you score={Math.max(0, stats.totalScore)} attempted={`${stats.attempted} / ${stats.totalQ}`} correct={stats.correctCount} time={totalTimeMin ? `${totalTimeMin} min` : "—"} />
-              {topper && <CompareRow name={topper.name ? `Topper · ${topper.name}` : "Topper"} score={topper.score} attempted="—" correct="—" time="—" />}
-              {top10Avg && <CompareRow muted name="Top 10% average" score={top10Avg} attempted="—" correct="—" time="—" />}
+              {topper && (
+                <CompareRow
+                  name={topper.name ? `Topper · ${topper.name}` : "Topper"}
+                  score={topper.score}
+                  attempted={topper.attempted != null ? `${topper.attempted} / ${stats.totalQ}` : "—"}
+                  correct={topper.correct ?? "—"}
+                  time={topper.timeMin != null ? `${topper.timeMin} min` : "—"}
+                />
+              )}
+              {top10Avg && (
+                <CompareRow
+                  muted
+                  name={`Top 10% average${top10Avg.count ? ` (${top10Avg.count})` : ""}`}
+                  score={top10Avg.scoreMarks ?? "—"}
+                  attempted={top10Avg.attempted != null ? `${top10Avg.attempted} / ${stats.totalQ}` : "—"}
+                  correct={top10Avg.correct ?? "—"}
+                  time={top10Avg.timeMin != null ? `${top10Avg.timeMin} min` : "—"}
+                />
+              )}
             </div>
           </Card>
         )}
@@ -506,7 +538,8 @@ function ScoreProgressionChart({ items, getStatus, pos, neg }) {
     const status = getStatus(q);
     let delta = 0;
     if (status === "correct") { delta = pos; running += pos; }
-    else if (status === "wrong") { delta = neg; running += neg; }
+    // 2026-08 canonical rule: SA/input wrongs never cost marks.
+    else if (status === "wrong") { const d = q?.type === "input" ? 0 : neg; delta = d; running += d; }
     return { i, score: running, delta };
   });
   const finalScore = running;

@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNMNContext } from "./NMNContext";
+import PageHeader from "./PageHeader";
 import { isToday } from "date-fns";
 
 const FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
@@ -401,29 +402,13 @@ export default function Classes() {
 function BatchesView({ batches, isAdmin, isDemo, onOpenClasses, onOpenHistory }) {
   return (
     <>
-      <div style={{ ...eyebrowStyle, marginBottom: 8 }}>Live classes</div>
-      <h1
-        style={{
-          margin: "0 0 6px",
-          fontSize: 30,
-          fontWeight: 600,
-          letterSpacing: "-0.025em",
-          lineHeight: 1.1,
-        }}
-      >
-        Your <span style={serifStyle}>batches</span> &amp; sessions.
-      </h1>
-      <p
-        style={{
-          margin: "0 0 24px",
-          fontSize: 14.5,
-          lineHeight: 1.55,
-          color: "var(--c-text-secondary)",
-          maxWidth: "58ch",
-        }}
-      >
-        Pick a batch to see today's classes and recordings.
-      </p>
+      {/* D1 quiet chrome */}
+      <PageHeader
+        kicker="Live classes"
+        title="Your batches &amp;"
+        accent="sessions."
+        subtitle="Pick a batch to see today's classes and recordings."
+      />
 
       <SectionHeader
         title="Your batches"
@@ -472,10 +457,53 @@ function BatchesView({ batches, isAdmin, isDemo, onOpenClasses, onOpenHistory })
 }
 
 // ============================================================
-// BatchCard
+// BatchCard — preview-sweep §4: title + Active chip + schedule
+// sub-line, gold "Today's classes →" + ghost "Recordings".
+// Same onEnter / onHistory behaviour as before.
 // ============================================================
+const BATCH_DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 function BatchCard({ batch, isAdmin, isDemo, onEnter, onHistory }) {
   const days = batch?.days || [];
+  // Class times live in the batch_schedule table (not fetched here),
+  // so the sub-line derives only what's on the batch row: description
+  // (or course title) + the scheduled days.
+  const daysText = days.length
+    ? [...days]
+        .sort((a, b) => a - b)
+        .map((i) => BATCH_DAY_NAMES[i])
+        .filter(Boolean)
+        .join(" ")
+    : "";
+  const subLine = [batch.description || batch?.course_id?.title, daysText]
+    .filter(Boolean)
+    .join(" · ");
+
+  const chipStyle = {
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    padding: "4px 10px",
+    borderRadius: 999,
+    background: "var(--c-success-soft)",
+    color: "var(--c-success)",
+    whiteSpace: "nowrap",
+    verticalAlign: "middle",
+  };
+  const actionBase = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    fontSize: 12.5,
+    fontWeight: 600,
+    borderRadius: 999,
+    padding: "9px 18px",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    whiteSpace: "nowrap",
+  };
+
   return (
     <div
       style={{
@@ -483,78 +511,66 @@ function BatchCard({ batch, isAdmin, isDemo, onEnter, onHistory }) {
         border: "1px solid var(--c-border-faint)",
         borderRadius: 16,
         padding: "20px 22px",
+        boxShadow: "var(--c-shadow-xs)",
         transition: "transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease",
         cursor: "pointer",
       }}
       onClick={onEnter}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.borderColor = "var(--c-brand-primary)";
-        e.currentTarget.style.boxShadow =
-          "0 10px 24px -16px rgba(20,19,15,0.16)";
+        e.currentTarget.style.borderColor = "var(--c-brand-gold)";
+        e.currentTarget.style.boxShadow = "var(--c-shadow-sm)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "translateY(0)";
         e.currentTarget.style.borderColor = "var(--c-border-faint)";
-        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.boxShadow = "var(--c-shadow-xs)";
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 12,
-          marginBottom: 12,
-        }}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h3
+      <div style={{ minWidth: 0 }}>
+        <h3
+          style={{
+            margin: 0,
+            fontSize: 16,
+            fontWeight: 600,
+            letterSpacing: "-0.012em",
+            color: "var(--c-text-primary)",
+          }}
+        >
+          {batch.title}
+          <span style={{ ...chipStyle, marginLeft: 8 }}>
+            {isDemo ? "Demo" : "Active"}
+          </span>
+        </h3>
+        {subLine && (
+          <p
             style={{
-              margin: "0 0 6px",
-              fontSize: 17,
-              fontWeight: 600,
-              letterSpacing: "-0.012em",
-              color: "var(--c-text-primary)",
+              margin: "4px 0 0",
+              fontSize: 12,
+              color: "var(--c-text-tertiary)",
+              lineHeight: 1.5,
             }}
           >
-            {batch.title}
-          </h3>
-          {batch.description && (
-            <p
-              style={{
-                margin: 0,
-                fontSize: 13,
-                color: "var(--c-text-secondary)",
-                lineHeight: 1.5,
-              }}
-            >
-              {batch.description}
-            </p>
-          )}
-        </div>
-        {isDemo ? (
-          <Pill kind="success">Demo</Pill>
-        ) : (
-          <Pill kind="brand">Active</Pill>
+            {subLine}
+          </p>
         )}
       </div>
 
-      {/* Date meta (admin sees both dates; students see schedule chips) */}
-      {(isAdmin || days.length > 0) && (
+      {/* Date meta — admin only */}
+      {isAdmin && (batch.start_date || batch.end_date) && (
         <div
           style={{
             display: "flex",
             gap: 16,
             flexWrap: "wrap",
-            fontSize: 12.5,
+            fontSize: 12,
             color: "var(--c-text-tertiary)",
-            paddingTop: 14,
+            paddingTop: 12,
             borderTop: "1px dashed var(--c-border-faint)",
-            marginBottom: 12,
+            marginTop: 12,
           }}
         >
-          {isAdmin && batch.start_date && (
+          {batch.start_date && (
             <span>
               <b style={{ color: "var(--c-text-secondary)", fontWeight: 600 }}>
                 Start
@@ -564,7 +580,7 @@ function BatchCard({ batch, isAdmin, isDemo, onEnter, onHistory }) {
               {CtoLocal(batch.start_date)?.year}
             </span>
           )}
-          {isAdmin && batch.end_date && (
+          {batch.end_date && (
             <span>
               <b style={{ color: "var(--c-text-secondary)", fontWeight: 600 }}>
                 End
@@ -577,26 +593,36 @@ function BatchCard({ batch, isAdmin, isDemo, onEnter, onHistory }) {
         </div>
       )}
 
-      {days.length > 0 && <DayChips days={days} />}
-
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <PrimaryButton
+        <button
           onClick={(e) => {
             e.stopPropagation();
             onEnter();
           }}
+          style={{
+            ...actionBase,
+            background: "var(--c-brand-gold)",
+            color: "var(--c-text-on-brand)",
+            border: "none",
+          }}
         >
-          Enter →
-        </PrimaryButton>
+          Today&apos;s classes →
+        </button>
         {!isDemo && (
-          <GhostButton
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onHistory();
             }}
+            style={{
+              ...actionBase,
+              background: "transparent",
+              color: "var(--c-brand-gold)",
+              border: "1px solid var(--c-border-soft)",
+            }}
           >
             Recordings
-          </GhostButton>
+          </button>
         )}
       </div>
     </div>
@@ -1564,48 +1590,6 @@ function Pill({ kind, children }) {
     >
       {children}
     </span>
-  );
-}
-
-function DayChips({ days }) {
-  const dayMap = [
-    { short: "S", index: 0, title: "Sunday" },
-    { short: "M", index: 1, title: "Monday" },
-    { short: "T", index: 2, title: "Tuesday" },
-    { short: "W", index: 3, title: "Wednesday" },
-    { short: "T", index: 4, title: "Thursday" },
-    { short: "F", index: 5, title: "Friday" },
-    { short: "S", index: 6, title: "Saturday" },
-  ];
-  return (
-    <div style={{ display: "inline-flex", gap: 4 }}>
-      {dayMap.map((d) => {
-        const on = days.includes(d.index);
-        return (
-          <span
-            key={d.title}
-            title={d.title}
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: 6,
-              background: on
-                ? "var(--c-brand-glow)"
-                : "var(--c-bg-elev)",
-              color: on
-                ? "var(--c-brand-primary)"
-                : "var(--c-text-tertiary)",
-              fontSize: 10.5,
-              fontWeight: 700,
-              display: "grid",
-              placeItems: "center",
-            }}
-          >
-            {d.short}
-          </span>
-        );
-      })}
-    </div>
   );
 }
 

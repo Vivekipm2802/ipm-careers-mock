@@ -1,5 +1,6 @@
 const { getAuthUser } = require('@/lib/apiAuth');
 const { createClient } = require('@supabase/supabase-js');
+const { scoreMockPlay } = require('@/lib/scoring');
 
 function getServiceClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -32,6 +33,41 @@ export default async function handler(req, res) {
   }
 
   try {
+    // 2026-08 correctness audit: compute the CANONICAL score at submit
+    // time (lib/scoring: +4/−1 defaults, section pos/neg overrides by
+    // magnitude, SA wrongs never negative) and store it. Previously the
+    // score column was never written for mocks (→ leaderboards showed
+    // "You · 0"). Scoring failure never blocks a student's submission.
+    let canonicalScore = null;
+    try {
+      const { data: groups } = await supabase
+        .from('mock_groups')
+        .select('*,subject(*)')
+        .eq('test', test_id);
+      const sectionRows = (groups || []).filter(
+        (s) => s.type === 'subject' || (s.subject != null && s.module == null),
+      );
+      const { data: moduleRowsRaw } = (groups || []).length
+        ? await supabase
+            .from('mock_groups')
+            .select('*,module(*)')
+            .in('parent_sub', groups.map((g) => g.id))
+        : { data: [] };
+      const moduleRows = (moduleRowsRaw || []).filter((m) => m.module);
+      const { data: questions } = moduleRows.length
+        ? await supabase
+            .from('mock_questions')
+            .select('id,parent,type,options')
+            .in('parent', moduleRows.map((m) => m.module.id))
+        : { data: [] };
+      const scored = scoreMockPlay(sectionRows, moduleRows, questions || [], report || []);
+      if (scored && Number.isFinite(scored.total.score)) {
+        canonicalScore = scored.total.score;
+      }
+    } catch (e) {
+      canonicalScore = null;
+    }
+
     // Try full insert with all columns
     let result = await supabase
       .from('mock_plays')
@@ -43,6 +79,7 @@ export default async function handler(req, res) {
         user: user.email,
         name: user.user_metadata?.full_name || user.email,
         duration: Number.isFinite(Number(duration)) ? Math.round(Number(duration)) : null,
+        score: canonicalScore,
       })
       .select();
 
@@ -55,6 +92,7 @@ export default async function handler(req, res) {
           status: 'completed',
           report: report || [],
           user: user.email,
+          score: canonicalScore,
         })
         .select();
     }

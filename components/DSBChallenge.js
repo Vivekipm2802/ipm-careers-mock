@@ -20,6 +20,7 @@ import Duels from "./Duels";
 import DailyQuiz from "./DailyQuiz";
 import BadgeVault from "./BadgeVault";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
+import PageHeader from "./PageHeader";
 
 const DSB_TOUR_STEPS = [
   {
@@ -270,45 +271,67 @@ export default function DSBChallenge({ userData }) {
 
   return (
     <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
-      {/* ── Header ── */}
-      <header className="mb-7 mt-10">
-        <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 8 }}>
-          DSB Challenge
-        </div>
-        <div className="flex items-baseline justify-between gap-4 flex-wrap">
-          <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4.2vw, 40px)", lineHeight: 1.1, color: "var(--c-text-primary)" }}>
-            Level up your <span className="ds-accent ds-grad-text">IPMAT game.</span>
-          </h1>
-          <button
-            type="button"
-            onClick={() => setTourRun(true)}
-            style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
-          >
-            How it works?
-          </button>
-        </div>
-        <p className="mt-2" style={{ fontSize: 15, color: "var(--c-text-secondary)" }}>
-          Daily missions, skill trainers and the all-India arena — every rep earns XP.
-        </p>
+      {/* ── Header — D1 quiet chrome ── */}
+      <header className="mt-6">
+        <PageHeader
+          kicker="DSB Challenge"
+          title="Level up your IPMAT"
+          accent="game."
+          subtitle="Daily missions, skill trainers and the all-India arena — every rep earns XP."
+          right={
+            <button
+              type="button"
+              onClick={() => setTourRun(true)}
+              style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
+            >
+              How it works?
+            </button>
+          }
+        />
       </header>
 
-      {/* ── Missions + Level ── */}
+      {/* ── Hero: Today's quiz (protagonist) + Level/XP — preview-sweep §5 ── */}
       <div className="grid lg:grid-cols-[1.55fr_1fr] gap-4 mb-8">
         <div className="rounded-[16px] border p-6" data-tour="dsb-missions" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)" }}>
-          <div className="flex justify-between items-baseline mb-4">
-            <h2 className="ds-display" style={{ fontSize: 20, color: "var(--c-text-primary)" }}>Today's missions</h2>
-            <span style={{ fontSize: 12, color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
-              {missionsDone} / 3 done · resets 12:00 AM
+          {/* protagonist header — violet icon tile, meta line, gold Start → (Sim Room) */}
+          <div className="flex items-center gap-4 flex-wrap" style={{ paddingBottom: 14, borderBottom: "1px solid var(--c-border-faint)", marginBottom: 4 }}>
+            <span
+              className="grid place-items-center shrink-0"
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 12,
+                background: "rgba(139, 92, 246, 0.14)" /* violet tint — no --c-violet token yet (preview §5) */,
+                color: "rgba(139, 92, 246, 1)" /* violet — reads on both themes */,
+              }}
+            >
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+                <path d="M13 2L4 14h6l-1 8 9-12h-6z" />
+              </svg>
             </span>
+            <div className="min-w-0 flex-1">
+              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--c-text-primary)" }}>Today&apos;s quiz</div>
+              <div style={{ fontSize: 11.5, color: "var(--c-text-tertiary)", marginTop: 2 }}>
+                {missionsDone} / 3 missions done · resets 12:00 AM
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={enterSimRoom}
+              className="inline-flex items-center gap-2 shrink-0"
+              style={{ background: "var(--c-brand-gold)", color: "var(--c-text-on-brand)", fontWeight: 600, fontSize: 13, borderRadius: 999, padding: "10px 24px", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Start <ArrowRight size={15} />
+            </button>
           </div>
-          {missions.map((m) => (
+          {missions.map((m, i) => (
             <div
               key={m.title}
               onClick={m.done ? undefined : m.onClick}
-              className="flex items-center gap-3 rounded-[12px] border px-4 py-3 mb-2"
+              className="flex items-center gap-3"
               style={{
-                background: "var(--c-surface-muted, var(--c-bg))",
-                borderColor: "var(--c-border-faint)",
+                padding: "12px 0",
+                borderBottom: i < missions.length - 1 ? "1px solid var(--c-border-faint)" : "none",
                 opacity: m.done ? 0.6 : 1,
                 cursor: m.done ? "default" : "pointer",
               }}
@@ -325,35 +348,25 @@ export default function DSBChallenge({ userData }) {
               </div>
             </div>
           ))}
-          <div className="mt-3 flex items-center gap-3 flex-wrap">
-            <button
-              type="button"
-              onClick={enterSimRoom}
-              className="inline-flex items-center gap-2"
-              style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 24px", border: "none", cursor: "pointer", fontFamily: "inherit" }}
-            >
-              Enter Sim Room <ArrowRight size={15} />
-            </button>
-            <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
-              runs all three back to back · or tap one mission
-            </span>
+          <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", paddingTop: 10, borderTop: "1px solid var(--c-border-faint)" }}>
+            Start runs all three back to back · or tap any mission
           </div>
         </div>
 
+        {/* level / XP card — LEVEL n · XP, gradient bar, XP-to-next */}
         <div className="rounded-[16px] border p-6 flex flex-col" style={{ background: "var(--c-surface)", borderColor: "var(--c-mock-banner-line)", boxShadow: "var(--c-shadow-xs)" }}>
-          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>Your level</div>
-          <div className="ds-grad-text ds-display" style={{ fontSize: 30, marginTop: 8, letterSpacing: "-0.02em" }}>
-            Level {lvl.level} — {lvl.name}
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-secondary)" }}>
+            Level {lvl.level} · {(xp?.total_xp || 0).toLocaleString()} XP
           </div>
-          <div style={{ fontSize: 13, color: "var(--c-text-secondary)", marginTop: 4 }}>
-            <b style={{ color: "var(--c-text-primary)" }}>{(xp?.total_xp || 0).toLocaleString()} XP</b>
-            {lvl.toNext > 0 ? ` · ${lvl.toNext.toLocaleString()} to Level ${lvl.level + 1}` : " · max level"}
+          <div className="ds-grad-text ds-display" style={{ fontSize: 24, marginTop: 6, letterSpacing: "-0.02em" }}>
+            {lvl.name}
           </div>
-          <div style={{ height: 8, borderRadius: 8, background: "var(--c-surface-sunken, var(--c-surface-muted))", overflow: "hidden", marginTop: 14 }}>
-            <div style={{ height: "100%", width: `${lvl.progress}%`, background: "var(--c-mock-banner-btn-bg)" }} />
+          <div style={{ height: 6, borderRadius: 999, background: "var(--c-surface-sunken, var(--c-surface-muted))", overflow: "hidden", marginTop: 14 }}>
+            <div style={{ height: "100%", borderRadius: 999, width: `${lvl.progress}%`, background: "var(--c-stat-grad)" }} />
           </div>
           <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 8 }}>
-            This week: <b style={{ color: "var(--c-brand-gold)" }}>{(xp?.weekly_xp || 0).toLocaleString()} XP</b>
+            {lvl.toNext > 0 ? `${lvl.toNext.toLocaleString()} XP to Level ${lvl.level + 1}` : "Max level — hold the line"}
+            {" · "}this week: <b style={{ color: "var(--c-brand-gold)" }}>{(xp?.weekly_xp || 0).toLocaleString()} XP</b>
           </div>
           <div style={{ marginTop: 16, borderTop: "1px dashed var(--c-border-soft)", paddingTop: 12, fontSize: 12, color: "var(--c-text-secondary)", lineHeight: 1.7 }}>
             XP comes from everything: <b style={{ color: "var(--c-brand-gold)" }}>mocks +100</b> ·{" "}

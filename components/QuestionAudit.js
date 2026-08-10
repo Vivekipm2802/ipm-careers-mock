@@ -112,8 +112,10 @@ const VERDICT_STYLE = {
 export default function QuestionAudit() {
   const [status, setStatus] = useState(undefined); // {totals} from /api/audit/status
   const [queue, setQueue] = useState([]); // flagged, unreviewed audits
+  const [reports, setReports] = useState([]); // D4: open student question_reports
   const [run, setRun] = useState({ active: null, audited: 0, flagged: 0, total: null, error: null });
   const [acting, setActing] = useState(null); // auditId mid-resolve
+  const [reportActing, setReportActing] = useState(null); // reportId mid-resolve
   const stopRef = useRef(false);
 
   const totals = status && typeof status === "object" && !Array.isArray(status) && status.totals ? status.totals : null;
@@ -129,6 +131,7 @@ export default function QuestionAudit() {
       if (j && j.totals) {
         setStatus(j);
         setQueue(Array.isArray(j.queue) ? j.queue : []);
+        setReports(Array.isArray(j.reports) ? j.reports : []);
       }
     } catch (e) {
       /* status is decorative — never crash the screen */
@@ -217,8 +220,49 @@ export default function QuestionAudit() {
     setActing(null);
   };
 
+  // D4: mark one student report handled (question_reports.resolved = true).
+  const resolveReport = async (item) => {
+    if (!item || reportActing) return;
+    setReportActing(item.id);
+    try {
+      const headers = (await getAuthHeaders()) || {};
+      const r = await fetch("/api/audit/resolve", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ reportId: item.id, action: "resolve_report" }),
+      });
+      let j = null;
+      try {
+        j = await r.json();
+      } catch (e) {
+        j = null;
+      }
+      if (!r.ok) {
+        try {
+          toast.error((j && j.error) || "Could not resolve the report");
+        } catch (e2) {}
+      } else {
+        setReports((prev) => (Array.isArray(prev) ? prev.filter((x) => x && x.id !== item.id) : []));
+      }
+    } catch (e) {
+      try {
+        toast.error("Could not resolve the report — try again");
+      } catch (e2) {}
+    }
+    setReportActing(null);
+  };
+
   const fmt = (n) => (typeof n === "number" && isFinite(n) ? n.toLocaleString("en-IN") : "—");
   const running = runState.active;
+  const reportRows = Array.isArray(reports) ? reports : [];
+  // plain-text snippet of a question's html for the reports list
+  const snippetOf = (html) =>
+    String(html || "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 140);
 
   return (
     <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
@@ -433,6 +477,65 @@ export default function QuestionAudit() {
                         PYQ fixes are manual — edit in the PYQ Manager, then dismiss.
                       </span>
                     ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── D4: student reports — "Report an issue" from the result pages ── */}
+      <div className="mt-8 max-w-[1000px]" style={{ flexShrink: 0 }}>
+        <div style={kicker}>Student reports{reportRows.length ? ` · ${reportRows.length}` : ""}</div>
+        {reportRows.length === 0 ? (
+          <div style={{ ...card, padding: "22px 24px" }}>
+            <div style={{ fontSize: 13.5, color: "var(--c-text-secondary)" }}>
+              No open reports. Students see a &quot;Report an issue&quot; link under every reviewed
+              question — anything they flag lands here.
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {reportRows.map((item, i) => {
+              if (!item) return null;
+              const snippet = snippetOf(item.question && item.question.html);
+              return (
+                <div key={item.id ?? i} style={{ ...card, padding: "16px 20px" }}>
+                  <div className="flex items-center gap-2 flex-wrap" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em" }}>
+                    <span style={{ borderRadius: 999, padding: "4px 10px", background: "var(--c-brand-gold-tint)", color: "var(--c-brand-gold)" }}>
+                      {String(item.reason || "Report").toUpperCase()}
+                    </span>
+                    <span style={{ fontWeight: 500, letterSpacing: 0, fontSize: 11.5, color: "var(--c-text-tertiary)" }}>
+                      {String(item.source || "bank").toUpperCase()} · #{item.question_id ?? "—"}
+                    </span>
+                    <span style={{ marginLeft: "auto", fontWeight: 500, letterSpacing: 0, fontSize: 11.5, color: "var(--c-text-tertiary)" }}>
+                      {item.created_at
+                        ? new Date(item.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })
+                        : "—"}
+                    </span>
+                  </div>
+                  {snippet ? (
+                    <div className="mt-2" style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--c-text-primary)" }}>
+                      {snippet}
+                      {snippet.length >= 140 ? "…" : ""}
+                    </div>
+                  ) : (
+                    <div className="mt-2" style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
+                      Question no longer exists (deleted since the report).
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center gap-3 flex-wrap" style={{ fontSize: 12, color: "var(--c-text-secondary)" }}>
+                    <span>{item.user || "—"}</span>
+                    {item.note ? <span style={{ fontStyle: "italic" }}>&ldquo;{item.note}&rdquo;</span> : null}
+                    <button
+                      type="button"
+                      onClick={() => resolveReport(item)}
+                      disabled={!!reportActing}
+                      style={{ ...ghostBtn, marginLeft: "auto", opacity: reportActing === item.id ? 0.6 : 1 }}
+                    >
+                      <Check size={13} /> Resolved
+                    </button>
                   </div>
                 </div>
               );

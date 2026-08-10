@@ -45,16 +45,11 @@ import { toast } from "react-hot-toast";
 //              were being marked wrong for correct answers.
 // ────────────────────────────────────────────────────────────
 const sameId = (a, b) => a != null && b != null && String(a) === String(b);
-const normalizeAns = (s) => {
-  if (s == null) return "";
-  const trimmed = String(s).trim().toLowerCase().replace(/\s+/g, "");
-  // Numeric collapse — "5" === "5.0" === "5.00"
-  if (/^-?\d*\.?\d+$/.test(trimmed)) {
-    const n = Number(trimmed);
-    if (!Number.isNaN(n) && Number.isFinite(n)) return String(n);
-  }
-  return trimmed;
-};
+// 2026-08 correctness audit: normalizeAns now lives in lib/scoring (single
+// source of truth, adds thousands-comma stripping) and the SUBMITTED score
+// is recomputed there under the canonical rule — +4/−1 defaults, SA/input
+// wrongs NEVER negative.
+import { normalizeAns, scoreConceptPlay } from "@/lib/scoring";
 
 const Game = () => {
   const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
@@ -116,11 +111,21 @@ const Game = () => {
     setSubmitError(null);
     setLastReport(a);
 
+    // 2026-08 correctness audit: never trust the incrementally-tracked
+    // score state — recompute the stored score from the report under the
+    // canonical rule (lib/scoring). SA wrongs cost 0; verdicts re-derived
+    // from the raw stored answers.
+    let canonicalScore = score;
+    try {
+      const scored = scoreConceptPlay(questions || [], a || [], config);
+      if (scored && Number.isFinite(scored.score)) canonicalScore = scored.score;
+    } catch (e) { /* keep incremental fallback */ }
+
     // Ship 4: record true wall-clock duration (seconds)
     const row = {
       test_uuid: parentData?.uuid,
       report: a,
-      score,
+      score: canonicalScore,
       duration: startedAtRef.current
         ? Math.round((Date.now() - startedAtRef.current) / 1000)
         : null,
@@ -307,15 +312,24 @@ const Game = () => {
     }
   }
   async function getLeaderboard(a) {
-    const { data, error } = await supabase
-      .from("plays")
-      .select("id,created_at,score,user,name,isPassed,test_uuid")
-      .eq("test_uuid", a)
-      .order("score", { ascending: false })
-      .limit(20);
-    if (data && data.length != 0) {
-      setLeaderBoard(data);
-    }
+    // 2026-08 correctness audit: raw plays.score is never shown (legacy
+    // rows carry percentages) — /api/leaderboard re-scores canonically
+    // and dedupes per student. Only used by the rare inline fallback view.
+    try {
+      const { getAuthHeaders } = await import("@/utils/authHeaders");
+      const headers = await getAuthHeaders();
+      const res = await fetch(
+        `/api/leaderboard?type=concept&testId=${encodeURIComponent(a)}`,
+        { headers },
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && Array.isArray(data.top) && data.top.length > 0) {
+        setLeaderBoard(
+          data.top.map((r) => ({ id: r.rank, name: r.name, score: r.scoreMarks })),
+        );
+      }
+    } catch (e) { /* silent */ }
   }
 
   useEffect(() => {
@@ -365,10 +379,17 @@ const Game = () => {
     setReport((prevReport) => {
       const existing = prevReport.find((item) => sameId(item.id, questionId));
       if (existing && existing.isCorrect !== undefined && existing.isCorrect !== null) {
+        // 2026-08: undo exactly what was applied — wrong SA/input entries
+        // were never docked (canonical rule), so there's nothing to return.
+        const qType =
+          existing.type ??
+          questions?.find((q) => sameId(q.id, questionId))?.type;
         setScore((s) =>
           existing.isCorrect
-            ? s - config.increment  // undo the +increment given for correct
-            : s + config.decrement  // undo the -decrement docked for wrong
+            ? s - config.increment // undo the +increment given for correct
+            : qType === "input"
+              ? s // wrong SA never cost anything — nothing to undo
+              : s + config.decrement // undo the -decrement docked for wrong MCQ
         );
       }
       return prevReport.filter((item) => !sameId(item.id, questionId));
@@ -438,14 +459,18 @@ const Game = () => {
       const existing = existingIndex !== -1 ? prev[existingIndex] : null;
 
       // Compute score delta based on the CURRENT committed report state.
+      // 2026-08 canonical rule: wrong SA/input answers are NEVER docked —
+      // their delta is 0 (previously they cost −decrement like MCQs).
+      const deltaFor = (entryType, corr) =>
+        corr ? config.increment : entryType === "input" ? 0 : -config.decrement;
       setScore((s) => {
         let newScore = s;
         if (existing && existing.isCorrect !== undefined && existing.isCorrect !== null) {
           // Undo the delta previously applied for this question
-          newScore -= existing.isCorrect ? config.increment : -config.decrement;
+          newScore -= deltaFor(existing.type ?? type, existing.isCorrect);
         }
         // Apply the new delta
-        newScore += isCorrect ? config.increment : -config.decrement;
+        newScore += deltaFor(type, isCorrect);
         return newScore;
       });
 
@@ -459,8 +484,12 @@ const Game = () => {
       // leaking stale fields (an old selectedOption sitting under a new
       // answer, etc.) when a question was first marked-for-review and
       // then re-answered.
+      // 2026-08: entry also records the question `type` so result pages,
+      // the leaderboard endpoint and score undo logic can apply the
+      // SA-no-negative rule without a question lookup.
       const newEntry = {
         id: id,
+        type: type,
         status: status,
         selectedOption: selectedOption,
         timestamp: timeDuration - totalSeconds,

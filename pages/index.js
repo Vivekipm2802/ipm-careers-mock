@@ -71,6 +71,7 @@ const DailyLearn = dynamic(() => import("@/components/DailyLearn"), { ssr: false
 const DSBChallenge = dynamic(() => import("@/components/DSBChallenge"), { ssr: false, loading: () => null });
 const AdaptivePlan = dynamic(() => import("@/components/AdaptivePlan"), { ssr: false, loading: () => null });
 const MistakeVault = dynamic(() => import("@/components/MistakeVault"), { ssr: false, loading: () => null });
+const ReviewHub = dynamic(() => import("@/components/ReviewHub"), { ssr: false, loading: () => null });
 const DoubtSamjhao = dynamic(() => import("@/components/DoubtSamjhao"), { ssr: false, loading: () => null });
 import Link from "next/link";
 const BatchCreator = dynamic(() => import("@/components/BatchCreator"), { ssr: false, loading: () => null });
@@ -2735,9 +2736,10 @@ export default function Home(props) {
                     role={props?.type}
                     type={"concept"}
                   >
-                    {({ group, clearSelection }) => (
+                    {({ group, clearSelection, initialCat }) => (
                       <ConceptTestStudent
                         group={group}
+                        initialCat={initialCat}
                         onBack={() => { clearSelection(); }}
                         role={props?.type || "user"}
                       />
@@ -3279,6 +3281,11 @@ export default function Home(props) {
                 {slug == "mistakevault" && (
                   <div className="flex flex-col w-full h-full">
                     <MistakeVault userData={userData} />
+                  </div>
+                )}
+                {slug == "reviewhub" && (
+                  <div className="flex flex-col w-full h-full">
+                    <ReviewHub userData={userData} goPractice={() => setSlug("play")} />
                   </div>
                 )}
                 {/* {slug == "mindmap2" ? <div className='w-full h-full flex flex-col justify-center align-middle items-center'>

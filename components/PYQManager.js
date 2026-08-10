@@ -43,6 +43,7 @@ import { supabase } from "@/utils/supabaseClient";
 import dynamic from "next/dynamic";
 import FileUploader from "./FileUploader";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
+import PageHeader from "./PageHeader";
 
 // Student bank mini-tour — runs in the Library view only.
 const PYQ_TOUR_STEPS = [
@@ -1431,18 +1432,13 @@ function Shelf({ exams, meta, attempts, onPick }) {
 
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto", padding: "48px 28px 80px", display: "flex", flexDirection: "column", textAlign: "left", width: "100%" }}>
-      {/* Hero */}
-      <div style={{ marginBottom: 34, flexShrink: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 16 }}>
-          PYQ Papers
-        </div>
-        <h1 className="ds-display" style={{ margin: 0, fontSize: "clamp(34px, 4.6vw, 50px)", lineHeight: 1.08, color: "var(--c-text-primary)" }}>
-          Every past paper, every <span className="ds-accent ds-grad-text">exam.</span>
-        </h1>
-        <p style={{ margin: "14px 0 0", fontSize: 15.5, lineHeight: 1.6, color: "var(--c-text-secondary)", maxWidth: "60ch" }}>
-          Real questions from previous years — filter by year and topic, and track what you have cleared.
-        </p>
-      </div>
+      {/* Header — D1 quiet chrome */}
+      <PageHeader
+        kicker="PYQ Papers"
+        title="Every past paper, every"
+        accent="exam."
+        subtitle="Real questions from previous years — filter, attempt, track."
+      />
 
       {/* Open stat strip — no boxes, hairline separators */}
       <div style={{ display: "flex", alignItems: "stretch", marginBottom: 34, flexShrink: 0, flexWrap: "wrap", rowGap: 18 }}>

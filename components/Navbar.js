@@ -21,19 +21,12 @@ import { Lock } from 'lucide-react';
  */
 
 // Section grouping — parent titles → display section
+// D1 redesign: ONE quiet flow of five nouns, no section labels
+// (label '' renders nothing). Titles match NMNContext.js navitems.
 const SECTIONS = [
-  // Phase 16 Ship A: shorter labels (Option C) — titles match the new ones in NMNContext.js navitems.
   {
-    label: 'Study',
-    titles: ['Dashboard', 'Classes', 'Tests', 'DSB Challenge'],
-  },
-  {
-    label: 'Resources',
-    titles: ['Doubts', 'Videos', 'PYQ Papers'],
-  },
-  {
-    label: 'You',
-    titles: ['My Plan'],
+    label: '',
+    titles: ['Today', 'Classes', 'Practice', 'Review', 'Progress'],
   },
 ];
 
@@ -58,6 +51,8 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
     userDetails, ctxSlug, setCTXSlug, sk, setSK, isDemo,
     // Phase 16 Ship C: collapsible sidebar
     sidebarCollapsed,
+    // D1 persona rule: false = student has no batch admit
+    studentHasBatch,
   } = useNMNContext();
 
   function convertToWebP(url) {
@@ -101,11 +96,22 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
     padding: '14px 18px 6px',
   };
 
-  // Tour anchors — flat sidebar items the grand tour spotlights.
+  // Tour anchors — D1: the old flat links became sub-items, so the grand
+  // tour targets are keyed by sub-item action now. TOUR_FLAT kept for any
+  // remaining flat entries. PortalTour skips hidden/missing targets, so a
+  // collapsed group never crashes a tour step.
   const TOUR_FLAT = { 'DSB Challenge': 'nav-dsb', 'Doubts': 'nav-doubts', 'My Plan': 'nav-myplan' };
+  const TOUR_SUB = { dsbchallenge: 'nav-dsb', dbts: 'nav-doubts', studyplan: 'nav-myplan' };
+
+  // D1 persona rule: a student with zero batch admits (and no admin/teacher
+  // powers) doesn't see the "Classes" group. While the count is loading
+  // (null) the group stays visible — no flash of hidden.
+  const navGroups = (accordian || []).filter(
+    (i) => !(i.title === 'Classes' && !showAdminItems && studentHasBatch === false)
+  );
 
   // Group accordian items by section, preserving original order within each section
-  const sectionItems = (accordian || []).reduce((acc, item) => {
+  const sectionItems = navGroups.reduce((acc, item) => {
     const section = SECTIONS.find((s) => s.titles.includes(item.title));
     const key = section ? section.label : 'Other';
     if (!acc[key]) acc[key] = [];
@@ -147,6 +153,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
         return (
           <li
             key={v}
+            {...(TOUR_SUB[z.action] ? { 'data-tour': TOUR_SUB[z.action] } : {})}
             onClick={() => { setCTXSlug(z.action); }}
             className={(ctxSlug == z.action ? styles.active : '') + ' relative !rounded-md transition-all !mx-2 !my-0.5'}
             style={{ animationDelay: (v + 1) * 30 + 'ms' }}
@@ -264,7 +271,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
               </ul>
             </AccordionItem>
 
-            {accordian && accordian.filter((i) => !i.flat).map((i, d) => (
+            {navGroups.filter((i) => !i.flat).map((i, d) => (
               <AccordionItem
                 key={i.title}
                 startContent={i.icon || ''}
@@ -295,7 +302,7 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
           </Accordion>
 
           {/* Flat items — direct links in the mobile drawer (no accordion) */}
-          {accordian && accordian.filter((i) => i.flat).map((i) => {
+          {navGroups.filter((i) => i.flat).map((i) => {
             const target = i.items?.[0];
             if (!target) return null;
             const active = ctxSlug === target.action;
@@ -420,8 +427,8 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
           const items = sectionItems[section.label] || [];
           if (items.length === 0) return null;
           return (
-            <div key={section.label}>
-              <div style={sectionLabelStyle}>{section.label}</div>
+            <div key={section.label || 'main'}>
+              {section.label ? <div style={sectionLabelStyle}>{section.label}</div> : null}
               {/* Items render IN NAV ORDER — flats interleave with
                   accordions (DSB right under Tests, Doubts above
                   Videos), each at the same main level. */}
@@ -506,7 +513,9 @@ const Navbar = ({ type, changePage, accordian, currentSlug }) => {
                 );
                 // Accordions already stack — a plain wrapper div here does
                 // not change layout, and gives the tour a stable anchor.
-                return i.title === 'Tests' ? (
+                // D1: "Tests" became "Practice"; the anchor id stays so
+                // existing Dashboard tour steps keep working.
+                return i.title === 'Practice' ? (
                   <div key={i.title} data-tour="nav-tests">{accordion}</div>
                 ) : (
                   accordion

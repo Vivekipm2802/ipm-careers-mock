@@ -15,33 +15,52 @@
 //  · Chapter chips: redo all of one chapter on demand.
 //  · Source test label in the session header.
 //
+// v2 home restructure (Aug 2026, approved preview-vault-v2):
+//  · Hero card "Today's redo" (progress ring + one line + Start)
+//    replaces the old stat block + CTA row.
+//  · Slim stat line: in the vault · chapters · lucky guesses ·
+//    mastered. "In the vault" counts ALL items incl. mastered so
+//    it equals the sum of the chapter-row counts (preview math).
+//  · The question list is now CHAPTER ROWS, weakest first —
+//    expand a chapter to see its questions inside. See chapterAgg
+//    for the mastered/improving mapping.
+//
 // Pure logic exported: vaultState, dueLabel, prioritize,
-// minutesFor, insightFor, REASONS, DAILY_CAP, LADDER_DAYS.
+// minutesFor, insightFor, chapterAgg, returnsLabel, REASON_PHRASE,
+// REASONS, DAILY_CAP, LADDER_DAYS.
 // ============================================================
 
 import { supabase } from "@/utils/supabaseClient";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, RotateCcw } from "lucide-react";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
+import PageHeader from "./PageHeader";
+import PillDropdown from "./ui/PillDropdown";
+
+// Lucky-guess accent — the approved preview's violet. No portal var
+// exists for violet; same rgba approach as Dashboard's D2 cards.
+const VIOLET = "rgba(151,113,224,1)"; /* violet — approved-preview accent, no portal var */
+const VIOLET_TINT = "rgba(151,113,224,0.14)"; /* violet tint — reads on light + dark */
+const VIOLET_BORDER = "rgba(151,113,224,0.35)"; /* violet border — same rgba family */
 
 // First-visit mini-tour steps. The redo-button step falls back to
 // the list card when nothing is due (querySelector returns the
 // first match in document order).
 const VAULT_TOUR_STEPS = [
   {
-    target: "[data-tour='vault-stats']",
-    title: "Teen numbers",
-    desc: "Aaj kitne redo due, vault mein kitne, kitne hamesha ke liye master ho gaye.",
-  },
-  {
     target: "[data-tour='vault-redo'], [data-tour='vault-list']",
     title: "Roz ka kaam",
-    desc: "Bas is button se shuru karo — vault khud prioritize karta hai.",
+    desc: "Bas is Start se shuru karo — vault khud prioritize karta hai.",
+  },
+  {
+    target: "[data-tour='vault-stats']",
+    title: "Ek line ka scoreboard",
+    desc: "Vault mein kitne, kitne lucky guesses, kitne hamesha ke liye master.",
   },
   {
     target: "[data-tour='vault-chapters']",
-    title: "Chapter pakdo",
-    desc: "Kisi ek chapter ke saare due ek saath bhi kar sakte ho.",
+    title: "Chapter kholo",
+    desc: "Weakest chapter sabse upar. Row kholo — us chapter ke saare questions andar.",
   },
 ];
 
@@ -146,6 +165,82 @@ export function chapterGroups(items) {
     .sort((a, b) => b.count - a.count);
 }
 
+// v2 chapter-row list: how a reason reads on the chapter sub-line
+// ("mostly concept gaps" — the approved preview's phrasing).
+export const REASON_PHRASE = {
+  silly: "careless slips",
+  concept: "concept gaps",
+  calculation: "calculation errors",
+  guessed: "guesses",
+};
+
+// Pure: friendly return tag for a non-due item — "Returns Fri" when
+// it's within the week, "Returns 3 Sep" otherwise (preview tags).
+export function returnsLabel(st, now = new Date()) {
+  if (st.mastered) return "Mastered";
+  if (st.dueNow) return "Due today";
+  const d = st.due instanceof Date ? st.due : new Date(st.due);
+  if (isNaN(d.getTime())) return "Scheduled";
+  const days = Math.ceil((d.getTime() - now.getTime()) / 86400000);
+  if (days <= 6) return `Returns ${d.toLocaleDateString("en-US", { weekday: "short" })}`;
+  return `Returns ${d.getDate()} ${d.toLocaleDateString("en-US", { month: "short" })}`;
+}
+
+// Pure: aggregate vault items (must carry .st = vaultState) into
+// chapter rows for the "By chapter — weakest first" list.
+// The mapping, documented:
+//  · total     = every item filed under the chapter INCLUDING the
+//    mastered ones — the green bar fraction is mastered/total, so
+//    mastered items must stay in the denominator (preview math:
+//    "23 in vault · 3 mastered" → 13% green).
+//  · mastered  = st.mastered (streak >= MASTER_STREAK).
+//  · improving = NOT mastered AND streak >= 1 — at least one clean
+//    redo since the last wrong. The `streak` field every item
+//    carries is exactly "consecutive clean redos" (a wrong redo
+//    resets it to 0), so gold = proven once but not yet through
+//    the 3-7-21 ladder.
+//  · due       = active items with st.dueNow.
+//  · dominant  = mode of last_reason among tagged items; null when
+//    untagged items are the majority (tagged ≤ half) — then the
+//    sub-line shows just "N in vault".
+// Sort: weakest first = lowest mastered fraction, most due first
+// as the tiebreak, then biggest chapter.
+export function chapterAgg(itemsWithState) {
+  const map = {};
+  (itemsWithState || []).forEach((it) => {
+    const label = displayChapter(it);
+    const key = label.trim().toLowerCase();
+    if (!map[key]) map[key] = { key, variants: {}, total: 0, mastered: 0, improving: 0, due: 0, reasons: {}, tagged: 0, items: [] };
+    const g = map[key];
+    g.total += 1;
+    g.variants[label] = (g.variants[label] || 0) + 1;
+    g.items.push(it);
+    if (it.st?.mastered) g.mastered += 1;
+    else {
+      if (Number(it.streak || 0) >= 1) g.improving += 1;
+      if (it.st?.dueNow) g.due += 1;
+    }
+    if (it.last_reason) {
+      g.tagged += 1;
+      g.reasons[it.last_reason] = (g.reasons[it.last_reason] || 0) + 1;
+    }
+  });
+  return Object.values(map)
+    .map((g) => ({
+      key: g.key,
+      label: Object.entries(g.variants).sort((a, b) => b[1] - a[1])[0][0],
+      total: g.total,
+      mastered: g.mastered,
+      improving: g.improving,
+      due: g.due,
+      dominant: g.tagged * 2 > g.total ? Object.entries(g.reasons).sort((a, b) => b[1] - a[1])[0][0] : null,
+      masteredFrac: g.total > 0 ? g.mastered / g.total : 0,
+      improvingFrac: g.total > 0 ? g.improving / g.total : 0,
+      items: g.items,
+    }))
+    .sort((a, b) => a.masteredFrac - b.masteredFrac || b.due - a.due || b.total - a.total);
+}
+
 // Pure: when several rows share the same opening (question sets with
 // a common instruction preamble, e.g. Narration), show each row by
 // its distinct tail instead so the list isn't 8 identical lines.
@@ -223,13 +318,14 @@ export default function MistakeVault({ userData }) {
   const [reveal, setReveal] = useState(false);
   const [flash, setFlash] = useState(null);
   const [moves, setMoves] = useState([]);
-  const [showAll, setShowAll] = useState(false);
-  const [chapterFilter, setChapterFilter] = useState(null);
+  const [openChapter, setOpenChapter] = useState(null); // chapter key expanded in the list
+  const [sourceFilter, setSourceFilter] = useState(null); // null|test|pyq|own
   const [lastCorrect, setLastCorrect] = useState(null);
   const [showHow, setShowHow] = useState(false);
-  const [showAllChips, setShowAllChips] = useState(false);
   const [ownItems, setOwnItems] = useState(null);
   const [pyqItems, setPyqItems] = useState(null); // PYQ wrongs — null until fetched
+  const [guessItems, setGuessItems] = useState(null); // lucky guesses — null until fetched
+  const [showGuessBanner, setShowGuessBanner] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [addQ, setAddQ] = useState("");
   const [addChapter, setAddChapter] = useState("");
@@ -280,6 +376,95 @@ export default function MistakeVault({ userData }) {
       if (!error && Array.isArray(data)) setPyqItems(data.map(mapPyqRow));
       else setPyqItems([]);
     });
+    // Lucky guesses (user_lucky_guesses) — RIGHT answers the student
+    // flagged as "guessed". They never come from get_my_mistakes, so
+    // fetch their content directly: positive ids → questions (concept),
+    // < -1e6 → pyq_questions (the vault's PYQ offset space). Ladder
+    // state is read from the student's own mistake_redos rows — the
+    // same table the redo session already writes to, keyed by
+    // question_id, so redos Just Work for these items.
+    (async () => {
+      try {
+        const { data: rows, error } = await supabase
+          .from("user_lucky_guesses")
+          .select("question_id, created_at")
+          .eq("user", userData.email);
+        if (error) throw error;
+        const ids = [...new Set((rows || []).map((r) => Number(r.question_id)).filter((n) => Number.isFinite(n)))];
+        if (!ids.length) { setGuessItems([]); return; }
+        const flaggedAt = {};
+        (rows || []).forEach((r) => { flaggedAt[String(r.question_id)] = r.created_at; });
+        const conceptIds = ids.filter((n) => n > 0);
+        const pyqIds = ids.filter((n) => n < -PYQ_ID_OFFSET).map((n) => -n - PYQ_ID_OFFSET);
+        const [qRes, pRes, rRes] = await Promise.all([
+          conceptIds.length
+            ? supabase.from("questions").select("id,title,question,questionimage,options").in("id", conceptIds)
+            : Promise.resolve({ data: [] }),
+          pyqIds.length
+            ? supabase.from("pyq_questions").select("id,question,answer,answer_type,options,year").in("id", pyqIds)
+            : Promise.resolve({ data: [] }),
+          supabase
+            .from("mistake_redos")
+            .select("question_id, correct, reason, created_at")
+            .eq("user", userData.email)
+            .in("question_id", ids)
+            .order("created_at", { ascending: true }),
+        ]);
+        // ladder from redo history: streak = consecutive corrects since
+        // the last wrong (same math the vault RPCs do server-side)
+        const ladder = {};
+        (rRes.data || []).forEach((r) => {
+          const k = String(r.question_id);
+          if (!ladder[k]) ladder[k] = { streak: 0, last_redo_at: null, last_reason: null };
+          ladder[k].streak = r.correct ? ladder[k].streak + 1 : 0;
+          ladder[k].last_redo_at = r.created_at;
+          if (r.reason) ladder[k].last_reason = r.reason;
+        });
+        const out = [];
+        (qRes.data || []).forEach((qq) => {
+          // MCQ needs mappable options; SA ({answer}) reuses the
+          // self-graded redo path (is_own UI), like student-added rows
+          const opts = Array.isArray(qq.options) && qq.options.length >= 2 && qq.options.some((o) => o?.isCorrect) ? qq.options : null;
+          const k = String(qq.id);
+          const l = ladder[k] || {};
+          out.push({
+            question_id: qq.id,
+            is_guess: true,
+            is_own: !opts,
+            title: qq.title || null,
+            question: qq.question,
+            questionimage: qq.questionimage || null,
+            options: opts,
+            answer: !opts && qq.options?.answer !== undefined ? String(qq.options.answer) : null,
+            chapter: null, // content-only fetch has no tree → files under "Other"
+            test_title: "Lucky guess",
+            wrong_count: 1,
+            last_wrong_at: flaggedAt[k] || null, // flag date anchors the day-3 ladder
+            streak: Number(l.streak || 0),
+            last_redo_at: l.last_redo_at || null,
+            last_reason: l.last_reason || null,
+          });
+        });
+        (pRes.data || []).forEach((qq) => {
+          const k = String(-(PYQ_ID_OFFSET + Number(qq.id)));
+          const l = ladder[k] || {};
+          out.push({
+            ...mapPyqRow({
+              ...qq,
+              topic: null,
+              last_wrong_at: flaggedAt[k] || null,
+              streak: Number(l.streak || 0),
+              last_redo_at: l.last_redo_at || null,
+              last_reason: l.last_reason || null,
+            }),
+            is_guess: true,
+          });
+        });
+        setGuessItems(out);
+      } catch {
+        setGuessItems([]); // table not shipped yet → vault works without it
+      }
+    })();
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     supabase
@@ -297,33 +482,59 @@ export default function MistakeVault({ userData }) {
   };
   useEffect(load, [userData?.email]);
 
+  // one-time violet intro banner for the lucky-guess feature —
+  // read in an effect (not render) so SSR/CSR markup match.
+  useEffect(() => {
+    try {
+      if (!window.localStorage.getItem("vault_lucky_banner_v1")) setShowGuessBanner(true);
+    } catch {}
+  }, []);
+  const dismissGuessBanner = () => {
+    setShowGuessBanner(false);
+    try { window.localStorage.setItem("vault_lucky_banner_v1", "1"); } catch {}
+  };
+
   // explainer card is opt-in only — opens from the "How it works?"
   // link in the header, closes on "Got it". Never auto-shows.
 
   const now = new Date();
-  const withState = [
+  const mistakes = [
     ...(Array.isArray(items) ? items : []),
     ...(Array.isArray(ownItems) ? ownItems : []),
     ...(Array.isArray(pyqItems) ? pyqItems : []),
-  ].map((it) => ({ ...it, st: vaultState(it, now) }));
+  ];
+  // Dedupe: a lucky guess shares its question_id space with real
+  // vault mistakes (positive questions.id / PYQ offset). If the
+  // student ALSO got it wrong for real, the vault-mistake copy wins
+  // and the guess copy is dropped.
+  const mistakeIds = new Set(mistakes.map((it) => it.question_id));
+  const guessesMerged = (Array.isArray(guessItems) ? guessItems : []).filter(
+    (it) => !mistakeIds.has(it.question_id)
+  );
+  const withState = [...mistakes, ...guessesMerged].map((it) => ({ ...it, st: vaultState(it, now) }));
   const active = withState.filter((it) => !it.st.mastered);
   const mastered = withState.filter((it) => it.st.mastered);
   const due = prioritize(active.filter((it) => it.st.dueNow));
   const upcoming = active.filter((it) => !it.st.dueNow).sort((a, b) => a.st.due - b.st.due);
+  const luckyCount = active.filter((it) => it.is_guess).length;
 
   // daily ask: capped by what's already been redone today
   const budget = Math.max(0, DAILY_CAP - redosToday);
   const todaysAsk = due.slice(0, budget);
 
-  // chapters for chips — merged case-insensitively
+  // chapters for the add-form chips — merged case-insensitively
   const chapters = chapterGroups(active);
-  const chapterLabel = chapterFilter
-    ? chapters.find((g) => g.key === chapterFilter)?.label || chapterFilter
-    : null;
 
-  const listed = chapterFilter
-    ? active.filter((it) => chapterKey(it) === chapterFilter)
-    : [...due, ...upcoming];
+  // real vault sources: portal tests (incl. lucky guesses), PYQ,
+  // student-added. is_pyq wins (PYQ self-grade rows also carry is_own).
+  const sourceOf = (it) =>
+    it.is_pyq ? "pyq" : it.is_guess ? "test" : it.is_own ? "own" : "test";
+
+  // v2 chapter rows: aggregate over ALL items incl. mastered (see
+  // chapterAgg header for the mapping), source-filtered for the list.
+  const sourced = sourceFilter ? withState.filter((it) => sourceOf(it) === sourceFilter) : withState;
+  const chapterRows = chapterAgg(sourced);
+  const chapterRowsAll = chapterAgg(withState); // stat line ignores the filter
 
   const startSession = (pick) => {
     const session = (pick && pick.length ? pick : todaysAsk).slice(0, SESSION_SIZE);
@@ -494,6 +705,7 @@ export default function MistakeVault({ userData }) {
         setItems(bump);
         setOwnItems(bump);
         setPyqItems(bump);
+        setGuessItems(bump); // lucky guesses climb the same ladder
       }
     }
     setPicked(null);
@@ -563,31 +775,32 @@ export default function MistakeVault({ userData }) {
       {/* ══ HOME ══ */}
       {phase === "home" && (
         <>
-          <header className="mt-10">
-            <div className="flex items-baseline justify-between gap-4 flex-wrap">
-              <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4.2vw, 40px)", lineHeight: 1.1 }}>
-                Mistake <span className="ds-accent ds-grad-text">Vault.</span>
-              </h1>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 18 }}>
-                <button
-                  type="button"
-                  onClick={() => setShowAdd((v) => !v)}
-                  style={{ background: "transparent", border: "1px solid rgba(255, 182, 39, 0.4)", borderRadius: 999, padding: "8px 18px", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--c-brand-gold)" }}
-                >
-                  + Add a mistake
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowHow((v) => !v)}
-                  style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
-                >
-                  How it works?
-                </button>
-              </span>
-            </div>
-            <p className="mt-2" style={{ fontSize: 15, color: "var(--c-text-secondary)", lineHeight: 1.5 }}>
-              Every question you&apos;ve ever missed, collected automatically. Redo them on schedule — 3, 7, 21 days — and they leave the vault forever.
-            </p>
+          <header className="mt-6">
+            {/* D1 quiet chrome — one compact header, actions kept on the right */}
+            <PageHeader
+              kicker="Review"
+              title="Mistake"
+              accent="Vault."
+              subtitle="Every missed question, collected automatically — redo on schedule and it leaves forever."
+              right={
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 18 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdd((v) => !v)}
+                    style={{ background: "transparent", border: "1px solid rgba(255, 182, 39, 0.4)", borderRadius: 999, padding: "8px 18px", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--c-brand-gold)" }}
+                  >
+                    + Add a mistake
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowHow((v) => !v)}
+                    style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--c-text-tertiary)", textDecoration: "underline", textUnderlineOffset: 3, padding: 0 }}
+                  >
+                    How it works?
+                  </button>
+                </span>
+              }
+            />
           </header>
 
           {/* first-visit explainer, reopenable via the header link.
@@ -675,18 +888,60 @@ export default function MistakeVault({ userData }) {
             </div>
           )}
 
-          <div className="flex items-center flex-wrap mt-7" data-tour="vault-stats">
-            {[
-              ["Today's redo", String(todaysAsk.length), todaysAsk.length ? `your daily dose · ~${minutesFor(todaysAsk.length)} min · ${due.length > todaysAsk.length ? "backlog clears itself" : "then you're clear"}` : redosToday >= DAILY_CAP ? "done for today — vault rests" : "nothing due — vault is calm", todaysAsk.length ? "var(--c-brand-gold)" : "var(--c-text-tertiary)"],
-              ["In the vault", String(active.length), `across ${chapters.length} ${chapters.length === 1 ? "chapter" : "chapters"}`, "var(--c-text-tertiary)"],
-              ["Mastered forever", String(mastered.length), "this number only goes up", "var(--c-success)"],
-            ].map(([l, v, cap, capColor], i, arr) => (
-              <div key={l} style={{ padding: "4px 34px 4px 0", marginRight: 34, borderRight: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none" }}>
-                <div style={{ fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--c-text-tertiary)" }}>{l}</div>
-                <div style={{ ...grad, fontSize: 30, marginTop: 3, lineHeight: 1.1 }}>{v}</div>
-                <div style={{ fontSize: 11, marginTop: 4, color: capColor, fontWeight: 500 }}>{cap}</div>
+          {/* hero — "Today's redo" (ring + one line + gold Start) */}
+          {(() => {
+            const n = todaysAsk.length;
+            const done = Math.min(redosToday, DAILY_CAP);
+            const target = done + n;
+            const frac = target > 0 ? done / target : 1;
+            const CIRC = 144.5; // 2πr for r=23 — the preview's ring
+            return (
+              <div className="mt-7 max-w-[860px]" data-tour="vault-redo" style={{ display: "flex", alignItems: "center", gap: 18, position: "relative", overflow: "hidden", background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, boxShadow: "var(--c-shadow-xs)", padding: "20px 22px" }}>
+                <span aria-hidden style={{ position: "absolute", top: 0, left: 24, right: 24, height: 1, background: "linear-gradient(90deg, transparent, var(--c-brand-gold), transparent)", opacity: 0.55 }} />
+                <div style={{ width: 56, height: 56, position: "relative", flexShrink: 0 }}>
+                  <svg width="56" height="56" viewBox="0 0 56 56" style={{ transform: "rotate(-90deg)", display: "block" }}>
+                    <circle cx="28" cy="28" r="23" fill="none" stroke="var(--c-surface-sunken, var(--c-surface-muted))" strokeWidth="5" />
+                    <circle cx="28" cy="28" r="23" fill="none" stroke="var(--c-brand-gold)" strokeWidth="5" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={CIRC * (1 - frac)} />
+                  </svg>
+                  <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
+                    <span className="ds-display" style={{ fontSize: 17 }}>{n}</span>
+                  </div>
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 15.5, fontWeight: 600 }}>Today&apos;s redo</div>
+                  <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 3 }}>
+                    {n > 0
+                      ? `${n} ${n === 1 ? "question" : "questions"} due · about ${minutesFor(n)} ${minutesFor(n) === 1 ? "minute" : "minutes"} · ${due.length > n ? "clears the backlog on its own" : "then you're clear"}`
+                      : redosToday >= DAILY_CAP
+                        ? "Done for today — the vault rests."
+                        : "Nothing due — the vault is calm."}
+                  </div>
+                </div>
+                {n > 0 && (
+                  <button type="button" onClick={() => startSession()} style={{ ...goldBtn, marginLeft: "auto", fontSize: 12.5, padding: "10px 22px", whiteSpace: "nowrap" }}>
+                    Start <ArrowRight size={14} />
+                  </button>
+                )}
               </div>
-            ))}
+            );
+          })()}
+
+          {/* slim stat line — in the vault · chapters · lucky · mastered */}
+          <div className="mt-5 max-w-[860px] flex flex-wrap items-baseline" data-tour="vault-stats" style={{ gap: 22, borderBottom: "1px solid var(--c-border-faint)", padding: "0 2px 14px" }}>
+            <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
+              <b style={{ ...grad, fontSize: 17, marginRight: 4 }}>{withState.length}</b> in the vault
+            </span>
+            <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
+              <b style={{ ...grad, fontSize: 17, marginRight: 4 }}>{chapterRowsAll.length}</b> {chapterRowsAll.length === 1 ? "chapter" : "chapters"}
+            </span>
+            {luckyCount > 0 && (
+              <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
+                <b className="ds-display" style={{ fontSize: 17, marginRight: 4, fontWeight: 500, color: VIOLET }}>{luckyCount}</b> lucky guesses
+              </span>
+            )}
+            <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
+              <b className="ds-display" style={{ fontSize: 17, marginRight: 4, fontWeight: 500, color: "var(--c-success)" }}>{mastered.length}</b> mastered — forever
+            </span>
           </div>
 
           {insight && (
@@ -695,99 +950,173 @@ export default function MistakeVault({ userData }) {
             </div>
           )}
 
-          {todaysAsk.length > 0 && (
-            <div className="mt-6 flex items-center gap-3 flex-wrap" data-tour="vault-redo">
-              <button type="button" onClick={() => startSession()} style={goldBtn}>
-                Start today&apos;s redo — {Math.min(todaysAsk.length, SESSION_SIZE)} {Math.min(todaysAsk.length, SESSION_SIZE) === 1 ? "question" : "questions"} <ArrowRight size={15} />
+          {/* one-time intro: lucky guesses now land here too */}
+          {showGuessBanner && (
+            <div
+              className="max-w-[860px] mt-6"
+              style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "13px 16px", background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderLeft: `2px solid ${VIOLET}`, borderRadius: "0 12px 12px 0", boxShadow: "var(--c-shadow-xs)" }}
+            >
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: VIOLET_TINT, color: VIOLET, display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+                  <path d="M9 9a3 3 0 1 1 5.2 2c-.8.8-2.2 1.2-2.2 2.5" />
+                  <circle cx="12" cy="17.5" r="0.6" fill="currentColor" />
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600 }}>New — lucky guesses now land here too</div>
+                <div style={{ fontSize: 11.5, color: "var(--c-text-tertiary)", marginTop: 1, lineHeight: 1.5 }}>
+                  Marked an answer right but tagged it &quot;Guessed&quot;? The vault treats it like a mistake and schedules it for practice — a guess isn&apos;t knowledge until you&apos;ve proven it.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={dismissGuessBanner}
+                aria-label="Dismiss"
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--c-text-tertiary)", fontSize: 13, padding: 2, fontFamily: "inherit", flexShrink: 0 }}
+              >
+                ✕
               </button>
-              <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
-                +{XP_PER_SESSION} XP · the vault asks for at most {DAILY_CAP} a day
-              </span>
             </div>
           )}
 
-          {/* chapter chips */}
-          {chapters.length > 1 && (
-            <div className="flex gap-2 flex-wrap mt-7" data-tour="vault-chapters">
-              <button type="button" style={chipBtn(!chapterFilter)} onClick={() => setChapterFilter(null)}>All</button>
-              {(showAllChips ? chapters : chapters.slice(0, 6)).map((g) => (
-                <button key={g.key} type="button" style={chipBtn(chapterFilter === g.key)} onClick={() => setChapterFilter(chapterFilter === g.key ? null : g.key)}>
-                  {g.label} · {g.count}
-                </button>
-              ))}
-              {chapters.length > 6 && (
-                <button type="button" style={{ ...chipBtn(false), color: "var(--c-brand-gold)" }} onClick={() => setShowAllChips((v) => !v)}>
-                  {showAllChips ? "show less" : `+${chapters.length - 6} more`}
-                </button>
-              )}
-            </div>
-          )}
-
-          <div className="flex justify-between items-baseline mt-6 mb-3">
-            <div style={sectLabel}>{chapterFilter ? chapterLabel : "Your mistakes — auto-collected from your tests"}</div>
-            <span style={sectMeta}>wrong redo → back to day 3 · three rights → mastered</span>
+          {/* chapter head — "By chapter — weakest first" + Source dropdown.
+              zIndex: the dropdown menu must paint above the list card. */}
+          <div className="flex items-center justify-between flex-wrap gap-2.5 mt-7 mb-2.5 max-w-[860px]" data-tour="vault-chapters" style={{ position: "relative", zIndex: 70 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>
+              By chapter — weakest first
+            </span>
+            <PillDropdown
+              label="Source"
+              value={sourceFilter}
+              onChange={setSourceFilter}
+              options={[
+                { value: null, label: "All" },
+                { value: "test", label: "Tests" },
+                { value: "pyq", label: "PYQ" },
+                { value: "own", label: "Added by you" },
+              ]}
+            />
           </div>
 
-          {chapterFilter && (() => {
-            const chapterDue = listed.filter((it) => it.st.dueNow);
-            return chapterDue.length > 0 ? (
-              <button type="button" onClick={() => startSession(chapterDue)} className="self-start mb-3" style={{ ...goldBtn, fontSize: 13, padding: "10px 22px" }}>
-                Redo {Math.min(chapterDue.length, SESSION_SIZE)} due from {chapterLabel} <ArrowRight size={14} />
-              </button>
-            ) : (
-              <div className="mb-3" style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
-                Nothing due in {chapterLabel} right now — the schedule will bring them back.
-              </div>
-            );
-          })()}
-
-          <div className="max-w-[860px] mb-12" style={card} data-tour="vault-list">
-            {items === null && <div style={{ padding: "16px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>Opening the vault…</div>}
-            {items !== null && listed.length === 0 && (
-              <div style={{ padding: "16px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>
-                {mastered.length > 0
-                  ? "Vault cleared — every mistake mastered. Take tests to feed it new ones."
+          {/* chapter rows — expand to the chapter's questions inside */}
+          <div className="max-w-[860px]" style={{ ...card, padding: 0, overflow: "hidden" }} data-tour="vault-list">
+            {items === null && <div style={{ padding: "16px 22px", fontSize: 13, color: "var(--c-text-tertiary)" }}>Opening the vault…</div>}
+            {items !== null && chapterRows.length === 0 && (
+              <div style={{ padding: "16px 22px", fontSize: 13, color: "var(--c-text-tertiary)" }}>
+                {sourceFilter
+                  ? "Nothing from this source yet — switch it back to All."
                   : "No mistakes collected yet. Take a concept test — anything you miss lands here automatically."}
               </div>
             )}
-            {(() => { const rowSnips = distinctSnippets(listed.map(snippet)); return listed.slice(0, showAll ? listed.length : 8).map((it, i, arr) => (
-              <div
-                key={it.question_id}
-                onClick={it.st.dueNow ? () => startSession([it]) : undefined}
-                title={it.st.dueNow ? "Redo this one now" : "Locked until it's due — that's how the memory science works"}
-                className="flex items-center gap-3.5 group"
-                style={{ padding: "14px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none", cursor: it.st.dueNow ? "pointer" : "default" }}
-              >
-                <Ladder stage={it.st.stage} />
-                {/* is_pyq wins — PYQ self-grade items also carry is_own,
-                    but they must never read as "YOURS" */}
-                {it.is_pyq ? (
-                  <span className="shrink-0" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", color: "var(--c-brand-gold)", border: "1px solid rgba(255, 182, 39, 0.35)", background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "2px 9px" }}>
-                    PYQ
-                  </span>
-                ) : it.is_own ? (
-                  <span className="shrink-0" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", color: "var(--c-brand-gold)", border: "1px solid rgba(255, 182, 39, 0.35)", background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "2px 9px" }}>
-                    YOURS
-                  </span>
-                ) : null}
-                <span className="min-w-0 flex-1" style={{ fontSize: 13.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {rowSnips[i]}
-                </span>
-                <span className="hidden md:block shrink-0" style={{ fontSize: 11, color: "var(--c-text-tertiary)", width: 170 }}>
-                  {displayChapter(it)}
-                  {it.last_reason ? ` · last time: ${reasonLabel(it.last_reason)}` : it.st.stage > 0 ? ` · survived ${it.st.stage}` : ""}
-                </span>
-                <span className="shrink-0 text-right" style={{ fontSize: 11, fontWeight: 600, width: 90, color: it.st.dueNow ? "var(--c-brand-gold)" : "var(--c-text-tertiary)" }}>
-                  <span className={it.st.dueNow ? "group-hover:hidden" : ""}>{dueLabel(it.st, now)}</span>
-                  {it.st.dueNow && <span className="hidden group-hover:inline">redo now →</span>}
-                </span>
-              </div>
-            )); })()}
-            {listed.length > 8 && (
-              <button type="button" onClick={() => setShowAll((v) => !v)} style={{ background: "none", border: "none", padding: "13px 0", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}>
-                {showAll ? "Show less" : `Show all ${listed.length} →`}
-              </button>
-            )}
+            {chapterRows.map((g, gi) => {
+              const isOpen = openChapter === g.key;
+              // inner order: due first (oldest due), then upcoming by
+              // return date, mastered at the bottom
+              const rows = isOpen
+                ? g.items.slice().sort((a, b) => {
+                    const rank = (it) => (it.st.mastered ? 2 : it.st.dueNow ? 0 : 1);
+                    const dueAt = (it) => (it.st.due instanceof Date ? it.st.due.getTime() : 0);
+                    return rank(a) - rank(b) || dueAt(a) - dueAt(b);
+                  })
+                : null;
+              const rowSnips = rows ? distinctSnippets(rows.map(snippet)) : null;
+              const chapterDue = g.items.filter((it) => !it.st.mastered && it.st.dueNow);
+              return (
+                <div key={g.key}>
+                  <div
+                    onClick={() => setOpenChapter(isOpen ? null : g.key)}
+                    className="td-step flex items-center gap-3.5"
+                    style={{ padding: "14px 18px", cursor: "pointer", borderTop: gi > 0 ? "1px solid var(--c-border-faint)" : "none" }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.label}</div>
+                      <div style={{ fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 2 }}>
+                        {g.total} in vault{g.dominant ? ` · mostly ${REASON_PHRASE[g.dominant] || g.dominant}` : ""}
+                      </div>
+                    </div>
+                    {g.due > 0 && (
+                      <span className="shrink-0" style={{ fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600, background: "var(--c-brand-gold-tint)", color: "var(--c-brand-gold)", borderRadius: 999, padding: "4px 10px", whiteSpace: "nowrap" }}>
+                        {g.due} due today
+                      </span>
+                    )}
+                    <div className="shrink-0 hidden sm:block" style={{ marginLeft: "auto", textAlign: "right", width: 150 }}>
+                      <div style={{ fontSize: 10, color: "var(--c-text-tertiary)", marginBottom: 5 }}>
+                        <b style={{ color: "var(--c-success)", fontWeight: 600 }}>{g.mastered} mastered</b> · {g.improving} improving
+                      </div>
+                      <div style={{ height: 5, borderRadius: 3, background: "var(--c-surface-sunken, var(--c-surface-muted))", overflow: "hidden", display: "flex" }}>
+                        <span style={{ width: `${Math.round(g.masteredFrac * 100)}%`, background: "var(--c-success)", height: "100%" }} />
+                        <span style={{ width: `${Math.round(g.improvingFrac * 100)}%`, background: "var(--c-brand-gold)", height: "100%" }} />
+                      </div>
+                    </div>
+                    <svg className="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--c-text-tertiary)", transition: "transform 0.18s", transform: isOpen ? "rotate(90deg)" : "none" }}>
+                      <path d="M9 6l6 6-6 6" />
+                    </svg>
+                  </div>
+
+                  {isOpen && (
+                    <div style={{ background: "var(--c-surface-muted)", borderTop: "1px solid var(--c-border-faint)", padding: "6px 18px 10px 30px" }}>
+                      {chapterDue.length > 0 && (
+                        <button type="button" onClick={() => startSession(prioritize(chapterDue))} className="my-2" style={{ ...goldBtn, fontSize: 12, padding: "8px 18px" }}>
+                          Redo {Math.min(chapterDue.length, SESSION_SIZE)} due from {g.label} <ArrowRight size={13} />
+                        </button>
+                      )}
+                      {rows.map((it, i) => (
+                        <div
+                          key={it.question_id}
+                          onClick={!it.st.mastered && it.st.dueNow ? () => startSession([it]) : undefined}
+                          title={it.st.mastered ? "Mastered — beaten three times, spaced apart" : it.st.dueNow ? "Redo this one now" : "Locked until it's due — that's how the memory science works"}
+                          className="flex items-center gap-3 group"
+                          style={{ padding: "10px 0", borderBottom: i < rows.length - 1 ? "1px solid var(--c-border-faint)" : "none", cursor: !it.st.mastered && it.st.dueNow ? "pointer" : "default" }}
+                        >
+                          <Ladder stage={it.st.stage} />
+                          {/* lucky guesses get the violet pill (per preview);
+                              then is_pyq wins — PYQ self-grade items also
+                              carry is_own, but must never read as "YOURS" */}
+                          {it.is_guess ? (
+                            <span className="shrink-0" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", color: VIOLET, border: `1px solid ${VIOLET_BORDER}`, background: VIOLET_TINT, borderRadius: 999, padding: "2px 9px" }}>
+                              Lucky guess
+                            </span>
+                          ) : it.is_pyq ? (
+                            <span className="shrink-0" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", color: "var(--c-brand-gold)", border: "1px solid rgba(255, 182, 39, 0.35)", background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "2px 9px" }}>
+                              PYQ
+                            </span>
+                          ) : it.is_own ? (
+                            <span className="shrink-0" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", color: "var(--c-brand-gold)", border: "1px solid rgba(255, 182, 39, 0.35)", background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "2px 9px" }}>
+                              YOURS
+                            </span>
+                          ) : null}
+                          <span className="min-w-0 flex-1" style={{ fontSize: 12.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--c-text-secondary)" }}>
+                            {rowSnips[i]}
+                          </span>
+                          <span className="hidden md:block shrink-0" style={{ fontSize: 11, color: "var(--c-text-tertiary)" }}>
+                            {it.last_reason ? `last time: ${reasonLabel(it.last_reason)}` : !it.st.mastered && it.st.stage > 0 ? `survived ${it.st.stage}` : ""}
+                          </span>
+                          {it.st.mastered ? (
+                            <span className="shrink-0" style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-success)", background: "var(--c-success-soft)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>
+                              Mastered
+                            </span>
+                          ) : it.st.dueNow ? (
+                            <span className="shrink-0" style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-brand-gold)", background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>
+                              <span className="group-hover:hidden">Due today</span>
+                              <span className="hidden group-hover:inline">Redo now →</span>
+                            </span>
+                          ) : (
+                            <span className="shrink-0" style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-text-tertiary)", background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>
+                              {returnsLabel(it.st, now)}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* footnote — exact preview copy */}
+          <div className="max-w-[860px] mb-12" style={{ fontSize: 11.5, color: "var(--c-text-tertiary)", marginTop: 14 }}>
+            Green = mastered (answered right three times, spaced apart). Gold = improving. A chapter with everything green is a chapter that can&apos;t surprise you in the exam.
           </div>
 
           <PortalTour
@@ -814,6 +1143,8 @@ export default function MistakeVault({ userData }) {
               <span>
                 {q.is_pyq ? (
                   <>IPMAT PYQ · {q.chapter || "PYQ"}</>
+                ) : q.is_guess ? (
+                  <>Lucky guess · prove it wasn&apos;t luck</>
                 ) : (
                   <>
                     {q.is_own ? "Your own mistake · " : ""}

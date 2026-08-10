@@ -386,47 +386,67 @@ export default function AdaptivePlan({ userData }) {
         <div style={sectLabel}>The week ahead</div>
         <span style={sectMeta}>reshuffles as your scores change · Sunday never moves</span>
       </div>
-      <div className="max-w-[860px] relative mt-6 mb-2" data-tour="plan-week">
-        <div style={{ position: "absolute", top: 6, left: 0, right: 0, height: 1, background: "var(--c-border-soft)" }} />
-        <div className="grid relative" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dw, d) => {
-            const isToday = d === todayIdx;
-            const isPast = d < todayIdx;
-            const isMock = d === 6;
-            return (
-              <div key={dw} className="text-center">
-                <div
-                  style={{
-                    width: isToday ? 12 : 8, height: isToday ? 12 : 8, borderRadius: 99,
-                    background: isToday ? "var(--c-brand-gold)" : isPast ? "var(--c-text-tertiary)" : "var(--c-surface)",
-                    border: `1.5px solid ${isToday ? "var(--c-brand-gold)" : isPast ? "var(--c-text-tertiary)" : "var(--c-border-soft)"}`,
-                    boxShadow: isToday ? "0 0 12px rgba(255,182,39,.45)" : "none",
-                    margin: `${isToday ? 0 : 2}px auto 12px`,
-                  }}
-                />
-                <div style={{ fontSize: 10, fontWeight: isToday ? 600 : 500, letterSpacing: "0.1em", textTransform: "uppercase", color: isToday ? "var(--c-brand-gold)" : "var(--c-text-tertiary)" }}>{dw}</div>
-                <div
+      {/* one card, day rows — today gold-tinted with a gold chip (preview-sweep §6) */}
+      <div className="max-w-[860px] mt-3 mb-2" style={{ ...card, padding: 0, overflow: "hidden" }} data-tour="plan-week">
+        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dw, d) => {
+          const isToday = d === todayIdx;
+          const isPast = d < todayIdx;
+          const isMock = d === 6;
+          const entry = week[d];
+          const onClick = isPast
+            ? undefined
+            : entry.mock
+              ? () => { setCTXSlug("mocks"); setSK(new Set(["2"])); }
+              : entry.vault
+                ? () => { setCTXSlug("mistakevault"); setSK(new Set(["2"])); }
+                : entry.chapter
+                  ? () => openChapter(entry.chapter)
+                  : undefined;
+          const sub = isPast
+            ? "done ✓"
+            : isToday
+              ? `today · ${tasksDone} of 3 done`
+              : isMock
+                ? "the big one — keep the morning free"
+                : entry.vault
+                  ? "redo this week's wrong answers"
+                  : entry.chapter
+                    ? "tap to start now"
+                    : "light day — revise at your pace";
+          return (
+            <div
+              key={dw}
+              onClick={onClick}
+              className="flex items-center gap-3.5"
+              title={onClick ? "Start this now" : undefined}
+              style={{
+                padding: "13px 18px",
+                borderBottom: d < 6 ? "1px solid var(--c-border-faint)" : "none",
+                background: isToday ? "var(--c-brand-gold-tint)" : "transparent",
+                cursor: onClick ? "pointer" : "default",
+                opacity: isPast ? 0.55 : 1,
+              }}
+            >
+              <span style={{ width: 44, flexShrink: 0, fontFamily: "var(--font-display, 'Fraunces', serif)", fontSize: 14.5, color: isToday ? "var(--c-text-primary)" : "var(--c-text-tertiary)" }}>
+                {dw}
+              </span>
+              <span className="min-w-0 flex-1" style={{ display: "block" }}>
+                <span
                   className={isMock ? "ds-accent ds-grad-text" : ""}
-                  onClick={
-                    isPast
-                      ? undefined
-                      : week[d].mock
-                        ? () => { setCTXSlug("mocks"); setSK(new Set(["2"])); }
-                        : week[d].vault
-                          ? () => { setCTXSlug("mistakevault"); setSK(new Set(["2"])); }
-                          : week[d].chapter
-                            ? () => openChapter(week[d].chapter)
-                            : undefined
-                  }
-                  style={{ fontSize: 12.5, fontWeight: isToday ? 600 : 500, marginTop: 5, lineHeight: 1.35, color: isMock ? undefined : isToday ? "var(--c-text-primary)" : "var(--c-text-secondary)", opacity: isPast ? 0.5 : 1, padding: "0 4px", cursor: isPast ? "default" : "pointer", textDecoration: "none" }}
-                  title={isPast ? undefined : "Start this now"}
+                  style={{ display: "block", fontSize: 13.5, fontWeight: isToday ? 600 : 500, color: isMock ? undefined : isToday ? "var(--c-text-primary)" : "var(--c-text-secondary)" }}
                 >
-                  {isPast ? "done ✓" : week[d].label}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                  {entry.label}
+                </span>
+                <span style={{ display: "block", fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 1 }}>{sub}</span>
+              </span>
+              {isToday && (
+                <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 999, background: "var(--c-brand-gold)", color: "var(--c-text-on-brand)", flexShrink: 0 }}>
+                  Today
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
       <div className="max-w-[860px] mb-12" style={{ fontSize: 11.5, color: "var(--c-text-tertiary)", marginTop: 18, lineHeight: 1.7 }}>
         Clear {plan.task2 ? shortName(plan.task2.chapter) : "today's target"} and tomorrow quietly switches to your next weakest chapter.

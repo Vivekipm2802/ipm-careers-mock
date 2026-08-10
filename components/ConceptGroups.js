@@ -16,6 +16,7 @@ import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 import { useNMNContext } from "@/components/NMNContext";
 import ImageUploader from "./ImageUploader";
+import PageHeader from "@/components/PageHeader";
 
 export default function ConceptGroups({ type, children, role, title }) {
   const [selectedGroup, setSelectedGroup] = useState();
@@ -45,21 +46,20 @@ function sectionAbbrev(group) {
   return t.slice(0, 2).toUpperCase();
 }
 
-const sectionGradients = {
-  qa: "linear-gradient(135deg, #2A6FCB, #6FA8E4)",
-  va: "linear-gradient(135deg, #C29E5F, #E0BC7A)",
-  lr: "linear-gradient(135deg, #1FA463, #43C982)",
-  di: "linear-gradient(135deg, #B66C00, #E3A038)",
-  py: "linear-gradient(135deg, #1D1D1F, #424248)",
-  default: "linear-gradient(135deg, var(--c-brand-primary), var(--c-brand-primary-soft))",
-};
-const sectionBarColors = {
-  qa: "var(--c-brand-primary)",
-  va: "var(--c-brand-gold)",
-  lr: "var(--c-success)",
-  di: "var(--c-warning)",
-  py: "var(--c-text-secondary)",
-  default: "var(--c-brand-primary)",
+// Consistency sweep (preview section 1): icon tiles use tinted
+// backgrounds + colored initials, same grammar as the D2 dashboard.
+// Gold and blue have portal vars; violet has none, so we reuse the
+// D2-approved rgba (reads on light + dark).
+const sectionTints = {
+  qa: { bg: "var(--c-brand-gold-tint)", fg: "var(--c-brand-gold)" },
+  va: { bg: "var(--c-info-soft)", fg: "var(--c-info)" },
+  lr: {
+    bg: "rgba(151,113,224,0.14)" /* violet tint — no portal var; reads on light + dark */,
+    fg: "rgba(151,113,224,1)" /* violet — approved-preview accent, no portal var */,
+  },
+  di: { bg: "var(--c-warning-soft)", fg: "var(--c-warning)" },
+  py: { bg: "var(--c-surface-sunken)", fg: "var(--c-text-secondary)" },
+  default: { bg: "var(--c-brand-gold-tint)", fg: "var(--c-brand-gold)" },
 };
 
 // ── Human-readable "X ago" ──
@@ -303,39 +303,18 @@ const Selector = ({ type, onSelect, role, title }) => {
     );
   }
 
-  const firstName = userDetails?.user_metadata?.full_name?.split(" ")[0] || "there";
-
   return (
     <div style={{ width: "100%", padding: "12px 4px 60px", textAlign: "left" }}>
 
-      {/* ── Hero ── */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{
-          fontSize: 11, fontWeight: 500, letterSpacing: "0.14em",
-          textTransform: "uppercase", color: "var(--c-text-tertiary)",
-          marginBottom: 10,
-        }}>
-          Concept tests
-        </div>
-        <h1 style={{
-          margin: "0 0 8px",
-          fontSize: 30, fontWeight: 600, letterSpacing: "-0.025em",
-          color: "var(--c-text-primary)", lineHeight: 1.15,
-        }}>
-          Welcome back,{" "}
-          <span className="ds-grad-text" style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400 }}>
-            {firstName}
-          </span>.
-        </h1>
-        <p style={{
-          margin: 0, fontSize: 14.5, lineHeight: 1.55,
-          color: "var(--c-text-secondary)", maxWidth: "60ch",
-        }}>
-          {continueCard
-            ? "You've been practicing. Pick up where you left off or explore a new section."
-            : "Pick a section below to start practicing. Each topic has Easy / Moderate / Difficult levels."}
-        </p>
-      </div>
+      {/* ── Header — D1 quiet chrome ── */}
+      <PageHeader
+        kicker="Concept tests"
+        title="Master each topic, one test at a"
+        accent="time."
+        subtitle={continueCard
+          ? "You've been practicing. Pick up where you left off, or explore a new section."
+          : "Easy, Moderate, Difficult for every chapter — start at your level."}
+      />
 
       {/* ── Continue card ── */}
       {continueCard && (
@@ -351,7 +330,7 @@ const Selector = ({ type, onSelect, role, title }) => {
             position: "relative", overflow: "hidden",
             cursor: "pointer", transition: "all 0.18s",
           }}
-          onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 12px 36px -12px rgba(106, 77, 255, 0.2)"; }}
+          onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "var(--c-shadow-md)"; }}
           onMouseOut={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
         >
           <div style={{
@@ -362,7 +341,7 @@ const Selector = ({ type, onSelect, role, title }) => {
           }} />
           <div style={{
             flexShrink: 0, width: 56, height: 56, borderRadius: 16,
-            background: "var(--c-brand-primary)", color: "#fff",
+            background: "var(--c-brand-primary)", color: "var(--c-text-on-brand)",
             display: "grid", placeItems: "center",
             position: "relative", zIndex: 1,
           }}>
@@ -390,7 +369,7 @@ const Selector = ({ type, onSelect, role, title }) => {
             style={{
               flexShrink: 0, position: "relative", zIndex: 1,
               height: 42, padding: "0 20px", borderRadius: 999,
-              background: "var(--c-brand-primary)", color: "#fff",
+              background: "var(--c-brand-primary)", color: "var(--c-text-on-brand)",
               border: "none", fontFamily: "inherit",
               fontSize: 13.5, fontWeight: 500, cursor: "pointer",
               display: "inline-flex", alignItems: "center", gap: 6,
@@ -465,24 +444,19 @@ const Selector = ({ type, onSelect, role, title }) => {
           }}>All collections</h2>
 
           <div style={{
-            display: "flex", flexDirection: "column",
-            background: "var(--c-surface)",
-            border: "1px solid var(--c-border-faint)",
-            borderRadius: 18,
-            overflow: "hidden",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: 14,
           }}>
-            {groups.map((g, idx) => {
+            {groups.map((g) => {
               const stats = groupStats[g.id] || { topicCount: 0, questionCount: 0, progressPct: 0, lastPracticedAt: null };
               const sectionType = detectSectionType(g);
-              const barColor = sectionBarColors[sectionType];
               return (
                 <SectionRow
                   key={g.id}
                   group={g}
                   stats={stats}
                   sectionType={sectionType}
-                  barColor={barColor}
-                  isLast={idx === groups.length - 1}
                   role={role}
                   onSelect={() => onSelect(g.id)}
                   onDelete={() => deleteGroupbyId(g.id)}
@@ -563,95 +537,80 @@ function KpiCard({ label, value, unit, sub, color }) {
   );
 }
 
-// ── Section row ──
-function SectionRow({ group, stats, sectionType, barColor, isLast, role, onSelect, onDelete, onToggleDemo, courses, getCourses, editGroupdata, setEditGroupData, updateGroup }) {
+// ── Section card (preview section 1: icon tile + title + meta + gradient bar) ──
+function SectionRow({ group, stats, sectionType, role, onSelect, onDelete, onToggleDemo, courses, getCourses, editGroupdata, setEditGroupData, updateGroup }) {
   const isStarted = stats.progressPct > 0 || stats.lastPracticedAt;
   const ctaLabel = stats.progressPct === 0 ? "Start →" : "Continue →";
+  const tint = sectionTints[sectionType] || sectionTints.default;
 
   return (
     <div
-      className="concept-row"
+      className="concept-row td-lift"
       onClick={onSelect}
       style={{
-        display: "grid",
-        gridTemplateColumns: "64px 1fr 220px 120px",
-        alignItems: "center",
-        padding: "18px 24px",
-        borderBottom: isLast ? "none" : "1px solid var(--c-border-faint)",
+        background: "var(--c-surface)",
+        border: "1px solid var(--c-border-faint)",
+        borderRadius: 16,
+        boxShadow: "var(--c-shadow-xs)",
+        padding: "16px 18px",
+        display: "flex", flexDirection: "column",
         cursor: "pointer",
-        transition: "background 0.15s",
-        gap: 16,
       }}
-      onMouseOver={(e) => e.currentTarget.style.background = "var(--c-surface-muted, var(--c-bg))"}
-      onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
     >
-      {/* Section avatar */}
-      <div style={{
-        width: 48, height: 48, borderRadius: 12,
-        background: sectionGradients[sectionType],
-        color: sectionType === "va" ? "#1D1D1F" : "#fff",
-        display: "grid", placeItems: "center",
-        fontWeight: 700, fontSize: 14,
-        letterSpacing: "-0.01em",
-      }}>
-        {sectionAbbrev(group)}
+      {/* Icon tile + topic count */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: 11,
+          background: tint.bg, color: tint.fg,
+          display: "grid", placeItems: "center",
+          fontWeight: 600, fontSize: 13,
+          letterSpacing: "-0.01em", flexShrink: 0,
+        }}>
+          {sectionAbbrev(group)}
+        </div>
+        <span className="ds-stat-value" style={{ fontSize: 18, fontVariantNumeric: "tabular-nums" }}>
+          {stats.topicCount}
+        </span>
       </div>
 
       {/* Title + meta */}
-      <div>
-        <div style={{ fontSize: 15.5, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.012em" }}>
-          {group.title}
-        </div>
-        <div style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", marginTop: 2 }}>
-          {stats.topicCount} {stats.topicCount === 1 ? "topic" : "topics"}
-          {stats.totalTests > 0 && ` · ${stats.totalTests} ${stats.totalTests === 1 ? "test" : "tests"}`}
-          {stats.lastPracticedAt && ` · Last practiced ${timeAgo(stats.lastPracticedAt)}`}
-        </div>
+      <div style={{ fontSize: 13.5, fontWeight: 500, color: "var(--c-text-primary)", letterSpacing: "-0.005em" }}>
+        {group.title}
+      </div>
+      <div style={{ fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 1, fontVariantNumeric: "tabular-nums" }}>
+        {stats.topicCount} {stats.topicCount === 1 ? "topic" : "topics"}
+        {stats.totalTests > 0 && ` · ${stats.totalTests} ${stats.totalTests === 1 ? "test" : "tests"}`}
+        {` · ${stats.attemptedTests || 0} started`}
       </div>
 
-      {/* Progress bar — coverage as bar, pass rate as sub-text */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      {/* Thin gradient progress bar — coverage */}
+      <div style={{
+        height: 4, borderRadius: 2, marginTop: 10,
+        background: "var(--c-surface-sunken, var(--c-surface-muted))",
+        overflow: "hidden",
+      }}>
         <div style={{
-          display: "flex", justifyContent: "space-between",
-          fontSize: 12, color: "var(--c-text-secondary)", fontWeight: 500,
-        }}>
-          <span>Coverage</span>
-          <span style={{
-            color: isStarted ? "var(--c-text-primary)" : "var(--c-text-tertiary)",
-            fontWeight: 600, fontVariantNumeric: "tabular-nums",
-          }}>
-            {isStarted ? `${stats.coverage}%` : "Not started"}
-          </span>
-        </div>
-        <div style={{
-          height: 6, borderRadius: 999,
-          background: "var(--c-surface-sunken, var(--c-surface-muted))",
-          overflow: "hidden",
-        }}>
-          <div style={{
-            height: "100%", borderRadius: 999,
-            width: `${Math.max(isStarted ? 2 : 0, stats.coverage)}%`,
-            background: barColor,
-            transition: "width 0.4s ease",
-          }} />
-        </div>
-        {isStarted && (
-          <div style={{
-            fontSize: 11, color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums",
-            display: "flex", justifyContent: "space-between",
-          }}>
-            <span>{stats.attemptedTests} / {stats.totalTests} tests</span>
-            <span>{stats.passRate}% pass rate</span>
-          </div>
-        )}
+          height: "100%", borderRadius: 2,
+          width: `${Math.max(isStarted ? 2 : 0, stats.coverage || 0)}%`,
+          background: "var(--c-accent-grad)",
+          transition: "width 0.4s ease",
+        }} />
       </div>
 
-      {/* CTA + admin */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+      {/* Foot: pass rate / last practiced + CTA + admin */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        marginTop: 10, gap: 8,
+      }}>
+        <span style={{ fontSize: 11, color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
+          {isStarted
+            ? `${stats.coverage}% covered · ${stats.passRate}% pass rate`
+            : "Not started yet"}
+        </span>
         <span style={{
-          fontSize: 13, fontWeight: 600,
-          color: barColor,
-          whiteSpace: "nowrap",
+          fontSize: 12, fontWeight: 600,
+          color: "var(--c-brand-gold)",
+          whiteSpace: "nowrap", marginLeft: "auto",
         }}>
           {ctaLabel}
         </span>

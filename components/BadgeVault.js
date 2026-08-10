@@ -61,13 +61,6 @@ export function vaultSummary(badges) {
   return { total: badges.length, unlockedCount: unlocked.length, rarest, next };
 }
 
-const TIER_STYLE = {
-  common: { color: "var(--c-text-tertiary)", bg: "var(--c-surface-sunken, var(--c-surface-muted))" },
-  rare: { color: "#60A5FA", bg: "rgba(96,165,250,.13)" },
-  epic: { color: "#C084FC", bg: "rgba(192,132,252,.13)" },
-  legendary: { color: "var(--c-brand-gold)", bg: "var(--c-brand-gold-tint)" },
-};
-
 // Pure: the compact shelf — every unlocked badge + the N closest locked ones.
 export function compactShelf(badges, lockedCount = 4) {
   const unlocked = badges.filter((b) => b.unlocked);
@@ -97,117 +90,43 @@ export default function BadgeVault({ userData, totalXp, onExpandChange }) {
 
   const badges = computeBadges(stats, totalXp);
   const summary = vaultSummary(badges);
-  const sections = ["Consistency", "Mocks & Tests", "Skill Trainers", "Levels"];
 
-  // ── Compact mode: one card of small tiles (lives beside the arena) ──
-  if (!showAll) {
-    return (
-      <div className="rounded-[16px] border p-6" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)", flexShrink: 0 }}>
-        <div className="ds-display" style={{ fontSize: 19 }}>Your vault</div>
-        <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 3 }}>
-          {summary.unlockedCount} of {summary.total} unlocked
-          {summary.next && ` · next closest: ${summary.next.name}`}
-        </div>
-        <div className="grid grid-cols-4 gap-2.5 mt-4">
-          {compactShelf(badges).map((b) => (
-            <div
-              key={b.id}
-              title={`${b.name} — ${b.desc}${b.unlocked ? "" : ` (${b.progress.label})`}`}
-              style={{
-                border: `1px solid ${b.unlocked ? "rgba(255, 182, 39, 0.45)" : "var(--c-border-faint)"}`,
-                background: b.unlocked ? "var(--c-brand-gold-tint)" : "var(--c-surface-muted, var(--c-bg))",
-                borderRadius: 12,
-                padding: "13px 4px 9px",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: 20, filter: b.unlocked ? "none" : "grayscale(1)", opacity: b.unlocked ? 1 : 0.4 }}>{b.em}</div>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", marginTop: 6, color: b.unlocked ? "var(--c-brand-gold)" : "var(--c-text-tertiary)", lineHeight: 1.35 }}>
-                {b.name}
-              </div>
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowAll(true)}
-          className="mt-4"
-          style={{ background: "none", border: "none", padding: 0, fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}
-        >
-          View full vault ({summary.total} badges) →
-        </button>
-      </div>
-    );
-  }
-
-  // ── Expanded mode: the full sectioned vault (unchanged) ──
+  // ── One card, one grid (2026-08 cap): the compact shelf of small
+  // tiles; "View full vault" wraps MORE tiles into the same grid —
+  // the old elongated sectioned list is gone for good. ──
+  const shelf = showAll ? badges : compactShelf(badges);
   return (
-    <div className="mb-2">
-      <div className="flex justify-between items-baseline mb-3 flex-wrap gap-2">
-        <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>
-          Badge vault
-        </div>
-        <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>
-          {summary.unlockedCount} / {summary.total} unlocked
-          {summary.next && ` · next closest: ${summary.next.name}`}
-        </span>
+    <div className="rounded-[16px] border p-6" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)", flexShrink: 0 }}>
+      <div className="ds-display" style={{ fontSize: 19 }}>Your vault</div>
+      <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 3 }}>
+        {summary.unlockedCount} of {summary.total} unlocked
+        {summary.next && ` · next closest: ${summary.next.name}`}
       </div>
-
-      {(showAll ? sections : ["shelf"]).map((sec) => (
-        <div key={sec}>
-          {showAll && (
-            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", margin: "14px 0 8px" }}>
-              {sec}
+      <div className="grid grid-cols-4 gap-2.5 mt-4">
+        {shelf.map((b) => (
+          <div
+            key={b.id}
+            title={`${b.name} — ${b.desc}${b.unlocked ? "" : ` (${b.progress.label})`}`}
+            style={{
+              border: `1px solid ${b.unlocked ? "rgba(255, 182, 39, 0.45)" : "var(--c-border-faint)"}`,
+              background: b.unlocked ? "var(--c-brand-gold-tint)" : "var(--c-surface-muted, var(--c-bg))",
+              borderRadius: 12,
+              padding: "13px 4px 9px",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: 20, filter: b.unlocked ? "none" : "grayscale(1)", opacity: b.unlocked ? 1 : 0.4 }}>{b.em}</div>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", marginTop: 6, color: b.unlocked ? "var(--c-brand-gold)" : "var(--c-text-tertiary)", lineHeight: 1.35 }}>
+              {b.name}
             </div>
-          )}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {(showAll ? badges.filter((b) => b.section === sec) : compactShelf(badges)).map((b) => {
-              const ts = TIER_STYLE[b.tier];
-              const pct = Math.round((100 * b.progress.cur) / b.progress.max);
-              return (
-                <div
-                  key={b.id}
-                  className="rounded-[14px] border p-4 relative"
-                  style={{
-                    background: "var(--c-surface)",
-                    borderColor: b.unlocked
-                      ? b.tier === "legendary"
-                        ? "var(--c-brand-gold)"
-                        : b.tier === "epic"
-                          ? "#C084FC"
-                          : "var(--c-border-soft, var(--c-border-faint))"
-                      : "var(--c-border-faint)",
-                    boxShadow: b.unlocked && b.tier === "legendary" ? "0 0 24px rgba(255,179,71,.12)" : "none",
-                  }}
-                >
-                  <span style={{ position: "absolute", top: 11, right: 11, fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: 999, padding: "3px 8px", color: ts.color, background: ts.bg }}>
-                    {b.tier}
-                  </span>
-                  <div style={{ fontSize: 26, filter: b.unlocked ? "none" : "grayscale(1)", opacity: b.unlocked ? 1 : 0.35 }}>{b.em}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, color: b.unlocked ? "var(--c-text-primary)" : "var(--c-text-tertiary)" }}>{b.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 3, lineHeight: 1.5 }}>{b.desc}</div>
-                  {b.unlocked ? (
-                    <div style={{ fontSize: 10, color: "var(--c-success)", marginTop: 8, fontWeight: 700 }}>✓ Unlocked</div>
-                  ) : (
-                    <div style={{ marginTop: 8 }}>
-                      <div style={{ height: 4, borderRadius: 4, background: "var(--c-surface-sunken, var(--c-surface-muted))", overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${pct}%`, background: "var(--c-mock-banner-btn-bg)", borderRadius: 4 }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: "var(--c-text-tertiary)", marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>{b.progress.label}</div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </div>
-        </div>
-      ))}
-
+        ))}
+      </div>
       <button
         type="button"
-        onClick={() => setShowAll((v) => !v)}
-        className="mt-3"
-        style={{ background: "transparent", border: "1px solid var(--c-border-soft, var(--c-border-faint))", color: "var(--c-text-secondary)", fontWeight: 600, fontSize: 12.5, borderRadius: 999, padding: "9px 20px", cursor: "pointer", fontFamily: "inherit" }}
+        onClick={() => setShowAll(!showAll)}
+        className="mt-4"
+        style={{ background: "none", border: "none", padding: 0, fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}
       >
         {showAll ? "Show less" : `View full vault (${summary.total} badges) →`}
       </button>

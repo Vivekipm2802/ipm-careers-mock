@@ -38,6 +38,7 @@ import { useMediaQuery } from "react-responsive";
 import { useTimer } from "react-timer-hook";
 import { CtoLocal } from "@/utils/DateUtil";
 import { getAuthHeaders } from "@/utils/authHeaders";
+import { scoreMockPlay } from "@/lib/scoring";
 
 // Ship 4: Supabase returns question ids as number OR string depending on the
 // query path. Compare as strings everywhere (same helper as the test runner).
@@ -163,7 +164,12 @@ const QuestionCard = ({ answered, question, onSelect, index }) => {
                 return (
                   <button
                     key={i}
-                    onClick={() => onSelect({ id: question.id, value: optionValue })}
+                    // 2026-08 correctness audit: store the chosen option's TEXT
+                    // alongside the 1-based index. Review/scoring re-derives the
+                    // verdict content-first (lib/scoring.deriveVerdict), so a
+                    // later reorder/edit of the options can't flip a student's
+                    // recorded answer to a different option.
+                    onClick={() => onSelect({ id: question.id, value: optionValue, text: option?.title ?? null })}
                     style={{
                       display: "flex", alignItems: "flex-start", gap: 14,
                       padding: "16px 18px",
@@ -667,10 +673,30 @@ const MockTest = ({
 
     try {
       // Fallback: direct supabase insert
+      // 2026-08 correctness audit: compute the canonical score client-side
+      // too (same lib/scoring module the server uses) so the fallback path
+      // also writes a trustworthy score column. Never blocks submission.
+      let fallbackScore = null;
+      try {
+        const scored = scoreMockPlay(
+          (sections || []).filter(
+            (s) => s.type === "subject" || (s.subject != null && s.module == null),
+          ),
+          (modules || []).filter((m) => m.module),
+          questions || [],
+          a || [],
+        );
+        if (scored && Number.isFinite(scored.total.score)) {
+          fallbackScore = scored.total.score;
+        }
+      } catch (e) {
+        fallbackScore = null;
+      }
       const fallbackRow = {
         test_id: config?.id,
         status: "completed",
         report: a || [],
+        score: fallbackScore,
         duration: startedAtRef.current
           ? Math.round((Date.now() - startedAtRef.current) / 1000)
           : null,
@@ -680,9 +706,9 @@ const MockTest = ({
         .insert(fallbackRow)
         .select();
       if (error) {
-        // Ship 4: if the duration column doesn't exist yet, never block a
-        // student's submission — retry without it.
-        const { duration, ...withoutDuration } = fallbackRow;
+        // Ship 4: if the duration/score columns don't exist yet, never block
+        // a student's submission — retry without them.
+        const { duration, score, ...withoutDuration } = fallbackRow;
         ({ data, error } = await supabase
           .from("mock_plays")
           .insert(withoutDuration)

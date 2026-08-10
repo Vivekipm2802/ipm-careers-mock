@@ -378,6 +378,57 @@ html[data-theme="dark"] {
   .video-hero-row { grid-template-columns: 1fr !important; }
 }
 
+/* ================================================================
+   D2 approved "Today" dashboard (July 2026)
+   Entrance stagger, live-dot pulse, plan-ring transition, hover
+   lifts, plan-card gold hairline, light-theme ambient wash.
+   ================================================================ */
+@keyframes tdRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tdPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--c-success-soft); }
+  50%      { box-shadow: 0 0 0 5px var(--c-success-soft); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .td-r1 { animation: tdRise 0.45s 0.02s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+  .td-r2 { animation: tdRise 0.45s 0.09s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+  .td-r3 { animation: tdRise 0.45s 0.16s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+  .td-r4 { animation: tdRise 0.45s 0.23s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+  .td-live-dot { animation: tdPulse 1.6s infinite; }
+  .td-ring-val { transition: stroke-dashoffset 0.8s cubic-bezier(0.2, 0.7, 0.3, 1); }
+}
+.td-lift { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+.td-lift:hover { transform: translateY(-2px); box-shadow: var(--c-shadow-md); border-color: var(--c-border-soft); }
+.td-step { border-radius: 12px; transition: background 0.15s ease; }
+.td-step:hover { background: var(--c-surface-muted); }
+/* signature gold hairline across the plan card */
+.td-plan { position: relative; overflow: hidden; }
+.td-plan::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 24px; right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-brand-gold), transparent);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.td-tile .td-arrow { transition: transform 0.15s ease, color 0.15s ease; }
+.td-tile:hover .td-arrow { transform: translateX(3px); color: var(--c-brand-gold); }
+/* Light-theme ambient wash — two radial gold glows + vertical cream
+   gradient (from the approved preview). Scoped to the dashboard
+   container (.td-ambient), NOT body/html, so test and print pages
+   keep their plain background. */
+html[data-theme="light"] .td-ambient {
+  background:
+    radial-gradient(1200px 520px at 38% -10%, rgba(214, 158, 46, 0.13), transparent 58%),
+    radial-gradient(900px 420px at 92% 8%, rgba(214, 158, 46, 0.07), transparent 55%),
+    linear-gradient(180deg, #FBF8F1 0%, #F8F4EA 45%, #F4EEE0 100%);
+  background-attachment: fixed;
+}
+
+
 /* Mistake Vault / trainers: bank question HTML often carries inline
    dark colors from the editor — force theme color so it is readable
    on both themes. */

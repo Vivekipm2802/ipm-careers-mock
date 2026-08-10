@@ -406,6 +406,22 @@ export default async function handler(req, res) {
         .from("question_audits")
         .upsert(audit, { onConflict: "source,question_id" });
       if (upErr) console.error("audit upsert failed for", source, row.id, upErr.message);
+
+      // D4: verdict 'ok' ⇒ students see the "Verified" chip on this
+      // question. Best-effort — a failed flag update must NEVER fail
+      // the batch (e.g. ship-result-coaching.sql not run yet: the
+      // verified column simply doesn't exist and the update errors).
+      if (audit.verdict === "ok") {
+        try {
+          const { error: vErr } = await serversupabase
+            .from(table)
+            .update({ verified: true })
+            .eq("id", row.id);
+          if (vErr) console.error("verified flag update failed for", source, row.id, vErr.message);
+        } catch (e) {
+          console.error("verified flag update threw for", source, row.id);
+        }
+      }
     }
 
     // 4) how many are left past this batch
