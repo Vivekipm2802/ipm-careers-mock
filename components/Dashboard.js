@@ -13,6 +13,7 @@ import { vaultState, DAILY_CAP } from "./MistakeVault";
 import { buildPlan, shortName } from "./AdaptivePlan";
 import { levelFromXp } from "./DSBChallenge";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
+import { pickLiveMock } from "@/lib/featuredMock";
 import { parseISO, isAfter, format, startOfWeek } from "date-fns";
 
 /**
@@ -277,12 +278,15 @@ export default function Dashboard({ userData }) {
           startsAt: parseISO(t.start_time),
           endsAt: t.end_time ? parseISO(t.end_time) : null,
         }));
-      // A mock that is open right now beats a future one.
-      const live = candidates
-        .filter((t) => !isAfter(t.startsAt, now) && t.endsAt && isAfter(t.endsAt, now))
-        .sort((a, b) => a.endsAt - b.endsAt);
-      if (live[0]) {
-        setNextMock({ ...live[0], mode: "live" });
+      // A mock that is open right now beats a future one. Among the
+      // live ones, a featured mock (config.featured) takes the slot
+      // over the ends-soonest default — see lib/featuredMock.js.
+      const live = candidates.filter(
+        (t) => !isAfter(t.startsAt, now) && t.endsAt && isAfter(t.endsAt, now),
+      );
+      const liveWinner = pickLiveMock(live);
+      if (liveWinner) {
+        setNextMock({ ...liveWinner, mode: "live" });
         return;
       }
       const upcoming = candidates
@@ -1144,6 +1148,26 @@ export default function Dashboard({ userData }) {
                 </div>
                 <div className="ds-display" style={{ fontSize: 18, color: "var(--c-mock-banner-text)" }}>
                   {nextMock.title}
+                  {nextMock.config?.featured === true && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        verticalAlign: "middle",
+                        marginLeft: 8,
+                        fontFamily: "Inter, -apple-system, sans-serif",
+                        fontSize: 9,
+                        fontWeight: 600,
+                        letterSpacing: "0.12em",
+                        color: "var(--c-mock-banner-text)",
+                        border: "1px solid var(--c-mock-banner-line)",
+                        borderRadius: 999,
+                        padding: "2px 8px",
+                        opacity: 0.85,
+                      }}
+                    >
+                      NEW
+                    </span>
+                  )}
                 </div>
                 <div
                   style={{

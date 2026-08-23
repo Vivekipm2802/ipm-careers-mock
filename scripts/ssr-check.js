@@ -583,5 +583,52 @@ items7.push(mk7(16, "Algebra", { streak: 3 }));
     "under the cap the copy stays simple: '3 questions due … then you're clear'");
 }
 
+// ── 8 · Featured-mock priority (lib/featuredMock.js) ────────────
+// The Dashboard/MockTests live-banner pick is a pure helper so the
+// rule is testable without SSR: featured live beats earlier-ending
+// non-featured; several featured → soonest-ending featured; no
+// featured → the old ends-soonest behaviour.
+console.log("\n[8] lib/featuredMock.js — featured-wins selection");
+{
+  const { pickLiveMock } = require(path.join(root, "lib", "featuredMock.js"));
+  const at = (h) => new Date(Date.UTC(2026, 7, 23, h));
+  const plain1 = { title: "plain ends 1h", endsAt: at(1), config: {} };
+  const plain9 = { title: "plain ends 9h", endsAt: at(9), config: {} };
+  const feat5 = { title: "featured ends 5h", endsAt: at(5), config: { featured: true } };
+  const feat3 = { title: "featured ends 3h", endsAt: at(3), config: { featured: true } };
+  check(pickLiveMock([plain1, feat5]).title === "featured ends 5h",
+    "featured live beats an earlier-ending non-featured mock");
+  check(pickLiveMock([plain1, feat5, feat3]).title === "featured ends 3h",
+    "multiple featured → soonest-ending featured wins");
+  check(pickLiveMock([plain9, plain1]).title === "plain ends 1h",
+    "no featured → old behaviour (soonest-ending live mock)");
+  check(pickLiveMock([]) === null && pickLiveMock(null) === null,
+    "empty / missing list → null");
+  const mtShape = [
+    { test: { config: {} }, endsAt: at(1), tag: "a" },
+    { test: { config: { featured: true } }, endsAt: at(4), tag: "b" },
+  ];
+  check(pickLiveMock(mtShape, (x) => x.test.config).tag === "b",
+    "config accessor form (MockTests {test} shape) works");
+}
+
+// ── 9 · Announcements admin tool renders ────────────────────────
+console.log("\n[9] components/Announcements.js");
+const Announcements = require(path.join(root, "components", "Announcements.js")).default;
+{
+  stateQueue = null;
+  const html = clean(ReactDOMServer.renderToString(React.createElement(Announcements)));
+  check(html.includes("Email the students"), "page heading renders");
+  check(html.includes(">Subject</label>") && html.includes("What lands in the inbox line"),
+    "subject input (label + placeholder) renders");
+  check(html.includes("blank lines become paragraphs"), "message textarea renders");
+  check(html.includes("Audience:") && html.includes("All students"),
+    "audience PillDropdown renders with the All-students default");
+  check(html.includes("Send test to me"), "send-test-to-me button renders");
+  check(html.includes("Send to students"), "send-to-students button renders");
+  check(html.includes("New mock is live"), "quick-fill template chip renders");
+  check(!html.includes("This emails"), "confirm step hidden until a count is fetched");
+}
+
 console.log(failed === 0 ? "\nSSR checks green." : `\n${failed} failure(s).`);
 process.exit(failed > 0 ? 1 : 0);

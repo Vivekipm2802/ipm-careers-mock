@@ -24,6 +24,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNMNContext } from "./NMNContext";
 import { CtoLocal } from "@/utils/DateUtil";
+import { pickLiveMock } from "@/lib/featuredMock";
 import {
   isAfter,
   isBefore,
@@ -57,6 +58,31 @@ function formatMinutes(seconds) {
   if (!seconds || seconds <= 0) return "—";
   const mins = Math.round(seconds / 60);
   return `${mins} min`;
+}
+
+// Small "NEW" pill for the gold banner when the shown mock is
+// featured (config.featured). Subtle — banner-text colour, hairline
+// border, no fill.
+function NewPill() {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        marginLeft: 8,
+        fontSize: 9,
+        fontWeight: 600,
+        letterSpacing: "0.12em",
+        color: "var(--c-mock-banner-text)",
+        border: "1px solid var(--c-mock-banner-line)",
+        borderRadius: 999,
+        padding: "2px 8px",
+        opacity: 0.85,
+      }}
+    >
+      NEW
+    </span>
+  );
 }
 
 // Small stroked icon wrapper — same drawn-SVG grammar as the D2 dashboard.
@@ -368,14 +394,15 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     return upcoming[0] || null;
   }, [visibleTests, now]);
 
-  // A mock that is open RIGHT NOW (start passed, end not reached)
+  // A mock that is open RIGHT NOW (start passed, end not reached).
+  // Featured live mock (config.featured) takes the banner over the
+  // ends-soonest default — see lib/featuredMock.js.
   const liveMock = useMemo(() => {
     const open = visibleTests
       .filter((t) => t.start_time && t.end_time)
       .map((t) => ({ test: t, startsAt: parseISO(t.start_time), endsAt: parseISO(t.end_time) }))
-      .filter((x) => !isAfter(x.startsAt, now) && isAfter(x.endsAt, now))
-      .sort((a, b) => a.endsAt - b.endsAt);
-    return open[0] || null;
+      .filter((x) => !isAfter(x.startsAt, now) && isAfter(x.endsAt, now));
+    return pickLiveMock(open, (x) => x.test?.config);
   }, [visibleTests, now]);
 
   // Countdown breakdown
@@ -443,9 +470,16 @@ export default function MockTests({ enrolled = [], role = "user" }) {
   const filteredCategoryTests = useMemo(() => {
     if (!categories || !categories[activeCategory]) return [];
     const catId = categories[activeCategory].id;
+    // Featured mocks float to the top of their category group;
+    // within each band the admin seq order is preserved.
     return visibleTests
       .filter((t) => t.category === catId)
-      .sort((a, b) => (a.seq || 0) - (b.seq || 0));
+      .sort(
+        (a, b) =>
+          (b.config?.featured === true ? 1 : 0) -
+            (a.config?.featured === true ? 1 : 0) ||
+          (a.seq || 0) - (b.seq || 0),
+      );
   }, [categories, activeCategory, visibleTests]);
 
   // ============================================================
@@ -701,6 +735,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
               }}
             >
               {nextMock.test.title}
+              {nextMock.test.config?.featured === true && <NewPill />}
             </div>
             <div style={{ fontSize: 12, opacity: 0.85, position: "relative" }}>
               Opens {format(nextMock.startsAt, "EEE d MMM")}
@@ -774,6 +809,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
               }}
             >
               {liveMock ? liveMock.test.title + " is live" : "No upcoming mocks scheduled"}
+              {liveMock?.test?.config?.featured === true && <NewPill />}
             </div>
             <div
               style={{

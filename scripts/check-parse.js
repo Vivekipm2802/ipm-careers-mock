@@ -48,6 +48,13 @@ const files = [
   // vault 7-tile cap, due-count reconcile
   "components/Navbar.js",
   "components/MistakeVault.js",
+  // 2026-08 featured-mock priority + admin announcements
+  "lib/featuredMock.js",
+  "components/Dashboard.js",
+  "components/MockTests.js",
+  "components/Announcements.js",
+  "components/NMNContext.js",
+  "pages/api/announce.js",
 ];
 
 let failed = 0;

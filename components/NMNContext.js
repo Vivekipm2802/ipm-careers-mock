@@ -1,5 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
-import { Award, BarChart3, BookOpen, CalendarCheck, CalendarDays, CalendarOff, CalendarRange, ClipboardList, FileEdit, FileText, Flame, Hash, HelpCircle, History, Layers, LayoutDashboard, Lightbulb, Map, MessageSquare, Phone, PlayCircle, PlusCircle, Printer, School, Settings, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Target, TrendingUp, UserCog, UserPlus, Users, UsersRound, Video, Zap, RotateCcw } from "lucide-react";
+import { Award, BarChart3, BookOpen, CalendarCheck, CalendarDays, CalendarOff, CalendarRange, ClipboardList, FileEdit, FileText, Flame, Hash, HelpCircle, History, Layers, LayoutDashboard, Lightbulb, Map, Megaphone, MessageSquare, Phone, PlayCircle, PlusCircle, Printer, School, Settings, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Target, TrendingUp, UserCog, UserPlus, Users, UsersRound, Video, Zap, RotateCcw } from "lucide-react";
 import { useRouter } from "next/router";
 import React, {
   createContext,
@@ -169,6 +169,13 @@ export const NMNContextProvider = ({ children }) => {
           action: "enrollmentmanager",
           id: 333,
           icon: <UserPlus size={20} />,
+        },
+        {
+          title: "Announcements",
+          type: "admin",
+          action: "announcements",
+          id: 334,
+          icon: <Megaphone size={20} />,
         },
         {
           title: "User Settings",

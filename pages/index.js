@@ -98,6 +98,7 @@ import Loader from "@/components/Loader";
 const EnrollmentManager = dynamic(() => import("@/components/EnrollmentManager"), { ssr: false, loading: () => null });
 const QuestionAudit = dynamic(() => import("@/components/QuestionAudit"), { ssr: false, loading: () => null });
 const AttendanceSync = dynamic(() => import("@/components/AttendanceSync"), { ssr: false, loading: () => null });
+const Announcements = dynamic(() => import("@/components/Announcements"), { ssr: false, loading: () => null });
 const PYQManager = dynamic(() => import("@/components/PYQManager"), { ssr: false, loading: () => null });
 const ConfigManager = dynamic(() => import("@/components/Configurator"), { ssr: false, loading: () => null });
 const FileUploader = dynamic(() => import("@/components/FileUploader"), { ssr: false, loading: () => null });
@@ -3269,6 +3270,9 @@ export default function Home(props) {
                 )}
                 {slug == "attendance" && props?.type == "admin" && (
                   <AttendanceSync />
+                )}
+                {slug == "announcements" && props?.type == "admin" && (
+                  <Announcements />
                 )}
                 {slug == "currentaffairs" ? (
                   <DailyLearn role={props?.type}></DailyLearn>
