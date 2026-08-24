@@ -1425,6 +1425,10 @@ const MockTest = ({
                             (config.config.instructions2) was empty/whitespace for most tests, which
                             left this page blank in dark mode — ignored on purpose. */}
                         <InsSection num={1} title="Marking scheme" />
+                        {/* 2026-08 owner fix: +4/−1 was HARDCODED here and lied for
+                            non-IPMAT mocks (IIM B UG is +3/−1). Read the real values
+                            from the test's own section config; defaults match the
+                            canonical rule (+4/−1, SA wrongs never negative). */}
                         <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, margin: "4px 0 8px", border: "1px solid var(--c-border-faint)", borderRadius: 12, overflow: "hidden", fontSize: 13.5 }}>
                           <thead>
                             <tr>
@@ -1437,13 +1441,13 @@ const MockTest = ({
                           <tbody>
                             <tr>
                               <td style={{ ...insTd, color: "var(--c-text-primary)", fontWeight: 500 }}>MCQ</td>
-                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+4</td>
-                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-danger)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>−1</td>
+                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+{Number(subjectSections?.[0]?.pos) || 4}</td>
+                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-danger)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>−{Math.abs(Number(subjectSections?.[0]?.neg)) || 1}</td>
                               <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
                             </tr>
                             <tr>
                               <td style={{ ...insTd, color: "var(--c-text-primary)", fontWeight: 500 }}>Short Answer</td>
-                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+4</td>
+                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+{Number(subjectSections?.[0]?.pos) || 4}</td>
                               <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
                               <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
                             </tr>
