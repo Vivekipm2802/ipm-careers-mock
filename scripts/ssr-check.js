@@ -98,6 +98,18 @@ const mocks = {
     default: () => null,
     levelFromXp: (xp) => ({ level: xp >= 12500 ? 10 : xp >= 7000 ? 8 : xp >= 2400 ? 5 : 1, name: "L", progress: 0, toNext: 0 }),
   },
+  // 2026-08 announcements upgrade: pages/api/announce.js is required
+  // directly (template + personalization unit tests) — its server
+  // deps are stubbed so nodemailer/supabase never load and NO email
+  // can ever be sent from this script.
+  "@/lib/apiAuth": {
+    requireAdmin: async () => ({ email: "admin@x.com", user_metadata: { full_name: "Admin Person" } }),
+  },
+  "@/lib/emailTransporter": {
+    getTransporter: () => ({ sendMail: async () => ({}) }),
+    getFromAddress: () => '"IPM Careers" <info@example.test>',
+  },
+  "@supabase/supabase-js": { createClient: () => supabaseStub },
 };
 
 const origLoad = Module._load;
@@ -105,7 +117,7 @@ Module._load = function (request, parent, isMain) {
   if (Object.prototype.hasOwnProperty.call(mocks, request)) return mocks[request];
   if (
     request === "react" && parent && parent.filename &&
-    /pages[\\/]|components[\\/](ConceptGroups|ConceptTestStudent|BadgeVault|MistakeVault)\.js/.test(parent.filename)
+    /pages[\\/]|components[\\/](ConceptGroups|ConceptTestStudent|BadgeVault|MistakeVault|Announcements)\.js/.test(parent.filename)
   ) {
     return reactShim;
   }
@@ -628,6 +640,158 @@ const Announcements = require(path.join(root, "components", "Announcements.js"))
   check(html.includes("Send to students"), "send-to-students button renders");
   check(html.includes("New mock is live"), "quick-fill template chip renders");
   check(!html.includes("This emails"), "confirm step hidden until a count is fetched");
+  check(html.includes("becomes the student"), "{{name}} personalization note near the heading field");
+  check(!html.includes("Mock banner"), "mock-mode fields hidden in plain mode");
+}
+{
+  // MOCK MODE: state after the "New mock is live" quick-fill ran.
+  // State order: mode, subject, heading, message, ctaLabel, ctaUrl,
+  // mockName, mockMeta, mockWindow, stats, tips, afterTitle,
+  // afterText, afterLinkLabel, afterLinkUrl, audience, sendingTest,
+  // counting, confirmTotal, sending, result.
+  stateQueue = [
+    "mock",
+    "New mock live: IIM Bangalore UG Mock 1",
+    "A new mock is live, {{name}}.",
+    "The window is open on your portal — and this one is free for everyone.",
+    "",
+    "https://study.ipmcareer.com",
+    "IIM Bangalore UG Mock 1",
+    "Real exam pattern · 135 minutes · attempt in one sitting. Your analysis unlocks the moment you submit.",
+    "open now · free for every aspirant",
+    [
+      { label: "QA & DI", count: "30", note: "65 min · +3 / −1" },
+      { label: "Logical Reasoning", count: "15", note: "35 min · +3 / −1" },
+      { label: "VARC", count: "15", note: "35 min · +3 / −1" },
+    ],
+    "Tip one about section order\nTip two — accuracy beats attempts\nTip three review same day",
+    "After you submit",
+    "Score, leaderboard, section-wise accuracy and full solutions — instantly.",
+    "Open the portal →",
+    "https://study.ipmcareer.com",
+    "all",
+    false,
+    false,
+    null,
+    false,
+    null,
+  ];
+  const html = clean(ReactDOMServer.renderToString(React.createElement(Announcements)));
+  stateQueue = null;
+  check(html.includes("Plain announcement"), "mock mode shows the back-to-plain link");
+  check(html.includes('value="IIM Bangalore UG Mock 1"'), "mock-name field prefilled");
+  check(html.includes("Real exam pattern"), "meta-line field prefilled");
+  check(html.includes("free for every aspirant"), "window-line field prefilled");
+  check(html.includes("Logical Reasoning") && html.includes("VARC"),
+    "three stat rows render (label/count/note triplets)");
+  check(html.includes("accuracy beats attempts"), "tips textarea prefilled (one per line)");
+  check(html.includes('value="After you submit"') && html.includes("Score, leaderboard"),
+    "after-submit title + text fields prefilled");
+  check(html.includes('value="Open the portal →"'), "after-submit link label prefilled");
+  check(!html.includes("Button label (optional)"), "plain CTA-label input hidden in mock mode");
+}
+
+// ── 10 · /api/announce — approved template + personalization ────
+// The template function is exported for testing; its server deps
+// are mocked above, so requiring the route touches no SMTP/DB.
+console.log("\n[10] pages/api/announce.js — approved email design + {{name}}");
+const ann = require(path.join(root, "pages", "api", "announce.js"));
+{
+  const { personalize } = ann;
+  check(personalize("A new mock is live, {{name}}.", "Rishita Gupta") === "A new mock is live, Rishita.",
+    "'…, {{name}}.' + 'Rishita Gupta' → '…, Rishita.' (first name only)");
+  check(personalize("A new mock is live, {{name}}.", null) === "A new mock is live.",
+    "no name: comma + token removed, period stays");
+  check(personalize("Welcome {{name}} to the portal", null) === "Welcome to the portal",
+    "no name, no comma: space + token removed cleanly");
+  check(personalize("Hi {{name}}, your analysis is ready.", "Aman Verma") === "Hi Aman, your analysis is ready.",
+    "message body token replacement");
+}
+{
+  // PLAIN template — approved shell markers.
+  const html = ann.announceTemplate({
+    heading: "A new mock is live, {{name}}.",
+    message: "First para.\n\nSecond para.",
+    ctaLabel: "Open the portal →",
+    ctaUrl: "https://study.ipmcareer.com",
+    template: "plain",
+    mock: null,
+    recipientName: "Rishita Gupta",
+  });
+  check(html.includes("#6B2D82") && html.includes("STUDY PORTAL"),
+    "header row: purple IPM CAREERS + grey caps STUDY PORTAL");
+  check(html.includes("#FFFDF8") && html.includes("#EFE8DA"),
+    "cream page bg + #FFFDF8 card");
+  check(html.includes('>Rishita.</span>') && html.includes("font-style:italic;color:#B8730A"),
+    "headline: gold italic personalized first name (period inside the span)");
+  check(html.includes("First para.") && html.includes("Second para."),
+    "message paragraphs render");
+  check(html.includes("Open the portal →") && html.includes("#C98A1B"),
+    "plain mode: dark-gold CTA pill renders");
+  check(!html.includes("#FBEFD3"), "no gold mock banner without mock data");
+  check(html.includes("+91 96163 83524") && html.includes("Vijay Nagar, Indore, Madhya Pradesh 452010, India"),
+    "footer: helpline + address");
+  check(html.includes("study account") && html.includes("&copy; 2026"),
+    "footer: account line + copyright");
+}
+{
+  // MOCK template — full data.
+  const html = ann.announceTemplate({
+    heading: "A new mock is live, {{name}}.",
+    message: "The window is open.",
+    ctaLabel: null,
+    ctaUrl: null,
+    template: "mock",
+    mock: {
+      name: "IIM Bangalore UG Mock 1",
+      metaLine: "Real exam pattern · 135 minutes · attempt in one sitting.",
+      windowLine: "open now · free for every aspirant",
+      stats: [
+        { label: "QA & DI", count: "30", note: "65 min · +3 / −1" },
+        { label: "Logical Reasoning", count: "15", note: "35 min · +3 / −1" },
+        { label: "VARC", count: "15", note: "35 min · +3 / −1" },
+      ],
+      tips: ["Tip one", "Tip two", "Tip three"],
+      afterTitle: "After you submit",
+      afterText: "Score, leaderboard, accuracy and solutions — instantly.",
+      afterLinkLabel: "Open the portal →",
+      afterLinkUrl: "https://study.ipmcareer.com",
+    },
+    recipientName: null,
+  });
+  check(html.includes("A new mock is live.") && !html.includes("{{name}}"),
+    "no-name heading collapses to 'A new mock is live.'");
+  check(html.includes("#FBEFD3") && html.includes("#EAD9AE"),
+    "gold banner (#FBEFD3/#EAD9AE) renders when mock data present");
+  check(html.includes("Mock window is open") && html.includes(">NEW</span>"),
+    "banner: caps label + serif mock name + NEW outline chip");
+  check(html.includes('href="https://study.ipmcareer.com"') && html.includes("Attempt &rarr;"),
+    "Attempt pill defaults to https://study.ipmcareer.com");
+  check(html.includes("QA &amp; DI") && html.includes(">30</div>") && html.includes("Logical Reasoning") && html.includes("VARC"),
+    "3-cell stat strip (label / big serif count / note)");
+  check(html.includes("Before you start") &&
+    (html.match(/font-size:14px;color:#B8730A/g) || []).length === 3,
+    "before-you-start: gold caps label + 3 serif gold numerals");
+  check(html.includes("#F7F3EA") && html.includes("After you submit") &&
+    html.includes("text-decoration:underline") && html.includes("Open the portal →"),
+    "after-submit muted box + underlined gold link");
+}
+{
+  // MOCK template — minimal data: optional blocks hidden, main CTA
+  // omitted even when ctaLabel/ctaUrl are provided (banner has it).
+  const html = ann.announceTemplate({
+    heading: "H",
+    message: "M",
+    ctaLabel: "SHOULD_NOT_RENDER",
+    ctaUrl: "https://study.ipmcareer.com",
+    template: "mock",
+    mock: { name: "X", metaLine: "", windowLine: "", stats: [], tips: [], afterTitle: "", afterText: "", afterLinkLabel: "", afterLinkUrl: "" },
+    recipientName: null,
+  });
+  check(!html.includes("SHOULD_NOT_RENDER"), "mock mode: main CTA button omitted");
+  check(html.includes("#FBEFD3") && html.includes("Attempt &rarr;"), "banner still renders with just a name");
+  check(!html.includes("Before you start") && !html.includes("After you submit") && !html.includes("#EDE4D2"),
+    "stat strip / tips / after-box stay hidden without their data");
 }
 
 console.log(failed === 0 ? "\nSSR checks green." : `\n${failed} failure(s).`);
