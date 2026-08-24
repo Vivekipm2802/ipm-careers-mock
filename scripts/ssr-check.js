@@ -729,8 +729,9 @@ const ann = require(path.join(root, "pages", "api", "announce.js"));
   check(html.includes("Open the portal →") && html.includes("#C98A1B"),
     "plain mode: dark-gold CTA pill renders");
   check(!html.includes("#FBEFD3"), "no gold mock banner without mock data");
-  check(html.includes("+91 96163 83524") && html.includes("Vijay Nagar, Indore, Madhya Pradesh 452010, India"),
-    "footer: helpline + address");
+  // 2026-08 owner edit: address removed, helpline changed.
+  check(html.includes("+91 82994 70392") && !html.includes("Vijay Nagar"),
+    "footer: helpline updated, address removed");
   check(html.includes("study account") && html.includes("&copy; 2026"),
     "footer: account line + copyright");
 }
@@ -790,7 +791,9 @@ const ann = require(path.join(root, "pages", "api", "announce.js"));
   });
   check(!html.includes("SHOULD_NOT_RENDER"), "mock mode: main CTA button omitted");
   check(html.includes("#FBEFD3") && html.includes("Attempt &rarr;"), "banner still renders with just a name");
-  check(!html.includes("Before you start") && !html.includes("After you submit") && !html.includes("#EDE4D2"),
+  // NOTE: #EDE4D2 now always appears in the mobile <style> block
+  // (stacked-stat media query), so assert on the actual stat cells.
+  check(!html.includes("Before you start") && !html.includes("After you submit") && !html.includes('class="im-stat'),
     "stat strip / tips / after-box stay hidden without their data");
 }
 

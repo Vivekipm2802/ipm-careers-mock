@@ -164,7 +164,7 @@ function mockBannerHtml(mk, attemptUrl) {
     : `<div style="height:14px;font-size:0;line-height:0;">&nbsp;</div>`;
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FBEFD3;border:1px solid #EAD9AE;border-radius:14px;">
     <tr>
-      <td style="padding:22px 24px 20px;">
+      <td class="im-banner-pad" style="padding:22px 24px 20px;">
         <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:${GOLD_DEEP};font-weight:bold;margin-bottom:8px;">Mock window is open</div>
         <div style="font-family:${SERIF};font-size:22px;color:${INK};">
           ${escapeHtml(mk.name)}
@@ -196,8 +196,9 @@ function statStripHtml(stats) {
   const w = Math.floor(100 / stats.length);
   const cells = stats
     .map((s, i) => {
-      const border = i < stats.length - 1 ? "border-right:1px solid #EDE4D2;" : "";
-      return `<td width="${w}%" style="padding:16px 18px 14px;${border}">
+      const last = i === stats.length - 1;
+      const border = last ? "" : "border-right:1px solid #EDE4D2;";
+      return `<td width="${w}%" class="im-stat${last ? " im-stat-last" : ""}" style="padding:16px 18px 14px;${border}">
         <div style="font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:${MUTED};font-weight:bold;">${escapeHtml(s.label)}</div>
         <div style="font-family:${SERIF};font-size:26px;color:${INK};margin-top:6px;">${escapeHtml(s.count)}</div>
         <div style="font-size:11.5px;color:${MUTED};margin-top:2px;">${escapeHtml(s.note)}</div>
@@ -296,6 +297,16 @@ export function announceTemplate({
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(personalize(String(heading || ""), recipientName))}</title>
+  <style>
+    /* Mobile: tighter card, stacked stat cells (Gmail/Apple Mail honour this) */
+    @media only screen and (max-width: 480px) {
+      .im-card { padding: 22px 18px 22px !important; }
+      .im-banner-pad { padding: 18px 16px 16px !important; }
+      .im-stat { display: block !important; width: 100% !important; border-right: none !important; border-bottom: 1px solid #EDE4D2 !important; }
+      .im-stat-last { border-bottom: none !important; }
+      .im-h1 { font-size: 23px !important; }
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background-color:${CREAM};">
   <!-- preheader: shows next to the subject in the inbox list -->
@@ -310,8 +321,10 @@ export function announceTemplate({
             <td style="padding:6px 6px 18px;font-family:Arial,Helvetica,sans-serif;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="font-size:14px;letter-spacing:1.5px;font-weight:bold;color:${PURPLE};">IPM CAREERS</td>
-                  <td align="right" style="font-size:10.5px;letter-spacing:2px;color:#9A8C77;font-weight:bold;">STUDY PORTAL</td>
+                  <td valign="middle">
+                    <img src="https://www.ipmcareer.com/wp-content/uploads/2022/02/logo-final-1-2048x488.png" alt="IPM Careers" width="126" style="display:block;border:0;width:126px;height:auto;" />
+                  </td>
+                  <td align="right" valign="middle" style="font-size:10.5px;letter-spacing:2px;color:#9A8C77;font-weight:bold;">STUDY PORTAL</td>
                 </tr>
               </table>
             </td>
@@ -319,8 +332,8 @@ export function announceTemplate({
 
           <!-- main card -->
           <tr>
-            <td style="background:${CARD};border-radius:18px;padding:34px 34px 30px;font-family:Arial,Helvetica,sans-serif;box-shadow:0 2px 8px rgba(30,26,19,0.06);">
-              <h1 style="margin:0 0 12px;font-size:27px;line-height:1.3;font-weight:normal;color:${INK};font-family:${SERIF};">
+            <td class="im-card" style="background:${CARD};border-radius:18px;padding:34px 34px 30px;font-family:Arial,Helvetica,sans-serif;box-shadow:0 2px 8px rgba(30,26,19,0.06);">
+              <h1 class="im-h1" style="margin:0 0 12px;font-size:27px;line-height:1.3;font-weight:normal;color:${INK};font-family:${SERIF};">
                 ${headingHtml(String(heading || ""), recipientName)}
               </h1>
               ${paragraphs}
@@ -334,8 +347,7 @@ export function announceTemplate({
             <td style="padding:26px 10px 0;font-family:Arial,Helvetica,sans-serif;">
               <div style="font-size:12.5px;letter-spacing:1.2px;font-weight:bold;color:${PURPLE};margin-bottom:8px;">IPM CAREERS</div>
               <div style="font-size:11.5px;line-height:1.7;color:${MUTED};">
-                Run by IIM alumni &middot; <a href="https://study.ipmcareer.com" style="color:${GOLD_DEEP};text-decoration:none;font-weight:bold;">study.ipmcareer.com</a> &middot; Student helpline +91 96163 83524<br/>
-                Vijay Nagar, Indore, Madhya Pradesh 452010, India
+                Run by IIM alumni &middot; <a href="https://study.ipmcareer.com" style="color:${GOLD_DEEP};text-decoration:none;font-weight:bold;">study.ipmcareer.com</a> &middot; Student helpline +91 82994 70392
               </div>
               <div style="font-size:11px;line-height:1.7;color:#A79A86;margin-top:10px;">
                 You received this email because you have an IPM Careers study account.<br/>
