@@ -100,11 +100,11 @@ function announceTemplate({ heading, message, ctaLabel, ctaUrl }) {
 
   const cta =
     ctaLabel && ctaUrl
-      ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px auto 6px;">
+      ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px auto 4px;">
           <tr>
-            <td align="center" style="border-radius:999px;background:${GOLD};">
+            <td align="center" style="border-radius:999px;background:${GOLD};background-image:linear-gradient(110deg,#D89A2B,#B8730A 70%);">
               <a href="${escapeHtml(ctaUrl)}" target="_blank"
-                 style="display:inline-block;padding:12px 28px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#FFFFFF;text-decoration:none;border-radius:999px;">
+                 style="display:inline-block;padding:13px 34px;font-family:Arial,Helvetica,sans-serif;font-size:14.5px;font-weight:bold;color:#FFFFFF;text-decoration:none;border-radius:999px;">
                 ${escapeHtml(ctaLabel)}
               </a>
             </td>
@@ -120,28 +120,45 @@ function announceTemplate({ heading, message, ctaLabel, ctaUrl }) {
   <title>${escapeHtml(heading)}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F6F1E8;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F6F1E8;padding:28px 12px;">
+  <!-- preheader: shows next to the subject in the inbox list -->
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${escapeHtml(String(message || "").slice(0, 110))}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F6F1E8;padding:32px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;width:100%;">
+        <table role="presentation" width="540" cellpadding="0" cellspacing="0" border="0" style="max-width:540px;width:100%;">
           <tr>
-            <td align="center" style="padding:0 0 18px;">
-              <img src="https://www.ipmcareer.com/wp-content/uploads/2022/02/logo-final-1-2048x488.png" alt="IPM Careers" width="128" style="display:block;border:0;width:128px;height:auto;" />
+            <td align="center" style="padding:0 0 20px;">
+              <img src="https://www.ipmcareer.com/wp-content/uploads/2022/02/logo-final-1-2048x488.png" alt="IPM Careers" width="132" style="display:block;border:0;width:132px;height:auto;" />
             </td>
           </tr>
           <tr>
-            <td style="background:#FFFFFF;border:1px solid #EAE1D2;border-radius:16px;padding:30px 32px;font-family:Arial,Helvetica,sans-serif;">
-              <div style="height:3px;width:44px;background:${GOLD};border-radius:999px;margin:0 0 20px;"></div>
-              <h1 style="margin:0 0 16px;font-size:21px;line-height:1.3;font-weight:bold;color:${INK};font-family:Georgia,'Times New Roman',serif;">
+            <td style="border-radius:18px 18px 0 0;background:${GOLD};background-image:linear-gradient(110deg,#D89A2B,#B8730A 60%,#8A5A0C);height:6px;font-size:0;line-height:0;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="background:#FFFFFF;border:1px solid #EAE1D2;border-top:none;border-radius:0 0 18px 18px;padding:34px 36px 30px;font-family:Arial,Helvetica,sans-serif;">
+              <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${GOLD};font-weight:bold;margin:0 0 14px;">
+                IPM Careers &middot; From your prep desk
+              </div>
+              <h1 style="margin:0 0 6px;font-size:26px;line-height:1.25;font-weight:normal;color:${INK};font-family:Georgia,'Times New Roman',serif;">
                 ${escapeHtml(heading)}
               </h1>
+              <div style="height:2px;width:56px;background:${GOLD};border-radius:999px;margin:14px 0 20px;"></div>
               ${paragraphs}
               ${cta}
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:26px;">
+                <tr>
+                  <td style="border-top:1px solid #F0E8DA;padding-top:16px;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:13.5px;color:#8A7B65;">
+                    Small daily reps, big exam day. See you on the portal.
+                    <span style="font-style:normal;color:#B0A28C;">&mdash; Team IPM Careers</span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding:18px 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9A8C77;">
-              IPM Careers &middot; <a href="https://study.ipmcareer.com" target="_blank" style="color:#9A8C77;text-decoration:underline;">study.ipmcareer.com</a>
+            <td align="center" style="padding:20px 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:11.5px;line-height:1.6;color:#9A8C77;">
+              IPM Careers &middot; <a href="https://study.ipmcareer.com" target="_blank" style="color:${GOLD};text-decoration:none;font-weight:bold;">study.ipmcareer.com</a><br/>
+              You're receiving this because you have an IPM Careers study account.
             </td>
           </tr>
         </table>
