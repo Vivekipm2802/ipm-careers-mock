@@ -666,8 +666,8 @@ export default function MockResult({ result }) {
               const myRank = leaderboard?.you?.rank ?? leaderboard?.top?.find((r) => r.isYou)?.rank;
               return myRank != null ? (
                 <>
-                  Rank <b style={{ fontWeight: 600, color: "var(--c-text-primary)" }}>#{myRank}</b>
-                  {Number.isFinite(Number(leaderboard?.totalPlayers)) ? ` of ${leaderboard.totalPlayers}` : ""} ·{" "}
+                  {/* 2026-08 owner call: no "of N" — rank only */}
+                  Rank <b style={{ fontWeight: 600, color: "var(--c-text-primary)" }}>#{myRank}</b> ·{" "}
                 </>
               ) : null;
             })()}

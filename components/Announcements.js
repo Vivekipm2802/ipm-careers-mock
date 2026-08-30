@@ -2,8 +2,10 @@
 // Announcements — admin email tool (2026-08).
 //
 // Compose a branded announcement (subject / heading / message /
-// optional CTA), pick the audience (all students vs batch
-// students), preview it to your own inbox, then send for real —
+// optional CTA), pick the audience (all students / batch students /
+// specific batches — a multi-select checklist fed by GET
+// /api/announce?list=batches), preview it to your own inbox, then
+// send for real —
 // with an explicit "This emails N students" confirm step fed by
 // GET /api/announce count mode. Sending happens server-side in
 // /api/announce (admin-guarded, per-recipient sends so {{name}}
@@ -19,13 +21,13 @@
 // CSS vars only. Hooks all live above any return.
 // ============================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { getAuthHeaders } from "@/utils/authHeaders";
 import { useNMNContext } from "@/components/NMNContext";
 import PillDropdown from "./ui/PillDropdown";
-import { Megaphone, Send, Sparkles } from "lucide-react";
+import { Check, Megaphone, Send, Sparkles } from "lucide-react";
 
 const card = {
   background: "var(--c-surface)",
@@ -168,11 +170,53 @@ export default function Announcements() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null); // { sent, failed, total }
 
+  // Specific-batches mode: null = not fetched yet (shows "Loading…"),
+  // [] = fetched-but-empty/failed. NEW hooks appended LAST so the
+  // ssr-check stateQueue order for older fixtures stays valid.
+  const [batchList, setBatchList] = useState(null); // [{id,title,active}]
+  const [selectedBatchIds, setSelectedBatchIds] = useState([]);
+
+  // Fetch the batch checklist the first time "Specific batches" opens.
+  useEffect(() => {
+    if (audience !== "batches" || batchList !== null) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await axios.get("/api/announce?list=batches", {
+          headers: await getAuthHeaders(),
+        });
+        if (!cancelled) {
+          setBatchList(Array.isArray(data?.batches) ? data.batches : []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setBatchList([]);
+          toast.error(err?.response?.data?.error || "Could not load batches");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [audience, batchList]);
+
   const adminEmail = userDetails?.email || "";
   const ready = Boolean(subject.trim() && message.trim());
+  const needsBatchPick = audience === "batches" && selectedBatchIds.length === 0;
 
   const audienceLabel =
-    audience === "batch" ? "batch students" : "students";
+    audience === "batch"
+      ? "batch students"
+      : audience === "batches"
+        ? `students in ${selectedBatchIds.length} ${selectedBatchIds.length === 1 ? "batch" : "batches"}`
+        : "students";
+
+  function toggleBatch(id) {
+    setSelectedBatchIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+    setConfirmTotal(null);
+  }
 
   function applyTemplate() {
     setMode("mock");
@@ -217,6 +261,7 @@ export default function Announcements() {
       template: mode,
       ...extra,
     };
+    if (audience === "batches") base.batchIds = selectedBatchIds;
     if (mode === "mock") {
       base.mock = {
         name: mockName.trim(),
@@ -264,11 +309,15 @@ export default function Announcements() {
   }
 
   async function startConfirm() {
-    if (!ready || counting || sending) return;
+    if (!ready || counting || sending || needsBatchPick) return;
     setCounting(true);
     setResult(null);
     try {
-      const { data } = await axios.get(`/api/announce?audience=${audience}`, {
+      const url =
+        audience === "batches"
+          ? `/api/announce?audience=batches&batchIds=${selectedBatchIds.join(",")}`
+          : `/api/announce?audience=${audience}`;
+      const { data } = await axios.get(url, {
         headers: await getAuthHeaders(),
       });
       setConfirmTotal(typeof data?.total === "number" ? data.total : 0);
@@ -647,6 +696,7 @@ export default function Announcements() {
             options={[
               { value: "all", label: "All students" },
               { value: "batch", label: "Batch students" },
+              { value: "batches", label: "Specific batches" },
             ]}
             onChange={(v) => {
               setAudience(v);
@@ -665,13 +715,112 @@ export default function Announcements() {
           <button
             type="button"
             onClick={startConfirm}
-            disabled={!ready || counting || sending}
-            style={goldBtn(!ready || counting || sending)}
+            disabled={!ready || counting || sending || needsBatchPick}
+            style={goldBtn(!ready || counting || sending || needsBatchPick)}
           >
             <Send size={14} />
             {counting ? "Counting…" : "Send to students"}
           </button>
         </div>
+
+        {/* Specific-batches checklist — concept-filter-panel row
+            grammar: 15px rounded checkbox, gold fill when on. */}
+        {audience === "batches" && (
+          <div
+            style={{
+              marginTop: 14,
+              padding: "14px 16px 12px",
+              borderRadius: 12,
+              border: "1px solid var(--c-border-faint)",
+            }}
+          >
+            <div style={{ ...labelStyle, marginBottom: 10 }}>Pick batches</div>
+            {batchList === null && (
+              <div style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", padding: "2px 0 6px" }}>
+                Loading batches…
+              </div>
+            )}
+            {batchList !== null && batchList.length === 0 && (
+              <div style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", padding: "2px 0 6px" }}>
+                No batches found.
+              </div>
+            )}
+            {(batchList || []).map((b) => {
+              const on = selectedBatchIds.includes(b.id);
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => toggleBatch(b.id)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    width: "100%",
+                    textAlign: "left",
+                    background: "transparent",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "7px 6px",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontSize: 13,
+                    fontWeight: on ? 600 : 500,
+                    color: on ? "var(--c-text-primary)" : "var(--c-text-secondary)",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 15,
+                      height: 15,
+                      borderRadius: 5,
+                      flexShrink: 0,
+                      boxSizing: "border-box",
+                      display: "grid",
+                      placeItems: "center",
+                      background: on ? "var(--c-brand-gold)" : "transparent",
+                      border: on
+                        ? "1.5px solid var(--c-brand-gold)"
+                        : "1.5px solid var(--c-border-soft)",
+                      color: "var(--c-surface)",
+                    }}
+                  >
+                    {on && <Check size={11} strokeWidth={3} />}
+                  </span>
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {b.title}
+                  </span>
+                  {b.active && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.08em",
+                        borderRadius: 999,
+                        padding: "2px 8px",
+                        background: "var(--c-success-soft)",
+                        color: "var(--c-success)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      ACTIVE
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--c-text-tertiary)",
+                marginTop: 8,
+                padding: "0 6px",
+              }}
+            >
+              {selectedBatchIds.length} selected
+            </div>
+          </div>
+        )}
 
         {/* Confirm step */}
         {confirmTotal !== null && (

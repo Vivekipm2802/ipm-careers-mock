@@ -391,7 +391,7 @@ export default function MockAnalytics({ result }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1, background: "var(--c-border-faint)", borderRadius: 16, overflow: "hidden", margin: "14px 0", boxShadow: "var(--c-shadow-xs)" }}>
           <StripCell
             k="Rank"
-            v={currentEntry?.rank != null ? <>#{currentEntry.rank} <small style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>of {currentEntry.totalPlayers}</small></> : "—"}
+            v={currentEntry?.rank != null ? <>#{currentEntry.rank}</> : "—"}
             note={
               currentEntry?.rank != null && prevMock?.rank != null
                 ? currentEntry.rank < prevMock.rank

@@ -56,6 +56,15 @@ function supaChain() {
 }
 const supabaseStub = { from: () => supaChain(), auth: { getSession: async () => ({ data: { session: null } }) }, rpc: () => supaChain() };
 
+// Swappable service-client stub: section 11 replaces this with a
+// fixture-backed client so /api/announce recipient resolution can be
+// exercised without any real Supabase (createClient below reads it
+// lazily on every call).
+let dynamicSupabase = supabaseStub;
+// Every sendMail lands here (the transporter is a stub — nodemailer
+// is never loaded and NO real email can ever leave this script).
+const sentMails = [];
+
 // ── per-render react shim: feeds initial useState values by call
 // order so the DATA branch of a page renders without effects ──
 let stateQueue = null;
@@ -106,10 +115,10 @@ const mocks = {
     requireAdmin: async () => ({ email: "admin@x.com", user_metadata: { full_name: "Admin Person" } }),
   },
   "@/lib/emailTransporter": {
-    getTransporter: () => ({ sendMail: async () => ({}) }),
+    getTransporter: () => ({ sendMail: async (m) => { sentMails.push(m); return {}; } }),
     getFromAddress: () => '"IPM Careers" <info@example.test>',
   },
-  "@supabase/supabase-js": { createClient: () => supabaseStub },
+  "@supabase/supabase-js": { createClient: () => dynamicSupabase },
 };
 
 const origLoad = Module._load;
@@ -690,6 +699,64 @@ const Announcements = require(path.join(root, "components", "Announcements.js"))
   check(html.includes('value="Open the portal →"'), "after-submit link label prefilled");
   check(!html.includes("Button label (optional)"), "plain CTA-label input hidden in mock mode");
 }
+{
+  // SPECIFIC-BATCHES MODE (2026-08 batch targeting). State order now
+  // ends …, audience, sendingTest, counting, confirmTotal, sending,
+  // result, batchList, selectedBatchIds (new hooks appended LAST so
+  // the older fixtures above keep their queue alignment).
+  const emptyStats = [
+    { label: "", count: "", note: "" },
+    { label: "", count: "", note: "" },
+    { label: "", count: "", note: "" },
+  ];
+  const batchFixture = [
+    { id: 53, title: "Lt- 2 Batch", active: true },
+    { id: 54, title: "Pioneers Batch", active: true },
+    { id: 20, title: "LT-1 & 2", active: false },
+  ];
+  const batchesQueue = (selected) => [
+    "plain", "Subject line", "", "Body message", "", "",
+    "", "", "", emptyStats.map((s) => ({ ...s })), "", "", "", "", "",
+    "batches", false, false, null, false, null,
+    batchFixture, selected,
+  ];
+  const goldFillCount = (html) =>
+    (html.match(/background:var\(--c-brand-gold\)[;"]/g) || []).length;
+  const sendBtnDisabled = (html) => {
+    const idx = html.indexOf("Send to students");
+    const open = html.lastIndexOf("<button", idx);
+    return html.slice(open, idx).includes("disabled");
+  };
+
+  // 0 selected — checklist renders, send gated shut
+  stateQueue = batchesQueue([]);
+  const html0 = clean(ReactDOMServer.renderToString(React.createElement(Announcements)));
+  stateQueue = null;
+  check(html0.includes(">Specific batches<"), "audience pill shows 'Specific batches'");
+  check(html0.includes("Pick batches"), "checklist panel revealed in specific-batches mode");
+  check(html0.includes("Lt- 2 Batch") && html0.includes("Pioneers Batch") && html0.includes("LT-1 &amp; 2"),
+    "all fixture batch rows render (active + inactive)");
+  check((html0.match(/>ACTIVE</g) || []).length === 2,
+    "ACTIVE chip on exactly the two active batches");
+  check(html0.includes("0 selected"), "quiet 'n selected' line shows 0");
+  check(sendBtnDisabled(html0), "Send button DISABLED at 0 batches selected (subject/message filled)");
+  check(goldFillCount(html0) === 1, "no gold-filled checkbox yet (only the send pill is gold)");
+
+  // 2 selected — send unlocked, boxes filled gold
+  stateQueue = batchesQueue([53, 54]);
+  const html2 = clean(ReactDOMServer.renderToString(React.createElement(Announcements)));
+  stateQueue = null;
+  check(html2.includes("2 selected"), "quiet line updates to '2 selected'");
+  check(!sendBtnDisabled(html2), "Send button ENABLED once ≥1 batch is picked");
+  check(goldFillCount(html2) === 3, "two 15px checkboxes carry the gold fill when on (+ send pill)");
+  check(html2.includes("width:15px") && html2.includes("border-radius:5px"),
+    "checkbox anatomy: 15px square, rounded-5 (concept filter panel grammar)");
+
+  // plain mode never leaks the checklist
+  stateQueue = null;
+  const htmlPlain = clean(ReactDOMServer.renderToString(React.createElement(Announcements)));
+  check(!htmlPlain.includes("Pick batches"), "checklist hidden for the All-students default");
+}
 
 // ── 10 · /api/announce — approved template + personalization ────
 // The template function is exported for testing; its server deps
@@ -797,5 +864,152 @@ const ann = require(path.join(root, "pages", "api", "announce.js"));
     "stat strip / tips / after-box stay hidden without their data");
 }
 
-console.log(failed === 0 ? "\nSSR checks green." : `\n${failed} failure(s).`);
-process.exit(failed > 0 ? 1 : 0);
+// ── 11 · /api/announce handler — batches audience (async) ───────
+// Fixture-backed service client (dynamicSupabase swap) + recorded
+// transporter: validates the batchIds gate and that recipients
+// resolve from batch_admits rows for 2 batches with case-insensitive
+// de-dupe. nodemailer stays stubbed — nothing can actually send.
+(async () => {
+  console.log("\n[11] pages/api/announce.js — batches audience (handler)");
+  // Fake env so getServiceClient() constructs the stub client. These
+  // are test literals, NOT real credentials.
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "http://supabase.invalid";
+  process.env.SUPABASE_SERVICE_KEY = "test-service-key";
+
+  function fixtureSupabase(tables, users) {
+    return {
+      auth: {
+        admin: {
+          listUsers: async ({ page }) => ({
+            data: { users: page === 1 ? users : [] },
+            error: null,
+          }),
+        },
+      },
+      from(name) {
+        let rows = (tables[name] || []).slice();
+        const q = {
+          select: () => q,
+          order: () => q,
+          eq: (col, val) => { rows = rows.filter((r) => r[col] === val); return q; },
+          in: (col, vals) => { rows = rows.filter((r) => vals.includes(r[col])); return q; },
+          range: (a, b) => { rows = rows.slice(a, b + 1); return q; },
+          then: (resolve) => resolve({ data: rows, error: null }),
+        };
+        return q;
+      },
+    };
+  }
+  const users11 = [
+    { email: "A@x.com", user_metadata: { full_name: "Aman Verma" } },
+    { email: "b@x.com", user_metadata: { full_name: "Bela Rao" } },
+    { email: "d@x.com", user_metadata: { full_name: "Dev" } },
+  ];
+  const tables11 = {
+    batches: [
+      { id: 53, title: "Lt- 2 Batch", status: "live", is_deleted: false },
+      { id: 54, title: "Pioneers Batch", status: "live", is_deleted: false },
+      { id: 20, title: "LT-1 & 2", status: "expired", is_deleted: false },
+      { id: 1, title: "FAB 40 Batch", status: "expired", is_deleted: true },
+    ],
+    // batch 53 ∩ 54 share one student with a case-different email —
+    // the distinct-recipient rule must collapse A@X.com / a@x.com.
+    batch_admits: [
+      { batch_id: 53, student_id: "A@X.com" },
+      { batch_id: 53, student_id: "b@x.com" },
+      { batch_id: 54, student_id: "a@x.com" },
+      { batch_id: 54, student_id: "c@x.com" },
+      { batch_id: 20, student_id: "z@x.com" },
+    ],
+  };
+  dynamicSupabase = fixtureSupabase(tables11, users11);
+  const handler = ann.default;
+  const mkRes = () => {
+    const r = { statusCode: 0, body: null };
+    r.status = (c) => { r.statusCode = c; return r; };
+    r.json = (b) => { r.body = b; return r; };
+    return r;
+  };
+
+  {
+    // list=batches → sorted active-first then title, deleted hidden
+    const res = mkRes();
+    await handler({ method: "GET", query: { list: "batches" } }, res);
+    const bl = (res.body && res.body.batches) || [];
+    check(res.statusCode === 200 && bl.length === 3, "?list=batches → 200 with the 3 non-deleted batches");
+    check(bl[0].title === "Lt- 2 Batch" && bl[1].title === "Pioneers Batch" && bl[2].title === "LT-1 & 2",
+      "list sorted active-first, then title (expired batch last)");
+    check(bl[0].active === true && bl[2].active === false,
+      "each row carries {id,title,active}");
+  }
+  {
+    // count mode for 2 batches → distinct emails (4 rows, 3 students)
+    const res = mkRes();
+    await handler({ method: "GET", query: { audience: "batches", batchIds: "53,54" } }, res);
+    check(res.statusCode === 200 && res.body && res.body.total === 3,
+      "count for batches 53+54 = 3 (case-insensitive de-dupe across batches)");
+  }
+  {
+    // count mode with no ids → 400
+    const res = mkRes();
+    await handler({ method: "GET", query: { audience: "batches", batchIds: "" } }, res);
+    check(res.statusCode === 400, "GET count without batchIds → 400");
+  }
+  {
+    // POST with EMPTY batchIds → 400, nothing sent
+    sentMails.length = 0;
+    const res = mkRes();
+    await handler(
+      { method: "POST", query: {}, body: { subject: "S", message: "M", audience: "batches", batchIds: [] } },
+      res
+    );
+    check(res.statusCode === 400, "POST audience=batches with empty batchIds → 400");
+    check(sentMails.length === 0, "…and no mail left the (stubbed) transporter");
+  }
+  {
+    // POST with non-int ids → 400
+    const res = mkRes();
+    await handler(
+      { method: "POST", query: {}, body: { subject: "S", message: "M", audience: "batches", batchIds: ["53; DROP"] } },
+      res
+    );
+    check(res.statusCode === 400, "POST with non-integer batchIds → 400");
+  }
+  {
+    // POST real send to batches 53+54 → 3 personalized mails
+    sentMails.length = 0;
+    const res = mkRes();
+    await handler(
+      {
+        method: "POST",
+        query: {},
+        body: { subject: "S", message: "Hi {{name}}, hello.", audience: "batches", batchIds: [53, 54] },
+      },
+      res
+    );
+    check(res.statusCode === 200 && res.body && res.body.sent === 3 && res.body.total === 3,
+      "POST batches send → {sent:3, total:3}");
+    const tos = sentMails.map((m) => m.to).sort();
+    check(tos.join(",") === "a@x.com,b@x.com,c@x.com",
+      "recipients are the distinct lowercased batch_admits emails of BOTH batches");
+    const toAman = sentMails.find((m) => m.to === "a@x.com");
+    check(Boolean(toAman) && toAman.html.includes("Hi Aman, hello."),
+      "names resolve from the auth user map ({{name}} → Aman)");
+    const toC = sentMails.find((m) => m.to === "c@x.com");
+    check(Boolean(toC) && !toC.html.includes("{{name}}") && toC.html.includes("Hi, hello."),
+      "no-name recipient gets the token stripped cleanly");
+  }
+  {
+    // legacy audiences untouched: audience=batch still counts
+    // enrollments rows (fixture: none) without erroring
+    const res = mkRes();
+    dynamicSupabase = fixtureSupabase({ ...tables11, enrollments: [{ email: "e@x.com" }] }, users11);
+    await handler({ method: "GET", query: { audience: "batch" } }, res);
+    check(res.statusCode === 200 && res.body && res.body.total === 1,
+      "legacy audience=batch count still reads enrollments (unchanged)");
+  }
+  dynamicSupabase = supabaseStub;
+
+  console.log(failed === 0 ? "\nSSR checks green." : `\n${failed} failure(s).`);
+  process.exit(failed > 0 ? 1 : 0);
+})();

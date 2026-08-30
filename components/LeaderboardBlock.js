@@ -301,11 +301,8 @@ export default function LeaderboardBlock({ board, sectionTitleStyle, compact }) 
           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)" }}>
             Top scorers
           </span>
-          {Number.isFinite(Number(board.totalPlayers)) && board.totalPlayers > 0 && (
-            <span style={{ fontSize: 11, color: "var(--c-text-tertiary)", marginLeft: "auto" }}>
-              {board.totalPlayers} student{board.totalPlayers === 1 ? "" : "s"}
-            </span>
-          )}
+          {/* 2026-08 owner call: never show students the total player
+              count — rank only. */}
         </div>
         {visible.map((row) => (
           <CompactRow key={row.rank} row={row} />
@@ -339,11 +336,8 @@ export default function LeaderboardBlock({ board, sectionTitleStyle, compact }) 
       <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "32px 0 16px" }}>
         <Trophy size={18} style={{ color: "var(--c-brand-gold)" }} />
         <h2 style={{ ...(sectionTitleStyle || {}), margin: 0 }}>Top scorers</h2>
-        {Number.isFinite(Number(board.totalPlayers)) && board.totalPlayers > 0 && (
-          <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
-            {board.totalPlayers} student{board.totalPlayers === 1 ? "" : "s"} · best attempt each
-          </span>
-        )}
+        {/* 2026-08 owner call: no total player count — rank only. */}
+        <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>best attempt each</span>
       </div>
       <div
         style={{

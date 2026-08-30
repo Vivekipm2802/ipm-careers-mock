@@ -3,8 +3,15 @@
 //
 // GET  ?audience=all|batch   → { total }  (recipient count, for
 //                              the "Send to N students" confirm)
+// GET  ?audience=batches&batchIds=1,2,3 → { total } (same count
+//                              mode, students of those batches)
+// GET  ?list=batches         → { batches: [{id,title,active}] }
+//                              (admin-only picker feed — non-deleted
+//                              batches, active-first then title)
 // POST { subject, heading, message, ctaLabel?, ctaUrl?,
-//        audience: "all"|"batch", testEmail?,
+//        audience: "all"|"batch"|"batches",
+//        batchIds?: [int]  (required non-empty when "batches"),
+//        testEmail?,
 //        template?: "plain"|"mock",
 //        mock?: { name, metaLine, windowLine,
 //                 stats: [{label,count,note}] (≤3),
@@ -41,8 +48,16 @@ function getServiceClient() {
 }
 
 // ── Recipients ──────────────────────────────────────────────────
-// Both audiences resolve to [{ email, name }] — name is the auth
+// All audiences resolve to [{ email, name }] — name is the auth
 // user's user_metadata.full_name (or null), needed for {{name}}.
+//
+// SCHEMA (discovered 2026-08): per-batch membership lives in
+// batch_admits (batch_id → batches.id, student_id = the student's
+// EMAIL). enrollments has no batch column (only course), so the
+// "batches" audience reads batch_admits; the legacy "batch"
+// audience (any enrolled student) stays on enrollments untouched.
+// batches carries title / status ("live"|"expired"|"draft") /
+// is_deleted — the picker shows non-deleted rows, active = "live".
 
 async function getAuthUserMap(supabase) {
   // lowercased email → { email, name } (case-insensitive de-dupe)
@@ -89,10 +104,70 @@ async function getBatchEmails(supabase) {
   return [...emails];
 }
 
-async function getRecipients(supabase, audience) {
+// Distinct student emails of specific batches — batch_admits rows
+// whose batch_id is in batchIds (student_id IS the email; lowercased
+// Set = case-insensitive de-dupe across batches).
+async function getBatchIdsEmails(supabase, batchIds) {
+  const emails = new Set();
+  const PAGE = 1000;
+  for (let from = 0; from < 40000; from += PAGE) {
+    const { data, error } = await supabase
+      .from("batch_admits")
+      .select("student_id")
+      .in("batch_id", batchIds)
+      .range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    for (const row of data) {
+      const em =
+        row && row.student_id ? String(row.student_id).trim().toLowerCase() : "";
+      if (em && em.includes("@")) emails.add(em);
+    }
+    if (data.length < PAGE) break;
+  }
+  return [...emails];
+}
+
+// Picker feed: non-deleted batches, active ("live") first, then title.
+async function listBatches(supabase) {
+  const { data, error } = await supabase
+    .from("batches")
+    .select("id,title,status,is_deleted")
+    .eq("is_deleted", false);
+  if (error) throw new Error(error.message || "Could not load batches");
+  const rows = (Array.isArray(data) ? data : []).map((b) => ({
+    id: b.id,
+    title: (b.title != null ? String(b.title).trim() : "") || `Batch ${b.id}`,
+    active: b.status === "live",
+  }));
+  rows.sort((a, b) => {
+    if (a.active !== b.active) return a.active ? -1 : 1;
+    return a.title.localeCompare(b.title);
+  });
+  return rows;
+}
+
+// batchIds validation: non-empty array (or comma pieces) of positive
+// ints → unique int array; anything else → null (caller 400s).
+function parseBatchIds(raw) {
+  if (!Array.isArray(raw)) return null;
+  const ids = [];
+  for (const v of raw) {
+    const s = String(v == null ? "" : v).trim();
+    if (s === "") continue;
+    const n = Number(s);
+    if (!Number.isInteger(n) || n <= 0) return null;
+    if (!ids.includes(n)) ids.push(n);
+  }
+  return ids.length ? ids : null;
+}
+
+async function getRecipients(supabase, audience, batchIds) {
   const userMap = await getAuthUserMap(supabase);
-  if (audience === "batch") {
-    const emails = await getBatchEmails(supabase);
+  if (audience === "batch" || audience === "batches") {
+    const emails =
+      audience === "batches"
+        ? await getBatchIdsEmails(supabase, batchIds || [])
+        : await getBatchEmails(supabase);
     return emails.map((em) => ({
       email: em,
       name: (userMap.get(em) && userMap.get(em).name) || null,
@@ -421,11 +496,35 @@ export default async function handler(req, res) {
   const supabase = getServiceClient();
   if (!supabase) return res.status(500).json({ error: "Server not configured" });
 
+  // ── List mode (batch picker feed) ─────────────────────────────
+  if (req.method === "GET" && req.query.list === "batches") {
+    try {
+      const batches = await listBatches(supabase);
+      return res.status(200).json({ batches });
+    } catch (err) {
+      return res.status(500).json({ error: err.message || "Could not load batches" });
+    }
+  }
+
   // ── Count mode ────────────────────────────────────────────────
   if (req.method === "GET") {
-    const audience = req.query.audience === "batch" ? "batch" : "all";
+    const audience =
+      req.query.audience === "batch"
+        ? "batch"
+        : req.query.audience === "batches"
+          ? "batches"
+          : "all";
+    let batchIds = null;
+    if (audience === "batches") {
+      batchIds = parseBatchIds(String(req.query.batchIds || "").split(","));
+      if (!batchIds) {
+        return res
+          .status(400)
+          .json({ error: "batchIds must be a non-empty list of batch ids" });
+      }
+    }
     try {
-      const recipients = await getRecipients(supabase, audience);
+      const recipients = await getRecipients(supabase, audience, batchIds);
       return res.status(200).json({ audience, total: recipients.length });
     } catch (err) {
       return res.status(500).json({ error: err.message || "Count failed" });
@@ -440,6 +539,7 @@ export default async function handler(req, res) {
     ctaLabel,
     ctaUrl,
     audience: rawAudience,
+    batchIds: rawBatchIds,
     testEmail,
     template: rawTemplate,
     mock: rawMock,
@@ -448,7 +548,24 @@ export default async function handler(req, res) {
   if (!subject || !String(subject).trim() || !message || !String(message).trim()) {
     return res.status(400).json({ error: "Subject and message are required" });
   }
-  const audience = rawAudience === "batch" ? "batch" : "all";
+  const audience =
+    rawAudience === "batch"
+      ? "batch"
+      : rawAudience === "batches"
+        ? "batches"
+        : "all";
+  let batchIds = null;
+  if (audience === "batches") {
+    batchIds = parseBatchIds(rawBatchIds);
+    // Test sends never resolve recipients, so an empty pick is fine
+    // there — every real send must carry ≥1 valid int batch id.
+    const isTestSend = Boolean(testEmail && String(testEmail).trim());
+    if (!batchIds && !isTestSend) {
+      return res
+        .status(400)
+        .json({ error: "batchIds must be a non-empty array of batch ids" });
+    }
+  }
   const template = rawTemplate === "mock" ? "mock" : "plain";
   const mock = template === "mock" ? sanitizeMock(rawMock) : null;
   const safeSubject = String(subject).trim();
@@ -503,7 +620,7 @@ export default async function handler(req, res) {
 
   let recipients;
   try {
-    recipients = await getRecipients(supabase, audience);
+    recipients = await getRecipients(supabase, audience, batchIds);
   } catch (err) {
     return res.status(500).json({ error: "Could not build the recipient list" });
   }
