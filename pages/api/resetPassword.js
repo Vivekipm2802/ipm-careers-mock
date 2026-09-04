@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       type: 'recovery',
       email: trimmedEmail,
       options: {
-        redirectTo: 'https://study.ipmcareer.in/login',
+        redirectTo: 'https://study.ipmcareer.com/login',
       },
     });
 

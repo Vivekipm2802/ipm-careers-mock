@@ -100,6 +100,26 @@ const mocks = {
   "@/utils/authHeaders": { __esModule: true, getAuthHeaders: async () => ({}) },
   // 2026-08 concept-practice rebuild + vault cap
   "./ImageUploader": { __esModule: true, default: () => null },
+  // 2026-09 DSB trainer overhaul: PortalTour is chrome — stub both
+  // the component and the first-visit hook so DSBChallenge's own
+  // useState order stays the whole stateQueue contract.
+  "./PortalTour": {
+    __esModule: true,
+    default: () => null,
+    useFirstVisitTour: () => [false, () => {}],
+  },
+  // DSBChallenge imports the context RELATIVELY ("./NMNContext") —
+  // same stub shape as the "@/components/NMNContext" mock above.
+  "./NMNContext": {
+    __esModule: true,
+    default: () => null,
+    useNMNContext: () => ({
+      userDetails: { email: "me@x.com", user_metadata: { full_name: "Stu Dent" } },
+      isRouting: false,
+      setCTXSlug: () => {},
+      setSK: () => {},
+    }),
+  },
   // BadgeVault imports levelFromXp from the heavy DSB page — stub the
   // module, replicate the level thresholds computeBadges cares about.
   "./DSBChallenge": {
@@ -126,7 +146,7 @@ Module._load = function (request, parent, isMain) {
   if (Object.prototype.hasOwnProperty.call(mocks, request)) return mocks[request];
   if (
     request === "react" && parent && parent.filename &&
-    /pages[\\/]|components[\\/](ConceptGroups|ConceptTestStudent|BadgeVault|MistakeVault|Announcements)\.js/.test(parent.filename)
+    /pages[\\/]|components[\\/](ConceptGroups|ConceptTestStudent|BadgeVault|MistakeVault|Announcements|DSBChallenge|DailyQuiz|GulpProtocol|SkipOrSolve)\.js/.test(parent.filename)
   ) {
     return reactShim;
   }
@@ -862,6 +882,161 @@ const ann = require(path.join(root, "pages", "api", "announce.js"));
   // (stacked-stat media query), so assert on the actual stat cells.
   check(!html.includes("Before you start") && !html.includes("After you submit") && !html.includes('class="im-stat'),
     "stat strip / tips / after-box stay hidden without their data");
+}
+
+// ── 12 · DSB trainer overhaul (2026-09) ─────────────────────────
+// End-of-run reveal, review mode, Gulp re-read panel, Skip-or-Solve
+// decision flow, no-re-attempts affordances.
+console.log("\n[12] DSB trainers — 2026-09 overhaul");
+{
+  // 12a · DailyQuiz — no mid-run verdicts, neutral gold selection.
+  const DailyQuiz = require(path.join(root, "components", "DailyQuiz.js")).default;
+  const qz = [
+    { id: 1, title: "Q one", question: "<p>What is 2 + 2?</p>", options: [{ title: "3" }, { title: "4", isCorrect: true }], explanation: "<p>Because 2 + 2 = 4.</p>" },
+    { id: 2, title: "Q two", question: "<p>Pick A.</p>", options: [{ title: "A-right", isCorrect: true }, { title: "B-wrong" }], explanation: "<p><strong>Write your Explanation Here...</strong></p>" },
+    { id: 3, title: "Q three", question: "<p>Pick A again.</p>", options: [{ title: "AA", isCorrect: true }, { title: "BB" }] },
+  ];
+  // state order: phase, questions, qi, right, picked, records, reviewInfo
+  stateQueue = ["play", qz, 0, 0, null, [], null];
+  let html = clean(ReactDOMServer.renderToString(React.createElement(DailyQuiz, { userData: { email: "me@x.com" }, onExit: () => {} })));
+  stateQueue = null;
+  check(html.includes("answers at the end"), "quiz play: 'answers at the end' meta (no live right-count)");
+  check(!html.includes("var(--c-success") && !html.includes("var(--c-danger"),
+    "quiz play: NO success/danger styling anywhere mid-run");
+
+  // picked option shows ONLY the neutral gold-tint selected state
+  stateQueue = ["play", qz, 0, 0, 1, [1], null];
+  html = clean(ReactDOMServer.renderToString(React.createElement(DailyQuiz, { userData: { email: "me@x.com" }, onExit: () => {} })));
+  stateQueue = null;
+  check(html.includes("var(--c-brand-gold-tint)") && !html.includes("var(--c-success") && !html.includes("var(--c-danger"),
+    "quiz play: selected option is gold-tint only — still no verdict colors");
+
+  // 12b · DailyQuiz end summary — answers + explanations
+  stateQueue = ["done", qz, 2, 2, null, [1, 1, 0], null];
+  html = clean(ReactDOMServer.renderToString(React.createElement(DailyQuiz, { userData: { email: "me@x.com" }, onExit: () => {} })));
+  stateQueue = null;
+  check(html.includes("Quiz complete") && /Today.{0,8}s score:/.test(html),
+    "quiz summary: score headline renders");
+  check(html.includes("Your answer") && html.includes("Correct answer"),
+    "quiz summary: student's answer + correct answer marked per question");
+  check(html.includes("Because 2 + 2 = 4."), "quiz summary: real explanation renders");
+  check(!html.includes("Write your Explanation"), "quiz summary: placeholder explanations filtered out");
+  check(html.includes("var(--c-success)") && html.includes("var(--c-danger)"),
+    "quiz summary: verdict colors appear ONLY at the end");
+
+  // 12c · DailyQuiz banked → opens in review, never play
+  stateQueue = null;
+  html = clean(ReactDOMServer.renderToString(React.createElement(DailyQuiz, { userData: { email: "me@x.com" }, onExit: () => {}, banked: true })));
+  check(/Today.{0,8}s run · review/.test(html) && !html.includes("answers at the end"),
+    "quiz banked: initial render is the read-only review, not a fresh run");
+}
+{
+  // 12d · GulpProtocol — 5-question bank + collapsed re-read panel
+  const GulpProtocol = require(path.join(root, "components", "GulpProtocol.js")).default;
+  const PASSAGES = require(path.join(root, "components", "gulpPassages.js")).default;
+  check(PASSAGES.length >= 6 && PASSAGES.every((p) => p.questions.length === 5),
+    "gulp bank: every passage carries exactly 5 questions");
+  check(PASSAGES.every((p) => p.questions.every((q) => q.o.length === 4 && q.a >= 0 && q.a < 4)),
+    "gulp bank: every question has 4 options and a valid answer index");
+  check(PASSAGES.every((p) => p.questions.slice(3).every((q) => typeof q.e === "string" && q.e.length > 10)),
+    "gulp bank: the authored questions (4th & 5th) all carry explanations");
+
+  const gp = PASSAGES[0];
+  const marker = "professionalise Indian business"; // unique passage text
+  // state order: phase, wpm, passage, chunks, ci, count, paused, qi,
+  // picked, records, showPassage, reviewInfo, personalBest
+  stateQueue = ["quiz", 350, gp, [], 0, 3, false, 0, null, [], false, null, null];
+  let html = clean(ReactDOMServer.renderToString(React.createElement(GulpProtocol, { userData: { email: "me@x.com" }, onExit: () => {} })));
+  stateQueue = null;
+  check(html.includes("Re-read passage"), "gulp quiz: re-read panel toggle renders above the questions");
+  check(!html.includes(marker), "gulp quiz: panel starts COLLAPSED (passage text absent)");
+  check(!html.includes("var(--c-success") && !html.includes("var(--c-danger"),
+    "gulp quiz: no verdict styling mid-run");
+
+  stateQueue = ["quiz", 350, gp, [], 0, 3, false, 0, null, [], true, null, null];
+  html = clean(ReactDOMServer.renderToString(React.createElement(GulpProtocol, { userData: { email: "me@x.com" }, onExit: () => {} })));
+  stateQueue = null;
+  check(html.includes(marker), "gulp quiz: expanded panel shows the passage text");
+
+  // 12e · Gulp end summary — answers + explanations, one wrong pick
+  stateQueue = ["done", 350, gp, [], 0, 3, false, 4, null, [0, 1, 2, 0, 0], false, null, null];
+  html = clean(ReactDOMServer.renderToString(React.createElement(GulpProtocol, { userData: { email: "me@x.com" }, onExit: () => {} })));
+  stateQueue = null;
+  check(html.includes("Run complete") && html.includes("Effective rate"),
+    "gulp summary: effective-rate headline + stat cards render");
+  check(html.includes("Your answer") && html.includes("Correct answer"),
+    "gulp summary: per-question answers marked");
+  check(html.includes("seventeen-year-olds could handle a management curriculum"),
+    "gulp summary: authored explanation renders");
+}
+{
+  // 12f · SkipOrSolve — two decision buttons, no option list
+  const SkipOrSolve = require(path.join(root, "components", "SkipOrSolve.js")).default;
+  const SOS_BANK = require(path.join(root, "components", "sosBank.js")).default;
+  const scorers = SOS_BANK.filter((x) => x.kind === "scorer");
+  const traps = SOS_BANK.filter((x) => x.kind === "trap");
+  check(scorers.length + traps.length === SOS_BANK.length && scorers.length >= 10 && traps.length >= 10,
+    `sos bank: every item classified (${scorers.length} scorers / ${traps.length} traps)`);
+  check(SOS_BANK.every((x) => typeof x.why === "string" && x.why.length > 15),
+    "sos bank: every item carries a why rationale");
+  check(new Set(SOS_BANK.map((x) => x.id)).size === SOS_BANK.length, "sos bank: ids unique");
+
+  const deck3 = SOS_BANK.slice(0, 3);
+  const run0 = { i: 0, score: 0, streak: 0, best: 0, good: 0, bad: 0, timeouts: 0 };
+  // state order: phase, deck, run, tleft, verdict, records, reviewInfo, personalBest
+  stateQueue = ["play", deck3, run0, 8, null, [], null, null];
+  let html = clean(ReactDOMServer.renderToString(React.createElement(SkipOrSolve, { userData: { email: "me@x.com" }, onExit: () => {} })));
+  stateQueue = null;
+  check((html.match(/Skip it/g) || []).length === 1 && (html.match(/Solve it/g) || []).length === 1,
+    "sos play: EXACTLY two decision buttons (Skip it / Solve it)");
+  check(!html.includes(">A.<") && !html.includes(">B.<"),
+    "sos play: no answer-option list renders");
+  check(html.includes("would you attempt this in the exam"), "sos play: stem-only framing line");
+
+  // verdict card after a good call
+  const run1 = { i: 1, score: 1, streak: 1, best: 1, good: 1, bad: 0, timeouts: 0 };
+  stateQueue = ["play", deck3, run1, 8, { v: "good", item: deck3[0], call: "solve" }, [{ id: deck3[0].id, call: "solve", v: "good" }], null, null];
+  html = clean(ReactDOMServer.renderToString(React.createElement(SkipOrSolve, { userData: { email: "me@x.com" }, onExit: () => {} })));
+  stateQueue = null;
+  check(html.includes("Good call · +1") && html.includes("Tap to continue"),
+    "sos verdict card: 'Good call · +1' + tap-to-continue");
+  check(html.includes(deck3[0].why.slice(0, 30)), "sos verdict card: the item's why line renders");
+
+  // 12g · SoS end summary — your call vs right call + why
+  const recs3 = [
+    { id: deck3[0].id, call: "solve", v: deck3[0].kind === "scorer" ? "good" : "bad" },
+    { id: deck3[1].id, call: "skip", v: deck3[1].kind === "trap" ? "good" : "bad" },
+    { id: deck3[2].id, call: null, v: "timeout" },
+  ];
+  const runEnd = { i: 3, score: 1, streak: 0, best: 1, good: 1, bad: 1, timeouts: 1 };
+  stateQueue = ["done", deck3, runEnd, 8, null, recs3, null, null];
+  html = clean(ReactDOMServer.renderToString(React.createElement(SkipOrSolve, { userData: { email: "me@x.com" }, onExit: () => {} })));
+  stateQueue = null;
+  check(html.includes("Decision score"), "sos summary: score headline");
+  check(html.includes("Your call") && html.includes("Right call"),
+    "sos summary: per-round your-call vs right-call rows");
+  check(html.includes("Best streak"), "sos summary: streak stat card");
+  check(html.includes("No call (timed out)"), "sos summary: timeout round labelled");
+}
+{
+  // 12h · DSBChallenge — banked affordances
+  const DSBChallenge = require(path.join(root, "components", "DSBChallenge.js")).default;
+  // state order: xp, board, myRank, todayQuiz, todayGulp, todaySos,
+  // activeTrainer, sim, simSummary (+ BadgeVault child consumes next)
+  stateQueue = [null, [], null, true, true, true, null, null, null];
+  let html = clean(ReactDOMServer.renderToString(React.createElement(DSBChallenge, { userData: { email: "me@x.com" } })));
+  stateQueue = null;
+  check(/Review today.{0,8}s runs/.test(html), "dsb all-banked: main card button reads 'Review today's runs'");
+  check(!/>Start\s*</.test(html), "dsb all-banked: the bare Start affordance is gone");
+  check((html.match(/Review →/g) || []).length >= 3, "dsb all-banked: every banked mission row shows Review");
+  check(/Review today.{0,8}s run\s*</.test(html), "dsb all-banked: trainer cards read 'Review today's run'");
+
+  stateQueue = [null, [], null, false, false, false, null, null, null];
+  html = clean(ReactDOMServer.renderToString(React.createElement(DSBChallenge, { userData: { email: "me@x.com" } })));
+  stateQueue = null;
+  check(/>Start\s*</.test(html) || html.includes("Start <"), "dsb fresh day: Start button back");
+  check(!/Review today.{0,8}s runs/.test(html), "dsb fresh day: no review affordance");
+  check(html.includes("Play now"), "dsb fresh day: trainer cards say Play now");
 }
 
 // ── 11 · /api/announce handler — batches audience (async) ───────

@@ -139,7 +139,7 @@ export const push = ({student_name,module_name,datetime,schedules}) =>{
                                     <tr>
                                       <td style="padding-right: 0px;padding-left: 0px;" align="center">
     
-                                        <img align="center" border="0" src="https://study.ipmcareer.in/newlog.png" alt="" title="" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 31%;max-width: 148.8px;"
+                                        <img align="center" border="0" src="https://study.ipmcareer.com/newlog.png" alt="" title="" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 31%;max-width: 148.8px;"
                                           width="148.8" />
     
                                       </td>

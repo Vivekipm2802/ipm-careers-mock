@@ -2,8 +2,17 @@
 // Gulp Protocol — DSB Challenge skill trainer (Phase B).
 // RSVP speed-reading: a passage flashes in 3–5 word chunks at a
 // chosen WPM. Live slider (100–600) and pause/resume during the
-// read (parity with the original DSB build). Then 3 comprehension
+// read (parity with the original DSB build). Then 5 comprehension
 // questions. Score = effective rate = average WPM × comprehension.
+//
+// 2026-09 overhaul (owner-approved):
+//   · NO right/wrong while answering — neutral gold selected state,
+//     full reveal in the end summary (same grammar as the quiz).
+//   · "Re-read passage" collapsible panel above the questions —
+//     collapsed by default; re-reading NEVER touches the WPM metric
+//     (that is computed from the first timed read only, statsRef).
+//   · 5 questions per passage (2 authored per passage, 2026-09).
+//   · Banked today → read-only review of today's run (details.report).
 //
 // Data: passages from the local library (gulpPassages.js), runs
 // logged to trainer_runs (trainer: "gulp-protocol",
@@ -12,10 +21,11 @@
 // for unit testing.
 // ============================================================
 
-import { supabase } from "@/utils/supabaseClient";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Pause, Play } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Pause, Play } from "lucide-react";
 import PASSAGES from "./gulpPassages";
+import { supabase } from "@/utils/supabaseClient";
+import { saveRunWithReport, loadTodayRun, todayKey } from "@/lib/trainerReport";
 
 export const XP_PER_RUN = 30;
 export const MIN_WPM = 100;
@@ -50,13 +60,14 @@ export function verdictFor(comp, avgWpm) {
     return `Elite gulping. Full comprehension at ${avgWpm} WPM — you'd finish an IPMAT VA passage with time to spare for the traps.`;
   if (comp === 100)
     return "Perfect comprehension. Your eyes are ready for the next speed tier — nudge the slider up next run.";
-  if (comp >= 67)
+  if (comp >= 60)
     return `Good gulp, minor leaks. You kept most of the meaning at ${avgWpm} WPM. One more run at this speed and it locks in.`;
   return "Too fast for today. Speed without understanding is just scrolling — drop one tier, rebuild comprehension, then climb back.";
 }
 
-export default function GulpProtocol({ userData, onExit, onSimComplete }) {
-  const [phase, setPhase] = useState("start"); // start | countdown | read | quiz | done
+export default function GulpProtocol({ userData, onExit, onSimComplete, banked }) {
+  // ── ALL hooks above any conditional render (shipped crash class) ──
+  const [phase, setPhase] = useState(banked ? "review-loading" : "start"); // start | countdown | read | quiz | done | review-loading | review
   const [wpm, setWpm] = useState(350);
   const [passage, setPassage] = useState(null);
   const [chunks, setChunks] = useState([]);
@@ -64,18 +75,20 @@ export default function GulpProtocol({ userData, onExit, onSimComplete }) {
   const [count, setCount] = useState(3);
   const [paused, setPaused] = useState(false);
   const [qi, setQi] = useState(0);
-  const [right, setRight] = useState(0);
   const [picked, setPicked] = useState(null);
-  const [reveal, setReveal] = useState(false);
+  const [records, setRecords] = useState([]); // picked option index per question
+  const [showPassage, setShowPassage] = useState(false); // re-read panel, collapsed by default
+  const [reviewInfo, setReviewInfo] = useState(null); // { eff, avg, comp, thin }
   const [personalBest, setPersonalBest] = useState(null);
 
   const timerRef = useRef(null);
   const wpmRef = useRef(350); // live value the flash loop reads
   const pausedRef = useRef(false);
   const ciRef = useRef(0);
-  const statsRef = useRef({ sum: 0, ticks: 0 });
+  const statsRef = useRef({ sum: 0, ticks: 0 }); // FIRST timed read only — re-reading never lands here
   const chunksRef = useRef([]);
   const lockRef = useRef(false);
+  const recordsRef = useRef([]);
 
   useEffect(() => {
     if (!userData?.email) return;
@@ -93,11 +106,43 @@ export default function GulpProtocol({ userData, onExit, onSimComplete }) {
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
 
+  // Banked today → load the read-only review of today's run.
+  useEffect(() => {
+    if (!banked || !userData?.email) return;
+    let alive = true;
+    loadTodayRun(userData.email, "gulp-protocol").then((run) => {
+      if (!alive) return;
+      const rep = run?.report;
+      const p = rep?.passage_id ? PASSAGES.find((x) => x.id === rep.passage_id) : null;
+      if (p && Array.isArray(rep.items)) {
+        setPassage(p);
+        setRecords(rep.items.map((it) => it.picked));
+        setReviewInfo({
+          eff: run.score ?? rep.score ?? 0,
+          avg: rep.avg_wpm ?? run?.details?.avg_wpm ?? 0,
+          comp: rep.comprehension ?? run?.details?.comprehension ?? 0,
+          thin: false,
+        });
+      } else {
+        setReviewInfo({
+          eff: run?.score ?? 0,
+          avg: run?.details?.avg_wpm ?? 0,
+          comp: run?.details?.comprehension ?? 0,
+          thin: true,
+        });
+      }
+      setPhase("review");
+    });
+    return () => {
+      alive = false;
+    };
+  }, [banked, userData?.email]);
+
   // Sim Room: skip the start screen and launch straight into the read
   // at the default target pace (the live slider still works mid-read).
   const autoStartedRef = useRef(false);
   useEffect(() => {
-    if (onSimComplete && !autoStartedRef.current) {
+    if (onSimComplete && !banked && !autoStartedRef.current) {
       autoStartedRef.current = true;
       begin();
     }
@@ -105,6 +150,7 @@ export default function GulpProtocol({ userData, onExit, onSimComplete }) {
   }, []);
 
   const begin = () => {
+    if (banked) return; // no re-attempts once today's run is banked
     const p = PASSAGES[Math.floor(Math.random() * PASSAGES.length)];
     const c = makeChunks(p.text);
     setPassage(p);
@@ -114,9 +160,10 @@ export default function GulpProtocol({ userData, onExit, onSimComplete }) {
     ciRef.current = 0;
     statsRef.current = { sum: 0, ticks: 0 };
     setQi(0);
-    setRight(0);
     setPicked(null);
-    setReveal(false);
+    setRecords([]);
+    recordsRef.current = [];
+    setShowPassage(false);
     setPaused(false);
     pausedRef.current = false;
     wpmRef.current = wpm;
@@ -171,40 +218,50 @@ export default function GulpProtocol({ userData, onExit, onSimComplete }) {
   const avgWpm = () =>
     statsRef.current.ticks ? Math.round(statsRef.current.sum / statsRef.current.ticks) : wpm;
 
+  const rightFrom = (recs) =>
+    passage ? recs.reduce((n, r, i) => n + (r === passage.questions[i]?.a ? 1 : 0), 0) : 0;
+
   const handleAnswer = (idx) => {
-    if (reveal || lockRef.current || !passage) return;
+    if (lockRef.current || !passage || phase !== "quiz") return;
     lockRef.current = true;
-    const q = passage.questions[qi];
-    const correct = idx === q.a;
-    const newRight = right + (correct ? 1 : 0);
-    setPicked(idx);
-    setReveal(true);
-    if (correct) setRight(newRight);
+    recordsRef.current = [...recordsRef.current, idx];
+    setRecords(recordsRef.current);
+    setPicked(idx); // neutral gold-tint only — the reveal happens in the summary
     timerRef.current = setTimeout(() => {
       setPicked(null);
-      setReveal(false);
       lockRef.current = false;
       if (qi + 1 >= passage.questions.length) {
-        finish(newRight);
+        finish(recordsRef.current);
       } else {
         setQi(qi + 1);
       }
-    }, 800);
+    }, 500);
   };
 
-  const finish = async (finalRight) => {
+  const finish = async (finalRecords) => {
     setPhase("done");
+    const finalRight = rightFrom(finalRecords);
+    const comp100 = Math.round((100 * finalRight) / passage.questions.length);
     const eff = effectiveRate(avgWpm(), finalRight, passage.questions.length);
     if (eff > (personalBest ?? -1)) setPersonalBest(eff);
     if (userData?.email) {
-      await supabase.from("trainer_runs").insert({
-        user: userData.email,
+      await saveRunWithReport({
+        email: userData.email,
         trainer: "gulp-protocol",
         score: eff,
         details: {
           passage_id: passage.id,
           avg_wpm: avgWpm(),
-          comprehension: Math.round((100 * finalRight) / passage.questions.length),
+          comprehension: comp100,
+        },
+        report: {
+          v: 1,
+          date: todayKey(),
+          passage_id: passage.id,
+          avg_wpm: avgWpm(),
+          comprehension: comp100,
+          score: eff,
+          items: passage.questions.map((qq, i) => ({ i, picked: finalRecords[i] ?? null })),
         },
       });
     }
@@ -216,8 +273,56 @@ export default function GulpProtocol({ userData, onExit, onSimComplete }) {
     borderRadius: 16,
     boxShadow: "var(--c-shadow-xs)",
   };
+  const isReview = phase === "review";
+  const right = rightFrom(records);
   const comp = passage ? Math.round((100 * right) / passage.questions.length) : 0;
+  const statAvg = isReview ? reviewInfo?.avg ?? 0 : avgWpm();
+  const statComp = isReview ? reviewInfo?.comp ?? 0 : comp;
+  const statEff = isReview ? reviewInfo?.eff ?? 0 : passage ? effectiveRate(avgWpm(), right, passage.questions.length) : 0;
   const q = passage?.questions[qi];
+
+  // Per-question review card (end summary + banked review).
+  const renderReviewCard = (qq, i) => {
+    const pickedIdx = records[i];
+    return (
+      <div key={i} className="rounded-[14px] border p-5 mt-3" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)" }}>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 8 }}>
+          Question {i + 1}
+        </div>
+        <div style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.5 }}>{qq.q}</div>
+        <div className="grid gap-2 mt-3">
+          {qq.o.map((t, d) => {
+            const isCorrect = d === qq.a;
+            const isPicked = pickedIdx === d;
+            let border = "var(--c-border-faint)";
+            let bg = "var(--c-surface-muted, var(--c-bg))";
+            if (isCorrect) {
+              border = "var(--c-success)";
+              bg = "var(--c-success-soft)";
+            } else if (isPicked) {
+              border = "var(--c-danger)";
+              bg = "var(--c-danger-soft)";
+            }
+            return (
+              <div key={d} style={{ background: bg, border: `1px solid ${border}`, borderRadius: 12, padding: "10px 14px", fontSize: 13.5, display: "flex", gap: 10, alignItems: "baseline" }}>
+                <span style={{ fontWeight: 700, color: "var(--c-text-tertiary)", flexShrink: 0 }}>{String.fromCharCode(65 + d)}.</span>
+                <span style={{ minWidth: 0 }}>{t}</span>
+                <span style={{ marginLeft: "auto", flexShrink: 0, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: isCorrect ? "var(--c-success)" : "var(--c-danger)" }}>
+                  {isCorrect && isPicked ? "Your answer ✓" : isCorrect ? "Correct answer" : isPicked ? "Your answer" : ""}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        {qq.e && (
+          <div className="rounded-[10px] mt-3 p-3" style={{ background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 4 }}>Explanation</div>
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--c-text-secondary)" }}>{qq.e}</div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
@@ -251,8 +356,8 @@ export default function GulpProtocol({ userData, onExit, onSimComplete }) {
           {[
             <>A passage flashes in <b>3–5 word chunks</b> — no going back, no subvocalising. Your eyes learn to gulp, not sip.</>,
             <>You pick the starting speed, and a <b>live slider (100–600 WPM)</b> lets you adjust mid-read. Pause any time.</>,
-            <>Then <b>3 comprehension questions</b> — because speed without understanding is just scrolling.</>,
-            <>Your score = <b>effective rate</b>: average speed × comprehension. 350 at 100% beats 450 at 33%.</>,
+            <>Then <b>5 comprehension questions</b>. Answers are revealed at the end — you can re-read the passage while answering, but your WPM comes from the first read only.</>,
+            <>Your score = <b>effective rate</b>: average speed × comprehension. 350 at 100% beats 450 at 40%.</>,
           ].map((r, d) => (
             <div key={d} className="flex gap-3 mt-3.5" style={{ fontSize: 13.5, color: "var(--c-text-secondary)", lineHeight: 1.55 }}>
               <span className="grid place-items-center shrink-0" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--c-brand-gold-tint)", color: "var(--c-brand-gold)", fontWeight: 700, fontSize: 12 }}>
@@ -291,6 +396,13 @@ export default function GulpProtocol({ userData, onExit, onSimComplete }) {
             </button>
             <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>+{XP_PER_RUN} XP per run</span>
           </div>
+        </div>
+      )}
+
+      {/* ── REVIEW LOADING ── */}
+      {phase === "review-loading" && (
+        <div className="p-7 max-w-[760px]" style={cardStyle}>
+          <p style={{ fontSize: 14, color: "var(--c-text-secondary)" }}>Loading today&apos;s review…</p>
         </div>
       )}
 
@@ -341,69 +453,112 @@ export default function GulpProtocol({ userData, onExit, onSimComplete }) {
 
       {/* ── QUIZ ── */}
       {phase === "quiz" && q && (
-        <div className="p-6 md:p-7 max-w-[760px]" style={cardStyle}>
-          <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 12 }}>
-            Comprehension check · {qi + 1} / {passage.questions.length}
+        <div className="max-w-[760px]">
+          {/* Re-read panel — collapsed by default; opening it has ZERO
+              effect on the WPM metric (first timed read only). */}
+          <div className="rounded-[14px] border mb-3" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)" }}>
+            <button
+              type="button"
+              onClick={() => setShowPassage((s) => !s)}
+              className="w-full flex items-center justify-between"
+              style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "13px 18px", color: "var(--c-text-primary)" }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 600 }}>
+                Re-read passage
+                <span style={{ fontWeight: 400, color: "var(--c-text-tertiary)", marginLeft: 8, fontSize: 12 }}>
+                  won&apos;t affect your WPM
+                </span>
+              </span>
+              <ChevronDown size={16} style={{ transform: showPassage ? "rotate(180deg)" : "none", transition: "transform 0.15s", color: "var(--c-text-tertiary)" }} />
+            </button>
+            {showPassage && (
+              <div style={{ padding: "0 18px 16px", maxHeight: 240, overflowY: "auto", fontSize: 14, lineHeight: 1.7, color: "var(--c-text-secondary)" }}>
+                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 6 }}>
+                  {passage.title}
+                </div>
+                {passage.text}
+              </div>
+            )}
           </div>
-          <div style={{ fontSize: 16, lineHeight: 1.6, color: "var(--c-text-primary)" }}>{q.q}</div>
-          <div className="grid gap-2.5 mt-4">
-            {q.o.map((t, d) => {
-              let border = "var(--c-border-faint)";
-              let bg = "var(--c-surface-muted, var(--c-bg))";
-              if (reveal && d === q.a) {
-                border = "var(--c-success)";
-                bg = "var(--c-success-soft)";
-              } else if (reveal && picked === d && d !== q.a) {
-                border = "var(--c-danger)";
-                bg = "var(--c-danger-soft)";
-              }
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => handleAnswer(d)}
-                  className="text-left"
-                  style={{ background: bg, border: `1px solid ${border}`, borderRadius: 12, padding: "12px 16px", fontSize: 14, color: "var(--c-text-primary)", cursor: reveal ? "default" : "pointer", fontFamily: "inherit", transition: "border-color 0.12s" }}
-                >
-                  <span style={{ fontWeight: 700, marginRight: 10, color: "var(--c-text-tertiary)" }}>{String.fromCharCode(65 + d)}.</span>
-                  {t}
-                </button>
-              );
-            })}
+
+          <div className="p-6 md:p-7" style={cardStyle}>
+            <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 12 }}>
+              Comprehension check · {qi + 1} / {passage.questions.length} · answers at the end
+            </div>
+            <div style={{ fontSize: 16, lineHeight: 1.6, color: "var(--c-text-primary)" }}>{q.q}</div>
+            <div className="grid gap-2.5 mt-4">
+              {q.o.map((t, d) => {
+                const isSel = picked === d;
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => handleAnswer(d)}
+                    className="text-left"
+                    style={{
+                      background: isSel ? "var(--c-brand-gold-tint)" : "var(--c-surface-muted, var(--c-bg))",
+                      border: `1px solid ${isSel ? "var(--c-brand-gold)" : "var(--c-border-faint)"}`,
+                      borderRadius: 12, padding: "12px 16px", fontSize: 14, color: "var(--c-text-primary)",
+                      cursor: picked != null ? "default" : "pointer", fontFamily: "inherit", transition: "border-color 0.12s",
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, marginRight: 10, color: "var(--c-text-tertiary)" }}>{String.fromCharCode(65 + d)}.</span>
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── RESULTS ── */}
-      {phase === "done" && (
-        <div className="p-6 md:p-7 max-w-[760px]" style={cardStyle}>
-          <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 8 }}>
-            Run complete
+      {/* ── RESULTS / REVIEW ── */}
+      {(phase === "done" || phase === "review") && (
+        <div className="max-w-[760px]">
+          <div className="p-6 md:p-7" style={cardStyle}>
+            <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 8 }}>
+              {isReview ? "Today's run · review" : "Run complete"}
+            </div>
+            <h2 className="ds-display" style={{ fontSize: 25 }}>
+              Effective rate: <span className="ds-grad-text">{statEff}</span>{" "}
+              <span style={{ fontSize: 15, color: "var(--c-text-secondary)" }}>WPM</span>
+            </h2>
+            <div className="grid gap-3 mt-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))" }}>
+              {[
+                ["Speed read at", `${statAvg}`, "var(--c-text-primary)"],
+                ["Comprehension", `${statComp}%`, "var(--c-brand-gold)"],
+                ["Effective WPM", `${statEff}`, "var(--c-success)"],
+              ].map(([l, v, c]) => (
+                <div key={l} className="rounded-[12px] border p-4" style={{ background: "var(--c-surface-muted, var(--c-bg))", borderColor: "var(--c-border-faint)" }}>
+                  <div style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>{l}</div>
+                  <div className="ds-display" style={{ fontSize: 25, marginTop: 6, color: c }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-[12px] mt-5 p-4" style={{ background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", fontSize: 13.5, lineHeight: 1.65, color: "var(--c-text-secondary)" }}>
+              {isReview ? (
+                <>Banked earlier today — this is a read-only walkthrough of your run. A fresh passage waits tomorrow.</>
+              ) : (
+                <>
+                  {verdictFor(comp, avgWpm())}
+                  <br />
+                  <br />
+                  XP earned this run: <b style={{ color: "var(--c-brand-gold)" }}>+{XP_PER_RUN} XP</b>
+                </>
+              )}
+            </div>
           </div>
-          <h2 className="ds-display" style={{ fontSize: 25 }}>
-            Effective rate: <span className="ds-grad-text">{effectiveRate(avgWpm(), right, passage.questions.length)}</span>{" "}
-            <span style={{ fontSize: 15, color: "var(--c-text-secondary)" }}>WPM</span>
-          </h2>
-          <div className="grid gap-3 mt-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))" }}>
-            {[
-              ["Speed read at", `${avgWpm()}`, "var(--c-text-primary)"],
-              ["Comprehension", `${comp}%`, "var(--c-brand-gold)"],
-              ["Effective WPM", `${effectiveRate(avgWpm(), right, passage.questions.length)}`, "var(--c-success)"],
-            ].map(([l, v, c]) => (
-              <div key={l} className="rounded-[12px] border p-4" style={{ background: "var(--c-surface-muted, var(--c-bg))", borderColor: "var(--c-border-faint)" }}>
-                <div style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>{l}</div>
-                <div className="ds-display" style={{ fontSize: 25, marginTop: 6, color: c }}>{v}</div>
-              </div>
-            ))}
-          </div>
-          <div className="rounded-[12px] mt-5 p-4" style={{ background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", fontSize: 13.5, lineHeight: 1.65, color: "var(--c-text-secondary)" }}>
-            {verdictFor(comp, avgWpm())}
-            <br />
-            <br />
-            XP earned this run: <b style={{ color: "var(--c-brand-gold)" }}>+{XP_PER_RUN} XP</b>
-          </div>
-          <div className="mt-6 flex gap-3">
-            {onSimComplete ? (
+
+          {isReview && reviewInfo?.thin ? (
+            <div className="p-5 mt-3 rounded-[14px] border" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", fontSize: 13.5, color: "var(--c-text-secondary)" }}>
+              Question-by-question detail isn&apos;t available for this run on this device — the banked numbers above still count.
+            </div>
+          ) : (
+            passage && passage.questions.map(renderReviewCard)
+          )}
+
+          <div className="mt-6 mb-8 flex gap-3">
+            {onSimComplete && phase === "done" ? (
               <button
                 type="button"
                 onClick={() => onSimComplete(`${avgWpm()} WPM · ${comp}%`)}
@@ -413,14 +568,9 @@ export default function GulpProtocol({ userData, onExit, onSimComplete }) {
                 Continue simulation <ArrowRight size={15} />
               </button>
             ) : (
-              <>
-                <button type="button" onClick={() => setPhase("start")} className="inline-flex items-center gap-2" style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 26px", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                  New run <ArrowRight size={15} />
-                </button>
-                <button type="button" onClick={onExit} style={{ background: "transparent", color: "var(--c-text-secondary)", fontWeight: 600, fontSize: 13, border: "1px solid var(--c-border-soft, var(--c-border-faint))", borderRadius: 999, padding: "11px 24px", cursor: "pointer", fontFamily: "inherit" }}>
-                  Back to DSB
-                </button>
-              </>
+              <button type="button" onClick={onExit} className="inline-flex items-center gap-2" style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 26px", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                Back to DSB <ArrowRight size={15} />
+              </button>
             )}
           </div>
         </div>

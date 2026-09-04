@@ -302,7 +302,7 @@ function ExamScanner() {
                   <div className={styles.shares}>
                     <ShareButtons
                       title={activeQuestion.question}
-                      url={`https://study.ipmcareer.in/question/${activeQuestion.slug}`}
+                      url={`https://study.ipmcareer.com/question/${activeQuestion.slug}`}
                     ></ShareButtons>
                   </div>
                 </div>

@@ -5,7 +5,7 @@ import { getTransporter, getFromAddress } from '@/lib/emailTransporter';
 const sendEmail = async ({ student_name,module_name,datetime,schedules ,email }) => {
   try {
     const transporter = getTransporter();
-    const htmlTemplate = push({student_name,module_name,datetime,schedules:`https://study.ipmcareer.in/class/${schedules}`});
+    const htmlTemplate = push({student_name,module_name,datetime,schedules:`https://study.ipmcareer.com/class/${schedules}`});
     // Create the email message
     const mailOptions = {
       from: getFromAddress(),

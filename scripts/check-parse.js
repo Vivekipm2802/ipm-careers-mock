@@ -55,6 +55,14 @@ const files = [
   "components/Announcements.js",
   "components/NMNContext.js",
   "pages/api/announce.js",
+  // 2026-09 DSB trainer overhaul: end-of-run reveal, review mode,
+  // Skip-or-Solve decision flow, curated banks, report persistence
+  "components/DailyQuiz.js",
+  "components/GulpProtocol.js",
+  "components/SkipOrSolve.js",
+  "components/gulpPassages.js",
+  "components/sosBank.js",
+  "lib/trainerReport.js",
 ];
 
 let failed = 0;
@@ -122,6 +130,10 @@ hookOrderCheck("components/LeaderboardBlock.js", "export default function Leader
 // "All hooks above this line" guard marker before their early returns.
 hookOrderCheck("components/ConceptGroups.js", "const Selector = (");
 hookOrderCheck("components/ConceptTestStudent.js", "export default function ConceptTestStudent(");
+// 2026-09 DSB trainer overhaul: DSBChallenge has real early returns
+// (sim / summary / active trainer) — every hook must sit above the
+// "All hooks above this line" marker.
+hookOrderCheck("components/DSBChallenge.js", "export default function DSBChallenge(");
 
 console.log(failed === 0 ? "\nAll files parse clean." : `\n${failed} failure(s).`);
 process.exit(failed > 0 ? 1 : 0);

@@ -143,17 +143,22 @@ export default function DSBChallenge({ userData }) {
   ];
 
   // ── Sim Room orchestration ──
+  // 2026-09 no-re-attempts rule: banked missions can only be
+  // REVIEWED, never replayed — so the Sim Room only runs the
+  // pending stages, and with all three banked the Start affordance
+  // becomes "Review today's runs" (opens the first mission's
+  // read-only review; each trainer guards re-entry itself too).
   const firstPendingStage = (from) => {
     for (let i = from; i < 3; i++) if (!missionDone[i]) return i;
     return -1;
   };
+  const allBanked = missionsDone === 3;
   const enterSimRoom = () => {
     setSimSummary(null);
     const start = firstPendingStage(0);
     if (start === -1) {
-      // everything already done today — run the FULL circuit again
-      // (forceAll: don't skip stages just because they're banked)
-      setSim({ stage: 0, results: {}, forceAll: true });
+      // everything banked today — open the review walkthrough
+      setActiveTrainer("daily-quiz");
     } else {
       setSim({ stage: start, results: {} });
     }
@@ -163,9 +168,7 @@ export default function DSBChallenge({ userData }) {
       if (!prev) return prev;
       const results = { ...prev.results, [STAGE_KEYS[prev.stage]]: stats };
       let next = prev.stage + 1;
-      if (!prev.forceAll) {
-        while (next < 3 && missionDone[next]) next += 1;
-      }
+      while (next < 3 && missionDone[next]) next += 1;
       if (next >= 3) {
         setSimSummary(results);
         return null;
@@ -179,11 +182,13 @@ export default function DSBChallenge({ userData }) {
   };
 
   const trainers = [
-    { Icon: Target, name: "Skip or Solve", tag: "Decision trainer", desc: "8 seconds a question: solve the scorers, skip the traps.", live: true, open: () => setActiveTrainer("skip-or-solve") },
-    { Icon: Zap, name: "Gulp Protocol", tag: "Speed reading", desc: "Process 3–5 word chunks at 350+ WPM. Built for VA's reading load.", live: true, open: () => setActiveTrainer("gulp-protocol") },
+    { Icon: Target, name: "Skip or Solve", tag: "Decision trainer", desc: "8 seconds a question: call it — solve the scorers, skip the traps.", live: true, done: todaySos, open: () => setActiveTrainer("skip-or-solve") },
+    { Icon: Zap, name: "Gulp Protocol", tag: "Speed reading", desc: "Process 3–5 word chunks at 350+ WPM. Built for VA's reading load.", live: true, done: todayGulp, open: () => setActiveTrainer("gulp-protocol") },
     { Icon: Swords, name: "Duels", tag: "1v1 battle arena", desc: "Five-question MCQ battles vs bots. Ranked mode arrives with Phase C.", live: true, open: () => setActiveTrainer("duels") },
     { Icon: Skull, name: "Sudden Death", tag: "One wrong = out", desc: "No second chances. How long can you survive?", red: true, live: true, open: () => setActiveTrainer("sudden-death") },
   ];
+
+  // ── All hooks above this line — early returns start here ──
 
   // ── Sim Room: guided back-to-back session with stepper ──
   if (sim) {
@@ -248,21 +253,23 @@ export default function DSBChallenge({ userData }) {
     );
   }
 
+  // Daily missions carry `banked` — once today's run exists the
+  // trainer opens in read-only review even on direct state entry.
   if (activeTrainer === "daily-quiz") {
     return (
       <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4 pt-8" style={{ textAlign: "left" }}>
-        <DailyQuiz userData={userData} onExit={() => setActiveTrainer(null)} />
+        <DailyQuiz userData={userData} banked={todayQuiz} onExit={() => setActiveTrainer(null)} />
       </div>
     );
   }
   if (activeTrainer === "skip-or-solve") {
-    return <SkipOrSolve userData={userData} onExit={() => setActiveTrainer(null)} />;
+    return <SkipOrSolve userData={userData} banked={todaySos} onExit={() => setActiveTrainer(null)} />;
   }
   if (activeTrainer === "sudden-death") {
     return <SuddenDeath userData={userData} onExit={() => setActiveTrainer(null)} />;
   }
   if (activeTrainer === "gulp-protocol") {
-    return <GulpProtocol userData={userData} onExit={() => setActiveTrainer(null)} />;
+    return <GulpProtocol userData={userData} banked={todayGulp} onExit={() => setActiveTrainer(null)} />;
   }
   if (activeTrainer === "duels") {
     return <Duels userData={userData} onExit={() => setActiveTrainer(null)} />;
@@ -320,19 +327,19 @@ export default function DSBChallenge({ userData }) {
               className="inline-flex items-center gap-2 shrink-0"
               style={{ background: "var(--c-brand-gold)", color: "var(--c-text-on-brand)", fontWeight: 600, fontSize: 13, borderRadius: 999, padding: "10px 24px", border: "none", cursor: "pointer", fontFamily: "inherit" }}
             >
-              Start <ArrowRight size={15} />
+              {allBanked ? "Review today's runs" : "Start"} <ArrowRight size={15} />
             </button>
           </div>
           {missions.map((m, i) => (
             <div
               key={m.title}
-              onClick={m.done ? undefined : m.onClick}
+              onClick={m.onClick}
               className="flex items-center gap-3"
               style={{
                 padding: "12px 0",
                 borderBottom: i < missions.length - 1 ? "1px solid var(--c-border-faint)" : "none",
-                opacity: m.done ? 0.6 : 1,
-                cursor: m.done ? "default" : "pointer",
+                opacity: m.done ? 0.75 : 1,
+                cursor: "pointer",
               }}
             >
               <div className="grid place-items-center shrink-0" style={{ width: 34, height: 34, borderRadius: 10, background: m.done ? "var(--c-success-soft)" : "var(--c-brand-gold-tint)", color: m.done ? "var(--c-success)" : "var(--c-brand-gold)", fontSize: 15, fontWeight: 700 }}>
@@ -340,15 +347,17 @@ export default function DSBChallenge({ userData }) {
               </div>
               <div className="min-w-0 flex-1">
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--c-text-primary)" }}>{m.title}</div>
-                <div style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>{m.sub}</div>
+                <div style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>{m.done ? "banked today — tap to review your run" : m.sub}</div>
               </div>
               <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600, color: m.done ? "var(--c-success)" : "var(--c-brand-gold)", whiteSpace: "nowrap" }}>
-                {m.done ? "banked ✓" : m.xp}
+                {m.done ? "Review →" : m.xp}
               </div>
             </div>
           ))}
           <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", paddingTop: 10, borderTop: "1px solid var(--c-border-faint)" }}>
-            Start runs all three back to back · or tap any mission
+            {allBanked
+              ? "All three banked — tap any mission to walk through today's run"
+              : "Start runs the pending missions back to back · or tap any mission"}
           </div>
         </div>
 
@@ -382,7 +391,7 @@ export default function DSBChallenge({ userData }) {
         <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>unique to IPM Careers</span>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8" data-tour="dsb-trainers">
-        {trainers.map(({ Icon, name, tag, desc, red, live, open }) => (
+        {trainers.map(({ Icon, name, tag, desc, red, live, done, open }) => (
           <div
             key={name}
             onClick={live ? open : undefined}
@@ -404,8 +413,8 @@ export default function DSBChallenge({ userData }) {
             <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: red ? "var(--c-danger)" : "var(--c-brand-gold)", margin: "3px 0 7px" }}>{tag}</div>
             <p style={{ fontSize: 12, color: "var(--c-text-secondary)", lineHeight: 1.55 }}>{desc}</p>
             {live ? (
-              <div className="inline-flex items-center gap-1.5" style={{ marginTop: 10, fontSize: 11.5, fontWeight: 700, color: "var(--c-brand-gold)" }}>
-                Play now <ArrowRight size={13} />
+              <div className="inline-flex items-center gap-1.5" style={{ marginTop: 10, fontSize: 11.5, fontWeight: 700, color: done ? "var(--c-success)" : "var(--c-brand-gold)" }}>
+                {done ? "Review today's run" : "Play now"} <ArrowRight size={13} />
               </div>
             ) : (
               <div style={{ marginTop: 10, fontSize: 10.5, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>Coming soon</div>
