@@ -1031,7 +1031,8 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
 }
 {
   // 12f · SkipOrSolve — two decision buttons, no option list
-  const SkipOrSolve = require(path.join(root, "components", "SkipOrSolve.js")).default;
+  const sosMod = require(path.join(root, "components", "SkipOrSolve.js"));
+  const SkipOrSolve = sosMod.default;
   const SOS_BANK = require(path.join(root, "components", "sosBank.js")).default;
   const scorers = SOS_BANK.filter((x) => x.kind === "scorer");
   const traps = SOS_BANK.filter((x) => x.kind === "trap");
@@ -1040,6 +1041,45 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
   check(SOS_BANK.every((x) => typeof x.why === "string" && x.why.length > 15),
     "sos bank: every item carries a why rationale");
   check(new Set(SOS_BANK.map((x) => x.id)).size === SOS_BANK.length, "sos bank: ids unique");
+
+  // 2026-09 expansion: 120-item bank + deterministic no-repeat rotation
+  check(SOS_BANK.length >= 115, `sos bank: expanded to ${SOS_BANK.length} items (≥115)`);
+  const scorerShare = scorers.length / SOS_BANK.length;
+  check(scorerShare >= 0.5 && scorerShare <= 0.6,
+    `sos bank: scorer share ${(scorerShare * 100).toFixed(1)}% within the 50–60% band`);
+  check(SOS_BANK.every((x) => ["QA", "LR", "VA"].includes(x.section)),
+    "sos bank: every item carries a valid section (QA/LR/VA)");
+  const sectionN = (s) => SOS_BANK.filter((x) => x.section === s).length;
+  check(sectionN("QA") >= 40 && sectionN("LR") >= 25 && sectionN("VA") >= 20,
+    `sos bank: section floors met (${sectionN("QA")} QA / ${sectionN("LR")} LR / ${sectionN("VA")} VA)`);
+  check(SOS_BANK.every((x) => typeof x.stem === "string" && x.stem.length > 10),
+    "sos bank: every item carries a stem");
+  check(scorers.every((x) => typeof x.solution === "string" && x.solution.length > 3),
+    "sos bank: every scorer carries a solution one-liner");
+  {
+    const { deckIndicesForDay, RUN_LENGTH: per } = sosMod;
+    const n = SOS_BANK.length;
+    const daysPerCycle = Math.ceil(n / per);
+    // determinism: same day → identical deck on every call
+    check(JSON.stringify(deckIndicesForDay(5, n)) === JSON.stringify(deckIndicesForDay(5, n)),
+      "sos rotation: deterministic — same day, same 10 items on every call");
+    // a full cycle covers the whole bank with no repeats
+    const seen = [];
+    let sized = true;
+    for (let d = 0; d < daysPerCycle; d++) {
+      const deck = deckIndicesForDay(d, n);
+      if (deck.length !== per) sized = false;
+      seen.push(...deck);
+    }
+    check(sized, `sos rotation: every day draws exactly ${per} items`);
+    check(new Set(seen).size === n && seen.length === daysPerCycle * per && seen.every((i) => i >= 0 && i < n),
+      `sos rotation: a full ${daysPerCycle}-day cycle covers all ${n} items with no repeats`);
+    // second cycle also clean, and reshuffled vs the first
+    const seen2 = [];
+    for (let d = daysPerCycle; d < 2 * daysPerCycle; d++) seen2.push(...deckIndicesForDay(d, n));
+    check(new Set(seen2).size === n, "sos rotation: cycle 2 also covers the whole bank without repeats");
+    check(JSON.stringify(seen) !== JSON.stringify(seen2), "sos rotation: consecutive cycles reshuffle the order");
+  }
 
   const deck3 = SOS_BANK.slice(0, 3);
   const run0 = { i: 0, score: 0, streak: 0, best: 0, good: 0, bad: 0, timeouts: 0 };

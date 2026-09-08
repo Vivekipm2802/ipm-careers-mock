@@ -10,6 +10,16 @@
 // auto-advancing after ~2.5s (or tap to continue). The end summary
 // lists every round: your call vs the right call + rationale.
 //
+// 2026-09 bank expansion: 120-item bank + NO-REPEAT ROTATION —
+// the per-run random 10-draw is gone. The day's 10 calls are
+// deterministic and identical for every student: the whole bank is
+// reshuffled once per cycle with the same seeded Fisher–Yates
+// GulpProtocol uses (cycleOrder/dayNumberFor imported from there),
+// and each day consumes the next RUN_LENGTH items of that order.
+// No item repeats until the whole bank is exhausted (120/10 =
+// 12-day cycle), then the next cycle reshuffles. Pure helper
+// (deckIndicesForDay) exported for unit testing.
+//
 // Data: curated local bank (sosBank.js — the old
 // get_trainer_questions RPC had no trap flag); finished runs still
 // insert into trainer_runs (trainer: "skip-or-solve") → +50 XP.
@@ -23,6 +33,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Flame } from "lucide-react";
 import SOS_BANK from "./sosBank";
+import { cycleOrder, dayNumberFor } from "./GulpProtocol";
 import { supabase } from "@/utils/supabaseClient";
 import { saveRunWithReport, loadTodayRun, todayKey } from "@/lib/trainerReport";
 
@@ -78,14 +89,38 @@ export function verdictFor(s) {
 
 const RING_C = 2 * Math.PI * 27; // circumference for r=27
 
-// Fisher–Yates on a copy.
-function drawDeck(count) {
-  const a = SOS_BANK.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+// Pure: the deck (bank indices) for a given day — the GulpProtocol
+// rotation engine applied to a 10-a-day draw. The whole bank is
+// reshuffled once per cycle (seeded, so every device computes the
+// identical permutation) and day d consumes items [step·per,
+// step·per + per) of that cycle's order. Same 10 for every student
+// on a given day; no item repeats until the whole bank is
+// exhausted; then the next cycle reshuffles.
+export function deckIndicesForDay(dayNumber, n, per = RUN_LENGTH) {
+  if (!n) return [];
+  const d = Math.floor(dayNumber);
+  const daysPerCycle = Math.max(1, Math.ceil(n / per));
+  const cycle = Math.floor(d / daysPerCycle);
+  const step = ((d % daysPerCycle) + daysPerCycle) % daysPerCycle;
+  const order = cycleOrder(n, cycle);
+  const slice = order.slice(step * per, step * per + per);
+  // Non-divisible banks: top up a short last day from the next
+  // cycle's order (never duplicating anything already in today's
+  // slice). With the current 120-item bank this branch never runs.
+  if (slice.length < per) {
+    const next = cycleOrder(n, cycle + 1);
+    for (const idx of next) {
+      if (slice.length >= per) break;
+      if (!slice.includes(idx)) slice.push(idx);
+    }
   }
-  return a.slice(0, count);
+  return slice;
+}
+
+// Deterministic no-repeat rotation — replaces the old per-run
+// random Fisher–Yates draw (which repeated items within days).
+function drawDeck(count) {
+  return deckIndicesForDay(dayNumberFor(), SOS_BANK.length, count).map((i) => SOS_BANK[i]);
 }
 
 export default function SkipOrSolve({ userData, onExit, onSimComplete, banked }) {
