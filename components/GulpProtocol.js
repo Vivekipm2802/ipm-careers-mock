@@ -11,8 +11,21 @@
 //   · "Re-read passage" collapsible panel above the questions —
 //     collapsed by default; re-reading NEVER touches the WPM metric
 //     (that is computed from the first timed read only, statsRef).
-//   · 5 questions per passage (2 authored per passage, 2026-09).
+//   · 5–7 questions per passage — the run uses ALL of a passage's
+//     questions; summary/review handle any count.
 //   · Banked today → read-only review of today's run (details.report).
+//
+// 2026-09 bank expansion:
+//   · Tiered bank (easy / moderate / hard) — the tier renders as a
+//     chip on the start card and the end summary (999 radius,
+//     success-soft / gold-tint / danger-soft).
+//   · NO-REPEAT ROTATION — the day's passage is deterministic and
+//     identical for everyone: the bank order is reshuffled once per
+//     cycle with a seeded Fisher–Yates (seed = cycle number), and
+//     dayNumber walks that order. No passage repeats until the
+//     whole bank is exhausted. Pure helpers (mulberry32,
+//     cycleOrder, passageIndexForDay, dayNumberFor) exported for
+//     unit testing.
 //
 // Data: passages from the local library (gulpPassages.js), runs
 // logged to trainer_runs (trainer: "gulp-protocol",
@@ -35,6 +48,73 @@ export const PRESETS = [
   { wpm: 350, label: "Target pace" },
   { wpm: 450, label: "Elite" },
 ];
+
+// ── No-repeat deterministic rotation ────────────────────────────
+// Pure: tiny seeded PRNG (mulberry32) — same seed, same sequence,
+// on every device.
+export function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Pure: the shuffled order of [0..n) for a given cycle — seeded
+// Fisher–Yates, so every device computes the identical permutation.
+export function cycleOrder(n, cycle) {
+  const rnd = mulberry32((cycle + 1) * 2654435761 + n * 97);
+  const order = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
+// Pure: which passage index runs on a given day. Walks one full
+// per-cycle shuffled order before the next reshuffle — so no
+// repeats until the whole bank is exhausted, and the pick is
+// deterministic across devices.
+export function passageIndexForDay(dayNumber, n) {
+  if (!n) return 0;
+  const d = Math.floor(dayNumber);
+  const cycle = Math.floor(d / n);
+  const step = ((d % n) + n) % n;
+  return cycleOrder(n, cycle)[step];
+}
+
+// Local calendar day → stable day number (same for every student in
+// the same timezone; India = one cohort, one passage per day).
+export function dayNumberFor(date = new Date()) {
+  return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+}
+
+// ── Tier chip (portal chip grammar: 999 radius, soft tints) ─────
+export const TIER_STYLES = {
+  easy: { label: "Easy", fg: "var(--c-success)", bg: "var(--c-success-soft)" },
+  moderate: { label: "Moderate", fg: "var(--c-brand-gold)", bg: "var(--c-brand-gold-tint)" },
+  hard: { label: "Hard", fg: "var(--c-danger)", bg: "var(--c-danger-soft)" },
+};
+
+function TierChip({ tier }) {
+  const t = TIER_STYLES[tier];
+  if (!t) return null;
+  return (
+    <span
+      style={{
+        display: "inline-block", borderRadius: 999, padding: "3px 11px",
+        fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+        color: t.fg, background: t.bg, border: "1px solid var(--c-border-faint)",
+      }}
+    >
+      {t.label}
+    </span>
+  );
+}
 
 // Pure: split text into 3–5 word chunks. rand: () => [0,1)
 export function makeChunks(text, rand = Math.random) {
@@ -151,7 +231,9 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
 
   const begin = () => {
     if (banked) return; // no re-attempts once today's run is banked
-    const p = PASSAGES[Math.floor(Math.random() * PASSAGES.length)];
+    // Deterministic no-repeat rotation: same passage for everyone
+    // today, no repeats until the whole bank has run.
+    const p = PASSAGES[passageIndexForDay(dayNumberFor(), PASSAGES.length)];
     const c = makeChunks(p.text);
     setPassage(p);
     setChunks(c);
@@ -280,6 +362,9 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
   const statComp = isReview ? reviewInfo?.comp ?? 0 : comp;
   const statEff = isReview ? reviewInfo?.eff ?? 0 : passage ? effectiveRate(avgWpm(), right, passage.questions.length) : 0;
   const q = passage?.questions[qi];
+  // Today's rotation pick — known before the run starts, so the
+  // start card can show the tier chip + question/word counts.
+  const todays = PASSAGES[passageIndexForDay(dayNumberFor(), PASSAGES.length)];
 
   // Per-question review card (end summary + banked review).
   const renderReviewCard = (qq, i) => {
@@ -352,11 +437,22 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
       {/* ── START ── */}
       {phase === "start" && (
         <div className="p-6 md:p-7 max-w-[760px]" style={cardStyle}>
+          {todays && (
+            <div className="flex items-center gap-2.5 flex-wrap mb-4">
+              <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>
+                Today&apos;s passage
+              </span>
+              <TierChip tier={todays.tier} />
+              <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
+                {todays.questions.length} questions{todays.words ? <> · {todays.words} words</> : null}
+              </span>
+            </div>
+          )}
           <h2 className="ds-display" style={{ fontSize: 19 }}>How it works</h2>
           {[
             <>A passage flashes in <b>3–5 word chunks</b> — no going back, no subvocalising. Your eyes learn to gulp, not sip.</>,
             <>You pick the starting speed, and a <b>live slider (100–600 WPM)</b> lets you adjust mid-read. Pause any time.</>,
-            <>Then <b>5 comprehension questions</b>. Answers are revealed at the end — you can re-read the passage while answering, but your WPM comes from the first read only.</>,
+            <>Then <b>5–7 comprehension questions</b> (every passage carries its own set). Answers are revealed at the end — you can re-read the passage while answering, but your WPM comes from the first read only.</>,
             <>Your score = <b>effective rate</b>: average speed × comprehension. 350 at 100% beats 450 at 40%.</>,
           ].map((r, d) => (
             <div key={d} className="flex gap-3 mt-3.5" style={{ fontSize: 13.5, color: "var(--c-text-secondary)", lineHeight: 1.55 }}>
@@ -516,8 +612,11 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
       {(phase === "done" || phase === "review") && (
         <div className="max-w-[760px]">
           <div className="p-6 md:p-7" style={cardStyle}>
-            <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)", marginBottom: 8 }}>
-              {isReview ? "Today's run · review" : "Run complete"}
+            <div className="flex items-center gap-2.5 flex-wrap" style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>
+                {isReview ? "Today's run · review" : "Run complete"}
+              </span>
+              {passage?.tier && <TierChip tier={passage.tier} />}
             </div>
             <h2 className="ds-display" style={{ fontSize: 25 }}>
               Effective rate: <span className="ds-grad-text">{statEff}</span>{" "}

@@ -931,15 +931,57 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
     "quiz banked: initial render is the read-only review, not a fresh run");
 }
 {
-  // 12d · GulpProtocol — 5-question bank + collapsed re-read panel
-  const GulpProtocol = require(path.join(root, "components", "GulpProtocol.js")).default;
+  // 12d · GulpProtocol — expanded tiered bank + collapsed re-read panel
+  const gulpMod = require(path.join(root, "components", "GulpProtocol.js"));
+  const GulpProtocol = gulpMod.default;
   const PASSAGES = require(path.join(root, "components", "gulpPassages.js")).default;
-  check(PASSAGES.length >= 6 && PASSAGES.every((p) => p.questions.length === 5),
-    "gulp bank: every passage carries exactly 5 questions");
+  const wcOf = (t) => String(t).trim().split(/\s+/).filter(Boolean).length;
+  check(PASSAGES.length >= 14 && PASSAGES.every((p) => p.questions.length >= 5 && p.questions.length <= 7),
+    `gulp bank: ${PASSAGES.length} passages, every one carries 5–7 questions`);
+  check(PASSAGES.every((p) => ["easy", "moderate", "hard"].includes(p.tier)),
+    "gulp bank: every passage carries a valid tier");
+  check(PASSAGES.every((p) => Number.isInteger(p.words) && p.words > 0 && p.words === wcOf(p.text)),
+    "gulp bank: every passage's words field matches its actual word count");
+  const tierN = (t) => PASSAGES.filter((p) => p.tier === t).length;
+  check(tierN("easy") >= 6 && tierN("moderate") >= 4 && tierN("hard") >= 4,
+    `gulp bank: tier floor met (${tierN("easy")} easy / ${tierN("moderate")} moderate / ${tierN("hard")} hard)`);
+  check(new Set(PASSAGES.map((p) => p.id)).size === PASSAGES.length, "gulp bank: ids unique");
   check(PASSAGES.every((p) => p.questions.every((q) => q.o.length === 4 && q.a >= 0 && q.a < 4)),
     "gulp bank: every question has 4 options and a valid answer index");
-  check(PASSAGES.every((p) => p.questions.slice(3).every((q) => typeof q.e === "string" && q.e.length > 10)),
-    "gulp bank: the authored questions (4th & 5th) all carry explanations");
+  check(PASSAGES.every((p) => p.questions.every((q) => typeof q.e === "string" && q.e.length > 10)),
+    "gulp bank: EVERY question carries a non-empty explanation");
+
+  // no-repeat rotation: deterministic, full-bank coverage per cycle
+  {
+    const { passageIndexForDay, cycleOrder, dayNumberFor } = gulpMod;
+    const n = PASSAGES.length;
+    const cycle0 = Array.from({ length: n }, (_, d) => passageIndexForDay(d, n));
+    const cycle1 = Array.from({ length: n }, (_, d) => passageIndexForDay(n + d, n));
+    check(new Set(cycle0).size === n && new Set(cycle1).size === n,
+      "gulp rotation: a full cycle covers the whole bank with no repeats (cycles 0 and 1)");
+    check(cycle0.every((v, d) => v === passageIndexForDay(d, n)),
+      "gulp rotation: deterministic — same day, same passage on every call");
+    check(JSON.stringify(cycleOrder(n, 0)) !== JSON.stringify(cycleOrder(n, 1)),
+      "gulp rotation: consecutive cycles reshuffle the order");
+    check(Number.isInteger(dayNumberFor(new Date(2026, 8, 8))) &&
+      dayNumberFor(new Date(2026, 8, 8)) === dayNumberFor(new Date(2026, 8, 8, 23, 59)),
+      "gulp rotation: dayNumberFor is stable across a calendar day");
+    const big = 3650 + 7;
+    check(passageIndexForDay(big, n) >= 0 && passageIndexForDay(big, n) < n,
+      "gulp rotation: far-future day numbers stay in range");
+  }
+
+  // start card renders the tier chip for today's rotation pick
+  stateQueue = null;
+  {
+    const html = clean(ReactDOMServer.renderToString(React.createElement(GulpProtocol, { userData: { email: "me@x.com" }, onExit: () => {} })));
+    check(/Today.{0,8}s passage/.test(html) && />(Easy|Moderate|Hard)</.test(html),
+      "gulp start: 'Today's passage' line + tier chip render");
+    check(/border-radius:999px/.test(html.slice(html.search(/>(Easy|Moderate|Hard)</) - 400, html.search(/>(Easy|Moderate|Hard)</))),
+      "gulp start: tier chip uses the 999-radius chip grammar");
+    check(html.includes("5–7 comprehension questions"),
+      "gulp start: how-it-works copy reflects variable question counts");
+  }
 
   const gp = PASSAGES[0];
   const marker = "professionalise Indian business"; // unique passage text
@@ -968,6 +1010,26 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
     "gulp summary: per-question answers marked");
   check(html.includes("seventeen-year-olds could handle a management curriculum"),
     "gulp summary: authored explanation renders");
+  check(html.includes(">Easy<"),
+    "gulp summary: tier chip renders next to 'Run complete' (easy passage)");
+
+  // 12e′ · variable question counts — a 6-question passage renders a
+  // full summary (all 6 review cards) and 100% comprehension when
+  // every pick matches the key.
+  const gp6 = PASSAGES.find((p) => p.questions.length === 6);
+  check(Boolean(gp6), "gulp bank: a 6-question passage exists for the variable-count fixture");
+  if (gp6) {
+    const recs6 = gp6.questions.map((qq) => qq.a);
+    stateQueue = ["done", 350, gp6, [], 0, 3, false, 5, null, recs6, false, null, null];
+    html = clean(ReactDOMServer.renderToString(React.createElement(GulpProtocol, { userData: { email: "me@x.com" }, onExit: () => {} })));
+    stateQueue = null;
+    check(html.includes("Question 6") && (html.match(/Question \d/g) || []).length === 6,
+      "gulp summary: all 6 review cards render for a 6-question passage");
+    check(html.includes("100%"),
+      "gulp summary: comprehension math handles 6 questions (6/6 → 100%)");
+    check((html.match(/Your answer ✓/g) || []).length === 6,
+      "gulp summary: every question marks the student's correct pick");
+  }
 }
 {
   // 12f · SkipOrSolve — two decision buttons, no option list
