@@ -442,7 +442,8 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
               <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>
                 Today&apos;s passage
               </span>
-              <TierChip tier={todays.tier} />
+              {/* 2026-09 owner call: tier stays internal — students never
+                  see the difficulty label. */}
               <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
                 {todays.questions.length} questions{todays.words ? <> · {todays.words} words</> : null}
               </span>
@@ -616,7 +617,7 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
               <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>
                 {isReview ? "Today's run · review" : "Run complete"}
               </span>
-              {passage?.tier && <TierChip tier={passage.tier} />}
+              {/* tier chip removed — difficulty stays internal (owner call) */}
             </div>
             <h2 className="ds-display" style={{ fontSize: 25 }}>
               Effective rate: <span className="ds-grad-text">{statEff}</span>{" "}

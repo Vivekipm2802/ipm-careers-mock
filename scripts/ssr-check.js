@@ -975,10 +975,8 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
   stateQueue = null;
   {
     const html = clean(ReactDOMServer.renderToString(React.createElement(GulpProtocol, { userData: { email: "me@x.com" }, onExit: () => {} })));
-    check(/Today.{0,8}s passage/.test(html) && />(Easy|Moderate|Hard)</.test(html),
-      "gulp start: 'Today's passage' line + tier chip render");
-    check(/border-radius:999px/.test(html.slice(html.search(/>(Easy|Moderate|Hard)</) - 400, html.search(/>(Easy|Moderate|Hard)</))),
-      "gulp start: tier chip uses the 999-radius chip grammar");
+    check(/Today.{0,8}s passage/.test(html) && !/>(Easy|Moderate|Hard)</.test(html),
+      "gulp start: 'Today's passage' line renders WITHOUT tier chip (owner call)");
     check(html.includes("5–7 comprehension questions"),
       "gulp start: how-it-works copy reflects variable question counts");
   }
@@ -1010,8 +1008,8 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
     "gulp summary: per-question answers marked");
   check(html.includes("seventeen-year-olds could handle a management curriculum"),
     "gulp summary: authored explanation renders");
-  check(html.includes(">Easy<"),
-    "gulp summary: tier chip renders next to 'Run complete' (easy passage)");
+  check(!html.includes(">Easy<") && !html.includes(">Hard<"),
+    "gulp summary: NO tier chip on 'Run complete' (owner call — difficulty stays internal)");
 
   // 12e′ · variable question counts — a 6-question passage renders a
   // full summary (all 6 review cards) and 100% comprehension when
