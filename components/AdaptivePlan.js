@@ -18,22 +18,33 @@ import { useRouter } from "next/router";
 import { ArrowRight } from "lucide-react";
 import { useNMNContext } from "./NMNContext";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
+import { useLang } from "@/lib/lang";
 
-const PLAN_TOUR_STEPS = [
+// Tour copy follows the language toggle — built with t(hi, en) at render.
+const PLAN_TOUR_STEPS = (t) => [
   {
     target: "[data-tour='plan-stats']",
-    title: "Countdown se plan tak",
-    desc: "Exam tak kitna time, aur aaj kya karna hai — sab ek jagah.",
+    title: t("Countdown se plan tak", "From countdown to plan"),
+    desc: t(
+      "Exam tak kitna time, aur aaj kya karna hai — sab ek jagah.",
+      "How long till the exam, and what to do today — all in one place."
+    ),
   },
   {
     target: "[data-tour='plan-tasks']",
-    title: "Aaj ke kaam",
-    desc: "Ye cards tumhari accuracy se bante hain — sabse zaroori pehle.",
+    title: t("Aaj ke kaam", "Today's tasks"),
+    desc: t(
+      "Ye cards tumhari accuracy se bante hain — sabse zaroori pehle.",
+      "These cards are built from your accuracy — most important first."
+    ),
   },
   {
     target: "[data-tour='plan-week']",
-    title: "Poora hafta",
-    desc: "Har din ka plan — click karke seedha us kaam pe jao.",
+    title: t("Poora hafta", "The full week"),
+    desc: t(
+      "Har din ka plan — click karke seedha us kaam pe jao.",
+      "A plan for every day — click to jump straight to that task."
+    ),
   },
 ];
 
@@ -136,6 +147,8 @@ export function shortName(t) {
 }
 
 export default function AdaptivePlan({ userData }) {
+  // Language toggle — hook first, above every early return.
+  const { t } = useLang();
   const router = useRouter();
   const { setCTXSlug, setSK } = useNMNContext();
   const [chapters, setChapters] = useState(null);
@@ -258,7 +271,7 @@ export default function AdaptivePlan({ userData }) {
       <header className="mb-1 mt-10">
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
           <h1 className="ds-display" style={{ fontSize: "clamp(28px, 4.2vw, 40px)", lineHeight: 1.1 }}>
-            Aaj ka <span className="ds-accent ds-grad-text">plan.</span>
+            {t("Aaj ka", "Today's")} <span className="ds-accent ds-grad-text">plan.</span>
           </h1>
           <button
             type="button"
@@ -454,7 +467,7 @@ export default function AdaptivePlan({ userData }) {
       </div>
 
       <PortalTour
-        steps={PLAN_TOUR_STEPS}
+        steps={PLAN_TOUR_STEPS(t)}
         storageKey="tour_plan_v1"
         run={tourRun}
         onClose={() => setTourRun(false)}

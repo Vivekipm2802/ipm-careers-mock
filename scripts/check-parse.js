@@ -63,6 +63,18 @@ const files = [
   "components/gulpPassages.js",
   "components/sosBank.js",
   "lib/trainerReport.js",
+  // 2026-09 language toggle: हिं/EN pill + t(hi, en) string sweep
+  "lib/lang.js",
+  "components/LanguageToggle.js",
+  "components/AdaptivePlan.js",
+  "components/DoubtSamjhao.js",
+  "components/ReviewHub.js",
+  "components/PYQManager.js",
+  "components/PerformanceUser.js",
+  "components/XPChip.js",
+  "layouts/DefaultLayout.js",
+  "pages/test/components/HeaderMock.js",
+  "pages/mock/components/HeaderMock.js",
 ];
 
 let failed = 0;

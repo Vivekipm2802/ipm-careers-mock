@@ -7,6 +7,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
 import { Button } from "@nextui-org/react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -456,6 +457,7 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <ThemeToggle />
+            <LanguageToggle />
             <button onClick={() => router.push("/")} style={pillGhost}>
               <Home size={14} /> Back to dashboard
             </button>

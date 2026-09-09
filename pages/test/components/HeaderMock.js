@@ -5,6 +5,7 @@
 
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from "@nextui-org/react";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
 import _ from "lodash";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -58,6 +59,7 @@ export default function HeaderMock({ title, isHintVisible, onSetVisible, setIsHi
 
         <div className="flex flex-row items-center" style={{ gap: 10 }}>
           <ThemeToggle />
+          <LanguageToggle />
           {state == 1 && calc == true && (
             <button onClick={() => openCalculator()} aria-label="Calculator" title="Calculator" style={iconBtn}>
               <Calculator size={18} />

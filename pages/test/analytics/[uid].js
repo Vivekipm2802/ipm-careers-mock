@@ -6,6 +6,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
 import { useNMNContext } from "@/components/NMNContext";
 import Loader from "@/components/Loader";
 import { CtoLocal } from "@/utils/DateUtil";
@@ -233,6 +234,7 @@ const ConceptAnalytics = ({ result }) => {
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <ThemeToggle />
+            <LanguageToggle />
             <button onClick={() => router.push("/")} style={pillGhost}>
               <ArrowLeft size={14} /> Back to dashboard
             </button>

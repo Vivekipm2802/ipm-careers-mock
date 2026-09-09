@@ -21,22 +21,33 @@ import DailyQuiz from "./DailyQuiz";
 import BadgeVault from "./BadgeVault";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
 import PageHeader from "./PageHeader";
+import { useLang } from "@/lib/lang";
 
-const DSB_TOUR_STEPS = [
+// Tour copy follows the language toggle — built with t(hi, en) at render.
+const DSB_TOUR_STEPS = (t) => [
   {
     target: "[data-tour='dsb-missions']",
-    title: "Aaj ke missions",
-    desc: "Teen chhote kaam, roz reset — Sim Room se teeno back-to-back.",
+    title: t("Aaj ke missions", "Today's missions"),
+    desc: t(
+      "Teen chhote kaam, roz reset — Sim Room se teeno back-to-back.",
+      "Three small tasks, reset daily — do all three back-to-back from the Sim Room."
+    ),
   },
   {
     target: "[data-tour='dsb-trainers']",
     title: "Skill trainers",
-    desc: "Speed, accuracy, decision-making — har trainer ek exam-skill ke liye.",
+    desc: t(
+      "Speed, accuracy, decision-making — har trainer ek exam-skill ke liye.",
+      "Speed, accuracy, decision-making — each trainer builds one exam skill."
+    ),
   },
   {
     target: "[data-tour='dsb-arena']",
-    title: "Vault aur arena",
-    desc: "Badges kamao, aur dekho is hafte all-India mein kaun aage hai.",
+    title: t("Vault aur arena", "Vault and arena"),
+    desc: t(
+      "Badges kamao, aur dekho is hafte all-India mein kaun aage hai.",
+      "Earn badges, and see who's ahead across India this week."
+    ),
   },
 ];
 
@@ -61,6 +72,8 @@ export function levelFromXp(xp) {
 }
 
 export default function DSBChallenge({ userData }) {
+  // Language toggle — hook first, above every early return.
+  const { t } = useLang();
   const { setCTXSlug, setSK } = useNMNContext();
   const [xp, setXp] = useState(null); // { total_xp, weekly_xp }
   const [board, setBoard] = useState([]);
@@ -472,7 +485,7 @@ export default function DSBChallenge({ userData }) {
       </div>
 
       <PortalTour
-        steps={DSB_TOUR_STEPS}
+        steps={DSB_TOUR_STEPS(t)}
         storageKey="tour_dsb_v1"
         run={tourRun}
         onClose={() => setTourRun(false)}

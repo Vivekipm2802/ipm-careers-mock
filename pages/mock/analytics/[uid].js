@@ -20,6 +20,7 @@
 
 import Loader from "@/components/Loader";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
 import { useNMNContext } from "@/components/NMNContext";
 import { serversupabase, supabase } from "@/utils/supabaseClient";
 import { Button } from "@nextui-org/react";
@@ -350,6 +351,7 @@ export default function MockAnalytics({ result }) {
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <ThemeToggle />
+            <LanguageToggle />
             <button onClick={() => router.push("/")} style={pillGhost}>
               <ArrowLeft size={14} /> Back to dashboard
             </button>

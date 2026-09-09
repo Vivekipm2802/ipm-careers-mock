@@ -36,6 +36,7 @@ import { ArrowRight, RotateCcw } from "lucide-react";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
 import PageHeader from "./PageHeader";
 import PillDropdown from "./ui/PillDropdown";
+import { useLang } from "@/lib/lang";
 
 // Lucky-guess accent — the approved preview's violet. No portal var
 // exists for violet; same rgba approach as Dashboard's D2 cards.
@@ -46,21 +47,30 @@ const VIOLET_BORDER = "rgba(151,113,224,0.35)"; /* violet border — same rgba f
 // First-visit mini-tour steps. The redo-button step falls back to
 // the list card when nothing is due (querySelector returns the
 // first match in document order).
-const VAULT_TOUR_STEPS = [
+const VAULT_TOUR_STEPS = (t) => [
   {
     target: "[data-tour='vault-redo'], [data-tour='vault-list']",
-    title: "Roz ka kaam",
-    desc: "Bas is Start se shuru karo — vault khud prioritize karta hai.",
+    title: t("Roz ka kaam", "The daily job"),
+    desc: t(
+      "Bas is Start se shuru karo — vault khud prioritize karta hai.",
+      "Just hit Start here — the vault prioritizes for you."
+    ),
   },
   {
     target: "[data-tour='vault-stats']",
-    title: "Ek line ka scoreboard",
-    desc: "Vault mein kitne, kitne lucky guesses, kitne hamesha ke liye master.",
+    title: t("Ek line ka scoreboard", "A one-line scoreboard"),
+    desc: t(
+      "Vault mein kitne, kitne lucky guesses, kitne hamesha ke liye master.",
+      "How many in the vault, how many lucky guesses, how many mastered for good."
+    ),
   },
   {
     target: "[data-tour='vault-chapters']",
-    title: "Chapter kholo",
-    desc: "Weakest chapter sabse upar. Row kholo — us chapter ke saare questions andar.",
+    title: t("Chapter kholo", "Open a chapter"),
+    desc: t(
+      "Weakest chapter sabse upar. Row kholo — us chapter ke saare questions andar.",
+      "Weakest chapter sits on top. Open a row — every question from that chapter is inside."
+    ),
   },
 ];
 
@@ -309,6 +319,8 @@ export function mapPyqRow(m) {
 }
 
 export default function MistakeVault({ userData }) {
+  // Language toggle — hook first, above every early return.
+  const { t } = useLang();
   const [items, setItems] = useState(null);
   const [redosToday, setRedosToday] = useState(0);
   const [phase, setPhase] = useState("home"); // home | session | result
@@ -634,7 +646,12 @@ export default function MistakeVault({ userData }) {
       return;
     }
     if (doubtsToday >= DAILY_DOUBTS) {
-      setExplain({ error: `Aaj ke ${DAILY_DOUBTS} Samjhao ho gaye — baaki kal. Ya Doubts tab se mentor se poochho.` });
+      setExplain({
+        error: t(
+          `Aaj ke ${DAILY_DOUBTS} Samjhao ho gaye — baaki kal. Ya Doubts tab se mentor se poochho.`,
+          `Today's ${DAILY_DOUBTS} Samjhao are used up — more tomorrow. Or ask a mentor from the Doubts tab.`
+        ),
+      });
       return;
     }
     try {
@@ -653,7 +670,7 @@ export default function MistakeVault({ userData }) {
       });
       const j = await r.json();
       if (!r.ok || !j.explanation) {
-        setExplain({ error: "Samjhao abhi available nahi — thodi der mein try karo." });
+        setExplain({ error: t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit.") });
         return;
       }
       setExplain({ text: j.explanation });
@@ -661,7 +678,7 @@ export default function MistakeVault({ userData }) {
       await supabase.from("doubt_requests").insert({ user: userData.email, question_id: q.question_id });
       await supabase.from("doubt_explanations").insert({ question_id: q.question_id, explanation: j.explanation });
     } catch (e) {
-      setExplain({ error: "Samjhao abhi available nahi — thodi der mein try karo." });
+      setExplain({ error: t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit.") });
     }
   };
 
@@ -1129,7 +1146,7 @@ export default function MistakeVault({ userData }) {
           </div>
 
           <PortalTour
-            steps={VAULT_TOUR_STEPS}
+            steps={VAULT_TOUR_STEPS(t)}
             storageKey="tour_vault_v1"
             run={tourRun}
             onClose={() => setTourRun(false)}
@@ -1218,7 +1235,7 @@ export default function MistakeVault({ userData }) {
                   </button>
                 )}
                 {explain?.loading && (
-                  <div style={{ fontSize: 13, color: "var(--c-text-tertiary)" }}>Samjha rahe hain…</div>
+                  <div style={{ fontSize: 13, color: "var(--c-text-tertiary)" }}>{t("Samjha rahe hain…", "Explaining…")}</div>
                 )}
                 {explain?.error && (
                   <div style={{ fontSize: 13, color: "var(--c-danger)" }}>{explain.error}</div>

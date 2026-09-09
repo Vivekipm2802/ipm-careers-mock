@@ -27,6 +27,7 @@ import { useNMNContext } from "./NMNContext";
 import { BUCKET_PATTERN, accuracyOf, classify, shortName } from "./AdaptivePlan";
 import { vaultState, DAILY_CAP } from "./MistakeVault";
 import PageHeader from "./PageHeader";
+import { useLang } from "@/lib/lang";
 
 // ── pure helpers ──────────────────────────────────────────────
 
@@ -124,6 +125,8 @@ const MONO = "'JetBrains Mono', monospace";
 const SECTION_LABELS = { QA: "Quant", VA: "Verbal", LR: "Logical" };
 
 export default function PerformanceUser() {
+  // Language toggle — hook first, above every early return.
+  const { t } = useLang();
   const router = useRouter();
   const { userDetails, setCTXSlug } = useNMNContext();
 
@@ -453,7 +456,9 @@ export default function PerformanceUser() {
                 <span>latest</span>
               </div>
               <div style={{ fontSize: 12, marginTop: 12, fontWeight: 500, color: trendUp ? "var(--c-success)" : "var(--c-danger)" }}>
-                {trendUp ? "Trend upar hai — jo chal raha hai, mat chhedo." : "Trend gir raha hai — plan ke attack chapters pe focus karo."}
+                {trendUp
+                  ? t("Trend upar hai — jo chal raha hai, mat chhedo.", "Trend is up — don't touch what's working.")
+                  : t("Trend gir raha hai — plan ke attack chapters pe focus karo.", "Trend is slipping — focus on the plan's attack chapters.")}
               </div>
             </>
           )}
@@ -618,7 +623,7 @@ export default function PerformanceUser() {
             ))}
           </div>
           <div style={{ fontSize: 12, marginTop: 14, fontWeight: 500, color: vaultAsk > 0 ? "var(--c-text-secondary)" : "var(--c-text-tertiary)" }}>
-            Vault due aaj: <span style={{ fontFamily: MONO, fontWeight: 600 }}>{vaultAsk}</span>
+            {t("Vault due aaj:", "Vault due today:")} <span style={{ fontFamily: MONO, fontWeight: 600 }}>{vaultAsk}</span>
             {vaultAsk > 0 && (
               <>
                 {" — "}

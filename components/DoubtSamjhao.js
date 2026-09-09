@@ -31,27 +31,37 @@ import { ArrowRight, Search } from "lucide-react";
 import { DAILY_DOUBTS } from "./MistakeVault";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
 import PageHeader from "./PageHeader";
+import { useLang } from "@/lib/lang";
 
 // Mentor accent — the approved preview's violet. No portal var
 // exists for violet; same rgba approach as MistakeVault.
 const VIOLET = "rgba(151,113,224,1)"; /* violet — approved-preview accent, no portal var */
 const VIOLET_BORDER = "rgba(151,113,224,0.45)"; /* violet border — same rgba family */
 
-const DOUBTS_TOUR_STEPS = [
+const DOUBTS_TOUR_STEPS = (t) => [
   {
     target: "[data-tour='doubts-modes']",
-    title: "Yahin poochho",
-    desc: "Type karo, ya apne galat answers mein se uthao — AI seconds mein samjhata hai.",
+    title: t("Yahin poochho", "Ask right here"),
+    desc: t(
+      "Type karo, ya apne galat answers mein se uthao — AI seconds mein samjhata hai.",
+      "Type it, or pick from your wrong answers — the AI explains in seconds."
+    ),
   },
   {
     target: "[data-tour='doubts-list']",
-    title: "Tumhari notebook",
-    desc: "Har jawab yahan hamesha ke liye saved rehta hai — exam week mein yahi revision hai.",
+    title: t("Tumhari notebook", "Your notebook"),
+    desc: t(
+      "Har jawab yahan hamesha ke liye saved rehta hai — exam week mein yahi revision hai.",
+      "Every answer stays saved here for good — that's your exam-week revision."
+    ),
   },
   {
     target: "[data-tour='doubts-mentor']",
-    title: "Mentor hamesha hai",
-    desc: "AI se na samjhe toh mentor ko bhejo — video reply, usually ek din mein.",
+    title: t("Mentor hamesha hai", "A mentor is always there"),
+    desc: t(
+      "AI se na samjhe toh mentor ko bhejo — video reply, usually ek din mein.",
+      "If the AI doesn't make it click, send it to a mentor — video reply, usually within a day."
+    ),
   },
 ];
 
@@ -121,6 +131,8 @@ function Ic({ size = 17, children }) {
 }
 
 export default function DoubtSamjhao({ userData }) {
+  // Language toggle — hook first, above every early return.
+  const { t } = useLang();
   const [items, setItems] = useState(null); // wrong-answer picker pool
   const [query, setQuery] = useState("");
   const [showAllPick, setShowAllPick] = useState(false);
@@ -255,7 +267,7 @@ export default function DoubtSamjhao({ userData }) {
         });
         const j = await r.json();
         if (!r.ok || !j.explanation) {
-          setAskError("Samjhao abhi available nahi — thodi der mein try karo.");
+          setAskError(t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit."));
           setBusy(false);
           return;
         }
@@ -267,7 +279,7 @@ export default function DoubtSamjhao({ userData }) {
         }
       }
     } catch {
-      setAskError("Samjhao abhi available nahi — thodi der mein try karo.");
+      setAskError(t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit."));
       setBusy(false);
       return;
     }
@@ -393,7 +405,7 @@ export default function DoubtSamjhao({ userData }) {
             disabled={busy || !draft.trim()}
             style={{ background: "var(--c-brand-gold)", color: "var(--c-text-on-brand)", borderRadius: 999, padding: "9px 18px", fontSize: 12.5, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0, opacity: busy || !draft.trim() ? 0.6 : 1, display: "inline-flex", alignItems: "center", gap: 6 }}
           >
-            {busy ? "Samjha rahe hain…" : <>Ask <ArrowRight size={13} /></>}
+            {busy ? t("Samjha rahe hain…", "Explaining…") : <>Ask <ArrowRight size={13} /></>}
           </button>
         </div>
         <div className="flex items-center gap-3 flex-wrap" style={{ marginTop: 12 }}>
@@ -424,7 +436,7 @@ export default function DoubtSamjhao({ userData }) {
       {pickerOpen && (
         <div className="max-w-[860px] mt-4" style={{ ...card, padding: "6px 20px" }}>
           <div className="flex items-center justify-between gap-3 flex-wrap" style={{ padding: "14px 0 10px", borderBottom: "1px solid var(--c-border-faint)" }}>
-            <span className="ds-display" style={{ fontSize: 15.5 }}>Tumhare galat questions</span>
+            <span className="ds-display" style={{ fontSize: 15.5 }}>{t("Tumhare galat questions", "Your wrong questions")}</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "var(--c-surface-muted, var(--c-bg))", border: "1px solid var(--c-border-faint)", borderRadius: 999, padding: "7px 14px" }}>
               <Search size={13} style={{ color: "var(--c-text-tertiary)" }} />
               <input
@@ -436,10 +448,13 @@ export default function DoubtSamjhao({ userData }) {
               />
             </span>
           </div>
-          {items === null && <div style={{ padding: "14px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>Tumhare questions load ho rahe hain…</div>}
+          {items === null && <div style={{ padding: "14px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>{t("Tumhare questions load ho rahe hain…", "Loading your questions…")}</div>}
           {items !== null && items.length === 0 && (
             <div style={{ padding: "14px 0", fontSize: 13, color: "var(--c-text-secondary)", lineHeight: 1.6 }}>
-              Abhi koi galat question collect nahi hua. Koi test do — ya bas apna sawaal type karo.
+              {t(
+                "Abhi koi galat question collect nahi hua. Koi test do — ya bas apna sawaal type karo.",
+                "No wrong questions collected yet. Take a test — or just type your question."
+              )}
             </div>
           )}
           {listed.map((it, i, arr) => (
@@ -460,7 +475,7 @@ export default function DoubtSamjhao({ userData }) {
             </div>
           ))}
           {items !== null && items.length > 0 && shown.length === 0 && (
-            <div style={{ padding: "12px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>Kuch nahi mila — doosre words try karo.</div>
+            <div style={{ padding: "12px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>{t("Kuch nahi mila — doosre words try karo.", "Nothing found — try different words.")}</div>
           )}
           {shown.length > LIST_DEFAULT && (
             <button type="button" onClick={() => setShowAllPick((v) => !v)} style={{ background: "none", border: "none", padding: "12px 0", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}>
@@ -537,7 +552,7 @@ export default function DoubtSamjhao({ userData }) {
       </div>
 
       <PortalTour
-        steps={DOUBTS_TOUR_STEPS}
+        steps={DOUBTS_TOUR_STEPS(t)}
         storageKey="tour_doubts_v1"
         run={tourRun}
         onClose={() => setTourRun(false)}

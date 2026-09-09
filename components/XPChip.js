@@ -40,7 +40,9 @@ export default function XPChip() {
       className="fixed z-30 hidden lg:inline-flex items-center gap-2 rounded-full transition-all hover:-translate-y-0.5"
       style={{
         top: "12px",
-        right: "196px",
+        // Language toggle (हिं/EN pill) now sits at right:166 beside the
+        // theme toggle — XP chip moves one slot further left.
+        right: "280px",
         height: "38px",
         padding: "0 14px",
         fontSize: "13px",

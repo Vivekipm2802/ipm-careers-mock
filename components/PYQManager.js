@@ -44,23 +44,34 @@ import dynamic from "next/dynamic";
 import FileUploader from "./FileUploader";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
 import PageHeader from "./PageHeader";
+import { useLang } from "@/lib/lang";
 
 // Student bank mini-tour — runs in the Library view only.
-const PYQ_TOUR_STEPS = [
+// Copy follows the language toggle — built with t(hi, en) at render.
+const PYQ_TOUR_STEPS = (t) => [
   {
     target: "[data-tour='pyq-filters']",
-    title: "Filter karo",
-    desc: "Year, topic, status — jo chahiye wahi dikhega.",
+    title: t("Filter karo", "Filter it down"),
+    desc: t(
+      "Year, topic, status — jo chahiye wahi dikhega.",
+      "Year, topic, status — see exactly what you want."
+    ),
   },
   {
     target: "[data-tour='pyq-palette']",
-    title: "Tumhara naksha",
-    desc: "Green sahi, red galat, khali baaki — apni history ek nazar mein.",
+    title: t("Tumhara naksha", "Your map"),
+    desc: t(
+      "Green sahi, red galat, khali baaki — apni history ek nazar mein.",
+      "Green right, red wrong, blank untouched — your history at a glance."
+    ),
   },
   {
     target: "[data-tour='pyq-reader']",
-    title: "Solve aur check",
-    desc: "Answer type karo, Check dabao — portal hamesha yaad rakhega.",
+    title: t("Solve aur check", "Solve and check"),
+    desc: t(
+      "Answer type karo, Check dabao — portal hamesha yaad rakhega.",
+      "Type your answer, hit Check — the portal remembers forever."
+    ),
   },
 ];
 
@@ -80,6 +91,8 @@ export default function PYQManager({
   viewBy,
   filterValue: initialFilterValue,
 }) {
+  // Language toggle — hook first, above every early return.
+  const { t } = useLang();
   // ──────────────────────────────────────────────────────────────
   // EXISTING STATE — admin question/topic CRUD (preserved)
   // ──────────────────────────────────────────────────────────────
@@ -1870,7 +1883,7 @@ function Library({
       </div>
 
       <PortalTour
-        steps={PYQ_TOUR_STEPS}
+        steps={PYQ_TOUR_STEPS(t)}
         storageKey="tour_pyq_v1"
         run={tourRun}
         onClose={() => setTourRun(false)}

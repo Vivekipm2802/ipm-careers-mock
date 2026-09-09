@@ -14,6 +14,7 @@ import { buildPlan, shortName } from "./AdaptivePlan";
 import { levelFromXp } from "./DSBChallenge";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
 import { pickLiveMock } from "@/lib/featuredMock";
+import { useLang } from "@/lib/lang";
 import { parseISO, isAfter, format, startOfWeek } from "date-fns";
 
 /**
@@ -99,6 +100,9 @@ function Ic({ size = 19, children }) {
 }
 
 export default function Dashboard({ userData }) {
+  // Language toggle (Sep 2026): t(hi, en) picks copy by the हिं/EN pill.
+  // Hook sits FIRST — well above every early return (shipped crash class).
+  const { t } = useLang();
   // ── State (preserved) ──
   const [isNull, setIsNull] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -591,8 +595,8 @@ export default function Dashboard({ userData }) {
       steps.push({
         id: "resume",
         done: false,
-        title: `${cardBits.resume} poora karo`,
-        why: "adhura chhoda tha — wahin se aage badho",
+        title: t(`${cardBits.resume} poora karo`, `Finish ${cardBits.resume}`),
+        why: t("adhura chhoda tha — wahin se aage badho", "you left it midway — pick up right there"),
         cta: "Continue",
         go: () => {
           if (cardBits.resumeUuid) router.push(`/test/${cardBits.resumeUuid}`);
@@ -611,7 +615,7 @@ export default function Dashboard({ userData }) {
           today3.redosLeft > 0
             ? `${today3.redosLeft} ${today3.redosLeft === 1 ? "redo" : "redos"} — ~${Math.max(1, Math.round(today3.redosLeft * 0.75))} min`
             : "Mistake redos",
-        why: "roz thoda thoda, backlog khud saaf hota hai",
+        why: t("roz thoda thoda, backlog khud saaf hota hai", "a little every day — the backlog clears itself"),
         cta: "Start",
         go: () => {
           setCTXSlug("mistakevault");
@@ -623,12 +627,12 @@ export default function Dashboard({ userData }) {
       steps.push({
         id: "attack",
         done: today3.attack.done,
-        title: `${shortName(today3.attack.name)} — ek chhota test?`,
+        title: t(`${shortName(today3.attack.name)} — ek chhota test?`, `${shortName(today3.attack.name)} — a quick test?`),
         why:
           today3.attack.acc != null
-            ? `${today3.attack.acc}% accuracy — thoda kamzor lag raha hai`
-            : "naya chapter — plan yahin se mapping shuru karega",
-        cta: "Dekho",
+            ? t(`${today3.attack.acc}% accuracy — thoda kamzor lag raha hai`, `${today3.attack.acc}% accuracy — looking a little shaky`)
+            : t("naya chapter — plan yahin se mapping shuru karega", "new chapter — the plan starts mapping it from here"),
+        cta: t("Dekho", "View"),
         busy: opening,
         go: () => openChapter(today3.attackCh),
       });
@@ -637,7 +641,7 @@ export default function Dashboard({ userData }) {
       id: "quiz",
       done: today3.quizDone,
       title: "Daily quiz",
-      why: "same 10 questions poore India ke liye — streak fuel",
+      why: t("same 10 questions poore India ke liye — streak fuel", "the same 10 questions for all of India — streak fuel"),
       cta: "Start",
       go: () => setCTXSlug("dsbchallenge"),
     });
@@ -646,7 +650,7 @@ export default function Dashboard({ userData }) {
         id: "pyq",
         done: false,
         title: `PYQs — ${cardBits.pyqDone}/${cardBits.pyqTotal}`,
-        why: "asli exam ke questions — agla wait kar raha hai",
+        why: t("asli exam ke questions — agla wait kar raha hai", "real exam questions — the next one's waiting"),
         cta: "Continue",
         go: () => {
           setCTXSlug("pyqyear");
@@ -671,14 +675,19 @@ export default function Dashboard({ userData }) {
     if (!today3) return subtitle;
     const linky = { color: "var(--c-brand-gold)", fontWeight: 600, cursor: "pointer" };
     const classBit =
-      classCount > 0 ? `Aaj ${classCount} ${classCount === 1 ? "class hai" : "classes hain"}` : null;
+      classCount > 0
+        ? t(
+            `Aaj ${classCount} ${classCount === 1 ? "class hai" : "classes hain"}`,
+            `${classCount} ${classCount === 1 ? "class" : "classes"} today`
+          )
+        : null;
     const allDoneGreet =
       today3.quizDone && today3.redosLeft === 0 && (!today3.attack || today3.attack.done);
     if (allDoneGreet && (today3.quizDone || today3.attack)) {
       return (
         <>
-          <span style={{ color: "var(--c-success)", fontWeight: 600 }}>Aaj ka kaam done ✓</span>
-          {classBit ? ` · ${classBit}` : ""} — kal fresh plan.
+          <span style={{ color: "var(--c-success)", fontWeight: 600 }}>{t("Aaj ka kaam done ✓", "Today's work done ✓")}</span>
+          {classBit ? ` · ${classBit}` : ""}{t(" — kal fresh plan.", " — fresh plan tomorrow.")}
         </>
       );
     }
@@ -696,8 +705,11 @@ export default function Dashboard({ userData }) {
           ""
         )}
         {today3.attack && !today3.attack.done
-          ? `${shortName(today3.attack.name)} thoda dhyaan maang raha hai`
-          : "aaj ka plan ready hai"}
+          ? t(
+              `${shortName(today3.attack.name)} thoda dhyaan maang raha hai`,
+              `${shortName(today3.attack.name)} needs a little attention`
+            )
+          : t("aaj ka plan ready hai", "today's plan is ready")}
       </>
     );
   })();
@@ -742,38 +754,60 @@ export default function Dashboard({ userData }) {
     flexShrink: 0,
   };
 
-  // Grand tour steps — Hinglish copy approved in the interactive preview.
+  // Grand tour steps — Hinglish copy approved in the interactive preview;
+  // English pairs follow the language toggle (t picks by current lang).
   const GRAND_STEPS = [
     {
       target: "[data-tour='stats']",
-      title: "Tumhara scoreboard",
-      desc: "Streak, tests, accuracy, all-India rank — ye numbers tumhare kaam se bharte hain. Abhi khali hain, ek hafte mein bolne lagenge.",
+      title: t("Tumhara scoreboard", "Your scoreboard"),
+      desc: t(
+        "Streak, tests, accuracy, all-India rank — ye numbers tumhare kaam se bharte hain. Abhi khali hain, ek hafte mein bolne lagenge.",
+        "Streak, tests, accuracy, all-India rank — these numbers fill up as you work. Empty right now; give them a week and they'll start talking."
+      ),
     },
     {
       target: "[data-tour='nav-myplan']",
-      title: "Aaj Ka Plan — roz yahan se shuru",
-      desc: "Portal khud batata hai aaj kya karna hai: kaunsa chapter, kitne redos, kaunsa mission. Sochna nahi padta.",
+      title: t("Aaj Ka Plan — roz yahan se shuru", "Today's Plan — start here every day"),
+      desc: t(
+        "Portal khud batata hai aaj kya karna hai: kaunsa chapter, kitne redos, kaunsa mission. Sochna nahi padta.",
+        "The portal tells you what today needs: which chapter, how many redos, which mission. No thinking required."
+      ),
     },
     {
       target: "[data-tour='nav-tests']",
-      title: "Tests — concept se full mock tak",
-      desc: "Har topic ke Easy/Moderate/Difficult levels. Jo bhi galat hoga, portal yaad rakhega…",
+      title: t("Tests — concept se full mock tak", "Tests — from concepts to full mocks"),
+      desc: t(
+        "Har topic ke Easy/Moderate/Difficult levels. Jo bhi galat hoga, portal yaad rakhega…",
+        "Easy/Moderate/Difficult levels for every topic. Whatever you get wrong, the portal remembers…"
+      ),
     },
     {
       target: "[data-tour='nav-tests']",
-      title: "…Mistake Vault mein",
-      desc: "Har galat question yahan collect hota hai aur sahi time pe wapas aata hai — 3, 7, 21 din. Teen baar sahi = mastered forever.",
+      title: t("…Mistake Vault mein", "…in the Mistake Vault"),
+      desc: t(
+        "Har galat question yahan collect hota hai aur sahi time pe wapas aata hai — 3, 7, 21 din. Teen baar sahi = mastered forever.",
+        "Every wrong question collects here and comes back at just the right time — 3, 7, 21 days. Right three times = mastered forever."
+      ),
     },
     {
       target: "[data-tour='nav-dsb']",
-      title: "DSB Challenge — XP aur arena",
-      desc: "Daily missions, skill trainers, aur all-India leaderboard. Padhai ko game banao — har rep XP deta hai.",
+      title: t("DSB Challenge — XP aur arena", "DSB Challenge — XP and the arena"),
+      desc: t(
+        "Daily missions, skill trainers, aur all-India leaderboard. Padhai ko game banao — har rep XP deta hai.",
+        "Daily missions, skill trainers, and an all-India leaderboard. Make studying a game — every rep earns XP."
+      ),
     },
     {
       target: "[data-tour='missions']",
-      title: "Ab khud karo — Daily Quiz",
-      desc: "Tour khatam. Ye raha aaj ka pehla kaam: 10 questions, saare India ke students ke wahi 10.",
-      doit: "last step: yahan click karke quiz START karna hai — padhna nahi, karna",
+      title: t("Ab khud karo — Daily Quiz", "Now you try — Daily Quiz"),
+      desc: t(
+        "Tour khatam. Ye raha aaj ka pehla kaam: 10 questions, saare India ke students ke wahi 10.",
+        "Tour over. Here's today's first task: 10 questions — the same 10 every student in India gets."
+      ),
+      doit: t(
+        "last step: yahan click karke quiz START karna hai — padhna nahi, karna",
+        "last step: click here and START the quiz — doing, not reading"
+      ),
       nextLabel: "Start Daily Quiz →",
     },
   ];
@@ -828,8 +862,8 @@ export default function Dashboard({ userData }) {
                 </span>
               )}
               {examDays > 0 && (
-                <span style={pillStyle} title="Exam date abhi official nahi hui — tentative estimate">
-                  IPMAT in ~<b style={{ color: "var(--c-brand-gold)", fontWeight: 600 }}>{examDays}</b> din
+                <span style={pillStyle} title={t("Exam date abhi official nahi hui — tentative estimate", "Exam date isn't official yet — tentative estimate")}>
+                  IPMAT in ~<b style={{ color: "var(--c-brand-gold)", fontWeight: 600 }}>{examDays}</b>{t(" din", " days")}
                   <span style={{ color: "var(--c-text-tertiary)", marginLeft: 4 }}>· tentative</span>
                 </span>
               )}
@@ -854,7 +888,7 @@ export default function Dashboard({ userData }) {
           <div className="ds-stat-value" style={{ fontSize: 24, lineHeight: 1.2, marginTop: 1, width: "max-content" }}>
             {dashStats.streak > 0 ? dashStats.streak : "—"}
             {dashStats.streak > 0 && (
-              <span style={{ fontSize: 13, WebkitTextFillColor: "var(--c-text-tertiary)" }}> din</span>
+              <span style={{ fontSize: 13, WebkitTextFillColor: "var(--c-text-tertiary)" }}>{t(" din", " days")}</span>
             )}
           </div>
           <div style={{ display: "flex", gap: 5, marginTop: 7 }}>
@@ -1008,17 +1042,20 @@ export default function Dashboard({ userData }) {
             </div>
             <div>
               <div style={{ fontSize: 16.5, fontWeight: 600, letterSpacing: "-0.005em", color: "var(--c-text-primary)" }}>
-                Aaj ke liye socha hai
+                {t("Aaj ke liye socha hai", "Today's plan, thought through")}
               </div>
               <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 2 }}>
-                suggestions hain, orders nahi — jo skip hoga, kal wapas mil jayega
+                {t(
+                  "suggestions hain, orders nahi — jo skip hoga, kal wapas mil jayega",
+                  "suggestions, not orders — whatever you skip returns tomorrow"
+                )}
               </div>
             </div>
           </div>
 
           {!planSteps && (
             <div style={{ padding: "18px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>
-              Aaj ka plan ban raha hai…
+              {t("Aaj ka plan ban raha hai…", "Building today's plan…")}
             </div>
           )}
 
@@ -1047,10 +1084,10 @@ export default function Dashboard({ userData }) {
             <div className="text-center" style={{ padding: "26px 0 22px" }}>
               <div style={{ fontSize: 30, lineHeight: 1 }}>🔥</div>
               <div className="ds-display" style={{ fontSize: 22, marginTop: 10, letterSpacing: "-0.01em" }}>
-                Aaj ka kaam khatam.
+                {t("Aaj ka kaam khatam.", "All done for today.")}
               </div>
               <div style={{ fontSize: 13, marginTop: 5, color: "var(--c-text-secondary)" }}>
-                Kal same time.
+                {t("Kal same time.", "Same time tomorrow.")}
               </div>
             </div>
           )}
@@ -1065,7 +1102,7 @@ export default function Dashboard({ userData }) {
               color: "var(--c-text-tertiary)",
             }}
           >
-            <span>Kal same time — streak zinda rakhna</span>
+            <span>{t("Kal same time — streak zinda rakhna", "Same time tomorrow — keep the streak alive")}</span>
             <button
               type="button"
               onClick={() => setCTXSlug("studyplan")}
@@ -1080,7 +1117,7 @@ export default function Dashboard({ userData }) {
                 color: "var(--c-brand-gold)",
               }}
             >
-              Pura hafta dekho{" "}
+              {t("Pura hafta dekho", "See the full week")}{" "}
               <ArrowRight size={11} style={{ display: "inline", verticalAlign: "-1px" }} />
             </button>
           </div>
@@ -1094,7 +1131,7 @@ export default function Dashboard({ userData }) {
               (classCount > 0 ? (
                 <div className="td-lift rounded-[16px] border" style={{ ...cardStyle, padding: "18px 20px 10px" }}>
                   <div className="flex justify-between items-center" style={{ ...capStyle, marginBottom: 6 }}>
-                    <span>Aaj ki classes</span>
+                    <span>{t("Aaj ki classes", "Today's classes")}</span>
                     {liveInfo && (
                       <span
                         style={{
@@ -1124,9 +1161,9 @@ export default function Dashboard({ userData }) {
                 </div>
               ) : (
                 <div className="rounded-[16px] border" style={{ ...cardStyle, padding: "16px 20px" }}>
-                  <div style={capStyle}>Aaj ki classes</div>
+                  <div style={capStyle}>{t("Aaj ki classes", "Today's classes")}</div>
                   <div style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", marginTop: 8 }}>
-                    Aaj koi class nahi — plan pe focus.
+                    {t("Aaj koi class nahi — plan pe focus.", "No class today — focus on the plan.")}
                   </div>
                 </div>
               ))}
@@ -1144,7 +1181,7 @@ export default function Dashboard({ userData }) {
                 }}
               >
                 <div style={{ ...capStyle, color: "var(--c-brand-gold)", marginBottom: 8 }}>
-                  Mock window khula hai
+                  {t("Mock window khula hai", "Mock window is open")}
                 </div>
                 <div className="ds-display" style={{ fontSize: 18, color: "var(--c-mock-banner-text)" }}>
                   {nextMock.title}
@@ -1178,7 +1215,10 @@ export default function Dashboard({ userData }) {
                     maxWidth: 250,
                   }}
                 >
-                  Do ghante jab free ho, tab de dena — jaldi nahi hai.
+                  {t(
+                    "Do ghante jab free ho, tab de dena — jaldi nahi hai.",
+                    "Take it whenever you have two free hours — no rush."
+                  )}
                 </div>
                 <div className="flex items-center justify-between" style={{ marginTop: 14 }}>
                   <span style={{ fontSize: 11, color: "var(--c-mock-banner-soft)" }}>
@@ -1212,7 +1252,7 @@ export default function Dashboard({ userData }) {
             {/* Upcoming mock — quiet card */}
             {nextMock?.mode === "upcoming" && (
               <div className="rounded-[16px] border" style={{ ...cardStyle, padding: "16px 20px" }}>
-                <div style={capStyle}>Agla mock</div>
+                <div style={capStyle}>{t("Agla mock", "Next mock")}</div>
                 <div className="ds-display" style={{ fontSize: 16, marginTop: 6 }}>
                   {nextMock.title}
                 </div>
@@ -1237,7 +1277,7 @@ export default function Dashboard({ userData }) {
               </Ic>
             }
             title={`Resume — ${cardBits.resume}`}
-            sub="wahin se continue karo"
+            sub={t("wahin se continue karo", "pick up where you left off")}
             onClick={() => {
               if (cardBits.resumeUuid) router.push(`/test/${cardBits.resumeUuid}`);
               else {
@@ -1497,6 +1537,8 @@ function PlanStep({ num, done, title, why, busy, cta, primary, onGo }) {
 // Join is enabled only while the class is ongoing (existing behavior);
 // first class carries the "recording baad mein yahin" reassurance.
 function ClassRow({ item, first, now }) {
+  // `t` is taken by the time formatter here — the translator is `tl`.
+  const { t: tl } = useLang();
   const st = classStatus(item, now);
   const t = fmtClassTime(item?.start_time);
   const live = st.state === "ongoing";
@@ -1532,7 +1574,7 @@ function ClassRow({ item, first, now }) {
         </div>
         {first && (
           <div style={{ fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 2 }}>
-            recording baad mein yahin
+            {tl("recording baad mein yahin", "recording lands here later")}
           </div>
         )}
       </div>

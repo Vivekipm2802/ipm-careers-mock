@@ -5,6 +5,7 @@ import { Button, Modal, ModalBody, ModalContent, ModalHeader } from '@nextui-org
 import ReportIssueForm from '@/components/ReportAnIssue';
 import Link from 'next/link';
 import ThemeToggle from '@/components/ThemeToggle';
+import LanguageToggle from '@/components/LanguageToggle';
 import XPChip from '@/components/XPChip';
 
 function DefaultLayout(props){
@@ -38,6 +39,7 @@ function DefaultLayout(props){
   return (
     <div className={styles.main} style={{ background: 'var(--c-bg)' }}>
       <ThemeToggle />
+      <LanguageToggle />
       <XPChip />
 
       <Modal isOpen={reportActive} onClose={() => { setReportActive(false); }}>

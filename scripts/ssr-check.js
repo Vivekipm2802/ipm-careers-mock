@@ -61,6 +61,16 @@ const supabaseStub = { from: () => supaChain(), auth: { getSession: async () => 
 // exercised without any real Supabase (createClient below reads it
 // lazily on every call).
 let dynamicSupabase = supabaseStub;
+// Swappable language for section 13: null → the REAL lib/lang.js
+// (whose server snapshot is "en", the owner-approved default);
+// "hi" → a t() that picks Hinglish, proving components route copy
+// through the toggle. The mock below delegates accordingly.
+let forcedLang = null;
+let realLangMod = null;
+function realLang() {
+  if (!realLangMod) realLangMod = require(path.join(root, "lib", "lang.js"));
+  return realLangMod;
+}
 // Every sendMail lands here (the transporter is a stub — nodemailer
 // is never loaded and NO real email can ever leave this script).
 const sentMails = [];
@@ -139,6 +149,21 @@ const mocks = {
     getFromAddress: () => '"IPM Careers" <info@example.test>',
   },
   "@supabase/supabase-js": { createClient: () => dynamicSupabase },
+  // 2026-09 language toggle: delegate to the real lib unless a test
+  // forces "hi" (SSR can only ever see the "en" server snapshot).
+  "@/lib/lang": {
+    __esModule: true,
+    useLang: () =>
+      forcedLang
+        ? { lang: forcedLang, setLang: () => {}, t: (hi, en) => (forcedLang === "hi" ? hi : en) }
+        : realLang().useLang(),
+    getLang: () => (forcedLang ? forcedLang : realLang().getLang()),
+    setLang: () => {},
+    pick: (lang, hi, en) => (lang === "hi" ? hi : en),
+  },
+  // Dashboard chrome children — not under test, stubbed flat.
+  "./StudentAttendance": { __esModule: true, default: () => null },
+  "./DemoComponent": { __esModule: true, default: () => null },
 };
 
 const origLoad = Module._load;
@@ -146,7 +171,7 @@ Module._load = function (request, parent, isMain) {
   if (Object.prototype.hasOwnProperty.call(mocks, request)) return mocks[request];
   if (
     request === "react" && parent && parent.filename &&
-    /pages[\\/]|components[\\/](ConceptGroups|ConceptTestStudent|BadgeVault|MistakeVault|Announcements|DSBChallenge|DailyQuiz|GulpProtocol|SkipOrSolve)\.js/.test(parent.filename)
+    /pages[\\/]|components[\\/](ConceptGroups|ConceptTestStudent|BadgeVault|MistakeVault|Announcements|DSBChallenge|DailyQuiz|GulpProtocol|SkipOrSolve|Dashboard)\.js/.test(parent.filename)
   ) {
     return reactShim;
   }
@@ -1137,6 +1162,91 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
   check(/>Start\s*</.test(html) || html.includes("Start <"), "dsb fresh day: Start button back");
   check(!/Review today.{0,8}s runs/.test(html), "dsb fresh day: no review affordance");
   check(html.includes("Play now"), "dsb fresh day: trainer cards say Play now");
+}
+
+// ── 13 · Language toggle (2026-09) — EN default, Hinglish opt-in ──
+// Owner decision: default render (no stored lang) is ENGLISH; the
+// हिं/EN pill flips every wrapped string portal-wide via t(hi, en).
+console.log("\n[13] language toggle — English default, Hinglish opt-in");
+{
+  // 13a · pure helpers of the REAL lib (no window here → "en")
+  const langLib = realLang();
+  check(langLib.getLang() === "en", "lang lib: getLang() defaults to 'en' with no stored preference");
+  check(
+    langLib.pick("hi", "Aaj", "Today") === "Aaj" && langLib.pick("en", "Aaj", "Today") === "Today",
+    "lang lib: pick(lang, hi, en) pure helper picks by lang"
+  );
+
+  // 13b · the segmented pill — two segments, EN active by default
+  const LanguageToggle = require(path.join(root, "components", "LanguageToggle.js")).default;
+  const pill = clean(ReactDOMServer.renderToString(React.createElement(LanguageToggle)));
+  check(pill.includes("हिं") && pill.includes(">EN<"), "pill: both हिं and EN segments render");
+  check(/aria-pressed="true"[^>]*>EN</.test(pill), "pill: EN segment is active by default");
+  check(/aria-pressed="false"[^>]*>हिं</.test(pill), "pill: हिं segment is inactive by default");
+  check(pill.includes("var(--c-accent-grad)"), "pill: active segment uses the portal accent gradient");
+
+  // 13c · placement — every chrome file that renders <ThemeToggle />
+  // renders <LanguageToggle /> right beside it.
+  const chromeFiles = [
+    "layouts/DefaultLayout.js",
+    "pages/test/components/HeaderMock.js",
+    "pages/mock/components/HeaderMock.js",
+    "pages/test/result/[uid].js",
+    "pages/test/analytics/[uid].js",
+    "pages/mock/result/[uid].js",
+    "pages/mock/analytics/[uid].js",
+  ];
+  const missingPill = chromeFiles.filter((f) => {
+    const s = fs.readFileSync(path.join(root, f), "utf8");
+    return !/<ThemeToggle \/>\s*\n\s*<LanguageToggle \/>/.test(s);
+  });
+  check(
+    missingPill.length === 0,
+    "pill: sits beside ThemeToggle in all 7 chrome spots" +
+      (missingPill.length ? ` (missing: ${missingPill.join(", ")})` : "")
+  );
+
+  // 13d · Dashboard default render (no stored lang) is ENGLISH
+  const Dashboard = require(path.join(root, "components", "Dashboard.js")).default;
+  const dashUser = { email: "me@x.com", user_metadata: { full_name: "Rishita S" } };
+  const today3Fix = { quizDone: false, redosLeft: 12, redosDone: false, attack: null, attackCh: null };
+  const cardBitsFix = { resume: "Profit and Loss (Moderate)", resumeUuid: "u1", pyqDone: 0, pyqTotal: 0 };
+  const nextMockFix = { mode: "live", title: "Hash IPMAT Mock 1", endsAt: null, config: {} };
+  // state order: isNull, loading, classes, isAdmin, results, nextMock,
+  // nowTick, plays, conceptPlays, dailySubs, weeklyRank, today3,
+  // cardBits, xpBits, admitStart, ringOn, opening
+  const dashQueue = () => [
+    false, false, [], false, [], nextMockFix, new Date(), [], [], [], null,
+    today3Fix, cardBitsFix, null, null, false, false,
+  ];
+  stateQueue = dashQueue();
+  let html = clean(ReactDOMServer.renderToString(React.createElement(Dashboard, { userData: dashUser })));
+  stateQueue = null;
+  check(/Today.{0,8}s plan, thought through/.test(html), "dashboard EN: plan card reads 'Today's plan, thought through'");
+  check(html.includes("whatever you skip returns tomorrow"), "dashboard EN: approved sub-line ('suggestions, not orders…')");
+  check(html.includes("Finish Profit and Loss (Moderate)"), "dashboard EN: resume step reads 'Finish …'");
+  check(html.includes("Mock window is open"), "dashboard EN: mock banner reads 'Mock window is open'");
+  check(html.includes("keep the streak alive"), "dashboard EN: footer reads 'Same time tomorrow — keep the streak alive'");
+  check(html.includes("See the full week"), "dashboard EN: week link reads 'See the full week'");
+  check(html.includes("No class today"), "dashboard EN: empty classes card is English");
+  check(
+    !html.includes("Aaj ke liye socha hai") && !html.includes("Mock window khula hai") &&
+      !html.includes("poora karo") && !html.includes("zinda rakhna"),
+    "dashboard EN: NO Hinglish leaks in the default render"
+  );
+
+  // 13e · with lang="hi" the Hinglish renders (forced through the
+  // same t(hi, en) pairs the pill drives on the client)
+  forcedLang = "hi";
+  stateQueue = dashQueue();
+  html = clean(ReactDOMServer.renderToString(React.createElement(Dashboard, { userData: dashUser })));
+  stateQueue = null;
+  forcedLang = null;
+  check(html.includes("Aaj ke liye socha hai"), "dashboard HI: plan card reads 'Aaj ke liye socha hai'");
+  check(html.includes("Mock window khula hai"), "dashboard HI: mock banner reads 'Mock window khula hai'");
+  check(html.includes("Pura hafta dekho"), "dashboard HI: week link reads 'Pura hafta dekho'");
+  check(html.includes("Profit and Loss (Moderate) poora karo"), "dashboard HI: resume step reads '… poora karo'");
+  check(!/Today.{0,8}s plan, thought through/.test(html), "dashboard HI: English plan title is gone");
 }
 
 // ── 11 · /api/announce handler — batches audience (async) ───────

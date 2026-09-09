@@ -51,6 +51,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Search } from "lucide-react";
 import PageHeader from "./PageHeader";
 import PillDropdown from "./ui/PillDropdown";
+import { useLang } from "@/lib/lang";
 import {
   REASONS,
   PYQ_ID_OFFSET,
@@ -465,6 +466,8 @@ function TypeTile({ type }) {
 // (index.js passes () => setSlug("play")) — keeps this
 // component provider-free.
 export default function ReviewHub({ userData, goPractice, goVault }) {
+  // Language toggle — hook first, above every early return.
+  const { t } = useLang();
   const router = useRouter();
   const [plays, setPlays] = useState(null);
   const [mockPlays, setMockPlays] = useState(null);
@@ -834,7 +837,12 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
       if (cached?.explanation) { setExplain({ text: cached.explanation }); return; }
     } catch {}
     if (doubtsToday >= DAILY_DOUBTS) {
-      setExplain({ error: `Aaj ke ${DAILY_DOUBTS} Samjhao ho gaye — baaki kal. Ya Doubts tab se mentor se poochho.` });
+      setExplain({
+        error: t(
+          `Aaj ke ${DAILY_DOUBTS} Samjhao ho gaye — baaki kal. Ya Doubts tab se mentor se poochho.`,
+          `Today's ${DAILY_DOUBTS} Samjhao are used up — more tomorrow. Or ask a mentor from the Doubts tab.`
+        ),
+      });
       return;
     }
     try {
@@ -874,7 +882,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
       });
       const j = await r.json();
       if (!r.ok || !j.explanation) {
-        setExplain({ error: "Samjhao abhi available nahi — thodi der mein try karo." });
+        setExplain({ error: t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit.") });
         return;
       }
       setExplain({ text: j.explanation });
@@ -882,7 +890,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
       await supabase.from("doubt_requests").insert({ user: userData.email, question_id: cacheId });
       await supabase.from("doubt_explanations").insert({ question_id: cacheId, explanation: j.explanation });
     } catch {
-      setExplain({ error: "Samjhao abhi available nahi — thodi der mein try karo." });
+      setExplain({ error: t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit.") });
     }
   };
 
@@ -939,8 +947,8 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
 
     return (
       <div style={{ margin: "2px 0 16px", padding: "16px 18px 18px", borderRadius: 12, background: "var(--c-surface-muted)", border: "1px solid var(--c-border-faint)" }}>
-        {!q && <div style={{ fontSize: 13, color: "var(--c-text-tertiary)" }}>Question load ho raha hai…</div>}
-        {q?.missing && <div style={{ fontSize: 13, color: "var(--c-text-tertiary)" }}>Yeh question ab bank mein nahi hai — sirf attempt ka record bacha hai.</div>}
+        {!q && <div style={{ fontSize: 13, color: "var(--c-text-tertiary)" }}>{t("Question load ho raha hai…", "Loading the question…")}</div>}
+        {q?.missing && <div style={{ fontSize: 13, color: "var(--c-text-tertiary)" }}>{t("Yeh question ab bank mein nahi hai — sirf attempt ka record bacha hai.", "This question is no longer in the bank — only your attempt record remains.")}</div>}
         {q && !q.missing && (
           <>
             {q.questionimage && (
@@ -1024,7 +1032,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
             >
               ✨ Samjhao →
               <span style={{ fontSize: 10.5, fontWeight: 600, opacity: 0.85 }}>
-                {Math.max(0, DAILY_DOUBTS - doubtsToday)} aaj bache
+                {Math.max(0, DAILY_DOUBTS - doubtsToday)}{t(" aaj bache", " left today")}
               </span>
             </button>
           )}
@@ -1033,7 +1041,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
               Mock/sectional rows have no vault id space → no button. */}
           {v ? (
             <span style={goldTag}>
-              {v.streak >= 3 ? "★ Vault — mastered" : "In vault — redo schedule pe hai"}
+              {v.streak >= 3 ? "★ Vault — mastered" : t("In vault — redo schedule pe hai", "In vault — on the redo schedule")}
               {v.last_reason ? ` · ${reasonLabel(v.last_reason).toLowerCase()}` : ""}
             </span>
           ) : flagged ? (
@@ -1050,10 +1058,10 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
               {guessBusy ? "Sending…" : "I guessed this — send to Vault"}
             </button>
           ) : a.result === "wrong" && vk != null ? (
-            <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>Vault ise khud collect kar leta hai</span>
+            <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>{t("Vault ise khud collect kar leta hai", "The vault collects this on its own")}</span>
           ) : null}
         </div>
-        {explain?.loading && <div style={{ marginTop: 10, fontSize: 13, color: "var(--c-text-tertiary)" }}>Samjha rahe hain…</div>}
+        {explain?.loading && <div style={{ marginTop: 10, fontSize: 13, color: "var(--c-text-tertiary)" }}>{t("Samjha rahe hain…", "Explaining…")}</div>}
         {explain?.error && <div style={{ marginTop: 10, fontSize: 13, color: "var(--c-danger)" }}>{explain.error}</div>}
         {explain?.text && (
           <div style={{ marginTop: 12, borderRadius: 12, padding: "14px 16px", background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", fontSize: 13.5, lineHeight: 1.7, color: "var(--c-text-secondary)", whiteSpace: "pre-wrap" }}>
