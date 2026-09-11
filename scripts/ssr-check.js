@@ -1198,7 +1198,9 @@ console.log("\n[13] language toggle — English default, Hinglish opt-in");
   ];
   const missingPill = chromeFiles.filter((f) => {
     const s = fs.readFileSync(path.join(root, f), "utf8");
-    return !/<ThemeToggle \/>\s*\n\s*<LanguageToggle \/>/.test(s);
+    // 2026-09: header spots render the toggles inline (fixed-position pills
+    // floated over "Back to dashboard" — the overlap bug), so accept both forms.
+    return !/<ThemeToggle( inline)? \/>\s*\n\s*<LanguageToggle( inline)? \/>/.test(s);
   });
   check(
     missingPill.length === 0,

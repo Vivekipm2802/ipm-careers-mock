@@ -8,7 +8,9 @@ import { Sun, Moon } from "lucide-react";
  * Initial paint is handled in pages/_document.js (inline script before
  * hydration) — this component takes over after mount.
  */
-export default function ThemeToggle() {
+export default function ThemeToggle({ inline = false }) {
+  // inline=true renders in normal flow for headers with their own flex
+  // rows (test/mock players) instead of fixed top-right positioning.
   const [theme, setTheme] = useState("light");
   const [mounted, setMounted] = useState(false);
 
@@ -43,10 +45,9 @@ export default function ThemeToggle() {
     <button
       onClick={flip}
       aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
-      className="fixed z-30 inline-flex items-center gap-2 rounded-full transition-all hover:-translate-y-0.5"
+      className={(inline ? "" : "fixed z-30 ") + "inline-flex items-center gap-2 rounded-full transition-all hover:-translate-y-0.5"}
       style={{
-        top: "12px",
-        right: "64px",
+        ...(inline ? {} : { top: "12px", right: "64px" }),
         height: "38px",
         padding: "0 14px",
         fontSize: "13px",
@@ -58,7 +59,7 @@ export default function ThemeToggle() {
       }}
     >
       {isLight ? <Moon size={16} /> : <Sun size={16} />}
-      <span>{isLight ? "Dark" : "Light"}</span>
+      <span className={inline ? "hidden md:inline" : ""}>{isLight ? "Dark" : "Light"}</span>
     </button>
   );
 }

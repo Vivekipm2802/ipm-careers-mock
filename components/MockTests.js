@@ -820,7 +820,9 @@ export default function MockTests({ enrolled = [], role = "user" }) {
               }}
             >
               {liveMock
-                ? "Open now - closes " + format(liveMock.endsAt, "EEE d MMM, h:mm a") + ". Find it in the list below and attempt it."
+                ? (differenceInSeconds(liveMock.endsAt, now) > 60 * 86400
+                  ? "Open now - no deadline. Find it in the list below and attempt it whenever you have time."
+                  : "Open now - closes " + format(liveMock.endsAt, "EEE d MMM, h:mm a") + ". Find it in the list below and attempt it.")
                 : "New mocks open weekly during exam season. Check back soon, or take an available one below."}
             </div>
             <div

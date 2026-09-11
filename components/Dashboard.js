@@ -1222,7 +1222,7 @@ export default function Dashboard({ userData }) {
                 </div>
                 <div className="flex items-center justify-between" style={{ marginTop: 14 }}>
                   <span style={{ fontSize: 11, color: "var(--c-mock-banner-soft)" }}>
-                    {nextMock.endsAt ? `closes ${format(nextMock.endsAt, "EEE · h:mm a")}` : ""}
+                    {nextMock.endsAt ? (nextMock.endsAt.getTime() - Date.now() > 60 * 86400 * 1000 ? "open - no deadline" : `closes ${format(nextMock.endsAt, "EEE · h:mm a")}`) : ""}
                   </span>
                   <button
                     type="button"

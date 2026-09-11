@@ -57,9 +57,9 @@ export default function HeaderMock({ title, isHintVisible, onSetVisible, setIsHi
       >
         <img src="/newlog.svg" alt="IPM Careers" style={{ height: 36, width: "auto" }} />
 
-        <div className="flex flex-row items-center" style={{ gap: 10 }}>
-          <ThemeToggle />
-          <LanguageToggle />
+        <div className="flex flex-row items-center flex-wrap justify-end" style={{ gap: 10, rowGap: 6 }}>
+          <ThemeToggle inline />
+          <LanguageToggle inline />
           {state == 1 && calc == true && (
             <button onClick={() => openCalculator()} aria-label="Calculator" title="Calculator" style={iconBtn}>
               <Calculator size={18} />
@@ -93,7 +93,7 @@ export default function HeaderMock({ title, isHintVisible, onSetVisible, setIsHi
             <Dropdown>
               <DropdownTrigger>
                 <button style={chipBtn}>
-                  <LogOut size={14} /> Exit test
+                  <LogOut size={14} /> <span className="hidden md:inline">Exit test</span>
                 </button>
               </DropdownTrigger>
               <DropdownMenu className="max-w-[260px]">
@@ -112,7 +112,7 @@ export default function HeaderMock({ title, isHintVisible, onSetVisible, setIsHi
             </Dropdown>
           ) : (
             <button onClick={() => router.push("/")} style={chipBtn}>
-              <LogOut size={14} /> Back to dashboard
+              <LogOut size={14} /> <span className="hidden md:inline">Back to dashboard</span>
             </button>
           )}
 

@@ -620,8 +620,8 @@ export default function MockResult({ result }) {
             <img src="/newlog.svg" style={{ height: 32, width: "auto" }} />
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <ThemeToggle />
-            <LanguageToggle />
+            <ThemeToggle inline />
+            <LanguageToggle inline />
             <button onClick={() => router.push("/")} style={pillGhost}>
               <ArrowLeft size={14} /> Back to dashboard
             </button>

@@ -49,9 +49,9 @@ export default function HeaderMock({ title, state, userData, openCalculator, rem
       >
         <img src="/newlog.svg" alt="IPM Careers" style={{ height: 36, width: "auto" }} />
 
-        <div className="flex flex-row items-center" style={{ gap: 10 }}>
-          <ThemeToggle />
-          <LanguageToggle />
+        <div className="flex flex-row items-center flex-wrap justify-end" style={{ gap: 10, rowGap: 6 }}>
+          <ThemeToggle inline />
+          <LanguageToggle inline />
           {state == 1 && calc == true && (
             <button
               onClick={() => openCalculator()}
@@ -83,7 +83,7 @@ export default function HeaderMock({ title, state, userData, openCalculator, rem
                     display: "inline-flex", alignItems: "center", gap: 6,
                   }}
                 >
-                  <LogOut size={14} /> Exit test
+                  <LogOut size={14} /> <span className="hidden md:inline">Exit test</span>
                 </button>
               </DropdownTrigger>
               <DropdownMenu className="max-w-[260px]">
@@ -116,7 +116,7 @@ export default function HeaderMock({ title, state, userData, openCalculator, rem
                 display: "inline-flex", alignItems: "center", gap: 6,
               }}
             >
-              <LogOut size={14} /> Back to dashboard
+              <LogOut size={14} /> <span className="hidden md:inline">Back to dashboard</span>
             </button>
           )}
 

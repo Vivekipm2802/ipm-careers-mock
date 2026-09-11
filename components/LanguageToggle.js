@@ -9,7 +9,10 @@ import { useLang } from "@/lib/lang";
  * English is the default; Hinglish is the opt-in. Persisted per
  * device via lib/lang.js (localStorage "ipm-lang").
  */
-export default function LanguageToggle() {
+export default function LanguageToggle({ inline = false }) {
+  // inline=true renders in normal flow (for test/mock/result headers,
+  // which have their own flex rows) — fixed positioning there floats the
+  // pill over other header buttons ("Back to dashboard" overlap bug).
   const { lang, setLang } = useLang();
 
   const seg = (on) => ({
@@ -30,10 +33,9 @@ export default function LanguageToggle() {
     <div
       role="group"
       aria-label="Language"
-      className="fixed z-30 inline-flex items-center rounded-full"
+      className={(inline ? "" : "fixed z-30 ") + "inline-flex items-center rounded-full"}
       style={{
-        top: "12px",
-        right: "166px",
+        ...(inline ? {} : { top: "12px", right: "166px" }),
         height: "38px",
         padding: "3px",
         background: "var(--c-surface)",
