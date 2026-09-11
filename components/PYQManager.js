@@ -1618,6 +1618,11 @@ function Library({
   onDeleteQuestion,
   onShowExplanation,
 }) {
+  // 2026-09 hotfix: Library renders PYQ_TOUR_STEPS(t) but `t` lived
+  // only in the parent PYQManager — bare `t` here crashed the whole
+  // exam view ("Application error") the moment it mounted. Hook
+  // first, above every early return.
+  const { t } = useLang();
   // Status filter (client-side, driven by the attempts map):
   // null = all · 'unattempted' = no right/wrong yet · 'wrong' = latest is wrong
   const [statusFilter, setStatusFilter] = useState(null);

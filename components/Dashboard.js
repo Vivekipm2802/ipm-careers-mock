@@ -941,7 +941,7 @@ export default function Dashboard({ userData }) {
             }}
           >
             {dashStats.accNow == null
-              ? "pehla test unlock karega"
+              ? t("pehla test unlock karega", "your first test unlocks this")
               : dashStats.accDelta != null
               ? `${dashStats.accDelta >= 0 ? "▲" : "▼"} ${Math.abs(dashStats.accDelta)}% · last 5 tests`
               : `last ${dashStats.accCount} ${dashStats.accCount === 1 ? "test" : "tests"}`}

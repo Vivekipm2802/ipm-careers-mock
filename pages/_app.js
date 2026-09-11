@@ -62,7 +62,23 @@ getUserData()
  <PostHogProvider client={posthog}>
     <Toaster position="bottom-right" toastOptions={{className:" font-sans text-sm",duration: 2000}}></Toaster>
     <NMNContextProvider>
-    <Component {...pageProps} /></NMNContextProvider></PostHogProvider></NextUIProvider>
+    <Component {...pageProps} /></NMNContextProvider></PostHogProvider>
+    {/* 2026-09 maintenance: many questions are Word-pasted HTML with inline
+        color:black — invisible on the dark theme ("blank questions" bug).
+        Force question/option content to the theme text color in dark mode. */}
+    <style jsx global>{`
+      html[data-theme="dark"] .qcontent,
+      html[data-theme="dark"] .qcontent * {
+        color: var(--c-text-primary, #f5f5f4) !important;
+        background-color: transparent !important;
+      }
+      html[data-theme="dark"] .qcontent img {
+        background-color: #ffffff !important;
+        border-radius: 6px;
+        padding: 4px;
+      }
+    `}</style>
+    </NextUIProvider>
 }
 
 
