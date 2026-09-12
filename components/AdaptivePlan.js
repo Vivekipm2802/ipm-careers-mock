@@ -400,7 +400,9 @@ export default function AdaptivePlan({ userData }) {
         <span style={sectMeta}>reshuffles as your scores change · Sunday never moves</span>
       </div>
       {/* one card, day rows — today gold-tinted with a gold chip (preview-sweep §6) */}
-      <div className="max-w-[860px] mt-3 mb-2" style={{ ...card, padding: 0, overflow: "hidden" }} data-tour="plan-week">
+      {/* flexShrink 0: page body is a fixed-height flex column — overflow:hidden
+          let this card shrink to 0px ("week ahead not visible" bug, Sep 2026) */}
+      <div className="max-w-[860px] mt-3 mb-2" style={{ ...card, padding: 0, overflow: "hidden", flexShrink: 0 }} data-tour="plan-week">
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dw, d) => {
           const isToday = d === todayIdx;
           const isPast = d < todayIdx;

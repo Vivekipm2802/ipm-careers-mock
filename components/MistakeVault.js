@@ -36,7 +36,7 @@ import { ArrowRight, RotateCcw } from "lucide-react";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
 import PageHeader from "./PageHeader";
 import PillDropdown from "./ui/PillDropdown";
-import { useLang } from "@/lib/lang";
+import { useLang, getLang } from "@/lib/lang";
 
 // Lucky-guess accent — the approved preview's violet. No portal var
 // exists for violet; same rgba approach as Dashboard's D2 cards.
@@ -663,6 +663,7 @@ export default function MistakeVault({ userData }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: `${q.title || ""} ${stripHtml(q.question)}`.trim(),
+          lang: getLang(),
           options: optsText,
           correct: correctText,
           picked: pickedText,

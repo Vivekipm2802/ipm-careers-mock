@@ -31,7 +31,7 @@ import { ArrowRight, Search } from "lucide-react";
 import { DAILY_DOUBTS } from "./MistakeVault";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
 import PageHeader from "./PageHeader";
-import { useLang } from "@/lib/lang";
+import { useLang, getLang } from "@/lib/lang";
 
 // Mentor accent — the approved preview's violet. No portal var
 // exists for violet; same rgba approach as MistakeVault.
@@ -254,7 +254,7 @@ export default function DoubtSamjhao({ userData }) {
           setBusy(false);
           return;
         }
-        const body = { question: text };
+        const body = { question: text, lang: getLang() };
         if (picked && Array.isArray(picked.options)) {
           body.options = picked.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${plainText(o.title)}`).join(" | ");
           body.correct = picked.options.filter((o) => o.isCorrect).map((o) => plainText(o.title)).join(", ");

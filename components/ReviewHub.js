@@ -51,7 +51,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Search } from "lucide-react";
 import PageHeader from "./PageHeader";
 import PillDropdown from "./ui/PillDropdown";
-import { useLang } from "@/lib/lang";
+import { useLang, getLang } from "@/lib/lang";
 import {
   REASONS,
   PYQ_ID_OFFSET,
@@ -875,6 +875,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: `${q?.title || ""} ${stripHtml(q?.question)}`.trim(),
+          lang: getLang(),
           options: optsText,
           correct: correctText,
           picked: pickedText,

@@ -36,15 +36,22 @@ export default async function handler(req, res) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return res.status(500).json({ error: "GEMINI_API_KEY not configured" });
 
-  const { question, options, correct, picked } = req.body || {};
+  const { question, options, correct, picked, lang } = req.body || {};
   if (!question || typeof question !== "string" || question.length > 6000) {
     return res.status(400).json({ error: "bad question" });
   }
 
+  // Language follows the portal's हिं/EN toggle (client sends lang; default
+  // stays Hinglish so older cached clients behave as before).
+  const inEnglish = lang === "en";
   const prompt = [
     "You are a friendly IPMAT coach at IPM Careers explaining to a Class 11/12 student.",
-    "Explain in simple Hinglish (Hindi-English mix, Roman script) why the correct answer is what it is.",
-    "Structure: 1) one-line seedha jawab, 2) step-by-step solution in 3-6 short lines, 3) one 'yaad rakhne wali baat' (the trap or shortcut).",
+    inEnglish
+      ? "Explain in simple, everyday English why the correct answer is what it is."
+      : "Explain in simple Hinglish (Hindi-English mix, Roman script) why the correct answer is what it is.",
+    inEnglish
+      ? "Structure: 1) one-line direct answer, 2) step-by-step solution in 3-6 short lines, 3) one 'thing to remember' (the trap or shortcut)."
+      : "Structure: 1) one-line seedha jawab, 2) step-by-step solution in 3-6 short lines, 3) one 'yaad rakhne wali baat' (the trap or shortcut).",
     "Keep it under 180 words. No markdown headings, no LaTeX, plain text, simple language.",
     "Write like a real teacher talking, not like an AI. Hard rules: never use em dashes (—) or hyphens as sentence breaks, no bullet points, no dramatic one-liners, no phrases like 'let's dive in' or 'the key insight'. Use short plain sentences a teacher would actually say.",
     "",
