@@ -985,7 +985,7 @@ function LockedHistoryRow({ date }) {
             color: "var(--c-text-tertiary)",
           }}
         >
-          Your plan starts from your join date — earlier recordings aren&apos;t
+          Your plan starts from your join date, earlier recordings aren&apos;t
           part of it. Think this is wrong? Ask your counsellor.
         </div>
       </div>

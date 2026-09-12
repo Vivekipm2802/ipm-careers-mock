@@ -30,10 +30,10 @@ export function verdictFor(right, total) {
   if (pct === 1)
     return "Perfect 10. Every student in India saw these questions today and you cleared the board.";
   if (pct >= 0.8)
-    return `${right}/${total} — strong. The ones you missed are today's revision list; fix them while they're fresh.`;
+    return `${right}/${total}, strong. The ones you missed are today's revision list; fix them while they're fresh.`;
   if (pct >= 0.5)
-    return `${right}/${total}. Half the board is yours — the other half is telling you exactly which topics need a concept test this week.`;
-  return `${right}/${total}. Rough day, but everyone got the same set — tomorrow's quiz is a fresh start. Review the reds before you leave.`;
+    return `${right}/${total}. Half the board is yours, the other half is telling you exactly which topics need a concept test this week.`;
+  return `${right}/${total}. Rough day, but everyone got the same set, tomorrow's quiz is a fresh start. Review the reds before you leave.`;
 }
 
 // Placeholder-aware explanation filter: the bank stores junk like
@@ -117,7 +117,7 @@ export default function DailyQuiz({ userData, onExit, onSimComplete, banked }) {
     }
     recordsRef.current = [...recordsRef.current, idx];
     setRecords(recordsRef.current);
-    setPicked(idx); // neutral gold-tint only — no right/wrong until the summary
+    setPicked(idx); // neutral gold-tint only, no right/wrong until the summary
     clearTimeout(advanceRef.current);
     advanceRef.current = setTimeout(() => {
       setPicked(null);
@@ -324,7 +324,7 @@ export default function DailyQuiz({ userData, onExit, onSimComplete, banked }) {
             </h2>
             <div className="rounded-[12px] mt-5 p-4" style={{ background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", fontSize: 13.5, lineHeight: 1.65, color: "var(--c-text-secondary)" }}>
               {phase === "review" ? (
-                <>Banked earlier today — this is a read-only walkthrough of your run. The next quiz drops at midnight.</>
+                <>Banked earlier today, this is a read-only walkthrough of your run. The next quiz drops at midnight.</>
               ) : (
                 <>
                   {verdictFor(right, questions.length)}
@@ -338,7 +338,7 @@ export default function DailyQuiz({ userData, onExit, onSimComplete, banked }) {
 
           {phase === "review" && reviewInfo?.thin ? (
             <div className="p-5 mt-3 rounded-[14px] border" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", fontSize: 13.5, color: "var(--c-text-secondary)" }}>
-              Question-by-question detail isn&apos;t available for this run on this device — your score above is banked and counted.
+              Question-by-question detail isn&apos;t available for this run on this device, your score above is banked and counted.
             </div>
           ) : (
             questions.map(renderReviewCard)

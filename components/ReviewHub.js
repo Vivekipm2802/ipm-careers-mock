@@ -61,8 +61,8 @@ import {
 
 // Sectional accent — the approved preview's violet. No portal var
 // exists for violet; same rgba approach as MistakeVault.
-const VIOLET = "rgba(151,113,224,1)"; /* violet — approved-preview accent, no portal var */
-const VIOLET_TINT = "rgba(151,113,224,0.14)"; /* violet tint — reads on light + dark */
+const VIOLET = "rgba(151,113,224,1)"; /* violet, approved-preview accent, no portal var */
+const VIOLET_TINT = "rgba(151,113,224,0.14)"; /* violet tint, reads on light + dark */
 
 // PYQ topic names arrive in mixed casing — same normalisation the
 // PYQ library uses (kept local: importing PYQManager would drag
@@ -839,8 +839,8 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
     if (doubtsToday >= DAILY_DOUBTS) {
       setExplain({
         error: t(
-          `Aaj ke ${DAILY_DOUBTS} Samjhao ho gaye — baaki kal. Ya Doubts tab se mentor se poochho.`,
-          `Today's ${DAILY_DOUBTS} Samjhao are used up — more tomorrow. Or ask a mentor from the Doubts tab.`
+          `Aaj ke ${DAILY_DOUBTS} Samjhao ho gaye, baaki kal. Ya Doubts tab se mentor se poochho.`,
+          `Today's ${DAILY_DOUBTS} Samjhao are used up, more tomorrow. Or ask a mentor from the Doubts tab.`
         ),
       });
       return;
@@ -963,7 +963,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
               />
             )}
 
-            {/* MCQ options — student's pick + correct */}
+            {/* MCQ options, student's pick + correct */}
             {(pyqOpts || (opts && !isPyq)) && (
               <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
                 {(pyqOpts || opts).map((o, i) => {
@@ -994,7 +994,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
               </div>
             )}
 
-            {/* input/answer-based — student answer vs correct */}
+            {/* input/answer-based, student answer vs correct */}
             {(isInput || (isPyq && !pyqOpts)) && (
               <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
                 {a.typed != null && (
@@ -1036,7 +1036,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
               </span>
             </button>
           )}
-          {/* vault status — wrong-answer collection is automatic; a
+          {/* vault status, wrong-answer collection is automatic; a
               RIGHT concept/PYQ answer can be self-flagged as a guess.
               Mock/sectional rows have no vault id space → no button. */}
           {v ? (
@@ -1046,7 +1046,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
             </span>
           ) : flagged ? (
             <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--c-success)" }}>
-              In the Vault — it&apos;ll come back for practice.
+              In the Vault, it&apos;ll come back for practice.
             </span>
           ) : a.result === "right" && vk != null ? (
             <button
@@ -1215,7 +1215,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
 
       {warnings.length > 0 && (
         <div style={{ marginBottom: 12, fontSize: 12, color: "var(--c-text-tertiary)", flexShrink: 0 }}>
-          Some data hasn&apos;t loaded yet ({warnings.join(", ")}) — everything else is shown.
+          Some data hasn&apos;t loaded yet ({warnings.join(", ")}), everything else is shown.
         </div>
       )}
 
@@ -1281,9 +1281,9 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
               <path d="M3 17l9 5 9-5" />
             </Ic>
           </div>
-          <div className="ds-display" style={{ fontSize: 18, color: "var(--c-text-primary)" }}>Take your first test — every sitting collects here.</div>
+          <div className="ds-display" style={{ fontSize: 18, color: "var(--c-text-primary)" }}>Take your first test, every sitting collects here.</div>
           <div style={{ fontSize: 13, color: "var(--c-text-tertiary)", marginTop: 6, marginBottom: 18 }}>
-            Every sitting — concept, mock, past paper — lands in this list on its own.
+            Every sitting, concept, mock, past paper, lands in this list on its own.
           </div>
           {goPractice && (
             <button type="button" onClick={goPractice} className="transition-all hover:-translate-y-0.5" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "var(--c-brand-gold)", color: "var(--c-text-on-brand)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 24px", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
@@ -1303,7 +1303,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
           </div>
           <div className="ds-display" style={{ fontSize: 18, color: "var(--c-text-primary)" }}>Nothing matches.</div>
           <div style={{ fontSize: 13, color: "var(--c-text-tertiary)", marginTop: 6, marginBottom: 18 }}>
-            Try a different word — or clear the search and filters.
+            Try a different word, or clear the search and filters.
           </div>
           <button type="button" onClick={clearAll} className="transition-all hover:-translate-y-0.5" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "var(--c-brand-gold)", color: "var(--c-text-on-brand)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 24px", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
             Clear everything
@@ -1334,14 +1334,14 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
             className="transition-all hover:-translate-y-0.5"
             style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "1px solid var(--c-border-soft)", borderRadius: 999, padding: "9px 22px", fontSize: 12.5, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}
           >
-            Show more — {Math.min(SESSIONS_PAGE, totalMatches - visibleSessions.length)} older ({visibleSessions.length} / {totalMatches})
+            Show more, {Math.min(SESSIONS_PAGE, totalMatches - visibleSessions.length)} older ({visibleSessions.length} / {totalMatches})
           </button>
         </div>
       )}
 
       {!loading && hasAny && (
         <div className="max-w-[980px] mb-12" style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", marginTop: 16 }}>
-          Searching a question? Type it — matching sittings expand to show the matching questions inside, with the same detail view (options, Samjhao) on tap.
+          Searching a question? Type it, matching sittings expand to show the matching questions inside, with the same detail view (options, Samjhao) on tap.
         </div>
       )}
     </div>

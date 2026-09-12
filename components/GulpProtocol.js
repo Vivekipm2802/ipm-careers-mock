@@ -137,7 +137,7 @@ export function effectiveRate(avgWpm, right, total) {
 
 export function verdictFor(comp, avgWpm) {
   if (comp === 100 && avgWpm >= 450)
-    return `Elite gulping. Full comprehension at ${avgWpm} WPM — you'd finish an IPMAT VA passage with time to spare for the traps.`;
+    return `Full comprehension at ${avgWpm} WPM. You'd finish an IPMAT VA passage with time to spare.`;
   if (comp === 100)
     return "Perfect comprehension. Move the speed slider up next run.";
   if (comp >= 60)
@@ -165,7 +165,7 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
   const wpmRef = useRef(350); // live value the flash loop reads
   const pausedRef = useRef(false);
   const ciRef = useRef(0);
-  const statsRef = useRef({ sum: 0, ticks: 0 }); // FIRST timed read only — re-reading never lands here
+  const statsRef = useRef({ sum: 0, ticks: 0 }); // FIRST timed read only, re-reading never lands here
   const chunksRef = useRef([]);
   const lockRef = useRef(false);
   const recordsRef = useRef([]);
@@ -308,7 +308,7 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
     lockRef.current = true;
     recordsRef.current = [...recordsRef.current, idx];
     setRecords(recordsRef.current);
-    setPicked(idx); // neutral gold-tint only — the reveal happens in the summary
+    setPicked(idx); // neutral gold-tint only, the reveal happens in the summary
     timerRef.current = setTimeout(() => {
       setPicked(null);
       lockRef.current = false;
@@ -427,7 +427,7 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
           Gulp <span className="ds-accent ds-grad-text">Protocol.</span>
         </h1>
         <p className="mt-2" style={{ fontSize: 14.5, color: "var(--c-text-secondary)" }}>
-          Train your eyes to swallow 3–5 words at a gulp — built for VA&apos;s reading load.
+          Train your eyes to swallow 3–5 words at a gulp, built for VA&apos;s reading load.
           {personalBest != null && (
             <span style={{ color: "var(--c-brand-gold)", fontWeight: 600 }}> · Best effective rate: {personalBest} WPM</span>
           )}
@@ -442,7 +442,7 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
               <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>
                 Today&apos;s passage
               </span>
-              {/* 2026-09 owner call: tier stays internal — students never
+              {/* 2026-09 owner call: tier stays internal, students never
                   see the difficulty label. */}
               <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
                 {todays.questions.length} questions{todays.words ? <> · {todays.words} words</> : null}
@@ -451,9 +451,9 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
           )}
           <h2 className="ds-display" style={{ fontSize: 19 }}>How it works</h2>
           {[
-            <>A passage flashes in <b>3–5 word chunks</b> — no going back, no subvocalising. Your eyes learn to gulp, not sip.</>,
+            <>A passage flashes in <b>3–5 word chunks</b>, no going back, no subvocalising. Your eyes learn to gulp, not sip.</>,
             <>You pick the starting speed, and a <b>live slider (100–600 WPM)</b> lets you adjust mid-read. Pause any time.</>,
-            <>Then <b>5–7 comprehension questions</b> (every passage carries its own set). Answers are revealed at the end — you can re-read the passage while answering, but your WPM comes from the first read only.</>,
+            <>Then <b>5–7 comprehension questions</b> (every passage carries its own set). Answers are revealed at the end, you can re-read the passage while answering, but your WPM comes from the first read only.</>,
             <>Your score = <b>effective rate</b>: average speed × comprehension. 350 at 100% beats 450 at 40%.</>,
           ].map((r, d) => (
             <div key={d} className="flex gap-3 mt-3.5" style={{ fontSize: 13.5, color: "var(--c-text-secondary)", lineHeight: 1.55 }}>
@@ -551,7 +551,7 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
       {/* ── QUIZ ── */}
       {phase === "quiz" && q && (
         <div className="max-w-[760px]">
-          {/* Re-read panel — collapsed by default; opening it has ZERO
+          {/* Re-read panel, collapsed by default; opening it has ZERO
               effect on the WPM metric (first timed read only). */}
           <div className="rounded-[14px] border mb-3" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", boxShadow: "var(--c-shadow-xs)" }}>
             <button
@@ -617,7 +617,7 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
               <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>
                 {isReview ? "Today's run · review" : "Run complete"}
               </span>
-              {/* tier chip removed — difficulty stays internal (owner call) */}
+              {/* tier chip removed, difficulty stays internal (owner call) */}
             </div>
             <h2 className="ds-display" style={{ fontSize: 25 }}>
               Effective rate: <span className="ds-grad-text">{statEff}</span>{" "}
@@ -637,7 +637,7 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
             </div>
             <div className="rounded-[12px] mt-5 p-4" style={{ background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", fontSize: 13.5, lineHeight: 1.65, color: "var(--c-text-secondary)" }}>
               {isReview ? (
-                <>Banked earlier today — this is a read-only walkthrough of your run. A fresh passage waits tomorrow.</>
+                <>Banked earlier today, this is a read-only walkthrough of your run. A fresh passage waits tomorrow.</>
               ) : (
                 <>
                   {verdictFor(comp, avgWpm())}
@@ -651,7 +651,7 @@ export default function GulpProtocol({ userData, onExit, onSimComplete, banked }
 
           {isReview && reviewInfo?.thin ? (
             <div className="p-5 mt-3 rounded-[14px] border" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", fontSize: 13.5, color: "var(--c-text-secondary)" }}>
-              Question-by-question detail isn&apos;t available for this run on this device — the banked numbers above still count.
+              Question-by-question detail isn&apos;t available for this run on this device, the banked numbers above still count.
             </div>
           ) : (
             passage && passage.questions.map(renderReviewCard)

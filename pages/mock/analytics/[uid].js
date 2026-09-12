@@ -205,7 +205,7 @@ export default function MockAnalytics({ result }) {
     if (swr.fast >= 2) {
       lines.push({
         tone: "danger", icon: "clock",
-        text: (<><b>Rushed answers cost you.</b> {swr.fast} of your {t.wrong} wrongs took under {FAST_WRONG_SEC} seconds — impulse picks, not concept gaps.</>),
+        text: (<><b>Rushed answers cost you.</b> {swr.fast} of your {t.wrong} wrongs took under {FAST_WRONG_SEC} seconds, impulse picks, not concept gaps.</>),
       });
     }
 
@@ -217,7 +217,7 @@ export default function MockAnalytics({ result }) {
     if (saSkipped >= 3) {
       lines.push({
         tone: "gold", icon: "gift",
-        text: (<><b>Free marks left behind.</b> You left {saSkipped} short-answer questions unattempted — they carry no negative. Attempting them is pure upside.</>),
+        text: (<><b>Free marks left behind.</b> You left {saSkipped} short-answer questions unattempted, they carry no negative. Attempting them is pure upside.</>),
       });
     }
 
@@ -226,7 +226,7 @@ export default function MockAnalytics({ result }) {
     if (late >= 2 && t.wrong > 0) {
       lines.push({
         tone: "danger", icon: "zigzag",
-        text: (<><b>The final stretch slips.</b> {late} of your {t.wrong} wrongs came in the last 10 minutes — pace the middle, protect the end.</>),
+        text: (<><b>The final stretch slips.</b> {late} of your {t.wrong} wrongs came in the last 10 minutes, pace the middle, protect the end.</>),
       });
     }
 
@@ -373,7 +373,7 @@ export default function MockAnalytics({ result }) {
             Your mock <em className="ds-grad-text" style={{ fontStyle: "italic", fontWeight: 500 }}>journey.</em>
           </h1>
           <div style={{ fontSize: 13, color: "var(--c-text-tertiary)", margin: "4px 0 0" }}>
-            What keeps happening across your mocks — and this one: {result?.test_id?.title}.
+            What keeps happening across your mocks, and this one: {result?.test_id?.title}.
           </div>
         </div>
 
@@ -384,7 +384,7 @@ export default function MockAnalytics({ result }) {
           <div style={{ ...card, padding: "22px 26px", marginBottom: 14 }}>
             <div style={capStyle}>1 · Score across mocks</div>
             <div style={{ fontSize: 13.5, color: "var(--c-text-secondary)", marginTop: 6 }}>
-              Your journey starts with your second mock — one point is not a line.
+              Your journey starts with your second mock, one point is not a line.
             </div>
           </div>
         )}
@@ -451,7 +451,7 @@ export default function MockAnalytics({ result }) {
                 ))}
                 {sectionSeries.weakest && (
                   <div style={tnote}>
-                    Weakest, consistently: <b style={{ color: "var(--c-text-secondary)", fontWeight: 600 }}>{sectionSeries.weakest.title}</b> — below your own average in {sectionSeries.weakest.belowAvgCount} of {sectionSeries.weakest.mocks} mocks.
+                    Weakest, consistently: <b style={{ color: "var(--c-text-secondary)", fontWeight: 600 }}>{sectionSeries.weakest.title}</b>, below your own average in {sectionSeries.weakest.belowAvgCount} of {sectionSeries.weakest.mocks} mocks.
                   </div>
                 )}
               </div>
@@ -475,13 +475,13 @@ export default function MockAnalytics({ result }) {
         {/* 5 · SPEED × ACCURACY QUADRANT */}
         {quad && (
           <>
-            <div style={seclabel}>4 · Speed × accuracy — {quad.measured} timed attempts, this mock</div>
+            <div style={seclabel}>4 · Speed × accuracy, {quad.measured} timed attempts, this mock</div>
             <div style={{ ...card, overflow: "hidden", marginBottom: 14 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "var(--c-border-faint)" }}>
-                <QuadCell dot="var(--c-success)" h="Quick & right" c={quad.qr} m={`under ${QUICK_SEC}s, correct — your scoring engine.`} />
-                <QuadCell dot="var(--c-danger)" h="Quick & wrong" c={quad.qw} m={`under ${QUICK_SEC}s, wrong — likely impulse picks. This is where negatives live.`} />
-                <QuadCell dot="var(--c-success)" h="Slow & right" c={quad.sr} m={`over ${SLOW_SEC}s, correct — solid but pricey. Worth speed drills.`} />
-                <QuadCell dot="var(--c-danger)" h="Slow & wrong" c={quad.sw} m={`over ${SLOW_SEC}s and still wrong — real concept gaps. Review these first.`} />
+                <QuadCell dot="var(--c-success)" h="Quick & right" c={quad.qr} m={`under ${QUICK_SEC}s, correct, your scoring engine.`} />
+                <QuadCell dot="var(--c-danger)" h="Quick & wrong" c={quad.qw} m={`under ${QUICK_SEC}s, wrong, likely impulse picks. This is where negatives live.`} />
+                <QuadCell dot="var(--c-success)" h="Slow & right" c={quad.sr} m={`over ${SLOW_SEC}s, correct, solid but pricey. Worth speed drills.`} />
+                <QuadCell dot="var(--c-danger)" h="Slow & wrong" c={quad.sw} m={`over ${SLOW_SEC}s and still wrong, real concept gaps. Review these first.`} />
               </div>
             </div>
           </>
@@ -519,9 +519,9 @@ function JourneyCard({ mocks }) {
   const prev = mocks[n - 2];
   const delta = last.score - first.score;
   const title =
-    delta > 0 ? `Climbing — ${n} mocks, +${delta} marks`
-    : delta < 0 ? `${n} mocks — ${Math.abs(delta)} marks below your first`
-    : `Holding — ${n} mocks, level with your first`;
+    delta > 0 ? `Climbing: ${n} mocks, +${delta} marks`
+    : delta < 0 ? `${n} mocks, ${Math.abs(delta)} marks below your first`
+    : `Holding steady: ${n} mocks, level with your first`;
 
   // Chart geometry (matches the approved preview: 800×150, labels
   // above points, mock names below).

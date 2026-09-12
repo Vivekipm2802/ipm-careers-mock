@@ -453,7 +453,7 @@ export default function PackPlayer({
                 textAlign: "center",
               }}
             >
-              No chapters yet — admin hasn't added any content.
+              No chapters yet, admin hasn't added any content.
             </div>
           ) : (
             chapters.map((ch) => (

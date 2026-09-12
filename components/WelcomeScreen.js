@@ -62,7 +62,7 @@ export default function WelcomeScreen() {
   return (
     <>
       <Head>
-        <title>Welcome — IPM Careers</title>
+        <title>Welcome. IPM Careers</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="stylesheet"
@@ -348,7 +348,7 @@ export default function WelcomeScreen() {
                   lineHeight: 1.45,
                 }}
               >
-                See every IPMAT batch — Indore, Rohtak, JIPMAT, crash &
+                See every IPMAT batch. Indore, Rohtak, JIPMAT, crash &
                 full-year. Pick one when you're ready.
               </p>
               <span

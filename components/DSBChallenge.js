@@ -256,7 +256,7 @@ export default function DSBChallenge({ userData }) {
             ))}
           </div>
           <div className="rounded-[12px] mt-5 p-4" style={{ background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", fontSize: 13.5, lineHeight: 1.65, color: "var(--c-text-secondary)" }}>
-            <b style={{ color: "var(--c-brand-gold)" }}>Simulation complete.</b> All reps done in one sitting — this is the daily habit that compounds. Come back tomorrow: a fresh shared quiz drops and the missions reset at midnight.
+            <b style={{ color: "var(--c-brand-gold)" }}>Simulation complete.</b> All reps done in one sitting, this is the daily habit that compounds. Come back tomorrow: a fresh shared quiz drops and the missions reset at midnight.
           </div>
           <button type="button" onClick={exitSim} className="mt-6 inline-flex items-center gap-2" style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 600, fontSize: 13.5, borderRadius: 999, padding: "11px 26px", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
             Back to missions <ArrowRight size={15} />
@@ -320,8 +320,8 @@ export default function DSBChallenge({ userData }) {
                 width: 46,
                 height: 46,
                 borderRadius: 12,
-                background: "rgba(139, 92, 246, 0.14)" /* violet tint — no --c-violet token yet (preview §5) */,
-                color: "rgba(139, 92, 246, 1)" /* violet — reads on both themes */,
+                background: "rgba(139, 92, 246, 0.14)" /* violet tint, no --c-violet token yet (preview §5) */,
+                color: "rgba(139, 92, 246, 1)" /* violet, reads on both themes */,
               }}
             >
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
@@ -452,7 +452,7 @@ export default function DSBChallenge({ userData }) {
           <div className="mt-3">
             {board.length === 0 && (
               <div style={{ fontSize: 13, color: "var(--c-text-tertiary)", textAlign: "center", padding: "18px 0" }}>
-                The arena fills as students earn XP this week — be the first on the board.
+                The arena fills as students earn XP this week, be the first on the board.
               </div>
             )}
             {board.slice(0, 6).map((r, i, arr) => (
@@ -472,7 +472,7 @@ export default function DSBChallenge({ userData }) {
                     <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--c-brand-gold)" }}>You</span>
                     {gap > 0 && (
                       <span style={{ display: "block", fontSize: 10, letterSpacing: "0.06em", color: "var(--c-text-tertiary)" }}>
-                        {gap} XP TO #3 — ek quiz aur ek trainer run
+                        {gap} XP TO #3, ek quiz aur ek trainer run
                       </span>
                     )}
                   </span>

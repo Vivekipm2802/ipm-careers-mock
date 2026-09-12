@@ -40,9 +40,9 @@ import { useLang } from "@/lib/lang";
 
 // Lucky-guess accent — the approved preview's violet. No portal var
 // exists for violet; same rgba approach as Dashboard's D2 cards.
-const VIOLET = "rgba(151,113,224,1)"; /* violet — approved-preview accent, no portal var */
-const VIOLET_TINT = "rgba(151,113,224,0.14)"; /* violet tint — reads on light + dark */
-const VIOLET_BORDER = "rgba(151,113,224,0.35)"; /* violet border — same rgba family */
+const VIOLET = "rgba(151,113,224,1)"; /* violet, approved-preview accent, no portal var */
+const VIOLET_TINT = "rgba(151,113,224,0.14)"; /* violet tint, reads on light + dark */
+const VIOLET_BORDER = "rgba(151,113,224,0.35)"; /* violet border, same rgba family */
 
 // First-visit mini-tour steps. The redo-button step falls back to
 // the list card when nothing is due (querySelector returns the
@@ -132,10 +132,10 @@ export function insightFor(items) {
   const pct = Math.round((100 * n) / tagged.length);
   if (pct < 40) return null;
   const msgs = {
-    silly: `${pct}% of your tagged mistakes are silly mistakes — accuracy, not knowledge, is your gap. Slow down on the easy ones.`,
-    concept: `${pct}% of your tagged mistakes are concept gaps — the plan will keep pushing those chapters. Revisit theory before redoing.`,
-    calculation: `${pct}% of your tagged mistakes are calculation errors — practice rough-work discipline, not more theory.`,
-    guessed: `${pct}% of your tagged mistakes were guesses — in IPMAT, a skip beats a guess. Train that instinct in Skip or Solve.`,
+    silly: `${pct}% of your tagged mistakes are silly mistakes, accuracy, not knowledge, is your gap. Slow down on the easy ones.`,
+    concept: `${pct}% of your tagged mistakes are concept gaps, the plan will keep pushing those chapters. Revisit theory before redoing.`,
+    calculation: `${pct}% of your tagged mistakes are calculation errors, practice rough-work discipline, not more theory.`,
+    guessed: `${pct}% of your tagged mistakes were guesses, in IPMAT, a skip beats a guess. Train that instinct in Skip or Solve.`,
   };
   return msgs[top] || null;
 }
@@ -335,8 +335,8 @@ export default function MistakeVault({ userData }) {
   const [lastCorrect, setLastCorrect] = useState(null);
   const [showHow, setShowHow] = useState(false);
   const [ownItems, setOwnItems] = useState(null);
-  const [pyqItems, setPyqItems] = useState(null); // PYQ wrongs — null until fetched
-  const [guessItems, setGuessItems] = useState(null); // lucky guesses — null until fetched
+  const [pyqItems, setPyqItems] = useState(null); // PYQ wrongs, null until fetched
+  const [guessItems, setGuessItems] = useState(null); // lucky guesses, null until fetched
   const [showGuessBanner, setShowGuessBanner] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [addQ, setAddQ] = useState("");
@@ -582,7 +582,7 @@ export default function MistakeVault({ userData }) {
       correct
         ? masteredNow
           ? { text: "Third clean redo. MASTERED. It leaves the vault for good.", tone: "var(--c-brand-gold)" }
-          : { text: `Right — climbs the ladder. Next redo in ${LADDER_DAYS[newStreak]} days.`, tone: "var(--c-success)" }
+          : { text: `Right, climbs the ladder. Next redo in ${LADDER_DAYS[newStreak]} days.`, tone: "var(--c-success)" }
         : { text: "Still bites. Back to day 3, you'll see it again soon.", tone: "var(--c-danger)" }
     );
   };
@@ -601,7 +601,7 @@ export default function MistakeVault({ userData }) {
       correct
         ? masteredNow
           ? { text: "Third clean redo. MASTERED. It leaves the vault for good.", tone: "var(--c-brand-gold)" }
-          : { text: `Right — climbs the ladder. Next redo in ${LADDER_DAYS[newStreak]} days.`, tone: "var(--c-success)" }
+          : { text: `Right, climbs the ladder. Next redo in ${LADDER_DAYS[newStreak]} days.`, tone: "var(--c-success)" }
         : { text: "Still bites. Back to day 3, you'll see it again soon.", tone: "var(--c-danger)" }
     );
   };
@@ -648,8 +648,8 @@ export default function MistakeVault({ userData }) {
     if (doubtsToday >= DAILY_DOUBTS) {
       setExplain({
         error: t(
-          `Aaj ke ${DAILY_DOUBTS} Samjhao ho gaye — baaki kal. Ya Doubts tab se mentor se poochho.`,
-          `Today's ${DAILY_DOUBTS} Samjhao are used up — more tomorrow. Or ask a mentor from the Doubts tab.`
+          `Aaj ke ${DAILY_DOUBTS} Samjhao ho gaye, baaki kal. Ya Doubts tab se mentor se poochho.`,
+          `Today's ${DAILY_DOUBTS} Samjhao are used up, more tomorrow. Or ask a mentor from the Doubts tab.`
         ),
       });
       return;
@@ -793,7 +793,7 @@ export default function MistakeVault({ userData }) {
       {phase === "home" && (
         <>
           <header className="mt-6">
-            {/* D1 quiet chrome — one compact header, actions kept on the right */}
+            {/* D1 quiet chrome, one compact header, actions kept on the right */}
             <PageHeader
               kicker="Review"
               title="Mistake"
@@ -821,7 +821,7 @@ export default function MistakeVault({ userData }) {
           </header>
 
           {/* first-visit explainer, reopenable via the header link.
-              Inline styles ONLY (no utility classes) — must survive
+              Inline styles ONLY (no utility classes), must survive
               stale CSS caches and extension cosmetic filters. */}
           {showHow && (
             <div style={{ display: "block", flexShrink: 0, maxWidth: 860, marginTop: 20, position: "relative", overflow: "hidden", background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, boxShadow: "var(--c-shadow-xs)", padding: "22px 24px" }}>
@@ -849,7 +849,7 @@ export default function MistakeVault({ userData }) {
                 )}
               </div>
               <button type="button" onClick={() => setShowHow(false)} style={{ ...goldBtn, fontSize: 13, padding: "9px 22px", marginTop: 16 }}>
-                Got it — start my redos
+                Got it, start my redos
               </button>
             </div>
           )}
@@ -885,7 +885,7 @@ export default function MistakeVault({ userData }) {
                 />
               </div>
               <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", margin: "14px 0 7px" }}>
-                Correct answer — optional but smart
+                Correct answer, optional but smart
               </div>
               <input
                 type="text"
@@ -905,13 +905,13 @@ export default function MistakeVault({ userData }) {
             </div>
           )}
 
-          {/* hero — "Today's redo" (ring + one line + gold Start) */}
+          {/* hero, "Today's redo" (ring + one line + gold Start) */}
           {(() => {
             const n = todaysAsk.length;
             const done = Math.min(redosToday, DAILY_CAP);
             const target = done + n;
             const frac = target > 0 ? done / target : 1;
-            const CIRC = 144.5; // 2πr for r=23 — the preview's ring
+            const CIRC = 144.5; // 2πr for r=23, the preview's ring
             return (
               <div className="mt-7 max-w-[860px]" data-tour="vault-redo" style={{ display: "flex", alignItems: "center", gap: 18, position: "relative", overflow: "hidden", background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, boxShadow: "var(--c-shadow-xs)", padding: "20px 22px" }}>
                 <span aria-hidden style={{ position: "absolute", top: 0, left: 24, right: 24, height: 1, background: "linear-gradient(90deg, transparent, var(--c-brand-gold), transparent)", opacity: 0.55 }} />
@@ -928,7 +928,7 @@ export default function MistakeVault({ userData }) {
                   <div style={{ fontSize: 15.5, fontWeight: 600 }}>Today&apos;s redo</div>
                   <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 3 }}>
                     {/* 2026-08 reconcile fix: `due` is the ONE source of truth
-                        for "due today" (vaultState per item) — the chapter
+                        for "due today" (vaultState per item), the chapter
                         chips sum to due.length. The session stays capped at
                         DAILY_CAP, so when a backlog exists the copy says so
                         honestly instead of pretending only n are due. */}
@@ -938,7 +938,7 @@ export default function MistakeVault({ userData }) {
                         : `${n} ${n === 1 ? "question" : "questions"} due · about ${minutesFor(n)} ${minutesFor(n) === 1 ? "minute" : "minutes"} · then you're clear`
                       : redosToday >= DAILY_CAP
                         ? due.length > 0
-                          ? `Done for today — ${due.length} still due, back on the list tomorrow.`
+                          ? `Done for today, ${due.length} still due, back on the list tomorrow.`
                           : "Done for today."
                         : "Nothing due today."}
                   </div>
@@ -952,7 +952,7 @@ export default function MistakeVault({ userData }) {
             );
           })()}
 
-          {/* slim stat line — in the vault · chapters · lucky · mastered */}
+          {/* slim stat line, in the vault · chapters · lucky · mastered */}
           <div className="mt-5 max-w-[860px] flex flex-wrap items-baseline" data-tour="vault-stats" style={{ gap: 22, borderBottom: "1px solid var(--c-border-faint)", padding: "0 2px 14px" }}>
             <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
               <b style={{ ...grad, fontSize: 17, marginRight: 4 }}>{withState.length}</b> in the vault
@@ -966,7 +966,7 @@ export default function MistakeVault({ userData }) {
               </span>
             )}
             <span style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>
-              <b className="ds-display" style={{ fontSize: 17, marginRight: 4, fontWeight: 500, color: "var(--c-success)" }}>{mastered.length}</b> mastered — forever
+              <b className="ds-display" style={{ fontSize: 17, marginRight: 4, fontWeight: 500, color: "var(--c-success)" }}>{mastered.length}</b> mastered, forever
             </span>
           </div>
 
@@ -989,9 +989,9 @@ export default function MistakeVault({ userData }) {
                 </svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600 }}>New — lucky guesses now land here too</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600 }}>New, lucky guesses now land here too</div>
                 <div style={{ fontSize: 11.5, color: "var(--c-text-tertiary)", marginTop: 1, lineHeight: 1.5 }}>
-                  Marked an answer right but tagged it &quot;Guessed&quot;? The vault treats it like a mistake and schedules it for practice — a guess isn&apos;t knowledge until you&apos;ve proven it.
+                  Marked an answer right but tagged it &quot;Guessed&quot;? The vault treats it like a mistake and schedules it for practice, a guess isn&apos;t knowledge until you&apos;ve proven it.
                 </div>
               </div>
               <button
@@ -1005,11 +1005,11 @@ export default function MistakeVault({ userData }) {
             </div>
           )}
 
-          {/* chapter head — "By chapter, weakest first" + Source dropdown.
+          {/* chapter head, "By chapter, weakest first" + Source dropdown.
               zIndex: the dropdown menu must paint above the list card. */}
           <div className="flex items-center justify-between flex-wrap gap-2.5 mt-7 mb-2.5 max-w-[860px]" data-tour="vault-chapters" style={{ position: "relative", zIndex: 70 }}>
             <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>
-              By chapter — weakest first
+              By chapter, weakest first
             </span>
             <PillDropdown
               label="Source"
@@ -1024,7 +1024,7 @@ export default function MistakeVault({ userData }) {
             />
           </div>
 
-          {/* chapter rows — expand to the chapter's questions inside */}
+          {/* chapter rows, expand to the chapter's questions inside */}
           <div className="max-w-[860px]" style={{ ...card, padding: 0, overflow: "hidden" }} data-tour="vault-list">
             {items === null && <div style={{ padding: "16px 22px", fontSize: 13, color: "var(--c-text-tertiary)" }}>Opening the vault…</div>}
             {items !== null && chapterRows.length === 0 && (
@@ -1096,7 +1096,7 @@ export default function MistakeVault({ userData }) {
                         >
                           <Ladder stage={it.st.stage} />
                           {/* lucky guesses get the violet pill (per preview);
-                              then is_pyq wins — PYQ self-grade items also
+                              then is_pyq wins. PYQ self-grade items also
                               carry is_own, but must never read as "YOURS" */}
                           {it.is_guess ? (
                             <span className="shrink-0" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", color: VIOLET, border: `1px solid ${VIOLET_BORDER}`, background: VIOLET_TINT, borderRadius: 999, padding: "2px 9px" }}>
@@ -1140,7 +1140,7 @@ export default function MistakeVault({ userData }) {
             })}
           </div>
 
-          {/* footnote — exact preview copy */}
+          {/* footnote, exact preview copy */}
           <div className="max-w-[860px] mb-12" style={{ fontSize: 11.5, color: "var(--c-text-tertiary)", marginTop: 14 }}>
             Green = mastered (answered right three times, spaced apart). Gold = improving. A chapter with everything green is a chapter that can&apos;t surprise you in the exam.
           </div>
@@ -1215,7 +1215,7 @@ export default function MistakeVault({ userData }) {
                   </button>
                 </div>
                 <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 10 }}>
-                  Solve it on paper like exam day — then be honest. The ladder only works if you are.
+                  Solve it on paper like exam day, then be honest. The ladder only works if you are.
                 </div>
               </>
             )}
@@ -1226,12 +1226,12 @@ export default function MistakeVault({ userData }) {
             )}
             <div style={{ fontSize: 12.5, fontWeight: 600, minHeight: 20, marginTop: 14, color: flash?.tone }}>{flash?.text}</div>
 
-            {/* AI Doubts — Samjhao */}
+            {/* AI Doubts. Samjhao */}
             {reveal && !q.is_own && (
               <div style={{ marginTop: 12 }}>
                 {!explain && (
                   <button type="button" onClick={askExplain} style={{ background: "var(--c-brand-gold-tint)", border: "1px solid rgba(255, 182, 39, 0.35)", color: "var(--c-brand-gold)", borderRadius: 999, padding: "8px 18px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                    ✨ Samjhao — explain this
+                    ✨ Samjhao, explain this
                   </button>
                 )}
                 {explain?.loading && (
@@ -1261,7 +1261,7 @@ export default function MistakeVault({ userData }) {
                     </button>
                   ))}
                   <button type="button" onClick={() => commitAndAdvance(null)} style={{ background: "none", border: "none", fontSize: 12, fontWeight: 600, color: "var(--c-text-tertiary)", cursor: "pointer", fontFamily: "inherit", padding: "7px 10px" }}>
-                    Skip — continue →
+                    Skip, continue →
                   </button>
                 </div>
               </div>
@@ -1278,7 +1278,7 @@ export default function MistakeVault({ userData }) {
               Vault <span className="ds-accent ds-grad-text">update.</span>
             </h1>
             <p className="mt-2" style={{ fontSize: 14.5, color: "var(--c-text-secondary)" }}>
-              {moves.filter((m) => m.correct).length} of {moves.length} redeemed today. The vault remembers the rest — and so will you.
+              {moves.filter((m) => m.correct).length} of {moves.length} redeemed today. The vault remembers the rest, and so will you.
             </p>
           </header>
           <div className="flex justify-between items-baseline mt-7 mb-3">
@@ -1299,7 +1299,7 @@ export default function MistakeVault({ userData }) {
           <div className="mt-6 mb-12 flex items-center gap-3 flex-wrap">
             {todaysAsk.length > 0 && (
               <button type="button" onClick={() => startSession()} style={goldBtn}>
-                Continue — {Math.min(todaysAsk.length, SESSION_SIZE)} left in today&apos;s {DAILY_CAP} <ArrowRight size={15} />
+                Continue, {Math.min(todaysAsk.length, SESSION_SIZE)} left in today&apos;s {DAILY_CAP} <ArrowRight size={15} />
               </button>
             )}
             <button type="button" onClick={() => setPhase("home")} style={{ background: "transparent", color: "var(--c-text-secondary)", fontWeight: 600, fontSize: 13, border: "1px solid var(--c-border-soft, var(--c-border-faint))", borderRadius: 999, padding: "11px 24px", cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", gap: 8 }}>

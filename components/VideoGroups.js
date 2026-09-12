@@ -790,8 +790,8 @@ const Selector = ({ type, onSelect, role, title }) => {
       {/* (Replaced the gradient "Explore by topic" tiles — students saw the
          section-level categorisation as redundant with the All packs grid.
          A slim chip filter inside the All packs card is the same affordance
-         with one-tenth the visual weight. Real topic exploration — surfacing
-         video sections like "Profit and Loss" / "Percentage" — needs the
+         with one-tenth the visual weight. Real topic exploration, surfacing
+         video sections like "Profit and Loss" / "Percentage", needs the
          videos schema and ships separately in Ship D.) */}
       <div
         style={{
@@ -1719,7 +1719,7 @@ function PackCard({
           </div>
         )}
         {/* Phase 21 Ship A.3: only render the gradient overlay + play affordance
-            when there's an actual thumbnail image — without one, the dark
+            when there's an actual thumbnail image, without one, the dark
             gradient on grey looks weird and the little play circle looks like
             a stray dot. With an image, both come back for hover readability. */}
         {pack.image && (

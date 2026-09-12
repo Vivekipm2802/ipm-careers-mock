@@ -54,8 +54,8 @@ const sectionTints = {
   qa: { bg: "var(--c-brand-gold-tint)", fg: "var(--c-brand-gold)" },
   va: { bg: "var(--c-info-soft)", fg: "var(--c-info)" },
   lr: {
-    bg: "rgba(151,113,224,0.14)" /* violet tint — no portal var; reads on light + dark */,
-    fg: "rgba(151,113,224,1)" /* violet — approved-preview accent, no portal var */,
+    bg: "rgba(151,113,224,0.14)" /* violet tint, no portal var; reads on light + dark */,
+    fg: "rgba(151,113,224,1)" /* violet, approved-preview accent, no portal var */,
   },
   di: { bg: "var(--c-warning-soft)", fg: "var(--c-warning)" },
   py: { bg: "var(--c-surface-sunken)", fg: "var(--c-text-secondary)" },
@@ -160,7 +160,7 @@ const Selector = ({ type, onSelect, role, title }) => {
 
       const topicCount = groupCats.length;
       const totalTests = groupLevels.length;
-      const questionCount = 0; // Dropped — not worth the join cost; if needed, fetch lazily
+      const questionCount = 0; // Dropped, not worth the join cost; if needed, fetch lazily
       const groupLevelUuids = groupLevels.map(l => l.uuid).filter(Boolean);
       const groupPlays = plays.filter(p => groupLevelUuids.includes(p.test_uuid));
       // Phase 12 Ship E: hybrid progress — coverage (distinct attempted / total) and pass rate

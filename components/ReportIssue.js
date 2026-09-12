@@ -112,7 +112,7 @@ export function ReportPopover({ reason, setReason, note, setNote, busy, onSend }
         {busy ? "Sending…" : "Send report"}
       </button>
       <div style={{ fontSize: 10.5, color: "var(--c-text-tertiary)", marginTop: 8, lineHeight: 1.5 }}>
-        Goes straight to our review team — every question here is AI-checked and mentor-approved, and
+        Goes straight to our review team, every question here is AI-checked and mentor-approved, and
         reports get looked at within a day.
       </div>
     </div>

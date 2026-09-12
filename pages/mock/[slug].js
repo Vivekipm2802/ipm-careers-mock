@@ -743,7 +743,7 @@ const MockTest = ({
   }, [userDetails]);
 
   useEffect(() => {
-    if (previewSections) return; // Skip client fetch in preview mode — data already initialized from props
+    if (previewSections) return; // Skip client fetch in preview mode, data already initialized from props
     if (router.query.slug != undefined) {
       getSections(config?.id);
     }
@@ -1190,7 +1190,7 @@ const MockTest = ({
               fontSize: 12.5, color: "var(--c-warning, #B66C00)",
               marginBottom: 22, lineHeight: 1.5,
             }}>
-              ⓘ Review your section navigator on the right before submitting — make sure you&apos;ve flagged or attempted every question you wanted to.
+              ⓘ Review your section navigator on the right before submitting, make sure you&apos;ve flagged or attempted every question you wanted to.
             </div>
             <div style={{
               display: "flex", gap: 10, justifyContent: "flex-end",
@@ -1378,7 +1378,7 @@ const MockTest = ({
 
                         {/* Phase 7.2: always render new JSX. Legacy admin HTML override
                             (config.config.instructions) contained pentagon SVG <img> tags + hardcoded
-                            light-mode styles that broke dark mode — ignored on purpose. */}
+                            light-mode styles that broke dark mode, ignored on purpose. */}
                         <InsSection num={1} title="General instructions" />
                         <ol className="ins-list">
                           <li>The test contains <b>{organized?.reduce((a, s) => a + (s.child?.length || 0), 0) || "multiple"} questions</b> across <b>{organized?.length || "multiple"} section(s)</b>.</li>
@@ -1423,7 +1423,7 @@ const MockTest = ({
 
                         {/* Phase 7.2: always render new JSX. Legacy admin HTML override
                             (config.config.instructions2) was empty/whitespace for most tests, which
-                            left this page blank in dark mode — ignored on purpose. */}
+                            left this page blank in dark mode, ignored on purpose. */}
                         <InsSection num={1} title="Marking scheme" />
                         {/* 2026-08 owner fix: +4/−1 was HARDCODED here and lied for
                             non-IPMAT mocks (IIM B UG is +3/−1). Read the real values

@@ -676,7 +676,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
 
       {/* ===== Hero grid: Countdown (always) + Continue (when available).
            Phase 15 Ship A.4: countdown is always rendered so the hybrid layout
-           stays consistent — empty state shows when there's no upcoming mock. ===== */}
+           stays consistent, empty state shows when there's no upcoming mock. ===== */}
       <div
         style={{
           display: "grid",
@@ -707,7 +707,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 width: 180,
                 height: 180,
                 background:
-                  "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" /* soft sheen on the gold banner — intentional, both themes */,
+                  "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" /* soft sheen on the gold banner, intentional, both themes */,
                 borderRadius: "50%",
                 pointerEvents: "none",
               }}
@@ -781,7 +781,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 width: 180,
                 height: 180,
                 background:
-                  "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" /* soft sheen on the gold banner — intentional, both themes */,
+                  "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" /* soft sheen on the gold banner, intentional, both themes */,
                 borderRadius: "50%",
                 pointerEvents: "none",
               }}

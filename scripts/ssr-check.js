@@ -426,7 +426,7 @@ const journeyFixture = [
   const html = clean(ReactDOMServer.renderToString(React.createElement(MockAnalytics, { result: mockResultRow })));
   stateQueue = null;
   check(html.includes("Score across mocks"), "journey card renders");
-  check(html.includes("Climbing — 3 mocks, +26 marks"), "journey title from canonical scores (46 → 72)");
+  check(html.includes("Climbing: 3 mocks, +26 marks"), "journey title from canonical scores (46 → 72)");
   check(html.includes("gap now") && html.includes("48 marks"), "topper gap footer (120 − 72 = 48)");
   check(html.includes("#14"), "rank strip shows current rank");
   check(html.includes("from #16 last mock"), "rank delta vs previous mock");

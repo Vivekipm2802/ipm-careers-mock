@@ -101,7 +101,7 @@ export default function BadgeVault({ userData, totalXp }) {
         {shelf.map((b) => (
           <div
             key={b.id}
-            title={`${b.name} — ${b.desc}${b.unlocked ? "" : ` (${b.progress.label})`}`}
+            title={`${b.name}: ${b.desc}${b.unlocked ? "" : ` (${b.progress.label})`}`}
             style={{
               border: `1px solid ${b.unlocked ? "rgba(255, 182, 39, 0.45)" : "var(--c-border-faint)"}`,
               background: b.unlocked ? "var(--c-brand-gold-tint)" : "var(--c-surface-muted, var(--c-bg))",

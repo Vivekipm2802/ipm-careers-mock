@@ -336,7 +336,7 @@ export default function PerformanceUser() {
     borderRadius: 16,
     boxShadow: "var(--c-shadow-xs)",
     padding: "20px 22px",
-    flexShrink: 0, // page is a flex column — never let cards get squeezed
+    flexShrink: 0, // page is a flex column, never let cards get squeezed
   };
   const cardTitle = { fontSize: 17 };
   const cardSub = { fontSize: 11.5, color: "var(--c-text-tertiary)", marginTop: 2 };
@@ -406,7 +406,7 @@ export default function PerformanceUser() {
 
   return (
     <div className="w-full flex flex-col overflow-y-auto pr-0 md:pr-4" style={{ color: "var(--c-text-primary)", textAlign: "left" }}>
-      {/* 1 · header — D1 quiet chrome */}
+      {/* 1 · header. D1 quiet chrome */}
       <header className="mt-6">
         <PageHeader
           kicker="Your Performance"
@@ -489,7 +489,7 @@ export default function PerformanceUser() {
           </div>
           <div style={{ fontSize: 12, marginTop: 14, color: "var(--c-text-secondary)", lineHeight: 1.5 }}>
             {weakestSection
-              ? `${SECTION_LABELS[weakestSection.id]} (${weakestSection.id}) is your weakest split at ${weakestSection.acc}% — the cheapest marks you can still buy live there.`
+              ? `${SECTION_LABELS[weakestSection.id]} (${weakestSection.id}) is your weakest split at ${weakestSection.acc}%, the cheapest marks you can still buy live there.`
               : "A few concept tests in each section and this split tells you where the cheapest marks are."}
           </div>
         </div>
@@ -497,7 +497,7 @@ export default function PerformanceUser() {
 
       {/* 4 · chapter map */}
       <div className="mt-4" style={card}>
-        <div className="ds-display" style={cardTitle}>Chapter map — all {rows.length} attempted</div>
+        <div className="ds-display" style={cardTitle}>Chapter map, all {rows.length} attempted</div>
         <div style={cardSub}>weakest first · same thresholds as your plan</div>
         {chapterStats === null ? (
           <div style={emptyTxt}>Reading your test history…</div>
@@ -549,7 +549,7 @@ export default function PerformanceUser() {
           </button>
         )}
         <div style={{ fontSize: 11.5, color: "var(--c-text-tertiary)", marginTop: 10 }}>
-          Never-attempted chapters live in Concept Tests — unknown ≠ weak.
+          Never-attempted chapters live in Concept Tests, unknown ≠ weak.
         </div>
       </div>
 
@@ -562,7 +562,7 @@ export default function PerformanceUser() {
           {mocks === null ? (
             <div style={emptyTxt}>Reading your mocks…</div>
           ) : mockRows.length === 0 ? (
-            <div style={emptyTxt}>No mocks yet — Sunday ka full mock is where exam temperament gets built.</div>
+            <div style={emptyTxt}>No mocks yet. Sunday ka full mock is where exam temperament gets built.</div>
           ) : (
             <table className="w-full mt-3" style={{ borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
@@ -608,7 +608,7 @@ export default function PerformanceUser() {
         {/* 5b · revision hygiene */}
         <div style={card}>
           <div className="ds-display" style={cardTitle}>Revision hygiene</div>
-          <div style={cardSub}>marks already paid for — collect them via redo</div>
+          <div style={cardSub}>marks already paid for, collect them via redo</div>
           <div className="mt-4">
             {hygiene.map(([label, value, pct]) => (
               <div key={label} style={{ padding: "9px 0" }}>
@@ -626,7 +626,7 @@ export default function PerformanceUser() {
             {t("Vault due aaj:", "Vault due today:")} <span style={{ fontFamily: MONO, fontWeight: 600 }}>{vaultAsk}</span>
             {vaultAsk > 0 && (
               <>
-                {" — "}
+                {", "}
                 <span style={actionLink} onClick={() => setCTXSlug && setCTXSlug("mistakevault")}>
                   clear now →
                 </span>

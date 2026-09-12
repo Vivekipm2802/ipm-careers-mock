@@ -254,7 +254,7 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
             Without negative marking this would be <b>{cf} / {maxScore}</b>.
             {split.fast > 0 ? (
               <>
-                {" "}{split.fast} of your wrongs took under {FAST_WRONG_SEC} seconds — slow down on
+                {" "}{split.fast} of your wrongs took under {FAST_WRONG_SEC} seconds, slow down on
                 those.
               </>
             ) : null}
@@ -273,7 +273,7 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
               icon: "alert",
               node: (
                 <>
-                  Most mistakes were quick answers — <b>carelessness, not concept</b>. Read the full
+                  Most mistakes were quick answers, <b>carelessness, not concept</b>. Read the full
                   question before you commit.
                 </>
               ),
@@ -283,7 +283,7 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
               icon: "alert",
               node: (
                 <>
-                  Your wrongs took time — <b>revise the concept, then redo</b>. Slow mistakes mean the
+                  Your wrongs took time, <b>revise the concept, then redo</b>. Slow mistakes mean the
                   method isn&apos;t settled yet.
                 </>
               ),
@@ -305,7 +305,7 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
           icon: "clock",
           node: (
             <>
-              About <b>{avgSec} seconds</b> a question, but the finish was a sprint — the last{" "}
+              About <b>{avgSec} seconds</b> a question, but the finish was a sprint, the last{" "}
               {rush.lastCount} answers in about {Math.max(1, Math.round(rush.lastTimeSec / 60))} min.
               Rushed marks are the first to go; leave more room at the end.
             </>
@@ -317,7 +317,7 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
           icon: "check",
           node: (
             <>
-              Pace was right — <b>{avgSec} seconds</b> a question
+              Pace was right, <b>{avgSec} seconds</b> a question
               {rush.measurable ? ", no rushing at the end" : ""}. Keep this rhythm in the next test.
             </>
           ),
@@ -349,7 +349,7 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled && data && Array.isArray(data.top)) setBoard(data);
-      } catch (e) { /* silent — section hides */ }
+      } catch (e) { /* silent, section hides */ }
     })();
     return () => {
       cancelled = true;
@@ -650,7 +650,7 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
                   )}
                   {/* honest flag: a RIGHT answer that was really a guess →
                       the Mistake Vault schedules it for practice. Violet is
-                      the approved-preview accent — no portal var exists, so
+                      the approved-preview accent, no portal var exists, so
                       the same rgba approach as Dashboard's D2 cards. */}
                   {status === "correct" && (
                     <button
@@ -661,8 +661,8 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
                         luckyIds[String(q.id)]
                           ? {
                               fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 999,
-                              background: "rgba(151,113,224,0.14)" /* violet tint — no portal var */,
-                              color: "rgba(151,113,224,1)" /* violet — approved-preview accent */,
+                              background: "rgba(151,113,224,0.14)" /* violet tint, no portal var */,
+                              color: "rgba(151,113,224,1)" /* violet, approved-preview accent */,
                               border: "1px solid rgba(151,113,224,0.35)",
                               cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
                               opacity: luckyBusy === q.id ? 0.6 : 1,
@@ -696,7 +696,7 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
                 {/* Ship 2 fix (2026-07): SA (short-answer / input) questions
                     store options as an object `{answer: "..."}`, not an array.
                     Previously the MCQ options block simply didn't render for
-                    SA and there was NO fallback — students saw a question with
+                    SA and there was NO fallback, students saw a question with
                     no correct answer AND no record of what they typed. Silent
                     data loss. Now we render a small panel showing the correct
                     answer and, when the student attempted it, their input. */}

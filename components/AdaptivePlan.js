@@ -282,7 +282,7 @@ export default function AdaptivePlan({ userData }) {
           </button>
         </div>
         <p className="mt-2" style={{ fontSize: 15, color: "var(--c-text-secondary)", lineHeight: 1.5 }}>
-          Built from your test history every morning — your weakest chapters get the spotlight, automatically.
+          Built from your test history every morning. Your weakest chapters get the spotlight.
         </p>
       </header>
 
@@ -330,7 +330,7 @@ export default function AdaptivePlan({ userData }) {
         {taskRow(
           2,
           doneToday(plan.task2),
-          plan.task2 ? `Concept test — ${shortName(plan.task2.chapter)}` : "Take your first concept test",
+          plan.task2 ? `Concept test: ${shortName(plan.task2.chapter)}` : "Take your first concept test",
           plan.task2
             ? plan.task2.cls === "new"
               ? "Fresh territory, the plan starts mapping you from here."
@@ -342,11 +342,11 @@ export default function AdaptivePlan({ userData }) {
         {taskRow(
           3,
           doneToday(plan.task3),
-          plan.task3 ? (plan.task3.cls === "new" ? `First look — ${shortName(plan.task3.chapter)}` : `Concept test — ${shortName(plan.task3.chapter)}`) : "Explore a new chapter",
+          plan.task3 ? (plan.task3.cls === "new" ? `First look: ${shortName(plan.task3.chapter)}` : `Concept test: ${shortName(plan.task3.chapter)}`) : "Explore a new chapter",
           plan.task3
             ? plan.task3.cls === "new"
               ? "Never attempted, unexplored chapters hide easy marks."
-              : `${plan.task3.acc}% over ${plan.task3.tests} ${Number(plan.task3.tests) === 1 ? "test" : "tests"} — next on the list.`
+              : `${plan.task3.acc}% over ${plan.task3.tests} ${Number(plan.task3.tests) === 1 ? "test" : "tests"}, next on the list.`
             : "Pick any chapter you haven't met yet.",
           () => (plan.task3 ? openChapter(plan.task3) : setCTXSlug("play")),
           opening === plan.task3?.chapter_id ? "Opening…" : "Start →"
@@ -364,7 +364,7 @@ export default function AdaptivePlan({ userData }) {
         )}
         {chapters !== null && sortedForMap.length === 0 && (
           <div style={{ padding: "16px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>
-            Take a concept test and your weak-spot map appears here — weakest chapters first.
+            Take a concept test and your weak-spot map appears here, weakest chapters first.
           </div>
         )}
         {sortedForMap.slice(0, showAllMap ? sortedForMap.length : 6).map((c, i, arr) => {

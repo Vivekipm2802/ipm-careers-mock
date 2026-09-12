@@ -667,7 +667,7 @@ export default function PYQManager({
     }
     const msg =
       affected > 0
-        ? `Delete this topic? It is tagged on ${affected} question${affected === 1 ? "" : "s"} — those tags will be removed. This cannot be undone.`
+        ? `Delete this topic? It is tagged on ${affected} question${affected === 1 ? "" : "s"}, those tags will be removed. This cannot be undone.`
         : "Delete this topic? This cannot be undone.";
     if (!confirm(msg)) return;
     try {
@@ -873,7 +873,7 @@ export default function PYQManager({
       )}
 
       {/* ════════════════════════════════════════════════════ */}
-      {/* ADMIN MODALS — preserved verbatim from legacy        */}
+      {/* ADMIN MODALS, preserved verbatim from legacy        */}
       {/* ════════════════════════════════════════════════════ */}
 
       {/* Add Question Modal */}
@@ -1445,7 +1445,7 @@ function Shelf({ exams, meta, attempts, onPick }) {
 
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto", padding: "48px 28px 80px", display: "flex", flexDirection: "column", textAlign: "left", width: "100%" }}>
-      {/* Header — D1 quiet chrome */}
+      {/* Header. D1 quiet chrome */}
       <PageHeader
         kicker="PYQ Papers"
         title="Every past paper, every"
@@ -1453,7 +1453,7 @@ function Shelf({ exams, meta, attempts, onPick }) {
         subtitle="Real questions from past papers. Filter, attempt, track."
       />
 
-      {/* Open stat strip — no boxes, hairline separators */}
+      {/* Open stat strip, no boxes, hairline separators */}
       <div style={{ display: "flex", alignItems: "stretch", marginBottom: 34, flexShrink: 0, flexWrap: "wrap", rowGap: 18 }}>
         <ShelfStat
           label="Exams"
@@ -1473,7 +1473,7 @@ function Shelf({ exams, meta, attempts, onPick }) {
         />
       </div>
 
-      {/* One card — one row per exam */}
+      {/* One card, one row per exam */}
       <div
         style={{
           background: "var(--c-surface)",
@@ -1743,7 +1743,7 @@ function Library({
         </div>
       </div>
 
-      {/* Filters — labelled chip rows + search pill */}
+      {/* Filters, labelled chip rows + search pill */}
       <div data-tour="pyq-filters" style={{ padding: "16px 28px", borderBottom: "1px solid var(--c-border-faint)", display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", width: 50, flexShrink: 0 }}>Year</span>
@@ -1804,7 +1804,7 @@ function Library({
         </div>
       </div>
 
-      {/* Body — number palette + question card */}
+      {/* Body, number palette + question card */}
       <div className="pyq-split" style={{ flex: 1, display: "flex", minHeight: 0, gap: 18, padding: "18px 28px 24px" }}>
         {/* Left: number palette card */}
         <div
@@ -2125,7 +2125,7 @@ function QuestionReader({
 
   return (
     <div style={{ textAlign: "left", maxWidth: 820 }}>
-      {/* Meta line — "Q n of total · year · topic · type", Q part gold */}
+      {/* Meta line, "Q n of total · year · topic · type", Q part gold */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>
           <span style={{ color: "var(--c-brand-gold)" }}>Q {indexInList} of {total}</span>
@@ -2142,9 +2142,9 @@ function QuestionReader({
         )}
       </div>
 
-      {/* Question stem — anchored top-left, never centered.
+      {/* Question stem, anchored top-left, never centered.
           Many image-based questions store a placeholder like "Comment your
-          answer" in the question text — the real question is the image.
+          answer" in the question text, the real question is the image.
           When we detect that, hide the placeholder so the image stands alone. */}
       {(() => {
         const qt = (q.question || "").trim();
@@ -2168,7 +2168,7 @@ function QuestionReader({
         );
       })()}
 
-      {/* Image stem — render large, allow click-to-open in new tab */}
+      {/* Image stem, render large, allow click-to-open in new tab */}
       {q.file_type === "image" && q.file_url && (
         <div style={{ marginBottom: 28 }}>
           <a
@@ -2277,7 +2277,7 @@ function QuestionReader({
         </div>
       )}
 
-      {/* MCQ reveal-bar — gives users a way to see solution without picking */}
+      {/* MCQ reveal-bar, gives users a way to see solution without picking */}
       {q.answer_type === "mcq" && options && (
         <div
           style={{
@@ -2302,7 +2302,7 @@ function QuestionReader({
         </div>
       )}
 
-      {/* MCQ answer panel — always shows on reveal, even when explanation is empty.
+      {/* MCQ answer panel, always shows on reveal, even when explanation is empty.
           This guarantees students see a substantial "answer" surface, not just
           a green-highlighted option. */}
       {q.answer_type === "mcq" && options && revealed && correctIdx != null && correctIdx >= 0 && (
@@ -2401,7 +2401,7 @@ function QuestionReader({
         </div>
       )}
 
-      {/* Explanation — can contain video iframes + images */}
+      {/* Explanation, can contain video iframes + images */}
       {q.explanation && (revealed || !practiceMode) && (
         <div
           className="pyq-rich-panel"
@@ -2470,7 +2470,7 @@ function QuestionReader({
         }
       `}</style>
 
-      {/* Footer dock — pager + small action buttons */}
+      {/* Footer dock, pager + small action buttons */}
       <div
         style={{
           marginTop: 40, paddingTop: 16,

@@ -459,7 +459,7 @@ export default function MockResult({ result }) {
             Without negative marking: <b>{cf} / {stats.maxScore}</b>. {stats.wrongCount} wrong
             {stats.wrongCount === 1 ? "" : "s"} cost {stats.totalNeg} mark
             {stats.totalNeg === 1 ? "" : "s"}
-            {lateWrongs > 0 ? <> — {lateWrongs} of them came in the last 10 minutes</> : null}.
+            {lateWrongs > 0 ? <>, {lateWrongs} of them came in the last 10 minutes</> : null}.
           </>
         ),
       });
@@ -489,7 +489,7 @@ export default function MockResult({ result }) {
           icon: "alert",
           node: (
             <>
-              <b>{pick.weakest.title} is the gap</b> — {pick.weakest.pct}% while {pick.best.title} held{" "}
+              <b>{pick.weakest.title} is the gap</b>, {pick.weakest.pct}% while {pick.best.title} held{" "}
               {pick.best.pct}%.{agree >= 1 ? <> Your last {agree + 1} mocks agree.</> : null}{" "}
               <a
                 onClick={() => {
@@ -516,7 +516,7 @@ export default function MockResult({ result }) {
             icon: "check",
             node: (
               <>
-                <b>{imp.title}</b> improved — <b>+{imp.delta} marks</b> since your last mock. Whatever
+                <b>{imp.title}</b> improved, <b>+{imp.delta} marks</b> since your last mock. Whatever
                 you&apos;re doing there, keep doing it.
               </>
             ),
@@ -538,7 +538,7 @@ export default function MockResult({ result }) {
               icon: "check",
               node: (
                 <>
-                  <b>{mine.title}</b> is moving — {mine.pct}% today, up from {prevSame[0].pct}% last
+                  <b>{mine.title}</b> is moving, {mine.pct}% today, up from {prevSame[0].pct}% last
                   attempt. It&apos;s working; keep the same routine.
                 </>
               ),
@@ -549,7 +549,7 @@ export default function MockResult({ result }) {
               icon: "alert",
               node: (
                 <>
-                  <b>{mine.title}</b> slipped — {mine.pct}% today against {prevSame[0].pct}% last
+                  <b>{mine.title}</b> slipped, {mine.pct}% today against {prevSame[0].pct}% last
                   attempt. Revise the weak chapters, then retake this section.
                 </>
               ),
@@ -560,7 +560,7 @@ export default function MockResult({ result }) {
               icon: "clock",
               node: (
                 <>
-                  <b>{mine.title}</b> held steady at {mine.pct}% — same as your last attempt. To move
+                  <b>{mine.title}</b> held steady at {mine.pct}%, same as your last attempt. To move
                   it, review every wrong below before the next try.
                 </>
               ),
@@ -647,7 +647,7 @@ export default function MockResult({ result }) {
             Your result, <em className="ds-grad-text" style={{ fontStyle: "italic", fontWeight: 500 }}>decoded.</em>
           </h1>
           <div style={{ fontSize: 13, color: "var(--c-text-tertiary)", margin: "4px 0 0" }}>
-            One score, {stats.perSection.length === 1 ? "one section" : `${stats.perSection.length} sections`} — and the review below it. Submitted {CtoLocal(result.created_at).date} {CtoLocal(result.created_at).monthName} {CtoLocal(result.created_at).year}.
+            One score, {stats.perSection.length === 1 ? "one section" : `${stats.perSection.length} sections`}, and the review below it. Submitted {CtoLocal(result.created_at).date} {CtoLocal(result.created_at).monthName} {CtoLocal(result.created_at).year}.
           </div>
         </div>
 
@@ -713,7 +713,7 @@ export default function MockResult({ result }) {
                     </span>
                   </td>
                   {/* Quiet zeros (2026-08 owner feedback): a count of 0 is
-                      grey — colour only non-zero rights (green) and non-zero
+                      grey, colour only non-zero rights (green) and non-zero
                       wrongs in sections where they actually cost marks. */}
                   <td style={{ ...stTd, color: p.correct > 0 ? "var(--c-success)" : "var(--c-text-tertiary)", fontWeight: 600 }}>{p.correct}</td>
                   <td style={{ ...stTd, color: p.hasNeg && p.wrong > 0 ? "var(--c-danger)" : "var(--c-text-tertiary)", fontWeight: 600 }}>{p.wrong}</td>
@@ -1035,7 +1035,7 @@ function QuestionCard({ q, index, status, pos, neg, correctIdx, chosenIdx, input
             <span dangerouslySetInnerHTML={{ __html: correctOption?.title || "—" }} />
           </div>
           <div style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
-            Skipping was safe — but check if you could have solved it.
+            Skipping was safe, but check if you could have solved it.
           </div>
         </div>
       )}
@@ -1046,7 +1046,7 @@ function QuestionCard({ q, index, status, pos, neg, correctIdx, chosenIdx, input
             {q?.options?.answer}
           </div>
           <div style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
-            No negative here — worth an attempt next time.
+            No negative here, worth an attempt next time.
           </div>
         </div>
       )}
@@ -1113,7 +1113,7 @@ function QuestionCard({ q, index, status, pos, neg, correctIdx, chosenIdx, input
       )}
 
       {/* Solution actions. Phase 10: Watch button only renders for a real
-          http(s) URL — empty / "-" / placeholder video slots never show it. */}
+          http(s) URL, empty / "-" / placeholder video slots never show it. */}
       {(hasVideo || hasExplanation) && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 14, borderTop: "1px solid var(--c-border-faint)", flexWrap: "wrap" }}>
           {hasVideo && (
@@ -1160,7 +1160,7 @@ function QuestionCard({ q, index, status, pos, neg, correctIdx, chosenIdx, input
       )}
 
       {/* D4: Report an issue (source 'mock'). NO Verified chip on mock
-          questions on purpose — the AI audit doesn't cover
+          questions on purpose, the AI audit doesn't cover
           mock_questions yet, so there is nothing honest to certify. */}
       <ReportIssue source="mock" questionId={q.id} user={reporterEmail} />
     </div>

@@ -388,7 +388,7 @@ const Game = () => {
           existing.isCorrect
             ? s - config.increment // undo the +increment given for correct
             : qType === "input"
-              ? s // wrong SA never cost anything — nothing to undo
+              ? s // wrong SA never cost anything, nothing to undo
               : s + config.decrement // undo the -decrement docked for wrong MCQ
         );
       }
@@ -620,7 +620,7 @@ const Game = () => {
           Retry submission
         </button>
         <p style={{ fontSize: 12, color: "var(--c-text-tertiary)", margin: "16px 0 0", maxWidth: "42ch", lineHeight: 1.5 }}>
-          Don&apos;t close this tab — your answers are stored on this device until the submission goes through.
+          Don&apos;t close this tab, your answers are stored on this device until the submission goes through.
         </p>
       </div>
     );
@@ -695,7 +695,7 @@ const Game = () => {
           fontSize: 14.5, color: "var(--c-text-secondary)",
           margin: "0 0 28px", maxWidth: "44ch", lineHeight: 1.55,
         }}>
-          Concept tests are single-shot — your earlier attempt is saved. You can review your result and analytics below.
+          Concept tests are single-shot, your earlier attempt is saved. You can review your result and analytics below.
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
           {existingPlay?.uid && (
@@ -784,7 +784,7 @@ const Game = () => {
               <b style={{ color: "var(--c-text-primary)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                 {questions?.length}
               </b>
-              {" "}questions. Once submitted, you can&apos;t change your answers — concept tests are single-attempt.
+              {" "}questions. Once submitted, you can&apos;t change your answers, concept tests are single-attempt.
             </p>
             <div style={{
               padding: "12px 14px",
@@ -794,7 +794,7 @@ const Game = () => {
               fontSize: 12.5, color: "var(--c-warning, #B66C00)",
               marginBottom: 22, lineHeight: 1.5,
             }}>
-              ⓘ Make sure you&apos;re happy with your answers — you can&apos;t retake this test once submitted.
+              ⓘ Make sure you&apos;re happy with your answers, you can&apos;t retake this test once submitted.
             </div>
             <div style={{
               display: "flex", gap: 10, justifyContent: "flex-end",

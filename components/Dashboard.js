@@ -117,8 +117,8 @@ export default function Dashboard({ userData }) {
   const [weeklyRank, setWeeklyRank] = useState(null);
   const [today3, setToday3] = useState(null); // {quizDone, redosLeft, redosDone, attack:{name,acc,done}, attackCh}
   const [cardBits, setCardBits] = useState(null); // {resume, resumeUuid, pyqDone, pyqTotal}
-  const [xpBits, setXpBits] = useState(null); // {total_xp} from get_my_xp — DSB tile
-  const [admitStart, setAdmitStart] = useState(null); // batch_admits.effective_start_date — Day N pill
+  const [xpBits, setXpBits] = useState(null); // {total_xp} from get_my_xp. DSB tile
+  const [admitStart, setAdmitStart] = useState(null); // batch_admits.effective_start_date. Day N pill
   const [ringOn, setRingOn] = useState(false); // animates the plan ring after mount
 
   const {
@@ -613,7 +613,7 @@ export default function Dashboard({ userData }) {
         done: today3.redosLeft === 0,
         title:
           today3.redosLeft > 0
-            ? `${today3.redosLeft} ${today3.redosLeft === 1 ? "redo" : "redos"} — ~${Math.max(1, Math.round(today3.redosLeft * 0.75))} min`
+            ? `${today3.redosLeft} ${today3.redosLeft === 1 ? "redo" : "redos"} · ~${Math.max(1, Math.round(today3.redosLeft * 0.75))} min`
             : "Mistake redos",
         why: t("roz thoda thoda, backlog khud saaf hota hai", "a little every day and the backlog clears itself"),
         cta: "Start",
@@ -627,10 +627,10 @@ export default function Dashboard({ userData }) {
       steps.push({
         id: "attack",
         done: today3.attack.done,
-        title: t(`${shortName(today3.attack.name)} — ek chhota test?`, `${shortName(today3.attack.name)} — a quick test?`),
+        title: t(`${shortName(today3.attack.name)}: ek chhota test?`, `${shortName(today3.attack.name)}: a quick test?`),
         why:
           today3.attack.acc != null
-            ? t(`${today3.attack.acc}% accuracy — thoda kamzor lag raha hai`, `${today3.attack.acc}% accuracy — looking a little shaky`)
+            ? t(`${today3.attack.acc}% accuracy, thoda kamzor lag raha hai`, `${today3.attack.acc}% accuracy, looking a little shaky`)
             : t("naya chapter, plan yahin se shuru karega", "new chapter, your plan picks it up from here"),
         cta: t("Dekho", "View"),
         busy: opening,
@@ -649,7 +649,7 @@ export default function Dashboard({ userData }) {
       steps.push({
         id: "pyq",
         done: false,
-        title: `PYQs — ${cardBits.pyqDone}/${cardBits.pyqTotal}`,
+        title: `PYQs · ${cardBits.pyqDone}/${cardBits.pyqTotal}`,
         why: t("asli exam ke questions, agla wait kar raha hai", "real exam questions, the next one is waiting"),
         cta: "Continue",
         go: () => {
@@ -950,8 +950,8 @@ export default function Dashboard({ userData }) {
 
         {/* Tests this week */}
         <Kpi
-          tint="rgba(151,113,224,0.14)" /* violet tint — no portal var; reads on light + dark */
-          color="rgba(151,113,224,1)" /* violet — approved-preview accent, no portal var */
+          tint="rgba(151,113,224,0.14)" /* violet tint, no portal var; reads on light + dark */
+          color="rgba(151,113,224,1)" /* violet, approved-preview accent, no portal var */
           icon={
             <Ic>
               <path d="M4 19V10M10 19V5M16 19v-8M22 19H2" />
@@ -974,7 +974,7 @@ export default function Dashboard({ userData }) {
                     i === dashStats.todayIdx
                       ? "var(--c-brand-gold)"
                       : c > 0
-                      ? "rgba(151,113,224,0.85)" /* violet — see note above */
+                      ? "rgba(151,113,224,0.85)" /* violet, see note above */
                       : "var(--c-border-soft)",
                 }}
               />
@@ -1276,7 +1276,7 @@ export default function Dashboard({ userData }) {
                 <path d="M6 4l14 8-14 8z" />
               </Ic>
             }
-            title={`Resume — ${cardBits.resume}`}
+            title={`Resume: ${cardBits.resume}`}
             sub={t("wahin se continue karo", "pick up where you left off")}
             onClick={() => {
               if (cardBits.resumeUuid) router.push(`/test/${cardBits.resumeUuid}`);
@@ -1310,8 +1310,8 @@ export default function Dashboard({ userData }) {
           />
         )}
         <Tile
-          tint="rgba(151,113,224,0.14)" /* violet tint — no portal var; reads on light + dark */
-          color="rgba(151,113,224,1)" /* violet — approved-preview accent */
+          tint="rgba(151,113,224,0.14)" /* violet tint, no portal var; reads on light + dark */
+          color="rgba(151,113,224,1)" /* violet, approved-preview accent */
           icon={
             <Ic size={16}>
               <path d="M13 2L4 14h6l-1 8 9-12h-6z" />

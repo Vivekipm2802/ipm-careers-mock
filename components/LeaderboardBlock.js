@@ -302,7 +302,7 @@ export default function LeaderboardBlock({ board, sectionTitleStyle, compact }) 
             Top scorers
           </span>
           {/* 2026-08 owner call: never show students the total player
-              count — rank only. */}
+              count, rank only. */}
         </div>
         {visible.map((row) => (
           <CompactRow key={row.rank} row={row} />

@@ -36,9 +36,9 @@ export function heatFor(streak) {
 
 export function verdictFor(streak) {
   if (streak >= 15)
-    return `Legendary survival. ${streak} straight under sudden-death pressure — this is genuine exam temperament. Screenshot this.`;
+    return `${streak} straight under sudden-death pressure. That is real exam temperament.`;
   if (streak >= 8)
-    return `Strong run. ${streak} survived. You cracked under heat, not knowledge — one more careful read and you'd still be alive.`;
+    return `Strong run. ${streak} survived. You cracked under pressure, not knowledge. One more careful read and you'd still be alive.`;
   if (streak >= 4)
     return `Decent, but the arena is unforgiving. Question #${streak + 1} ended you. Was it a knowledge gap or a rushed read? Avenge it.`;
   return "Early death. The first few questions are usually the easy ones, that suggests a rushed read, not a gap. Slow down 2 seconds per question and go again.";
@@ -128,7 +128,7 @@ export default function SuddenDeath({ userData, onExit }) {
     setRun(next);
     if (correct) {
       setSessionBest((b) => Math.max(b, next.streak));
-      setFlash({ text: `Alive. +1 — question ${next.streak + 1} incoming…`, tone: "var(--c-success)" });
+      setFlash({ text: `Alive. +1. Question ${next.streak + 1} incoming…`, tone: "var(--c-success)" });
       clearTimeout(advanceRef.current);
       advanceRef.current = setTimeout(() => {
         setPicked(null);
@@ -195,9 +195,9 @@ export default function SuddenDeath({ userData, onExit }) {
           <h2 className="ds-display" style={{ fontSize: 19 }}>The rules are brutal</h2>
           {[
             <>Questions keep coming, <b>no timer, no skips</b>. Just you and the question.</>,
-            <>Every correct answer = <b style={{ color: "var(--c-success)" }}>+1 to your survival streak</b>. The pace is yours — accuracy is everything.</>,
+            <>Every correct answer = <b style={{ color: "var(--c-success)" }}>+1 to your survival streak</b>. The pace is yours, accuracy is everything.</>,
             <><b style={{ color: "var(--c-danger)" }}>One wrong answer ends the run.</b> Instantly. No second chances.</>,
-            <>Your longest run is your <b>survival record</b> — beat it, and the DSB page updates.</>,
+            <>Your longest run is your <b>survival record</b>, beat it, and the DSB page updates.</>,
           ].map((r, d) => (
             <div key={d} className="flex gap-3 mt-3.5" style={{ fontSize: 13.5, color: "var(--c-text-secondary)", lineHeight: 1.55 }}>
               <span className="grid place-items-center shrink-0" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--c-danger-soft)", color: "var(--c-danger)", fontWeight: 700, fontSize: 12 }}>

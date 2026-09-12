@@ -35,8 +35,8 @@ import { useLang } from "@/lib/lang";
 
 // Mentor accent — the approved preview's violet. No portal var
 // exists for violet; same rgba approach as MistakeVault.
-const VIOLET = "rgba(151,113,224,1)"; /* violet — approved-preview accent, no portal var */
-const VIOLET_BORDER = "rgba(151,113,224,0.45)"; /* violet border — same rgba family */
+const VIOLET = "rgba(151,113,224,1)"; /* violet, approved-preview accent, no portal var */
+const VIOLET_BORDER = "rgba(151,113,224,0.45)"; /* violet border, same rgba family */
 
 const DOUBTS_TOUR_STEPS = (t) => [
   {
@@ -250,7 +250,7 @@ export default function DoubtSamjhao({ userData }) {
       // 2) daily pool → API
       if (!answer) {
         if (doubtsToday >= DAILY_DOUBTS) {
-          setAskError(`That's your ${DAILY_DOUBTS} for today — more tomorrow. Or send one to a mentor from any answer below.`);
+          setAskError(`That's your ${DAILY_DOUBTS} for today, more tomorrow. Or send one to a mentor from any answer below.`);
           setBusy(false);
           return;
         }
@@ -381,7 +381,7 @@ export default function DoubtSamjhao({ userData }) {
         />
       </header>
 
-      {/* hero — the ask card */}
+      {/* hero, the ask card */}
       <div className="max-w-[860px] mt-6" data-tour="doubts-modes" style={{ ...card, position: "relative", overflow: "hidden", padding: "18px 20px" }}>
         <span aria-hidden style={{ position: "absolute", top: 0, left: 24, right: 24, height: 1, background: "linear-gradient(90deg, transparent, var(--c-brand-gold), transparent)", opacity: 0.55 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--c-surface-muted, var(--c-bg))", border: "1px solid var(--c-border-faint)", borderRadius: 14, padding: "12px 16px" }}>
@@ -432,7 +432,7 @@ export default function DoubtSamjhao({ userData }) {
         <div className="max-w-[860px] mt-3" style={{ fontSize: 13, color: "var(--c-danger)", flexShrink: 0 }}>{askError}</div>
       )}
 
-      {/* the wrong-answer picker — the existing flow, behind the chip */}
+      {/* the wrong-answer picker, the existing flow, behind the chip */}
       {pickerOpen && (
         <div className="max-w-[860px] mt-4" style={{ ...card, padding: "6px 20px" }}>
           <div className="flex items-center justify-between gap-3 flex-wrap" style={{ padding: "14px 0 10px", borderBottom: "1px solid var(--c-border-faint)" }}>
@@ -485,7 +485,7 @@ export default function DoubtSamjhao({ userData }) {
         </div>
       )}
 
-      {/* unsaved answer — shown only when the notebook table is missing */}
+      {/* unsaved answer, shown only when the notebook table is missing */}
       {fallback && (
         <div className="max-w-[860px] mt-5" style={{ ...card, overflow: "hidden" }}>
           <div style={{ padding: "14px 18px" }}>
@@ -496,7 +496,7 @@ export default function DoubtSamjhao({ userData }) {
         </div>
       )}
 
-      {/* thread list — hidden entirely when the table isn't there */}
+      {/* thread list, hidden entirely when the table isn't there */}
       {!tableMissing && threads !== null && threads.length > 0 && (
         <>
           <div className="max-w-[860px]" style={{ fontSize: 10.5, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--c-text-tertiary)", fontWeight: 600, margin: "24px 0 10px" }}>
@@ -546,7 +546,7 @@ export default function DoubtSamjhao({ userData }) {
         </>
       )}
 
-      {/* closing line — exact preview copy */}
+      {/* closing line, exact preview copy */}
       <div className="max-w-[860px] mb-12" style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", marginTop: 16, flexShrink: 0 }}>
         Every answer stays saved here. Exam week revision = scrolling your own doubts.
       </div>

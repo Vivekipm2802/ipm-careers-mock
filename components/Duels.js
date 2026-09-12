@@ -65,7 +65,7 @@ export function verdictFor(result, right, botName) {
   if (result === "win" && botName === "AIR-1 Bot")
     return "You beat the AIR-1 Bot. 90% accuracy and lightning speed, and you still took it down. Ranked mode will suit you.";
   if (result === "win")
-    return `Victory. You converted more, faster. Ratings climb one duel at a time — queue the next opponent.`;
+    return `Victory. You converted more, faster. Ratings climb one duel at a time, queue the next opponent.`;
   if (result === "loss" && right >= 3)
     return "Lost on speed, not knowledge. You answered well but too slowly. Trust your first read, hesitation is what beat you.";
   if (result === "loss")
@@ -301,13 +301,13 @@ export default function Duels({ userData, onExit }) {
     let msg, tone;
     if (outcome === "W") {
       msg = b.correct
-        ? `Round yours! Both right — you were faster (${you.time.toFixed(1)}s vs ${b.time.toFixed(1)}s).`
+        ? `Round yours! Both right, you were faster (${you.time.toFixed(1)}s vs ${b.time.toFixed(1)}s).`
         : `Round yours! ${nm} got it wrong.`;
       tone = "var(--c-success)";
     } else if (outcome === "L") {
       msg = you.correct
-        ? `${nm} takes it — ${b.time.toFixed(1)}s vs your ${you.time.toFixed(1)}s.`
-        : `${nm} takes the round — you missed it.`;
+        ? `${nm} takes it, ${b.time.toFixed(1)}s vs your ${you.time.toFixed(1)}s.`
+        : `${nm} takes the round, you missed it.`;
       tone = "var(--c-danger)";
     } else {
       msg = "Round tied, both wrong.";
@@ -421,7 +421,7 @@ export default function Duels({ userData, onExit }) {
           {[
             <><b>{ROUNDS} rounds</b>, one question each. You and your opponent answer the same question.</>,
             <>Correct + faster = <b style={{ color: "var(--c-success)" }}>round win</b>. Both correct? Speed decides. Both wrong? Round tied.</>,
-            <><b>{ROUND_SECS} seconds</b> per round. The bot answers in its own time — you&apos;ll see when it locks in.</>,
+            <><b>{ROUND_SECS} seconds</b> per round. The bot answers in its own time, you&apos;ll see when it locks in.</>,
             <>Practice is rating-free. When you&apos;re ready, switch to <b>Ranked</b> and face real students.</>,
           ].map((r, d) => (
             <div key={d} className="flex gap-3 mt-3.5" style={{ fontSize: 13.5, color: "var(--c-text-secondary)", lineHeight: 1.55 }}>
@@ -483,7 +483,7 @@ export default function Duels({ userData, onExit }) {
           </div>
           {ladder.length === 0 && (
             <div style={{ fontSize: 13, color: "var(--c-text-tertiary)", padding: "10px 0" }}>
-              The ladder fills as students duel this week — be the first.
+              The ladder fills as students duel this week, be the first.
             </div>
           )}
           {ladder.slice(0, 5).map((r, i) => (

@@ -36,7 +36,7 @@ export default function XPChip() {
   return (
     <button
       onClick={() => setCTXSlug("dsbchallenge")}
-      title={`${lvl.name} — ${(xp.total_xp || 0).toLocaleString()} XP. Open DSB Challenge`}
+      title={`${lvl.name} · ${(xp.total_xp || 0).toLocaleString()} XP. Open DSB Challenge`}
       className="fixed z-30 hidden lg:inline-flex items-center gap-2 rounded-full transition-all hover:-translate-y-0.5"
       style={{
         top: "12px",

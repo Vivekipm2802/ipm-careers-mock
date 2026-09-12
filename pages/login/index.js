@@ -180,7 +180,7 @@ function Login() {
   return (
     <>
       <Head>
-        <title>Student Login — IPM Careers Study Portal</title>
+        <title>Student Login. IPM Careers Study Portal</title>
         <meta
           name="description"
           content="Sign in to the IPM Careers study portal, full-length IPMAT mocks, concept tests, PYQ practice and daily quizzes for IPMAT, JIPMAT and IIM Bangalore UG aspirants."
@@ -243,7 +243,7 @@ function Login() {
               Your daily reps toward <span className={styles.brandIt}>an IIM seat.</span>
             </h2>
             <p className={styles.brandP}>
-              Full-length mocks, concept tests, sectional drills and Daily Learn — with
+              Full-length mocks, concept tests, sectional drills and Daily Learn, with
               in-depth analysis after every attempt.
             </p>
             <ul className={styles.brandPoints}>

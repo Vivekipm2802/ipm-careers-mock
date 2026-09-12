@@ -273,7 +273,7 @@ export default function SkipOrSolve({ userData, onExit, onSimComplete, banked })
   const handleTimeout = () => {
     if (lockRef.current) return;
     lockRef.current = true;
-    const cur = runRef.current; // interval closure — state would be stale
+    const cur = runRef.current; // interval closure, state would be stale
     const item = deckRef.current[cur.i];
     const next = applyCall(cur, "timeout");
     runRef.current = next;
@@ -373,7 +373,7 @@ export default function SkipOrSolve({ userData, onExit, onSimComplete, banked })
           Skip or <span className="ds-accent ds-grad-text">Solve.</span>
         </h1>
         <p className="mt-2" style={{ fontSize: 14.5, color: "var(--c-text-secondary)" }}>
-          8 seconds to make the call — solve the scorers, skip the traps. The skill that separates a 60 from a 90 in IPMAT.
+          8 seconds to make the call, solve the scorers, skip the traps. The skill that separates a 60 from a 90 in IPMAT.
           {personalBest != null && (
             <span style={{ color: "var(--c-brand-gold)", fontWeight: 600 }}> · Personal best: {personalBest > 0 ? `+${personalBest}` : personalBest}</span>
           )}
@@ -385,10 +385,10 @@ export default function SkipOrSolve({ userData, onExit, onSimComplete, banked })
         <div className="p-6 md:p-7 max-w-[760px]" style={cardStyle}>
           <h2 className="ds-display" style={{ fontSize: 19 }}>How it works</h2>
           {[
-            <>You get <b>{RUN_LENGTH} questions</b>, one at a time — but you never answer them. You only <b>make the call</b>: solve or skip, within <b>{SECONDS_PER_Q} seconds</b>.</>,
-            <>Some are <b>scorers</b> — clean, single-concept, worth your time. Some are <b>traps</b> — long, multi-step, built to eat your clock.</>,
+            <>You get <b>{RUN_LENGTH} questions</b>, one at a time, but you never answer them. You only <b>make the call</b>: solve or skip, within <b>{SECONDS_PER_Q} seconds</b>.</>,
+            <>Some are <b>scorers</b>, clean, single-concept, worth your time. Some are <b>traps</b>, long, multi-step, built to eat your clock.</>,
             <>Right call = <b style={{ color: "var(--c-success)" }}>+1</b>. Wrong call = <b style={{ color: "var(--c-danger)" }}>−1</b>. Timer runs out = 0 and your streak resets.</>,
-            <>After every call you see the verdict and the <b>why</b> — that one line is the actual training.</>,
+            <>After every call you see the verdict and the <b>why</b>, that one line is the actual training.</>,
           ].map((r, d) => (
             <div key={d} className="flex gap-3 mt-3.5" style={{ fontSize: 13.5, color: "var(--c-text-secondary)", lineHeight: 1.55 }}>
               <span className="grid place-items-center shrink-0" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--c-brand-gold-tint)", color: "var(--c-brand-gold)", fontWeight: 700, fontSize: 12 }}>
@@ -565,7 +565,7 @@ export default function SkipOrSolve({ userData, onExit, onSimComplete, banked })
             </div>
             <div className="rounded-[12px] mt-5 p-4" style={{ background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", fontSize: 13.5, lineHeight: 1.65, color: "var(--c-text-secondary)" }}>
               {isReview ? (
-                <>Banked earlier today — this is a read-only walkthrough of your calls. A fresh run unlocks at midnight.</>
+                <>Banked earlier today, this is a read-only walkthrough of your calls. A fresh run unlocks at midnight.</>
               ) : (
                 <>
                   {verdictFor(run)}
@@ -579,7 +579,7 @@ export default function SkipOrSolve({ userData, onExit, onSimComplete, banked })
 
           {isReview && reviewInfo?.thin ? (
             <div className="p-5 mt-3 rounded-[14px] border" style={{ background: "var(--c-surface)", borderColor: "var(--c-border-faint)", fontSize: 13.5, color: "var(--c-text-secondary)" }}>
-              Round-by-round detail isn&apos;t available for this run on this device — the banked score above still counts.
+              Round-by-round detail isn&apos;t available for this run on this device, the banked score above still counts.
             </div>
           ) : (
             records.map(renderRoundRow)

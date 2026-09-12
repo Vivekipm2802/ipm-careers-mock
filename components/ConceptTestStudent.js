@@ -72,8 +72,8 @@ const TILE_TINTS = {
   gold: { bg: "var(--c-brand-gold-tint)", fg: "var(--c-brand-gold)" },
   info: { bg: "var(--c-info-soft)", fg: "var(--c-info)" },
   violet: {
-    bg: "rgba(151,113,224,0.14)" /* violet tint — no portal var; reads on light + dark */,
-    fg: "rgba(151,113,224,1)" /* violet — approved-preview accent, no portal var */,
+    bg: "rgba(151,113,224,0.14)" /* violet tint, no portal var; reads on light + dark */,
+    fg: "rgba(151,113,224,1)" /* violet, approved-preview accent, no portal var */,
   },
   success: { bg: "var(--c-success-soft)", fg: "var(--c-success)" },
   danger: { bg: "var(--c-danger-soft)", fg: "var(--c-danger)" },
@@ -176,7 +176,7 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
       let testCount = 0;
       let attemptedCount = 0;
       let passedCount = 0;
-      let nextTest = null;      // { uuid, band } — first unattempted, easiest first
+      let nextTest = null;      // { uuid, band }, first unattempted, easiest first
       let lastPlayAt = null;
       const bands = new Set();
       subs.forEach(m => {
@@ -343,7 +343,7 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
   function suggestReason(p) {
     return p.attemptedCount === 2
       ? "under 50% in both attempts, worth a revisit"
-      : `under 50% across ${p.attemptedCount} attempts — worth a revisit`;
+      : `under 50% across ${p.attemptedCount} attempts, worth a revisit`;
   }
 
   const grid = {
@@ -372,7 +372,7 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
         </button>
       </div>
 
-      {/* ── Header — D1 quiet chrome ── */}
+      {/* ── Header. D1 quiet chrome ── */}
       <PageHeader
         kicker="Concept tests"
         title="Master each topic, one concept at a"
@@ -395,7 +395,7 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
 
       {categories.length > 0 && (
         <>
-          {/* ── Continue banner — only when a topic is in progress ── */}
+          {/* ── Continue banner, only when a topic is in progress ── */}
           {continueTopic && (
             <div style={{
               display: "flex", alignItems: "center", gap: 16,
@@ -633,7 +633,7 @@ function TopicCard({ abbrev, tint, count, title, meta, pct, started, mastered, f
         {meta}
       </div>
 
-      {/* Thin coverage bar — attempted / total (green when mastered) */}
+      {/* Thin coverage bar, attempted / total (green when mastered) */}
       <div style={{
         height: 4, borderRadius: 2, marginTop: 10,
         background: "var(--c-surface-sunken, var(--c-surface-muted))",
@@ -689,7 +689,7 @@ function DrawerOverlay({ open, onClose, children }) {
         onClick={onClose}
         style={{
           position: "fixed", inset: 0,
-          background: "rgba(0,0,0,0.4)" /* scrim — intentional fixed black overlay, both themes */,
+          background: "rgba(0,0,0,0.4)" /* scrim, intentional fixed black overlay, both themes */,
           opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none",
           transition: "opacity 0.25s", zIndex: 200,
         }}
