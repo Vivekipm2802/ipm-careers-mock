@@ -188,7 +188,7 @@ export default function WelcomeScreen() {
               maxWidth: "56ch",
             }}
           >
-            You don't have an active course yet — that's totally fine. Try
+            You don't have an active course yet, that's totally fine. Try
             the full prep dashboard for free, or browse our IPMAT batches.
           </p>
 

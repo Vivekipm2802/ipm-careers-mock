@@ -247,7 +247,7 @@ export default function AttendanceSync() {
           j = null;
         }
         if (!r.ok || !j) {
-          setSync((p) => ({ ...(p || {}), active: false, error: (j && j.error) || "Sync failed — try again." }));
+          setSync((p) => ({ ...(p || {}), active: false, error: (j && j.error) || "Sync failed, try again." }));
           return;
         }
         if (j.configured === false) {
@@ -268,7 +268,7 @@ export default function AttendanceSync() {
       setSync({ active: false, ...done, error: null, notes });
       toast.success("Synced " + done.sessions + " sessions from Zoom");
     } catch (e) {
-      setSync((p) => ({ ...(p || {}), active: false, error: "Network hiccup — hit Sync again, it resumes safely." }));
+      setSync((p) => ({ ...(p || {}), active: false, error: "Network hiccup, hit Sync again, it resumes safely." }));
     }
     stopRef.current = false;
     loadData(selBatch, fromDate, toDate);
@@ -293,7 +293,7 @@ export default function AttendanceSync() {
         j = null;
       }
       if (!r.ok || !j) {
-        setRecFetch((p) => ({ ...(p || {}), active: false, error: (j && j.error) || "Fetch failed — try again." }));
+        setRecFetch((p) => ({ ...(p || {}), active: false, error: (j && j.error) || "Fetch failed, try again." }));
         return;
       }
       if (j.configured === false) {
@@ -310,7 +310,7 @@ export default function AttendanceSync() {
       });
       toast.success("Linked " + (Number(j.linked) || 0) + " recordings");
     } catch (e) {
-      setRecFetch((p) => ({ ...(p || {}), active: false, error: "Network hiccup — try Fetch again." }));
+      setRecFetch((p) => ({ ...(p || {}), active: false, error: "Network hiccup, try Fetch again." }));
     }
   };
 
@@ -333,12 +333,12 @@ export default function AttendanceSync() {
       if (!r.ok) {
         toast.error((j && j.error) || "Could not assign");
       } else {
-        toast.success("Matched — future syncs will remember this");
+        toast.success("Matched, future syncs will remember this");
         loadData(selBatch, fromDate, toDate);
       }
     } catch (e) {
       try {
-        toast.error("Could not assign — try again");
+        toast.error("Could not assign, try again");
       } catch (e2) {}
     }
     setAssigning(undefined);
@@ -381,18 +381,18 @@ export default function AttendanceSync() {
     const lines = absentStudents.map(
       (st) =>
         (st.name || st.email || "Student") +
-        " — Dear parent, " +
+        "Dear parent, " +
         (st.name ? st.name.split(" ")[0] : "your child") +
         " missed the \"" + topic + "\" live class on " + when +
         ". Please ensure they watch the recording and join the next session."
     );
-    const text = "Absent — " + topic + " (" + when + ")\n\n" + lines.join("\n");
+    const text = "Absent. " + topic + " (" + when + ")\n\n" + lines.join("\n");
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Copied " + lines.length + " lines — paste into WhatsApp");
+      toast.success("Copied " + lines.length + " lines, paste into WhatsApp");
     } catch (e) {
       try {
-        toast.error("Copy failed — select and copy manually");
+        toast.error("Copy failed, select and copy manually");
       } catch (e2) {}
     }
   };
@@ -498,7 +498,7 @@ export default function AttendanceSync() {
             <b style={{ color: "var(--c-text-primary)" }}>{Number(syncState.sessions) || 0}</b> sessions ·{" "}
             <b style={{ color: "var(--c-text-primary)" }}>{Number(syncState.records) || 0}</b> attendance rows ·{" "}
             <b style={{ color: "var(--c-brand-gold)" }}>{Number(syncState.unmatched) || 0}</b> unmatched
-            {syncState.active ? " — still pulling…" : " — done."}
+            {syncState.active ? "still pulling…" : "done."}
           </div>
         ) : null}
         {syncState.error ? (
@@ -516,7 +516,7 @@ export default function AttendanceSync() {
             <b style={{ color: "var(--c-text-primary)" }}>{Number(recFetch.found) || 0}</b> recordings found ·{" "}
             <b style={{ color: "var(--c-text-primary)" }}>{Number(recFetch.linked) || 0}</b> linked to capsules ·{" "}
             <b style={{ color: "var(--c-brand-gold)" }}>{Number(recFetch.skipped) || 0}</b> skipped
-            {recFetch.active ? " — still fetching…" : " — done."}
+            {recFetch.active ? "still fetching…" : "done."}
           </div>
         ) : null}
         {recFetch.error ? (
@@ -650,7 +650,7 @@ export default function AttendanceSync() {
               <div className="mt-4">
                 <div style={{ fontSize: 13.5, fontWeight: 600 }}>
                   {absentStudents.length === 0
-                    ? "Full house — nobody missed this one."
+                    ? "Full house, nobody missed this one."
                     : absentStudents.length + " absent from “" + (absentSession.topic || "Class") + "”"}
                 </div>
                 {absentStudents.length > 0 ? (

@@ -139,10 +139,10 @@ export function verdictFor(comp, avgWpm) {
   if (comp === 100 && avgWpm >= 450)
     return `Elite gulping. Full comprehension at ${avgWpm} WPM — you'd finish an IPMAT VA passage with time to spare for the traps.`;
   if (comp === 100)
-    return "Perfect comprehension. Your eyes are ready for the next speed tier — nudge the slider up next run.";
+    return "Perfect comprehension. Move the speed slider up next run.";
   if (comp >= 60)
     return `Good gulp, minor leaks. You kept most of the meaning at ${avgWpm} WPM. One more run at this speed and it locks in.`;
-  return "Too fast for today. Speed without understanding is just scrolling — drop one tier, rebuild comprehension, then climb back.";
+  return "Too fast for today. Drop one speed tier, rebuild comprehension, then climb back.";
 }
 
 export default function GulpProtocol({ userData, onExit, onSimComplete, banked }) {

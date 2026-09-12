@@ -205,7 +205,7 @@ const Game = () => {
         return;
       }
       setSubmitError(
-        "We couldn't reach the server. Your answers are saved on this device — check your connection and tap Retry.",
+        "We couldn't reach the server. Your answers are saved on this device, check your connection and tap Retry.",
       );
       setSubmitting(false);
       return;
@@ -227,7 +227,7 @@ const Game = () => {
     console.error("[concept submit] insert failed:", error?.message || error);
     setSubmitError(
       error?.message ||
-        "Your test could not be saved. Your answers are safe on this device — tap Retry.",
+        "Your test could not be saved. Your answers are safe on this device, tap Retry.",
     );
     setSubmitting(false);
   }

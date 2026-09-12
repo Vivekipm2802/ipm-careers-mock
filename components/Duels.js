@@ -67,7 +67,7 @@ export function verdictFor(result, right, botName) {
   if (result === "win")
     return `Victory. You converted more, faster. Ratings climb one duel at a time — queue the next opponent.`;
   if (result === "loss" && right >= 3)
-    return "Lost on speed, not knowledge. You answered well but too slowly. Trust your first read — hesitation is what beat you.";
+    return "Lost on speed, not knowledge. You answered well but too slowly. Trust your first read, hesitation is what beat you.";
   if (result === "loss")
     return `Beaten on accuracy. ${botName} converted more. A Skip or Solve run before the rematch sharpens exactly this.`;
   return "Dead even. One sharper round decides it next time. Rematch.";
@@ -310,7 +310,7 @@ export default function Duels({ userData, onExit }) {
         : `${nm} takes the round — you missed it.`;
       tone = "var(--c-danger)";
     } else {
-      msg = "Round tied — both wrong.";
+      msg = "Round tied, both wrong.";
       tone = "var(--c-text-tertiary)";
     }
     setFlash({ text: msg, tone });
@@ -396,7 +396,7 @@ export default function Duels({ userData, onExit }) {
         </h1>
         <p className="mt-2" style={{ fontSize: 14.5, color: "var(--c-text-secondary)" }}>
           {isRanked
-            ? "Same five questions for everyone today. Beat real IPM Careers students — their real answers, at their real speed."
+            ? "Same five questions for everyone today. Beat real IPM Careers students, their real answers, at their real speed."
             : "Five questions. Two fighters. Fastest correct answer takes the round."}
         </p>
       </header>
@@ -517,7 +517,7 @@ export default function Duels({ userData, onExit }) {
         <div className="p-6 md:p-7 max-w-[760px]" style={cardStyle}>
           {modeRef.current === "ranked" && ghost && (
             <div className="inline-flex items-center gap-2 mb-4" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: ghost.isBot ? "var(--c-text-tertiary)" : "var(--c-brand-gold)", background: ghost.isBot ? "var(--c-surface-muted, var(--c-bg))" : "var(--c-brand-gold-tint)", borderRadius: 999, padding: "5px 12px" }}>
-              {ghost.isBot ? "🛡️ Arena Bot — no student runs yet today" : `⚡ ${ghost.name} · real student run · recorded today`}
+              {ghost.isBot ? "🛡️ Arena Bot, no student runs yet today" : `⚡ ${ghost.name} · real student run · recorded today`}
             </div>
           )}
           <div className="grid items-center gap-3 mb-5" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
@@ -599,7 +599,7 @@ export default function Duels({ userData, onExit }) {
             <Swords size={14} /> {lastStats.result === "win" ? "Victory" : lastStats.result === "loss" ? "Defeat" : "Draw"}
           </div>
           <h2 className="ds-display" style={{ fontSize: 25 }}>
-            {lastStats.result === "win" ? `You beat ${modeRef.current === "ranked" ? opponentName() : bot.name} ` : lastStats.result === "loss" ? `${modeRef.current === "ranked" ? opponentName() : bot.name} wins ` : "Draw — "}
+            {lastStats.result === "win" ? `You beat ${modeRef.current === "ranked" ? opponentName() : bot.name} ` : lastStats.result === "loss" ? `${modeRef.current === "ranked" ? opponentName() : bot.name} wins ` : "Draw. "}
             <span className="ds-grad-text">{lastStats.youPts} – {lastStats.botPts}</span>
           </h2>
           <div className="grid gap-3 mt-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))" }}>

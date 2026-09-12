@@ -29,16 +29,16 @@ const DSB_TOUR_STEPS = (t) => [
     target: "[data-tour='dsb-missions']",
     title: t("Aaj ke missions", "Today's missions"),
     desc: t(
-      "Teen chhote kaam, roz reset — Sim Room se teeno back-to-back.",
-      "Three small tasks, reset daily — do all three back-to-back from the Sim Room."
+      "Teen chhote kaam, roz reset hote hain. Sim Room se teeno back to back karo.",
+      "Three small tasks that reset daily. Do all three back to back from the Sim Room."
     ),
   },
   {
     target: "[data-tour='dsb-trainers']",
     title: "Skill trainers",
     desc: t(
-      "Speed, accuracy, decision-making — har trainer ek exam-skill ke liye.",
-      "Speed, accuracy, decision-making — each trainer builds one exam skill."
+      "Har trainer ek exam skill banata hai: speed, accuracy ya judgement.",
+      "Each trainer builds one exam skill: speed, accuracy or judgement."
     ),
   },
   {
@@ -101,7 +101,7 @@ export default function DSBChallenge({ userData }) {
       if (!error && Array.isArray(data) && data.length) setMyRank(data[0]);
     });
 
-    // Today's missions — one query over the student's own trainer runs
+    // Today's missions, one query over the student's own trainer runs
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     supabase
@@ -141,14 +141,14 @@ export default function DSBChallenge({ userData }) {
     },
     {
       done: todayGulp,
-      title: "Gulp Protocol — 1 passage",
+      title: "Gulp Protocol, 1 passage",
       sub: "Speed reading · 350+ WPM target",
       xp: "+30 XP",
       onClick: () => setActiveTrainer("gulp-protocol"),
     },
     {
       done: todaySos,
-      title: "Skip or Solve — 10 rounds",
+      title: "Skip or Solve, 10 rounds",
       sub: "Trap detection · 8s per question",
       xp: "+50 XP",
       onClick: () => setActiveTrainer("skip-or-solve"),
@@ -195,7 +195,7 @@ export default function DSBChallenge({ userData }) {
   };
 
   const trainers = [
-    { Icon: Target, name: "Skip or Solve", tag: "Decision trainer", desc: "8 seconds a question: call it — solve the scorers, skip the traps.", live: true, done: todaySos, open: () => setActiveTrainer("skip-or-solve") },
+    { Icon: Target, name: "Skip or Solve", tag: "Decision trainer", desc: "8 seconds a question. Solve the scorers, skip the traps.", live: true, done: todaySos, open: () => setActiveTrainer("skip-or-solve") },
     { Icon: Zap, name: "Gulp Protocol", tag: "Speed reading", desc: "Process 3–5 word chunks at 350+ WPM. Built for VA's reading load.", live: true, done: todayGulp, open: () => setActiveTrainer("gulp-protocol") },
     { Icon: Swords, name: "Duels", tag: "1v1 battle arena", desc: "Five-question MCQ battles vs bots. Ranked mode arrives with Phase C.", live: true, open: () => setActiveTrainer("duels") },
     { Icon: Skull, name: "Sudden Death", tag: "One wrong = out", desc: "No second chances. How long can you survive?", red: true, live: true, open: () => setActiveTrainer("sudden-death") },
@@ -296,7 +296,7 @@ export default function DSBChallenge({ userData }) {
           kicker="DSB Challenge"
           title="Level up your IPMAT"
           accent="game."
-          subtitle="Daily missions, skill trainers and the all-India arena — every rep earns XP."
+          subtitle="Daily missions, skill trainers and the all-India arena. Every rep earns XP."
           right={
             <button
               type="button"
@@ -360,7 +360,7 @@ export default function DSBChallenge({ userData }) {
               </div>
               <div className="min-w-0 flex-1">
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--c-text-primary)" }}>{m.title}</div>
-                <div style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>{m.done ? "banked today — tap to review your run" : m.sub}</div>
+                <div style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>{m.done ? "done today, tap to review your run" : m.sub}</div>
               </div>
               <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600, color: m.done ? "var(--c-success)" : "var(--c-brand-gold)", whiteSpace: "nowrap" }}>
                 {m.done ? "Review →" : m.xp}
@@ -369,7 +369,7 @@ export default function DSBChallenge({ userData }) {
           ))}
           <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", paddingTop: 10, borderTop: "1px solid var(--c-border-faint)" }}>
             {allBanked
-              ? "All three banked — tap any mission to walk through today's run"
+              ? "All three done. Tap any mission to see today's run."
               : "Start runs the pending missions back to back · or tap any mission"}
           </div>
         </div>
@@ -386,7 +386,7 @@ export default function DSBChallenge({ userData }) {
             <div style={{ height: "100%", borderRadius: 999, width: `${lvl.progress}%`, background: "var(--c-stat-grad)" }} />
           </div>
           <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 8 }}>
-            {lvl.toNext > 0 ? `${lvl.toNext.toLocaleString()} XP to Level ${lvl.level + 1}` : "Max level — hold the line"}
+            {lvl.toNext > 0 ? `${lvl.toNext.toLocaleString()} XP to Level ${lvl.level + 1}` : "Max level. Hold it."}
             {" · "}this week: <b style={{ color: "var(--c-brand-gold)" }}>{(xp?.weekly_xp || 0).toLocaleString()} XP</b>
           </div>
           <div style={{ marginTop: 16, borderTop: "1px dashed var(--c-border-soft)", paddingTop: 12, fontSize: 12, color: "var(--c-text-secondary)", lineHeight: 1.7 }}>

@@ -132,7 +132,7 @@ const Selector = ({ type, onSelect, role, title }) => {
       const matched = plays.filter(p => allLevelUuids.has(p.test_uuid)).length;
       console.log(`[Concept Tests] ${plays.length} plays, ${levels.length} levels, ${matched} plays matched levels`);
       if (matched === 0 && plays.length > 0 && levels.length > 0) {
-        console.warn("[Concept Tests] No plays matched any levels — possible uuid mismatch", {
+        console.warn("[Concept Tests] No plays matched any levels, possible uuid mismatch", {
           samplePlayUuid: plays[0]?.test_uuid,
           sampleLevelUuid: levels[0]?.uuid,
         });
@@ -313,7 +313,7 @@ const Selector = ({ type, onSelect, role, title }) => {
         accent="time."
         subtitle={continueCard
           ? "You've been practicing. Pick up where you left off, or explore a new section."
-          : "Easy, Moderate, Difficult for every chapter — start at your level."}
+          : "Easy, Moderate and Difficult for every chapter. Start at your level."}
       />
 
       {/* ── Continue card ── */}

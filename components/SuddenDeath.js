@@ -41,7 +41,7 @@ export function verdictFor(streak) {
     return `Strong run. ${streak} survived. You cracked under heat, not knowledge — one more careful read and you'd still be alive.`;
   if (streak >= 4)
     return `Decent, but the arena is unforgiving. Question #${streak + 1} ended you. Was it a knowledge gap or a rushed read? Avenge it.`;
-  return "Early death. The first few questions are usually the easy ones — that suggests a rushed read, not a gap. Slow down 2 seconds per question and go again.";
+  return "Early death. The first few questions are usually the easy ones, that suggests a rushed read, not a gap. Slow down 2 seconds per question and go again.";
 }
 
 export default function SuddenDeath({ userData, onExit }) {

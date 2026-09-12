@@ -519,7 +519,7 @@ const Selector = ({ type, onSelect, role, title }) => {
         eyebrow: "Live Recordings",
         accent: "sessions",
         lead:
-          "Catch up on a missed live class — or rewatch a session to lock in the concepts before you sit a mock.",
+          "Catch up on a missed live class, or rewatch a session to lock in the concepts before you sit a mock.",
       };
     }
     return {
@@ -665,8 +665,8 @@ const Selector = ({ type, onSelect, role, title }) => {
               unit={watchStats.watched === 1 ? "video" : "videos"}
               sub={
                 watchStats.watched > 0
-                  ? "Keep going — pick up where you left off"
-                  : "Nothing yet — your first lesson is one click away"
+                  ? "Keep going, pick up where you left off"
+                  : "Nothing yet, your first lesson is one click away"
               }
               icon={<PlayCircle size={18} />}
             />

@@ -43,24 +43,24 @@ const DOUBTS_TOUR_STEPS = (t) => [
     target: "[data-tour='doubts-modes']",
     title: t("Yahin poochho", "Ask right here"),
     desc: t(
-      "Type karo, ya apne galat answers mein se uthao — AI seconds mein samjhata hai.",
-      "Type it, or pick from your wrong answers — the AI explains in seconds."
+      "Type karo, ya apne galat answers mein se uthao. AI seconds mein samjhata hai.",
+      "Type it, or pick from your wrong answers, the AI explains in seconds."
     ),
   },
   {
     target: "[data-tour='doubts-list']",
     title: t("Tumhari notebook", "Your notebook"),
     desc: t(
-      "Har jawab yahan hamesha ke liye saved rehta hai — exam week mein yahi revision hai.",
-      "Every answer stays saved here for good — that's your exam-week revision."
+      "Har jawab yahan hamesha ke liye saved rehta hai, exam week mein yahi revision hai.",
+      "Every answer stays saved here for good, that's your exam-week revision."
     ),
   },
   {
     target: "[data-tour='doubts-mentor']",
     title: t("Mentor hamesha hai", "A mentor is always there"),
     desc: t(
-      "AI se na samjhe toh mentor ko bhejo — video reply, usually ek din mein.",
-      "If the AI doesn't make it click, send it to a mentor — video reply, usually within a day."
+      "AI se na samjhe toh mentor ko bhejo, video reply, usually ek din mein.",
+      "If the AI doesn't make it click, send it to a mentor, video reply, usually within a day."
     ),
   },
 ];
@@ -267,7 +267,7 @@ export default function DoubtSamjhao({ userData }) {
         });
         const j = await r.json();
         if (!r.ok || !j.explanation) {
-          setAskError(t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit."));
+          setAskError(t("Samjhao abhi available nahi. Thodi der mein try karo.", "Samjhao isn't available right now. Try again in a bit."));
           setBusy(false);
           return;
         }
@@ -279,7 +279,7 @@ export default function DoubtSamjhao({ userData }) {
         }
       }
     } catch {
-      setAskError(t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit."));
+      setAskError(t("Samjhao abhi available nahi. Thodi der mein try karo.", "Samjhao isn't available right now. Try again in a bit."));
       setBusy(false);
       return;
     }
@@ -368,7 +368,7 @@ export default function DoubtSamjhao({ userData }) {
           kicker="Review"
           title="Your"
           accent="doubts."
-          subtitle="Ask anything — the answer stays here, forever findable."
+          subtitle="Ask anything, the answer stays here, forever findable."
           right={
             <button
               type="button"
@@ -396,7 +396,7 @@ export default function DoubtSamjhao({ userData }) {
             value={draft}
             onChange={(e) => onDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") ask(); }}
-            placeholder="Type your doubt — any topic, any question…"
+            placeholder="Type your doubt, any topic, any question…"
             style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "none", fontFamily: "inherit", fontSize: 13.5, color: "var(--c-text-primary)" }}
           />
           <button
@@ -452,8 +452,8 @@ export default function DoubtSamjhao({ userData }) {
           {items !== null && items.length === 0 && (
             <div style={{ padding: "14px 0", fontSize: 13, color: "var(--c-text-secondary)", lineHeight: 1.6 }}>
               {t(
-                "Abhi koi galat question collect nahi hua. Koi test do — ya bas apna sawaal type karo.",
-                "No wrong questions collected yet. Take a test — or just type your question."
+                "Abhi koi galat question collect nahi hua. Koi test do, ya bas apna sawaal type karo.",
+                "No wrong questions collected yet. Take a test, or just type your question."
               )}
             </div>
           )}
@@ -466,7 +466,7 @@ export default function DoubtSamjhao({ userData }) {
             >
               <span style={{ width: 16, height: 16, borderRadius: 999, flexShrink: 0, border: `1.5px solid ${selected?.question_id === it.question_id ? "var(--c-brand-gold)" : "var(--c-border-faint)"}`, background: selected?.question_id === it.question_id ? "radial-gradient(circle at center, var(--c-brand-gold) 0 45%, transparent 50%)" : "transparent" }} />
               {it.question_id < 0 && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--c-brand-gold)", border: "1px solid rgba(255, 182, 39, 0.35)" /* gold tint border — vault's PYQ badge */, background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "2px 8px", flexShrink: 0 }}>YOURS</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--c-brand-gold)", border: "1px solid rgba(255, 182, 39, 0.35)" /* gold tint border, vault's PYQ badge */, background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "2px 8px", flexShrink: 0 }}>YOURS</span>
               )}
               <span className="min-w-0 flex-1" style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "var(--c-text-secondary)" }}>
                 {it.text}
@@ -475,7 +475,7 @@ export default function DoubtSamjhao({ userData }) {
             </div>
           ))}
           {items !== null && items.length > 0 && shown.length === 0 && (
-            <div style={{ padding: "12px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>{t("Kuch nahi mila — doosre words try karo.", "Nothing found — try different words.")}</div>
+            <div style={{ padding: "12px 0", fontSize: 13, color: "var(--c-text-tertiary)" }}>{t("Kuch nahi mila, doosre words try karo.", "Nothing found, try different words.")}</div>
           )}
           {shown.length > LIST_DEFAULT && (
             <button type="button" onClick={() => setShowAllPick((v) => !v)} style={{ background: "none", border: "none", padding: "12px 0", fontSize: 12, fontWeight: 600, color: "var(--c-brand-gold)", cursor: "pointer", fontFamily: "inherit" }}>

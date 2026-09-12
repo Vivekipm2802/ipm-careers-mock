@@ -553,7 +553,7 @@ export default function Dashboard({ userData }) {
       classCount === 1 ? "class" : "classes"
     } today. Let's make it count.`;
   } else if (testCount > 0) {
-    subtitle = "No classes today — perfect time to revisit a mock.";
+    subtitle = "No classes today. Good day to revisit a mock.";
   } else {
     subtitle = "Ready when you are.";
   }
@@ -596,7 +596,7 @@ export default function Dashboard({ userData }) {
         id: "resume",
         done: false,
         title: t(`${cardBits.resume} poora karo`, `Finish ${cardBits.resume}`),
-        why: t("adhura chhoda tha — wahin se aage badho", "you left it midway — pick up right there"),
+        why: t("adhura chhoda tha, wahin se aage badho", "you left this midway, pick it up right there"),
         cta: "Continue",
         go: () => {
           if (cardBits.resumeUuid) router.push(`/test/${cardBits.resumeUuid}`);
@@ -615,7 +615,7 @@ export default function Dashboard({ userData }) {
           today3.redosLeft > 0
             ? `${today3.redosLeft} ${today3.redosLeft === 1 ? "redo" : "redos"} — ~${Math.max(1, Math.round(today3.redosLeft * 0.75))} min`
             : "Mistake redos",
-        why: t("roz thoda thoda, backlog khud saaf hota hai", "a little every day — the backlog clears itself"),
+        why: t("roz thoda thoda, backlog khud saaf hota hai", "a little every day and the backlog clears itself"),
         cta: "Start",
         go: () => {
           setCTXSlug("mistakevault");
@@ -631,7 +631,7 @@ export default function Dashboard({ userData }) {
         why:
           today3.attack.acc != null
             ? t(`${today3.attack.acc}% accuracy — thoda kamzor lag raha hai`, `${today3.attack.acc}% accuracy — looking a little shaky`)
-            : t("naya chapter — plan yahin se mapping shuru karega", "new chapter — the plan starts mapping it from here"),
+            : t("naya chapter, plan yahin se shuru karega", "new chapter, your plan picks it up from here"),
         cta: t("Dekho", "View"),
         busy: opening,
         go: () => openChapter(today3.attackCh),
@@ -641,7 +641,7 @@ export default function Dashboard({ userData }) {
       id: "quiz",
       done: today3.quizDone,
       title: "Daily quiz",
-      why: t("same 10 questions poore India ke liye — streak fuel", "the same 10 questions for all of India — streak fuel"),
+      why: t("wahi 10 questions jo aaj poore India ko mile hain", "the same 10 questions every student in India gets today"),
       cta: "Start",
       go: () => setCTXSlug("dsbchallenge"),
     });
@@ -650,7 +650,7 @@ export default function Dashboard({ userData }) {
         id: "pyq",
         done: false,
         title: `PYQs — ${cardBits.pyqDone}/${cardBits.pyqTotal}`,
-        why: t("asli exam ke questions — agla wait kar raha hai", "real exam questions — the next one's waiting"),
+        why: t("asli exam ke questions, agla wait kar raha hai", "real exam questions, the next one is waiting"),
         cta: "Continue",
         go: () => {
           setCTXSlug("pyqyear");
@@ -687,7 +687,7 @@ export default function Dashboard({ userData }) {
       return (
         <>
           <span style={{ color: "var(--c-success)", fontWeight: 600 }}>{t("Aaj ka kaam done ✓", "Today's work done ✓")}</span>
-          {classBit ? ` · ${classBit}` : ""}{t(" — kal fresh plan.", " — fresh plan tomorrow.")}
+          {classBit ? ` · ${classBit}` : ""}{t(". Kal fresh plan.", ". Fresh plan tomorrow.")}
         </>
       );
     }
@@ -761,13 +761,13 @@ export default function Dashboard({ userData }) {
       target: "[data-tour='stats']",
       title: t("Tumhara scoreboard", "Your scoreboard"),
       desc: t(
-        "Streak, tests, accuracy, all-India rank — ye numbers tumhare kaam se bharte hain. Abhi khali hain, ek hafte mein bolne lagenge.",
-        "Streak, tests, accuracy, all-India rank — these numbers fill up as you work. Empty right now; give them a week and they'll start talking."
+        "Streak, tests, accuracy aur rank tumhare kaam se bharte hain. Abhi khali hain. Ek hafta do.",
+        "Streak, tests, accuracy and rank fill up as you work. They are empty right now. Give it a week."
       ),
     },
     {
       target: "[data-tour='nav-myplan']",
-      title: t("Aaj Ka Plan — roz yahan se shuru", "Today's Plan — start here every day"),
+      title: t("Aaj Ka Plan. Roz yahan se shuru karo.", "Today's Plan. Start here every day."),
       desc: t(
         "Portal khud batata hai aaj kya karna hai: kaunsa chapter, kitne redos, kaunsa mission. Sochna nahi padta.",
         "The portal tells you what today needs: which chapter, how many redos, which mission. No thinking required."
@@ -775,7 +775,7 @@ export default function Dashboard({ userData }) {
     },
     {
       target: "[data-tour='nav-tests']",
-      title: t("Tests — concept se full mock tak", "Tests — from concepts to full mocks"),
+      title: t("Tests, concept se full mock tak", "Tests, from concept drills to full mocks"),
       desc: t(
         "Har topic ke Easy/Moderate/Difficult levels. Jo bhi galat hoga, portal yaad rakhega…",
         "Easy/Moderate/Difficult levels for every topic. Whatever you get wrong, the portal remembers…"
@@ -785,28 +785,28 @@ export default function Dashboard({ userData }) {
       target: "[data-tour='nav-tests']",
       title: t("…Mistake Vault mein", "…in the Mistake Vault"),
       desc: t(
-        "Har galat question yahan collect hota hai aur sahi time pe wapas aata hai — 3, 7, 21 din. Teen baar sahi = mastered forever.",
-        "Every wrong question collects here and comes back at just the right time — 3, 7, 21 days. Right three times = mastered forever."
+        "Har galat question yahan collect hota hai aur 3, 7, 21 din baad wapas aata hai. Teen baar sahi kiya toh mastered.",
+        "Every wrong question collects here and comes back after 3, 7 and 21 days. Get it right all three times and it's mastered."
       ),
     },
     {
       target: "[data-tour='nav-dsb']",
-      title: t("DSB Challenge — XP aur arena", "DSB Challenge — XP and the arena"),
+      title: t("DSB Challenge: XP aur arena", "DSB Challenge: XP and the arena"),
       desc: t(
-        "Daily missions, skill trainers, aur all-India leaderboard. Padhai ko game banao — har rep XP deta hai.",
-        "Daily missions, skill trainers, and an all-India leaderboard. Make studying a game — every rep earns XP."
+        "Daily missions, skill trainers aur all-India leaderboard. Har rep XP deta hai.",
+        "Daily missions, skill trainers and an all-India leaderboard. Every rep earns XP."
       ),
     },
     {
       target: "[data-tour='missions']",
-      title: t("Ab khud karo — Daily Quiz", "Now you try — Daily Quiz"),
+      title: t("Ab khud karo: Daily Quiz", "Now you try: Daily Quiz"),
       desc: t(
         "Tour khatam. Ye raha aaj ka pehla kaam: 10 questions, saare India ke students ke wahi 10.",
-        "Tour over. Here's today's first task: 10 questions — the same 10 every student in India gets."
+        "Tour over. Today's first task: 10 questions, the same 10 every student in India gets."
       ),
       doit: t(
-        "last step: yahan click karke quiz START karna hai — padhna nahi, karna",
-        "last step: click here and START the quiz — doing, not reading"
+        "last step: yahan click karke quiz start karo",
+        "last step: click here and start the quiz"
       ),
       nextLabel: "Start Daily Quiz →",
     },
@@ -862,7 +862,7 @@ export default function Dashboard({ userData }) {
                 </span>
               )}
               {examDays > 0 && (
-                <span style={pillStyle} title={t("Exam date abhi official nahi hui — tentative estimate", "Exam date isn't official yet — tentative estimate")}>
+                <span style={pillStyle} title={t("Exam date abhi official nahi hui, ye estimate hai", "Exam date isn't official yet, this is an estimate")}>
                   IPMAT in ~<b style={{ color: "var(--c-brand-gold)", fontWeight: 600 }}>{examDays}</b>{t(" din", " days")}
                   <span style={{ color: "var(--c-text-tertiary)", marginLeft: 4 }}>· tentative</span>
                 </span>
@@ -1046,8 +1046,8 @@ export default function Dashboard({ userData }) {
               </div>
               <div style={{ fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 2 }}>
                 {t(
-                  "suggestions hain, orders nahi — jo skip hoga, kal wapas mil jayega",
-                  "suggestions, not orders — whatever you skip returns tomorrow"
+                  "suggestions hain, orders nahi. Jo skip hoga, kal wapas mil jayega",
+                  "these are suggestions, not orders. Skip one and it comes back tomorrow"
                 )}
               </div>
             </div>
@@ -1102,7 +1102,7 @@ export default function Dashboard({ userData }) {
               color: "var(--c-text-tertiary)",
             }}
           >
-            <span>{t("Kal same time — streak zinda rakhna", "Same time tomorrow — keep the streak alive")}</span>
+            <span>{t("Kal same time pe aana, streak zinda rakhni hai", "Come back tomorrow and keep the streak going")}</span>
             <button
               type="button"
               onClick={() => setCTXSlug("studyplan")}
@@ -1163,7 +1163,7 @@ export default function Dashboard({ userData }) {
                 <div className="rounded-[16px] border" style={{ ...cardStyle, padding: "16px 20px" }}>
                   <div style={capStyle}>{t("Aaj ki classes", "Today's classes")}</div>
                   <div style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", marginTop: 8 }}>
-                    {t("Aaj koi class nahi — plan pe focus.", "No class today — focus on the plan.")}
+                    {t("Aaj koi class nahi. Plan pe focus karo.", "No class today. Focus on the plan.")}
                   </div>
                 </div>
               ))}
@@ -1216,8 +1216,8 @@ export default function Dashboard({ userData }) {
                   }}
                 >
                   {t(
-                    "Do ghante jab free ho, tab de dena — jaldi nahi hai.",
-                    "Take it whenever you have two free hours — no rush."
+                    "Do ghante jab free ho, tab de dena. Jaldi nahi hai.",
+                    "Take it whenever you have two free hours. No rush."
                   )}
                 </div>
                 <div className="flex items-center justify-between" style={{ marginTop: 14 }}>

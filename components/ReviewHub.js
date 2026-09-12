@@ -882,7 +882,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
       });
       const j = await r.json();
       if (!r.ok || !j.explanation) {
-        setExplain({ error: t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit.") });
+        setExplain({ error: t("Samjhao abhi available nahi. Thodi der mein try karo.", "Samjhao isn't available right now. Try again in a bit.") });
         return;
       }
       setExplain({ text: j.explanation });
@@ -890,7 +890,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
       await supabase.from("doubt_requests").insert({ user: userData.email, question_id: cacheId });
       await supabase.from("doubt_explanations").insert({ question_id: cacheId, explanation: j.explanation });
     } catch {
-      setExplain({ error: t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit.") });
+      setExplain({ error: t("Samjhao abhi available nahi. Thodi der mein try karo.", "Samjhao isn't available right now. Try again in a bit.") });
     }
   };
 
@@ -948,7 +948,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
     return (
       <div style={{ margin: "2px 0 16px", padding: "16px 18px 18px", borderRadius: 12, background: "var(--c-surface-muted)", border: "1px solid var(--c-border-faint)" }}>
         {!q && <div style={{ fontSize: 13, color: "var(--c-text-tertiary)" }}>{t("Question load ho raha hai…", "Loading the question…")}</div>}
-        {q?.missing && <div style={{ fontSize: 13, color: "var(--c-text-tertiary)" }}>{t("Yeh question ab bank mein nahi hai — sirf attempt ka record bacha hai.", "This question is no longer in the bank — only your attempt record remains.")}</div>}
+        {q?.missing && <div style={{ fontSize: 13, color: "var(--c-text-tertiary)" }}>{t("Yeh question ab bank mein nahi hai. Sirf attempt ka record bacha hai.", "This question is no longer in the bank. Only your attempt record remains.")}</div>}
         {q && !q.missing && (
           <>
             {q.questionimage && (
@@ -1041,7 +1041,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
               Mock/sectional rows have no vault id space → no button. */}
           {v ? (
             <span style={goldTag}>
-              {v.streak >= 3 ? "★ Vault — mastered" : t("In vault — redo schedule pe hai", "In vault — on the redo schedule")}
+              {v.streak >= 3 ? "★ Vault: mastered" : t("In vault, redo schedule pe hai", "In vault, on the redo schedule")}
               {v.last_reason ? ` · ${reasonLabel(v.last_reason).toLowerCase()}` : ""}
             </span>
           ) : flagged ? (
@@ -1055,7 +1055,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
               disabled={guessBusy}
               style={{ background: "transparent", border: "1px solid var(--c-border-soft, var(--c-border-faint))", color: "var(--c-text-secondary)", borderRadius: 999, padding: "7px 16px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: guessBusy ? 0.6 : 1 }}
             >
-              {guessBusy ? "Sending…" : "I guessed this — send to Vault"}
+              {guessBusy ? "Sending…" : "I guessed this, send it to the Vault"}
             </button>
           ) : a.result === "wrong" && vk != null ? (
             <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>{t("Vault ise khud collect kar leta hai", "The vault collects this on its own")}</span>
@@ -1209,7 +1209,7 @@ export default function ReviewHub({ userData, goPractice, goVault }) {
           kicker="Review"
           title="Your test"
           accent="history."
-          subtitle="Every sitting, newest first — open any to see its full review."
+          subtitle="Every sitting, newest first. Open any to see its full review."
         />
       </header>
 

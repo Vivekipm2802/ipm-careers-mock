@@ -1225,10 +1225,10 @@ console.log("\n[13] language toggle — English default, Hinglish opt-in");
   let html = clean(ReactDOMServer.renderToString(React.createElement(Dashboard, { userData: dashUser })));
   stateQueue = null;
   check(/Today.{0,8}s plan, thought through/.test(html), "dashboard EN: plan card reads 'Today's plan, thought through'");
-  check(html.includes("whatever you skip returns tomorrow"), "dashboard EN: approved sub-line ('suggestions, not orders…')");
+  check(html.includes("Skip one and it comes back tomorrow"), "dashboard EN: sub-line (humanized Sep 2026: 'these are suggestions, not orders…')");
   check(html.includes("Finish Profit and Loss (Moderate)"), "dashboard EN: resume step reads 'Finish …'");
   check(html.includes("Mock window is open"), "dashboard EN: mock banner reads 'Mock window is open'");
-  check(html.includes("keep the streak alive"), "dashboard EN: footer reads 'Same time tomorrow — keep the streak alive'");
+  check(html.includes("keep the streak going"), "dashboard EN: footer (humanized Sep 2026: 'Come back tomorrow and keep the streak going')");
   check(html.includes("See the full week"), "dashboard EN: week link reads 'See the full week'");
   check(html.includes("No class today"), "dashboard EN: empty classes card is English");
   check(

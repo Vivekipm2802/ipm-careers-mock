@@ -26,24 +26,24 @@ const PLAN_TOUR_STEPS = (t) => [
     target: "[data-tour='plan-stats']",
     title: t("Countdown se plan tak", "From countdown to plan"),
     desc: t(
-      "Exam tak kitna time, aur aaj kya karna hai — sab ek jagah.",
-      "How long till the exam, and what to do today — all in one place."
+      "Exam tak kitna time, aur aaj kya karna hai, sab ek jagah.",
+      "How long till the exam, and what to do today, all in one place."
     ),
   },
   {
     target: "[data-tour='plan-tasks']",
     title: t("Aaj ke kaam", "Today's tasks"),
     desc: t(
-      "Ye cards tumhari accuracy se bante hain — sabse zaroori pehle.",
-      "These cards are built from your accuracy — most important first."
+      "Ye cards tumhari accuracy se bante hain, sabse zaroori pehle.",
+      "These cards are built from your accuracy, most important first."
     ),
   },
   {
     target: "[data-tour='plan-week']",
     title: t("Poora hafta", "The full week"),
     desc: t(
-      "Har din ka plan — click karke seedha us kaam pe jao.",
-      "A plan for every day — click to jump straight to that task."
+      "Har din ka plan, click karke seedha us kaam pe jao.",
+      "A plan for every day, click to jump straight to that task."
     ),
   },
 ];
@@ -298,14 +298,14 @@ export default function AdaptivePlan({ userData }) {
             30,
           ],
           ["This week's focus", plan.task2 ? shortName(plan.task2.subject || "").replace(/Topic-wise\s*/i, "") || "Revision" : "—", plan.task2 ? `${shortName(plan.task2.chapter)}${plan.task3 ? " · " + shortName(plan.task3.chapter) : ""}` : "take a test to unlock", 21],
-          ["Sunday", "Full mock", "fixed every week — exam rhythm", 21],
+          ["Sunday", "Full mock", "fixed every week, exam rhythm", 21],
         ].map(([l, v, cap, size], i, arr) => (
           <div key={l} style={{ padding: "4px 34px 4px 0", marginRight: 34, borderRight: i < arr.length - 1 ? "1px solid var(--c-border-faint)" : "none" }}>
             <div className="flex items-center gap-2" style={{ fontSize: 11, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--c-text-tertiary)" }}>
               {l}
               {i === 0 && !EXAM_CONFIRMED && (
                 <span
-                  title="IIM Indore hasn't announced the official IPMAT 2027 date yet — this counts to the expected window and will adjust when it's out."
+                  title="IIM Indore hasn't announced the official IPMAT 2027 date yet, this counts to the expected window and will adjust when it's out."
                   style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", color: "var(--c-brand-gold)", background: "var(--c-brand-gold-tint)", borderRadius: 999, padding: "2px 8px", textTransform: "uppercase", cursor: "help" }}
                 >
                   expected
@@ -326,14 +326,14 @@ export default function AdaptivePlan({ userData }) {
         <span style={sectMeta}>{dateLine} · {tasksDone} of 3 done</span>
       </div>
       <div className="max-w-[860px]" style={card} data-tour="plan-tasks">
-        {taskRow(1, missionsDone, "Daily missions — Sim Room", "Quiz, Gulp and Skip or Solve — the daily base.", () => setCTXSlug("dsbchallenge"), "Open →")}
+        {taskRow(1, missionsDone, "Daily missions. Sim Room", "Quiz, Gulp and Skip or Solve, the daily base.", () => setCTXSlug("dsbchallenge"), "Open →")}
         {taskRow(
           2,
           doneToday(plan.task2),
           plan.task2 ? `Concept test — ${shortName(plan.task2.chapter)}` : "Take your first concept test",
           plan.task2
             ? plan.task2.cls === "new"
-              ? "Fresh territory — the plan starts mapping you from here."
+              ? "Fresh territory, the plan starts mapping you from here."
               : `Your weakest chapter: ${plan.task2.acc}% over ${plan.task2.tests} ${Number(plan.task2.tests) === 1 ? "test" : "tests"}. Fixing this moves your score most.`
             : "Once you have history, this slot targets your weakest chapter.",
           () => (plan.task2 ? openChapter(plan.task2) : setCTXSlug("play")),
@@ -345,7 +345,7 @@ export default function AdaptivePlan({ userData }) {
           plan.task3 ? (plan.task3.cls === "new" ? `First look — ${shortName(plan.task3.chapter)}` : `Concept test — ${shortName(plan.task3.chapter)}`) : "Explore a new chapter",
           plan.task3
             ? plan.task3.cls === "new"
-              ? "Never attempted — unexplored chapters hide easy marks."
+              ? "Never attempted, unexplored chapters hide easy marks."
               : `${plan.task3.acc}% over ${plan.task3.tests} ${Number(plan.task3.tests) === 1 ? "test" : "tests"} — next on the list.`
             : "Pick any chapter you haven't met yet.",
           () => (plan.task3 ? openChapter(plan.task3) : setCTXSlug("play")),
@@ -420,12 +420,12 @@ export default function AdaptivePlan({ userData }) {
             : isToday
               ? `today · ${tasksDone} of 3 done`
               : isMock
-                ? "the big one — keep the morning free"
+                ? "the big one, keep the morning free"
                 : entry.vault
                   ? "redo this week's wrong answers"
                   : entry.chapter
                     ? "tap to start now"
-                    : "light day — revise at your pace";
+                    : "light day, revise at your pace";
           return (
             <div
               key={dw}

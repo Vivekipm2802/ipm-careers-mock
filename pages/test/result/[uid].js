@@ -656,7 +656,7 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
                     <button
                       onClick={() => toggleLucky(q.id)}
                       disabled={luckyBusy === q.id}
-                      title={luckyIds[String(q.id)] ? "Undo — remove it from the vault" : "Be honest — the vault will make sure you actually know it"}
+                      title={luckyIds[String(q.id)] ? "Undo, remove it from the vault" : "Be honest, the vault will make sure you actually know it"}
                       style={
                         luckyIds[String(q.id)]
                           ? {
@@ -676,7 +676,7 @@ const ResultPage = ({ result, questions: ssrQuestions }) => {
                             }
                       }
                     >
-                      {luckyIds[String(q.id)] ? "Lucky guess — vault mein practice hoga" : "Guessed this one?"}
+                      {luckyIds[String(q.id)] ? "Lucky guess, vault mein practice hoga" : "Guessed this one?"}
                     </button>
                   )}
                   {interval > 0 && (

@@ -36,7 +36,7 @@ export function computeBadges(stats, totalXp) {
     { id: "century-club", section: "Mocks & Tests", tier: "epic", em: "🏛️", name: "Century Club", desc: "100 tests attempted", unlocked: (s.test_count || 0) >= 100, progress: prog(s.test_count || 0, 100, `${Math.min(s.test_count || 0, 100)} / 100 tests`) },
     // ── Skill Trainers ──
     { id: "decision-maker", section: "Skill Trainers", tier: "common", em: "🧠", name: "Decision Maker", desc: "Score 60+ in Skip or Solve", unlocked: sosBest >= 60, progress: prog(sosBest, 60, `best: ${sosBest}`) },
-    { id: "trap-whisperer", section: "Skill Trainers", tier: "rare", em: "🎖️", name: "Trap Whisperer", desc: "Perfect Skip or Solve — no wrong answers, 80+ score", unlocked: !!s.sos_perfect, progress: prog(s.sos_perfect ? 1 : 0, 1, `best: ${sosBest}`) },
+    { id: "trap-whisperer", section: "Skill Trainers", tier: "rare", em: "🎖️", name: "Trap Whisperer", desc: "Perfect Skip or Solve, no wrong answers, 80+ score", unlocked: !!s.sos_perfect, progress: prog(s.sos_perfect ? 1 : 0, 1, `best: ${sosBest}`) },
     { id: "survivor", section: "Skill Trainers", tier: "rare", em: "💀", name: "Survivor", desc: "Survive 10 in Sudden Death", unlocked: (s.sd_best || 0) >= 10, progress: prog(s.sd_best || 0, 10, `best: ${s.sd_best || 0} / 10`) },
     { id: "immortal", section: "Skill Trainers", tier: "epic", em: "☠️", name: "Immortal", desc: "Survive 20 in Sudden Death", unlocked: (s.sd_best || 0) >= 20, progress: prog(s.sd_best || 0, 20, `best: ${s.sd_best || 0} / 20`) },
     { id: "speed-reader", section: "Skill Trainers", tier: "rare", em: "👁️", name: "Speed Reader", desc: "350+ effective WPM in Gulp Protocol", unlocked: (s.gulp_best || 0) >= 350, progress: prog(s.gulp_best || 0, 350, `best: ${s.gulp_best || 0}`) },
@@ -46,7 +46,7 @@ export function computeBadges(stats, totalXp) {
     // ── Levels ──
     { id: "marksman", section: "Levels", tier: "rare", em: "🌟", name: "Marksman", desc: "Reach Level 5", unlocked: lvl.level >= 5, progress: prog(totalXp || 0, 2400, `${(totalXp || 0).toLocaleString()} / 2,400 XP`) },
     { id: "elite", section: "Levels", tier: "epic", em: "💎", name: "Elite", desc: "Reach Level 8", unlocked: lvl.level >= 8, progress: prog(totalXp || 0, 7000, `${(totalXp || 0).toLocaleString()} / 7,000 XP`) },
-    { id: "air-1-material", section: "Levels", tier: "legendary", em: "👑", name: "AIR 1 Material", desc: "Reach Level 10 — the vault's crown", unlocked: lvl.level >= 10, progress: prog(totalXp || 0, 12500, `${(totalXp || 0).toLocaleString()} / 12,500 XP`) },
+    { id: "air-1-material", section: "Levels", tier: "legendary", em: "👑", name: "AIR 1 Material", desc: "Reach Level 10, the vault's crown", unlocked: lvl.level >= 10, progress: prog(totalXp || 0, 12500, `${(totalXp || 0).toLocaleString()} / 12,500 XP`) },
   ];
 }
 

@@ -52,8 +52,8 @@ const VAULT_TOUR_STEPS = (t) => [
     target: "[data-tour='vault-redo'], [data-tour='vault-list']",
     title: t("Roz ka kaam", "The daily job"),
     desc: t(
-      "Bas is Start se shuru karo — vault khud prioritize karta hai.",
-      "Just hit Start here — the vault prioritizes for you."
+      "Bas Start dabao. Vault khud order decide karta hai.",
+      "Just hit Start. The vault decides the order for you."
     ),
   },
   {
@@ -68,8 +68,8 @@ const VAULT_TOUR_STEPS = (t) => [
     target: "[data-tour='vault-chapters']",
     title: t("Chapter kholo", "Open a chapter"),
     desc: t(
-      "Weakest chapter sabse upar. Row kholo — us chapter ke saare questions andar.",
-      "Weakest chapter sits on top. Open a row — every question from that chapter is inside."
+      "Weakest chapter sabse upar. Row kholo, us chapter ke saare questions andar hain.",
+      "Weakest chapter sits on top. Open a row to see every question from that chapter."
     ),
   },
 ];
@@ -197,7 +197,7 @@ export function returnsLabel(st, now = new Date()) {
 }
 
 // Pure: aggregate vault items (must carry .st = vaultState) into
-// chapter rows for the "By chapter — weakest first" list.
+// chapter rows for the "By chapter, weakest first" list.
 // The mapping, documented:
 //  · total     = every item filed under the chapter INCLUDING the
 //    mastered ones — the green bar fraction is mastered/total, so
@@ -581,9 +581,9 @@ export default function MistakeVault({ userData }) {
     setFlash(
       correct
         ? masteredNow
-          ? { text: "Third clean redo — MASTERED. It leaves the vault forever.", tone: "var(--c-brand-gold)" }
+          ? { text: "Third clean redo. MASTERED. It leaves the vault for good.", tone: "var(--c-brand-gold)" }
           : { text: `Right — climbs the ladder. Next redo in ${LADDER_DAYS[newStreak]} days.`, tone: "var(--c-success)" }
-        : { text: "Still bites. Back to day 3 — you'll see it again soon.", tone: "var(--c-danger)" }
+        : { text: "Still bites. Back to day 3, you'll see it again soon.", tone: "var(--c-danger)" }
     );
   };
 
@@ -600,9 +600,9 @@ export default function MistakeVault({ userData }) {
     setFlash(
       correct
         ? masteredNow
-          ? { text: "Third clean redo — MASTERED. It leaves the vault forever.", tone: "var(--c-brand-gold)" }
+          ? { text: "Third clean redo. MASTERED. It leaves the vault for good.", tone: "var(--c-brand-gold)" }
           : { text: `Right — climbs the ladder. Next redo in ${LADDER_DAYS[newStreak]} days.`, tone: "var(--c-success)" }
-        : { text: "Still bites. Back to day 3 — you'll see it again soon.", tone: "var(--c-danger)" }
+        : { text: "Still bites. Back to day 3, you'll see it again soon.", tone: "var(--c-danger)" }
     );
   };
 
@@ -670,7 +670,7 @@ export default function MistakeVault({ userData }) {
       });
       const j = await r.json();
       if (!r.ok || !j.explanation) {
-        setExplain({ error: t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit.") });
+        setExplain({ error: t("Samjhao abhi available nahi. Thodi der mein try karo.", "Samjhao isn't available right now. Try again in a bit.") });
         return;
       }
       setExplain({ text: j.explanation });
@@ -678,7 +678,7 @@ export default function MistakeVault({ userData }) {
       await supabase.from("doubt_requests").insert({ user: userData.email, question_id: q.question_id });
       await supabase.from("doubt_explanations").insert({ question_id: q.question_id, explanation: j.explanation });
     } catch (e) {
-      setExplain({ error: t("Samjhao abhi available nahi — thodi der mein try karo.", "Samjhao isn't available right now — try again in a bit.") });
+      setExplain({ error: t("Samjhao abhi available nahi. Thodi der mein try karo.", "Samjhao isn't available right now. Try again in a bit.") });
     }
   };
 
@@ -798,7 +798,7 @@ export default function MistakeVault({ userData }) {
               kicker="Review"
               title="Mistake"
               accent="Vault."
-              subtitle="Every missed question, collected automatically — redo on schedule and it leaves forever."
+              subtitle="Every missed question lands here on its own. Redo it on schedule and it leaves for good."
               right={
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 18 }}>
                   <button
@@ -829,8 +829,8 @@ export default function MistakeVault({ userData }) {
               <div style={{ display: "block", fontSize: 15, fontWeight: 700, marginBottom: 14, color: "var(--c-text-primary)" }}>⚡ How the vault works</div>
               {[
                 ["1", "Galti pakdi gayi.", "Every question you get wrong in any test lands here automatically. Nothing to add, nothing to maintain."],
-                ["2", "Beat it 3 times.", "Redo it correctly after 3 days → again after 7 → again after 21. Three clean wins and it's mastered forever — it leaves the vault."],
-                ["3", "No cheating the gap.", "A wrong redo resets the ladder to day 3. Locked questions unlock only when due — the waiting is what makes it stick."],
+                ["2", "Beat it 3 times.", "Redo it correctly after 3 days, then 7, then 21. Three clean wins and it leaves the vault for good."],
+                ["3", "No cheating the gap.", "A wrong redo resets the ladder to day 3. Locked questions open only when due. The gap is what makes it stick."],
               ].map(([n, b, rest]) => (
                 <div key={n} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
                   <span style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, width: 22, height: 22, borderRadius: 999, background: "var(--c-brand-gold-tint)", border: "1px solid var(--c-border-faint)", color: "var(--c-brand-gold)", fontSize: 12, fontWeight: 700, marginTop: 1 }}>{n}</span>
@@ -864,7 +864,7 @@ export default function MistakeVault({ userData }) {
                 rows={3}
                 value={addQ}
                 onChange={(e) => setAddQ(e.target.value)}
-                placeholder="Type or paste it — from a book, a class, anywhere."
+                placeholder="Type or paste it from a book, a class, anywhere."
                 style={{ width: "100%", background: "var(--c-surface-muted, var(--c-bg))", border: "1px solid var(--c-border-faint)", borderRadius: 12, color: "var(--c-text-primary)", fontFamily: "inherit", fontSize: 14, padding: "12px 14px", resize: "vertical" }}
               />
               <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", margin: "14px 0 7px" }}>
@@ -939,8 +939,8 @@ export default function MistakeVault({ userData }) {
                       : redosToday >= DAILY_CAP
                         ? due.length > 0
                           ? `Done for today — ${due.length} still due, back on the list tomorrow.`
-                          : "Done for today — the vault rests."
-                        : "Nothing due — the vault is calm."}
+                          : "Done for today."
+                        : "Nothing due today."}
                   </div>
                 </div>
                 {n > 0 && (
@@ -1005,7 +1005,7 @@ export default function MistakeVault({ userData }) {
             </div>
           )}
 
-          {/* chapter head — "By chapter — weakest first" + Source dropdown.
+          {/* chapter head — "By chapter, weakest first" + Source dropdown.
               zIndex: the dropdown menu must paint above the list card. */}
           <div className="flex items-center justify-between flex-wrap gap-2.5 mt-7 mb-2.5 max-w-[860px]" data-tour="vault-chapters" style={{ position: "relative", zIndex: 70 }}>
             <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>
@@ -1030,8 +1030,8 @@ export default function MistakeVault({ userData }) {
             {items !== null && chapterRows.length === 0 && (
               <div style={{ padding: "16px 22px", fontSize: 13, color: "var(--c-text-tertiary)" }}>
                 {sourceFilter
-                  ? "Nothing from this source yet — switch it back to All."
-                  : "No mistakes collected yet. Take a concept test — anything you miss lands here automatically."}
+                  ? "Nothing from this source yet, switch it back to All."
+                  : "No mistakes collected yet. Take a concept test and anything you miss lands here on its own."}
               </div>
             )}
             {chapterRows.map((g, gi) => {
@@ -1090,7 +1090,7 @@ export default function MistakeVault({ userData }) {
                         <div
                           key={it.question_id}
                           onClick={!it.st.mastered && it.st.dueNow ? () => startSession([it]) : undefined}
-                          title={it.st.mastered ? "Mastered — beaten three times, spaced apart" : it.st.dueNow ? "Redo this one now" : "Locked until it's due — that's how the memory science works"}
+                          title={it.st.mastered ? "Mastered: right three times, spaced apart" : it.st.dueNow ? "Redo this one now" : "Locked until it's due. That gap is the point."}
                           className="flex items-center gap-3 group"
                           style={{ padding: "10px 0", borderBottom: i < rows.length - 1 ? "1px solid var(--c-border-faint)" : "none", cursor: !it.st.mastered && it.st.dueNow ? "pointer" : "default" }}
                         >
@@ -1291,7 +1291,7 @@ export default function MistakeVault({ userData }) {
                 <span style={{ color: correct ? "var(--c-success)" : "var(--c-danger)", fontWeight: 700 }}>{correct ? "✓" : "✗"}</span>
                 <span className="min-w-0 flex-1" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{snippet(mq)}</span>
                 <span style={{ marginLeft: "auto", fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, fontWeight: 600, whiteSpace: "nowrap", color: masteredNow ? "var(--c-brand-gold)" : correct ? "var(--c-success)" : "var(--c-danger)" }}>
-                  {masteredNow ? "★ MASTERED — leaves the vault" : correct ? `↑ next redo in ${LADDER_DAYS[newStreak] ?? 21} days` : "↓ back to day 3"}
+                  {masteredNow ? "★ MASTERED, out of the vault" : correct ? `↑ next redo in ${LADDER_DAYS[newStreak] ?? 21} days` : "↓ back to day 3"}
                 </span>
               </div>
             ))}

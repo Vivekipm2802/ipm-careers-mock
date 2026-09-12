@@ -53,24 +53,24 @@ const PYQ_TOUR_STEPS = (t) => [
     target: "[data-tour='pyq-filters']",
     title: t("Filter karo", "Filter it down"),
     desc: t(
-      "Year, topic, status — jo chahiye wahi dikhega.",
-      "Year, topic, status — see exactly what you want."
+      "Year, topic ya status se filter karo.",
+      "Filter by year, topic or status."
     ),
   },
   {
     target: "[data-tour='pyq-palette']",
     title: t("Tumhara naksha", "Your map"),
     desc: t(
-      "Green sahi, red galat, khali baaki — apni history ek nazar mein.",
-      "Green right, red wrong, blank untouched — your history at a glance."
+      "Green sahi, red galat, khali untouched.",
+      "Green is right, red is wrong, blank is untouched."
     ),
   },
   {
     target: "[data-tour='pyq-reader']",
     title: t("Solve aur check", "Solve and check"),
     desc: t(
-      "Answer type karo, Check dabao — portal hamesha yaad rakhega.",
-      "Type your answer, hit Check — the portal remembers forever."
+      "Answer type karo aur Check dabao. Portal yaad rakhega.",
+      "Type your answer and hit Check. The portal remembers it."
     ),
   },
 ];
@@ -1450,7 +1450,7 @@ function Shelf({ exams, meta, attempts, onPick }) {
         kicker="PYQ Papers"
         title="Every past paper, every"
         accent="exam."
-        subtitle="Real questions from previous years — filter, attempt, track."
+        subtitle="Real questions from past papers. Filter, attempt, track."
       />
 
       {/* Open stat strip — no boxes, hairline separators */}
@@ -2366,7 +2366,7 @@ function QuestionReader({
             <>
               {verdict && (
                 <div style={{ marginBottom: 10, fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: verdict === "right" ? "var(--c-success)" : "var(--c-danger)" }}>
-                  {verdict === "right" ? "Correct — well done" : "Not quite — compare with the answer below"}
+                  {verdict === "right" ? "Correct, well done" : "Not quite. Compare with the answer below."}
                 </div>
               )}
               <div

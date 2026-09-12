@@ -28,7 +28,7 @@ export const QUIZ_LENGTH = 10;
 export function verdictFor(right, total) {
   const pct = total ? right / total : 0;
   if (pct === 1)
-    return "Perfect 10. Every student in India saw these same questions today — and you cleared the board. Screenshot-worthy.";
+    return "Perfect 10. Every student in India saw these questions today and you cleared the board.";
   if (pct >= 0.8)
     return `${right}/${total} — strong. The ones you missed are today's revision list; fix them while they're fresh.`;
   if (pct >= 0.5)

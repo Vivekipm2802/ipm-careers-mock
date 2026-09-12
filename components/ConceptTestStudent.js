@@ -342,7 +342,7 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
   // here; the collections page owns the cross-source signals).
   function suggestReason(p) {
     return p.attemptedCount === 2
-      ? "under 50% both attempts — worth a revisit"
+      ? "under 50% in both attempts, worth a revisit"
       : `under 50% across ${p.attemptedCount} attempts — worth a revisit`;
   }
 
@@ -377,7 +377,7 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
         kicker="Concept tests"
         title="Master each topic, one concept at a"
         accent="time."
-        subtitle="Easy / Moderate / Difficult per topic — start at your level, work up."
+        subtitle="Easy, Moderate and Difficult per topic. Start at your level and work up."
       />
 
       {/* ── Empty state ── */}
@@ -833,7 +833,7 @@ function LevelDrawer({ mCat, levels, plays, isAdmin, onClose, onStart, onViewRes
                       fontSize: 11, fontWeight: 500, cursor: "pointer",
                       fontFamily: "inherit", whiteSpace: "nowrap",
                     }}
-                    title="Open in preview mode — no play will be recorded"
+                    title="Open in preview mode. No play is recorded."
                   >
                     ⊙ Preview
                   </button>

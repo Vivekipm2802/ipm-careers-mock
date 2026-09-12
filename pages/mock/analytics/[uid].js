@@ -426,7 +426,7 @@ export default function MockAnalytics({ result }) {
                   ? { text: `↑ from ${prevMock.attempted} last mock`, tone: "up" }
                   : total.attempted < prevMock.attempted
                   ? { text: `↓ from ${prevMock.attempted} last mock`, tone: "dn" }
-                  : { text: "flat — room to grow" }
+                  : { text: "flat, room to grow" }
                 : null
             }
           />

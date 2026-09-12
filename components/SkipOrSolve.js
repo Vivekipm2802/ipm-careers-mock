@@ -79,12 +79,12 @@ export function applyCall(s, verdict) {
 
 export function verdictFor(s) {
   if (s.bad === 0 && s.timeouts === 0 && s.good >= 8)
-    return "Elite judgement. You read every question for what it was — this is exactly the exam temperament IIM Indore rewards.";
+    return "You read every question for what it was. That is exam temperament.";
   if (s.bad >= 4)
-    return `${s.bad} wrong calls. You're either solving traps or skipping sitters — in IPMAT both cost rank. Re-read the whys below; they're the pattern.`;
+    return `${s.bad} wrong calls. You're either solving traps or skipping sitters, in IPMAT both cost rank. Re-read the whys below; they're the pattern.`;
   if (s.timeouts >= 3)
     return `${s.timeouts} timeouts. A non-decision loses the streak AND the question. Train the gut: long and multi-step means skip, clean single-concept means solve.`;
-  return "Solid judgement. You're reading most questions correctly — push for a clean 10 and protect the streak.";
+  return "Solid judgement. You're reading most questions right. Push for a clean 10.";
 }
 
 const RING_C = 2 * Math.PI * 27; // circumference for r=27
@@ -325,7 +325,7 @@ export default function SkipOrSolve({ userData, onExit, onSimComplete, banked })
       ? { label: "Good call · +1", color: "var(--c-success)", bg: "var(--c-success-soft)" }
       : v === "bad"
       ? { label: "Wrong call · −1", color: "var(--c-danger)", bg: "var(--c-danger-soft)" }
-      : { label: "Out of time · 0 — streak resets", color: "var(--c-text-tertiary)", bg: "var(--c-surface-muted, var(--c-bg))" };
+      : { label: "Out of time · 0, streak resets", color: "var(--c-text-tertiary)", bg: "var(--c-surface-muted, var(--c-bg))" };
 
   // One row of the end summary / review list.
   const renderRoundRow = (rec, i) => {
@@ -480,7 +480,7 @@ export default function SkipOrSolve({ userData, onExit, onSimComplete, banked })
                 {verdictChrome(verdict.v).label}
               </div>
               <div style={{ fontSize: 12.5, color: "var(--c-text-secondary)", marginTop: 4 }}>
-                This was a <b style={{ color: "var(--c-brand-gold)" }}>{verdict.item?.kind === "scorer" ? "scorer — solve it" : "trap — skip it"}</b>.
+                This was a <b style={{ color: "var(--c-brand-gold)" }}>{verdict.item?.kind === "scorer" ? "scorer, solve it" : "trap, skip it"}</b>.
               </div>
               <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--c-text-secondary)", marginTop: 8 }}>
                 {verdict.item?.why}

@@ -187,7 +187,7 @@ export default async function handler(req, res) {
             {
               role: "system",
               content:
-                'You are a helpful assistant that generates unique and diverse Reading Comprehension (RC) quiz for students. Respond in JSON with the following structure: {"passage": "...", "questions": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..."}]}. The passage should be a minimum of 300 words (at least 300 words), and there should be 3-5 questions. Each question must have 4 options, one correct answer, and a brief explanation.',
+                'You are a helpful assistant that generates unique and diverse Reading Comprehension (RC) quiz for students. Respond in JSON with the following structure: {"passage": "...", "questions": [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "..."}]}. The passage should be a minimum of 300 words (at least 300 words), and there should be 3-5 questions. Each question must have 4 options, one correct answer, and a brief explanation. Style rules: write like a human exam-setter, never use em dashes (—), avoid stock AI phrasing (no "delve", "landscape", "testament", "not just X but Y"), and vary sentence length naturally.',
             },
             {
               role: "user",

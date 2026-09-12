@@ -548,7 +548,7 @@ function RecordingsPanel({ currentBatch }) {
           xhr.status >= 200 && xhr.status < 300
             ? resolve()
             : reject(new Error("Upload failed (HTTP " + xhr.status + ")"));
-        xhr.onerror = () => reject(new Error("Upload failed — network error"));
+        xhr.onerror = () => reject(new Error("Upload failed, network error"));
         xhr.send(file);
       } catch (e) {
         reject(e);

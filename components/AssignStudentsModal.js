@@ -407,7 +407,7 @@ export default function AssignStudentsModal({
                           <span className="flex items-center gap-1 ml-auto">
                             <input
                               type="date"
-                              title="Effective start date — recordings before this date stay hidden for this student (empty = no limit)"
+                              title="Effective start date, recordings before this date stay hidden for this student (empty = no limit)"
                               className="text-xs border border-default-200 rounded-md px-1.5 py-0.5 text-default-600 bg-transparent"
                               value={admit.effective_start_date || ""}
                               onChange={async (e) => {

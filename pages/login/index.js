@@ -89,7 +89,7 @@ function Login() {
         return null;
       }
       setLoading(false); toast.remove(r);
-      toast.success("Confirmation email sent — check your inbox.");
+      toast.success("Confirmation email sent, check your inbox.");
       setIsSignUp(false);
     } else if (error) {
       setLoading(false); toast.remove(r);
@@ -183,7 +183,7 @@ function Login() {
         <title>Student Login — IPM Careers Study Portal</title>
         <meta
           name="description"
-          content="Sign in to the IPM Careers study portal — full-length IPMAT mocks, concept tests, PYQ practice and daily quizzes for IPMAT, JIPMAT and IIM Bangalore UG aspirants."
+          content="Sign in to the IPM Careers study portal, full-length IPMAT mocks, concept tests, PYQ practice and daily quizzes for IPMAT, JIPMAT and IIM Bangalore UG aspirants."
         />
       </Head>
       <div className={styles.page}>
@@ -235,7 +235,7 @@ function Login() {
         {/* ── Brand panel (desktop) — matches ipmcareer.com's gold editorial look ── */}
         <div className={styles.brandSide}>
           <a className={styles.brandLogo} href="https://ipmcareer.com/">
-            <img src="/newlog.svg" alt="IPM Careers — Run by IIM Alumni" />
+            <img src="/newlog.svg" alt="IPM Careers. Run by IIM Alumni" />
           </a>
           <div className={styles.brandCopy}>
             <div className={styles.brandEyebrow}>IPM Careers Study Panel</div>

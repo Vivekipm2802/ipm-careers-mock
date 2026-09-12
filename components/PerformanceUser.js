@@ -435,7 +435,7 @@ export default function PerformanceUser() {
           <div style={cardSub}>your last {Math.max(seq.length, 1)} concept tests, oldest to latest</div>
           {seq.length < 3 ? (
             <div style={emptyTxt}>
-              {plays === null ? "Reading your test history…" : "Three scored tests and your trend line appears here — the single most honest graph on this page."}
+              {plays === null ? "Reading your test history…" : "Three scored tests and your trend line appears here, the single most honest graph on this page."}
             </div>
           ) : (
             <>
@@ -457,8 +457,8 @@ export default function PerformanceUser() {
               </div>
               <div style={{ fontSize: 12, marginTop: 12, fontWeight: 500, color: trendUp ? "var(--c-success)" : "var(--c-danger)" }}>
                 {trendUp
-                  ? t("Trend upar hai — jo chal raha hai, mat chhedo.", "Trend is up — don't touch what's working.")
-                  : t("Trend gir raha hai — plan ke attack chapters pe focus karo.", "Trend is slipping — focus on the plan's attack chapters.")}
+                  ? t("Trend upar hai, jo chal raha hai, mat chhedo.", "Trend is up, don't touch what's working.")
+                  : t("Trend gir raha hai, plan ke attack chapters pe focus karo.", "Trend is slipping, focus on the plan's attack chapters.")}
               </div>
             </>
           )}
