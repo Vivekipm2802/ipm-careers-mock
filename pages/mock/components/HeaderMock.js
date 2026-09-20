@@ -12,7 +12,7 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { Calculator, LogOut } from "lucide-react";
 
-export default function HeaderMock({ title, state, userData, openCalculator, remainingTime, calc }) {
+export default function HeaderMock({ title, state, userData, openCalculator, remainingTime, calc, sectionLocked }) {
   const [text, SetText] = useState("");
   const [textToEnter] = useState("Cancel");
   const router = useRouter();
@@ -179,7 +179,7 @@ export default function HeaderMock({ title, state, userData, openCalculator, rem
               background: "currentColor",
               animation: "ipm-timer-blink 2s ease-in-out infinite",
             }} />
-            {convertSeconds(remainingTime)} <span style={{ fontWeight: 500, opacity: 0.75 }}>left</span>
+            {convertSeconds(remainingTime)} <span style={{ fontWeight: 500, opacity: 0.75 }}>{sectionLocked ? "left in section" : "left"}</span>
           </div>
         )}
       </div>

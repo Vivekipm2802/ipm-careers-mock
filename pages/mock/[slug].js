@@ -1252,6 +1252,7 @@ const MockTest = ({
           key={config?.title}
           calc={config?.config?.calculator_allowed ?? false}
           remainingTime={totalSeconds}
+          sectionLocked={gamestate === 1 && config?.config?.switch_section === false}
           openCalculator={() => {
             setCalculatorActive(true);
           }}
