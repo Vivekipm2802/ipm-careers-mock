@@ -2161,6 +2161,7 @@ function QuestionReader({
               marginBottom: 22,
               maxWidth: "68ch",
               textAlign: "left",
+              whiteSpace: "pre-line", // book-import PYQs separate passage/stem with blank lines
             }}
           >
             {qt}
