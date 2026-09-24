@@ -5,18 +5,20 @@
 // tables (mock_plays / plays / daily_rc_submissions) via RPCs —
 // no new writes, cheat-proof, and retroactive: students get their
 // historical XP the moment this ships.
-// Phase B ports the four skill trainers; Phase C adds badges +
-// ranked Duels. Cards for those are shown as "coming soon".
+// 2026-09: Duels retired (57 lifetime runs vs 600+ for the other
+// trainers) and replaced by Weekly DI — one data-interpretation
+// set per week, resets Monday. Duels.js stays in the repo but has
+// no entry point.
 // ============================================================
 
 import { supabase } from "@/utils/supabaseClient";
 import { useEffect, useMemo, useState } from "react";
 import { useNMNContext } from "./NMNContext";
-import { Flame, Target, Swords, Skull, Zap, ArrowRight } from "lucide-react";
+import { Flame, Target, BarChart3, Skull, Zap, ArrowRight } from "lucide-react";
 import SkipOrSolve from "./SkipOrSolve";
 import SuddenDeath from "./SuddenDeath";
 import GulpProtocol from "./GulpProtocol";
-import Duels from "./Duels";
+import WeeklyDI, { startOfWeekISO } from "./WeeklyDI";
 import DailyQuiz from "./DailyQuiz";
 import BadgeVault from "./BadgeVault";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
@@ -81,6 +83,7 @@ export default function DSBChallenge({ userData }) {
   const [todayQuiz, setTodayQuiz] = useState(false);
   const [todayGulp, setTodayGulp] = useState(false);
   const [todaySos, setTodaySos] = useState(false);
+  const [weekDi, setWeekDi] = useState(false); // Weekly DI banked this ISO week?
   const [activeTrainer, setActiveTrainer] = useState(null); // trainer id | null
   // Sim Room: { stage: 0|1|2, results: { quiz, gulp, sos } } or null
   const [sim, setSim] = useState(null);
@@ -115,6 +118,16 @@ export default function DSBChallenge({ userData }) {
         setTodayGulp(done.has("gulp-protocol"));
         setTodaySos(done.has("skip-or-solve"));
       });
+
+    // Weekly DI runs on a weekly clock (resets Monday), not daily
+    supabase
+      .from("trainer_runs")
+      .select("id")
+      .eq("user", userData.email)
+      .eq("trainer", "weekly-di")
+      .gte("created_at", startOfWeekISO())
+      .limit(1)
+      .then(({ data }) => setWeekDi(Boolean(data && data.length)));
   }, [userData?.email, activeTrainer, sim]);
 
   const lvl = useMemo(() => levelFromXp(xp?.total_xp || 0), [xp]);
@@ -197,7 +210,7 @@ export default function DSBChallenge({ userData }) {
   const trainers = [
     { Icon: Target, name: "Skip or Solve", tag: "Decision trainer", desc: "8 seconds a question. Solve the scorers, skip the traps.", live: true, done: todaySos, open: () => setActiveTrainer("skip-or-solve") },
     { Icon: Zap, name: "Gulp Protocol", tag: "Speed reading", desc: "Process 3–5 word chunks at 350+ WPM. Built for VA's reading load.", live: true, done: todayGulp, open: () => setActiveTrainer("gulp-protocol") },
-    { Icon: Swords, name: "Duels", tag: "1v1 battle arena", desc: "Five-question MCQ battles vs bots. Ranked mode arrives with Phase C.", live: true, open: () => setActiveTrainer("duels") },
+    { Icon: BarChart3, name: "Weekly DI", tag: "Data interpretation · resets Monday", desc: "One table or caselet, five questions, one attempt a week. Exam-style: no feedback until you submit.", live: true, done: weekDi, doneLabel: "Review this week's run", open: () => setActiveTrainer("weekly-di") },
     { Icon: Skull, name: "Sudden Death", tag: "One wrong = out", desc: "No second chances. How long can you survive?", red: true, live: true, open: () => setActiveTrainer("sudden-death") },
   ];
 
@@ -284,8 +297,8 @@ export default function DSBChallenge({ userData }) {
   if (activeTrainer === "gulp-protocol") {
     return <GulpProtocol userData={userData} banked={todayGulp} onExit={() => setActiveTrainer(null)} />;
   }
-  if (activeTrainer === "duels") {
-    return <Duels userData={userData} onExit={() => setActiveTrainer(null)} />;
+  if (activeTrainer === "weekly-di") {
+    return <WeeklyDI userData={userData} onExit={() => setActiveTrainer(null)} />;
   }
 
   return (
@@ -404,7 +417,7 @@ export default function DSBChallenge({ userData }) {
         <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>unique to IPM Careers</span>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8" data-tour="dsb-trainers">
-        {trainers.map(({ Icon, name, tag, desc, red, live, done, open }) => (
+        {trainers.map(({ Icon, name, tag, desc, red, live, done, doneLabel, open }) => (
           <div
             key={name}
             onClick={live ? open : undefined}
@@ -427,7 +440,7 @@ export default function DSBChallenge({ userData }) {
             <p style={{ fontSize: 12, color: "var(--c-text-secondary)", lineHeight: 1.55 }}>{desc}</p>
             {live ? (
               <div className="inline-flex items-center gap-1.5" style={{ marginTop: 10, fontSize: 11.5, fontWeight: 700, color: done ? "var(--c-success)" : "var(--c-brand-gold)" }}>
-                {done ? "Review today's run" : "Play now"} <ArrowRight size={13} />
+                {done ? doneLabel || "Review today's run" : "Play now"} <ArrowRight size={13} />
               </div>
             ) : (
               <div style={{ marginTop: 10, fontSize: 10.5, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-text-tertiary)" }}>Coming soon</div>

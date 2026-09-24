@@ -62,6 +62,9 @@ const files = [
   "components/SkipOrSolve.js",
   "components/gulpPassages.js",
   "components/sosBank.js",
+  // 2026-09 Weekly DI (Duels retired)
+  "components/WeeklyDI.js",
+  "components/weeklyDIBank.js",
   "lib/trainerReport.js",
   // 2026-09 language toggle: हिं/EN pill + t(hi, en) string sweep
   "lib/lang.js",

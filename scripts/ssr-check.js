@@ -1147,21 +1147,65 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
   // 12h · DSBChallenge — banked affordances
   const DSBChallenge = require(path.join(root, "components", "DSBChallenge.js")).default;
   // state order: xp, board, myRank, todayQuiz, todayGulp, todaySos,
-  // activeTrainer, sim, simSummary (+ BadgeVault child consumes next)
-  stateQueue = [null, [], null, true, true, true, null, null, null];
+  // weekDi, activeTrainer, sim, simSummary (+ BadgeVault child next)
+  stateQueue = [null, [], null, true, true, true, true, null, null, null];
   let html = clean(ReactDOMServer.renderToString(React.createElement(DSBChallenge, { userData: { email: "me@x.com" } })));
   stateQueue = null;
   check(/Review today.{0,8}s runs/.test(html), "dsb all-banked: main card button reads 'Review today's runs'");
   check(!/>Start\s*</.test(html), "dsb all-banked: the bare Start affordance is gone");
   check((html.match(/Review →/g) || []).length >= 3, "dsb all-banked: every banked mission row shows Review");
   check(/Review today.{0,8}s run\s*</.test(html), "dsb all-banked: trainer cards read 'Review today's run'");
+  check(/Review this week.{0,8}s run/.test(html), "dsb all-banked: Weekly DI card carries its own weekly review label");
 
-  stateQueue = [null, [], null, false, false, false, null, null, null];
+  stateQueue = [null, [], null, false, false, false, false, null, null, null];
   html = clean(ReactDOMServer.renderToString(React.createElement(DSBChallenge, { userData: { email: "me@x.com" } })));
   stateQueue = null;
   check(/>Start\s*</.test(html) || html.includes("Start <"), "dsb fresh day: Start button back");
   check(!/Review today.{0,8}s runs/.test(html), "dsb fresh day: no review affordance");
   check(html.includes("Play now"), "dsb fresh day: trainer cards say Play now");
+  // 2026-09 lineup: Duels retired, Weekly DI in its place
+  check(html.includes("Weekly DI") && !html.includes("Duels"),
+    "dsb lineup: Weekly DI card present, Duels entry point gone");
+}
+{
+  // 12i · Weekly DI — bank integrity + Monday-anchored rotation
+  const wdMod = require(path.join(root, "components", "WeeklyDI.js"));
+  const DI_SETS = require(path.join(root, "components", "weeklyDIBank.js")).default;
+  check(DI_SETS.length === 12, `weekly-di bank: ${DI_SETS.length} sets (expected 12)`);
+  check(new Set(DI_SETS.map((s) => s.id)).size === DI_SETS.length, "weekly-di bank: ids unique");
+  check(DI_SETS.every((s) => s.questions.length === 5), "weekly-di bank: every set carries exactly 5 questions");
+  check(DI_SETS.every((s) => ["table", "caselet"].includes(s.kind)), "weekly-di bank: every set is table or caselet (no graphs)");
+  check(DI_SETS.every((s) => typeof s.intro === "string" && s.intro.length > 20), "weekly-di bank: every set carries an intro");
+  check(DI_SETS.filter((s) => s.kind === "table").every((s) => s.table && s.table.head.length >= 2 && s.table.rows.length >= 1 && s.table.rows.every((r) => r.length === s.table.head.length)),
+    "weekly-di bank: table sets have consistent head/row widths");
+  check(DI_SETS.every((s) => s.questions.every((q) => q.o.length === 4 && Number.isInteger(q.a) && q.a >= 0 && q.a < 4)),
+    "weekly-di bank: every question has 4 options and a valid answer index");
+  check(DI_SETS.every((s) => s.questions.every((q) => new Set(q.o.map((o) => String(o).trim())).size === 4)),
+    "weekly-di bank: no duplicate options inside a question");
+  check(DI_SETS.every((s) => s.questions.every((q) => typeof q.e === "string" && q.e.length > 10)),
+    "weekly-di bank: EVERY question carries a worked explanation");
+
+  const { setIndexForWeek, weekNumberFor, dayNumberFor, startOfWeekISO } = wdMod;
+  const n = DI_SETS.length;
+  const cycle0 = Array.from({ length: n }, (_, w) => setIndexForWeek(w, n));
+  const cycle1 = Array.from({ length: n }, (_, w) => setIndexForWeek(n + w, n));
+  check(new Set(cycle0).size === n && new Set(cycle1).size === n,
+    "weekly-di rotation: a full cycle covers all 12 sets with no repeats (cycles 0 and 1)");
+  check(cycle0.every((v, w) => v === setIndexForWeek(w, n)),
+    "weekly-di rotation: deterministic — same week, same set on every call");
+  check(JSON.stringify(cycle0) !== JSON.stringify(cycle1),
+    "weekly-di rotation: consecutive cycles reshuffle the order");
+  // Monday anchoring: Mon 2026-09-21 through Sun 2026-09-27 share a
+  // week number; Mon 2026-09-28 starts the next one.
+  const wk = (y, m, d) => weekNumberFor(new Date(y, m, d));
+  check(wk(2026, 8, 21) === wk(2026, 8, 27) && wk(2026, 8, 28) === wk(2026, 8, 27) + 1,
+    "weekly-di rotation: week number is Monday-anchored (21–27 Sep one week, 28 Sep next)");
+  check(Number.isInteger(dayNumberFor(new Date(2026, 8, 25))),
+    "weekly-di rotation: dayNumberFor returns an integer day index");
+  const sow = new Date(startOfWeekISO(new Date(2026, 8, 25))); // a Friday
+  check(sow.getDay() === 1 && sow.getHours() === 0,
+    "weekly-di query window: startOfWeekISO lands on Monday 00:00 local");
+  check(wdMod.XP_PER_RUN === 40, "weekly-di: run banks +40 XP");
 }
 
 // ── 13 · Language toggle (2026-09) — EN default, Hinglish opt-in ──
