@@ -309,6 +309,13 @@ export const NMNContextProvider = ({ children }) => {
           icon: <CalendarCheck size={20} />,
         },
         {
+          title: "Students",
+          type: "admin",
+          action: "students",
+          id: 241,
+          icon: <UserCog size={20} />,
+        },
+        {
           title: "Teacher Manager",
           type: "admin",
           action: "teacher-manager",

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import ThemeToggle from '@/components/ThemeToggle';
 import LanguageToggle from '@/components/LanguageToggle';
 import XPChip from '@/components/XPChip';
+import ProfileGate from '@/components/ProfileGate';
 
 function DefaultLayout(props){
 
@@ -41,6 +42,7 @@ function DefaultLayout(props){
       <ThemeToggle />
       <LanguageToggle />
       <XPChip />
+      <ProfileGate />
 
       <Modal isOpen={reportActive} onClose={() => { setReportActive(false); }}>
         <ModalContent>

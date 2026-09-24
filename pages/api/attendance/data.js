@@ -48,6 +48,15 @@ async function nameDirectory() {
   } catch (e) {
     /* names optional */
   }
+  // student_profiles names win over auth metadata (Sep 2026 profile form)
+  try {
+    const { data: profs } = await serversupabase
+      .from("student_profiles")
+      .select("email,full_name");
+    for (const p of profs || []) {
+      if (p && p.email && p.full_name) emailToName[String(p.email).toLowerCase()] = p.full_name;
+    }
+  } catch (e) { /* table may not exist yet */ }
   return emailToName;
 }
 
