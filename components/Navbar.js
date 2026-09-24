@@ -26,7 +26,7 @@ import { Lock } from 'lucide-react';
 const SECTIONS = [
   {
     label: '',
-    titles: ['Today', 'Classes', 'Practice', 'Review', 'Progress'],
+    titles: ['Today', 'Classes', 'Practice', 'Review', 'Progress', 'Connect'],
   },
 ];
 
