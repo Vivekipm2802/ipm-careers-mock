@@ -38,8 +38,23 @@ export const NMNContextProvider = ({ children }) => {
   }, [_router.isReady]);
   useEffect(() => {
     if (!_router.isReady || _router.pathname !== "/") return;
-    if (_router.query.p === ctxSlug) return;
-    _router.replace({ pathname: "/", query: { ...(_router.query || {}), p: ctxSlug } }, undefined, { shallow: true });
+    // Cosmetic pretty URL: show /vault instead of /?p=mistakevault. We
+    // bypass Next's router on purpose (replaceState only changes the
+    // address bar); refreshes land on pages/[deepLink].js, which maps the
+    // friendly path back to the right section server-side.
+    const FRIENDLY = {
+      pyqconcept: "pyqs", mocks: "mocks", "sectional-tests": "sectionals",
+      user: "classes", prv: "videos", lvr: "recordings", mistakevault: "vault",
+      reviewhub: "review", performance: "performance", dbts: "doubts",
+      dsbchallenge: "dsb", studyplan: "plan", dashboard: "", pdfs: "ebooks",
+      connect: "connect",
+    };
+    try {
+      if (typeof window !== "undefined") {
+        const pretty = Object.prototype.hasOwnProperty.call(FRIENDLY, ctxSlug) ? "/" + FRIENDLY[ctxSlug] : "/";
+        window.history.replaceState(window.history.state, "", pretty);
+      }
+    } catch (e) { /* cosmetic only */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctxSlug]);
   const [sideBar, setSideBar] = useState(false);
@@ -464,14 +479,6 @@ export const NMNContextProvider = ({ children }) => {
           id: 7,
           icon: <HelpCircle size={20} />,
         },
-        {
-          title: "Connect",
-          type: "user",
-          demo: false,
-          action: "connect",
-          id: 460,
-          icon: <LifeBuoy size={20} />,
-        },
       ],
     },
     {
@@ -489,6 +496,24 @@ export const NMNContextProvider = ({ children }) => {
           action: "performance",
           id: 1,
           icon: <TrendingUp size={20} />,
+        },
+      ],
+    },
+    {
+      title: "Connect",
+      subtitle: "Mentor session ya ticket",
+      demo: true,
+      isExpanded: false,
+      flat: true, // single-item group → clicking "Connect" opens the page directly
+      icon: <LifeBuoy size={22} />,
+      items: [
+        {
+          title: "Connect with us",
+          type: "user",
+          demo: false,
+          action: "connect",
+          id: 460,
+          icon: <LifeBuoy size={20} />,
         },
       ],
     },
