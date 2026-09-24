@@ -135,6 +135,18 @@ export default async function handler(req, res) {
         scoresArr.reduce((a, b) => a + b, 0) / scoresArr.length
       );
 
+      // 2026-09 analytics v5: bucketed score distribution for the
+      // "where you landed" histogram. Aggregate-only (counts per
+      // bucket over maxMarks) — no per-student data leaves here.
+      const distMax = Math.max(1, myRow.s.total.maxMarks);
+      const BUCKETS = 10;
+      const dist = Array.from({ length: BUCKETS }, () => 0);
+      scoresArr.forEach((sc) => {
+        const b = Math.min(BUCKETS - 1, Math.max(0, Math.floor((sc / distMax) * BUCKETS)));
+        dist[b] += 1;
+      });
+      const myBucket = Math.min(BUCKETS - 1, Math.max(0, Math.floor((myRow.s.total.score / distMax) * BUCKETS)));
+
       // SA questions the student left blank — "free marks" habit input.
       const saSkipped = testQuestions.filter(
         (q) =>
@@ -167,6 +179,8 @@ export default async function handler(req, res) {
         totalPlayers: rows.length,
         topperScore,
         batchAvg,
+        dist,
+        myBucket,
         perSection: myRow.s.perSection.map((ps) => ({
           title: ps.title,
           score: ps.score,

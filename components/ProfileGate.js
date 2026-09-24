@@ -22,6 +22,9 @@ import { getAuthHeaders } from "@/utils/authHeaders";
 
 const EXAMS = ["IPMAT Indore", "IPMAT Rohtak", "JIPMAT", "IIM Kozhikode", "IIM Bangalore UG", "Other"];
 const CLASSES = ["Class 11", "Class 12", "Dropper"];
+// Admission category exactly as on the exam form — drives the
+// category-wise cutoff card in mock analytics.
+const CATEGORIES = ["General", "EWS", "NC-OBC", "SC", "ST", "PwD"];
 
 const inp = {
   width: "100%", height: 42, padding: "0 12px",
@@ -39,6 +42,7 @@ export default function ProfileGate() {
   const [f, setF] = useState({
     full_name: "", phone: "", parent_name: "", parent_phone: "",
     city: "", current_class: "", school: "", target_exams: [], dob: "", photo_url: "",
+    category: "",
   });
 
   useEffect(() => {
@@ -100,6 +104,7 @@ export default function ProfileGate() {
     if (!f.current_class) missing.push("class");
     if (!f.school.trim()) missing.push("school");
     if (!f.target_exams.length) missing.push("target exam");
+    if (!f.category) missing.push("admission category");
     if (!f.dob) missing.push("date of birth");
     if (!f.photo_url) missing.push("photograph");
     if (missing.length) { toast.error("Please fill: " + missing.join(", ")); return; }
@@ -110,6 +115,7 @@ export default function ProfileGate() {
         parent_name: f.parent_name.trim(), parent_phone: f.parent_phone.trim(),
         city: f.city.trim(), current_class: f.current_class, school: f.school.trim(),
         target_exams: f.target_exams, dob: f.dob, photo_url: f.photo_url,
+        category: f.category,
         updated_at: new Date().toISOString(),
       });
       if (error) { toast.error("Could not save: " + error.message); setSaving(false); return; }
@@ -168,6 +174,13 @@ export default function ProfileGate() {
             <select style={inp} value={f.current_class} onChange={set("current_class")}>
               <option value="">Select…</option>
               {CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <span style={label}>Admission category (as on your exam form)</span>
+            <select style={inp} value={f.category} onChange={set("category")}>
+              <option value="">Select…</option>
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div style={{ gridColumn: "1 / -1" }}>

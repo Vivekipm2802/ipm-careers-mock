@@ -38,6 +38,45 @@ import {
   ExternalLink,
   Info,
 } from "lucide-react";
+
+// ── Attempt-as-mock (2026-09) ───────────────────────────────────
+// Every full past paper in this shelf also exists as a timed mock
+// with the official pattern (built Sep 2026: tests 224–237 + the
+// team's Indore papers 77–85/225). This map links each exam to its
+// paper mocks so the Library can offer "Attempt as full mock".
+// BBA DBE has no full-paper mock (only 50 recovered questions), so
+// it carries no entry and shows no button.
+const PAPER_MOCKS = {
+  ipmat_indore: [
+    { y: 2026, uid: "985595e7-c04d-47d7-b444-473546323778" },
+    { y: 2025, uid: "11f4ad91-8d2e-4101-a0f1-9131c3ef0eb6" },
+    { y: 2024, uid: "a8b4239a-b40e-460e-9415-e9904577f0d8" },
+    { y: 2023, uid: "b1b6761d-b77b-4b99-9ad5-2b18fa5a1a57" },
+    { y: 2022, uid: "e6f2b47e-036d-4c4c-b79f-ecfcdc7a869a" },
+    { y: 2021, uid: "0df6edb2-9d22-4739-b456-fe7ce90e2227" },
+    { y: 2020, uid: "664a903d-6fdb-4785-834f-f6ebd5b153ec" },
+    { y: 2019, uid: "37db037d-8dbb-46d8-8315-8fda4b540b26" },
+  ],
+  jipmat: [
+    { y: 2025, uid: "7c0285c6-c37b-4811-abc7-234f121e55c5" },
+    { y: 2024, uid: "df265156-faa7-4ad4-a9c4-9da063fb8b61" },
+    { y: 2023, uid: "d548e00b-bf0e-442f-9c7a-c2c5d37ad0f7" },
+    { y: 2022, uid: "d54eed71-09d9-42ef-9c08-72e722e253f0" },
+    { y: 2021, uid: "b6317170-cd75-40e0-b21f-b8a075433c59" },
+  ],
+  ipmat_rohtak: [
+    { y: 2023, uid: "05d9caa3-97e9-4291-8e59-20b8e7606404" },
+    { y: 2022, uid: "2cf67865-a976-4ab8-a8fc-b8a5a71da41f" },
+    { y: 2021, uid: "300dbbcc-b643-454a-a668-6d4ca7a32099" },
+    { y: 2020, uid: "36619ee9-22f4-44d5-8084-476e13b166b3" },
+    { y: 2019, uid: "0ab60199-ce23-4a06-8f19-0ad8caa1fac5" },
+  ],
+  iimk_5yr: [
+    { y: 2026, uid: "bfebfd06-49a6-401d-9868-f1d4a9ef4aa5" },
+    { y: 2025, uid: "16b22c28-68be-449b-944d-85ec06791282" },
+  ],
+  iimb_ug: [{ y: 2025, uid: "e1411b36-6339-4c70-ac96-1e51bf723709" }],
+};
 import ImageUploader from "./ImageUploader";
 import { supabase } from "@/utils/supabaseClient";
 import dynamic from "next/dynamic";
@@ -1629,6 +1668,9 @@ function Library({
   const [showAllTopics, setShowAllTopics] = useState(false);
   // mini-tour: auto on first visit, replay via "How it works?"
   const [tourRun, setTourRun] = useFirstVisitTour("tour_pyq_v1");
+  // "Attempt as full mock" dropdown (papers of THIS exam, if any)
+  const paperMocks = PAPER_MOCKS[exam?.id] || [];
+  const [showMocks, setShowMocks] = useState(false);
 
   // Snapshot attempts for filtering so the visible list doesn't reshuffle the
   // instant a student answers (e.g. a question vanishing from "Got wrong"
@@ -1709,6 +1751,57 @@ function Library({
           </h1>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+          {paperMocks.length > 0 && (
+            <div style={{ position: "relative" }}>
+              <button
+                type="button"
+                onClick={() => setShowMocks((v) => !v)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  padding: "7px 16px", borderRadius: 999,
+                  fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)",
+                  border: "none",
+                }}
+              >
+                <FileText size={13} /> Attempt as full mock
+              </button>
+              {showMocks && (
+                <div
+                  style={{
+                    position: "absolute", right: 0, top: "calc(100% + 8px)", zIndex: 40,
+                    minWidth: 230, background: "var(--c-surface)",
+                    border: "1px solid var(--c-border-faint)", borderRadius: 14,
+                    boxShadow: "var(--c-shadow-md, 0 8px 24px rgba(0,0,0,0.12))",
+                    padding: 8,
+                  }}
+                >
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--c-text-tertiary)", padding: "6px 10px 8px" }}>
+                    Real paper · real pattern · timed
+                  </div>
+                  {paperMocks.map((m) => (
+                    <a
+                      key={m.uid}
+                      href={`/mock/${m.uid}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => setShowMocks(false)}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+                        padding: "9px 10px", borderRadius: 10, textDecoration: "none",
+                        fontSize: 13, fontWeight: 600, color: "var(--c-text-primary)",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--c-brand-gold-tint)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                    >
+                      {exam.name} {m.y}
+                      <ExternalLink size={13} style={{ color: "var(--c-text-tertiary)", flexShrink: 0 }} />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setTourRun(true)}

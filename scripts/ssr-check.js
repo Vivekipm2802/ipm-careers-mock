@@ -444,6 +444,54 @@ const journeyFixture = [
   stateQueue = null;
   check(html.includes("one point is not a line"), "single-mock empty state renders");
 }
+{
+  // 4b · v5 additions: marks ledger + next moves + no denominators
+  stateQueue = [[sec], [mod], mockQuestions, journeyFixture];
+  const html = clean(ReactDOMServer.renderToString(React.createElement(MockAnalytics, { result: mockResultRow })));
+  stateQueue = null;
+  check(html.includes("marks ledger") && html.includes("banked"),
+    "v5 ledger: bar + 'banked' segment render");
+  check(html.includes("Claim the pile"),
+    "v5 moves: unopened-questions move fires (fixture leaves 14 unattempted)");
+  check(html.includes("Batch avg"), "v5 hero: batch average stat renders");
+  check(!/#\d+\s*\/\s*\d+/.test(html) && !html.includes("percentile"),
+    "owner rules: no rank denominators, no percentiles anywhere");
+}
+{
+  // 4c · lib/paperCutoffs — category-wise reality check (pure)
+  const pc = require(path.join(root, "lib", "paperCutoffs.js"));
+  const indoreSecs = [
+    { title: "SA", score: 30, max: 60 },
+    { title: "MCQ", score: 60, max: 120 },
+    { title: "VA", score: 100, max: 180 },
+  ];
+  const r1 = pc.realityCheck(79, indoreSecs, 190, 360, "General"); // Indore 2024
+  check(r1 && r1.kind === "indore" && r1.rows.length === 3 &&
+    r1.rows[0].need === 24 && r1.rows[1].need === 35 && r1.rows[2].need === 113,
+    "cutoffs: Indore 2024 General gates are 24/35/113 (RTI)");
+  check(r1.rows[0].cleared === true && r1.rows[1].cleared === true && r1.rows[2].cleared === false,
+    "cutoffs: gate verdicts computed per section (VA 100 < 113 fails)");
+  check(r1.doors.some((d) => d.label.indexOf("Ranchi") !== -1 && d.need === 186 && d.cleared === true),
+    "cutoffs: Ranchi door on Indore 2024 paper (overall 186, 190 clears)");
+  const r1sc = pc.realityCheck(79, indoreSecs, 190, 360, "SC");
+  check(r1sc.rows[0].need === 12 && r1sc.rows[1].need === 18 && r1sc.rows[2].need === 60,
+    "cutoffs: category switch — SC gates 12/18/60");
+  const badScale = pc.realityCheck(79, [{ title: "SA", score: 30, max: 56 }, indoreSecs[1], indoreSecs[2]], 190, 356, "General");
+  check(badScale === null, "cutoffs: scale mismatch hides the card (partial paper)");
+  const r2 = pc.realityCheck(237, [], 380, 480, "General"); // Rohtak 2023
+  check(r2 && r2.kind === "rohtak" && r2.rows[0].need === 409 && r2.rows[0].cleared === false,
+    "cutoffs: Rohtak 2023 overall 409, 380 falls short");
+  check(pc.realityCheck(237, [], 380, 476, "General") === null,
+    "cutoffs: Rohtak partial paper (476 ≠ 480) hides the card");
+  const r3 = pc.realityCheck(229, [], 300, 400, "General"); // JIPMAT 2024
+  check(r3 && r3.kind === "jipmat" && r3.rows.some((x) => x.need === 292 && x.cleared === true),
+    "cutoffs: JIPMAT 2024 Bodh Gaya lowest admit 292, 300 clears");
+  check(pc.realityCheck(226, [], 300, 400, "General") === null,
+    "cutoffs: JIPMAT 2021 (no published data) hides the card");
+  check(pc.realityCheck(231, [], 100, 200, "General") === null &&
+    pc.realityCheck(224, [], 100, 200, "General") === null,
+    "cutoffs: Kozhikode & Bangalore papers never show a card");
+}
 
 // ── 5 · Concept practice pages (2026-08 correction) ─────────────
 // OUTER page (ConceptGroups) must be the ORIGINAL collections
