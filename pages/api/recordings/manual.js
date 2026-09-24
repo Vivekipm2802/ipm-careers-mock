@@ -31,7 +31,11 @@ export default async function handler(req, res) {
   if (batchId == null || batchId === "") return res.status(400).json({ error: "batchId is required" });
   if (!title) return res.status(400).json({ error: "title is required" });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: "date must be YYYY-MM-DD" });
-  if (!/^https?:\/\//i.test(url)) return res.status(400).json({ error: "url must be a full http(s) link" });
+  const notesUrl = String(body.notesUrl || "").trim();
+  // Sep 2026: notes-only entries allowed — at least ONE of recording/notes
+  if (!url && !notesUrl) return res.status(400).json({ error: "provide a recording link, a notes link, or both" });
+  if (url && !/^https?:\/\//i.test(url)) return res.status(400).json({ error: "recording url must be a full http(s) link" });
+  if (notesUrl && !/^https?:\/\//i.test(notesUrl)) return res.status(400).json({ error: "notes url must be a full http(s) link" });
 
   try {
     const { data: row, error } = await serversupabase
@@ -39,9 +43,9 @@ export default async function handler(req, res) {
       .insert({
         batch_id: batchId,
         title,
-        recording: url,
+        recording: url || "",
         recording_passcode: String(body.passcode || "").trim() || null,
-        notes_url: String(body.notesUrl || "").trim() || null,
+        notes_url: notesUrl || null,
         faculty_name: String(body.facultyName || "").trim() || null,
         created_at: date + "T12:00:00+05:30",
       })

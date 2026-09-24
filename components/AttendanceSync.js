@@ -597,7 +597,7 @@ export default function AttendanceSync() {
           </button>
           <button type="button" onClick={() => setRecAdd((m) => ({ ...m, open: !m.open }))} disabled={selBatch == null}
             style={{ ...ghostBtn, opacity: selBatch == null ? 0.55 : 1 }}>
-            {recAdd.open ? "Close recording form" : "Add recording link"}
+            {recAdd.open ? "Close recording form" : "Add recording / notes"}
           </button>
         </div>
 
@@ -651,15 +651,15 @@ export default function AttendanceSync() {
                 onChange={(e) => setRecAdd((m) => ({ ...m, faculty: e.target.value }))} style={{ ...inputStyle, width: 160 }} />
             </div>
             <div className="mt-3 flex items-center gap-3 flex-wrap">
-              <input placeholder="Recording link — Google Drive / Zoom / YouTube" value={recAdd.url}
+              <input placeholder="Recording link (optional if notes given)" value={recAdd.url}
                 onChange={(e) => setRecAdd((m) => ({ ...m, url: e.target.value }))} style={{ ...inputStyle, width: 380 }} />
               <input placeholder="Passcode (optional)" value={recAdd.passcode}
                 onChange={(e) => setRecAdd((m) => ({ ...m, passcode: e.target.value }))} style={{ ...inputStyle, width: 140 }} />
-              <input placeholder="Notes link (optional)" value={recAdd.notes}
+              <input placeholder="Notes link (PDF/Drive, optional)" value={recAdd.notes}
                 onChange={(e) => setRecAdd((m) => ({ ...m, notes: e.target.value }))} style={{ ...inputStyle, width: 220 }} />
             </div>
             <div className="mt-2" style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
-              For Drive links: set the file to "Anyone with the link can view" first, or students will hit a permission wall.
+              Give a recording link, a notes link, or both. For Drive links set "Anyone with the link can view" first.
             </div>
             <button type="button" onClick={saveRecAdd} disabled={recAdd.saving} style={{ ...goldBtn(recAdd.saving), marginTop: 10 }}>
               {recAdd.saving ? "Saving…" : "Add recording"}

@@ -1,5 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
-import { Award, BarChart3, BookOpen, CalendarCheck, CalendarDays, CalendarOff, CalendarRange, ClipboardList, FileEdit, FileText, Flame, Hash, HelpCircle, History, Layers, LayoutDashboard, Lightbulb, Map, Megaphone, MessageSquare, Phone, PlayCircle, PlusCircle, Printer, School, Settings, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Target, TrendingUp, UserCog, UserPlus, Users, UsersRound, Video, Zap, RotateCcw } from "lucide-react";
+import { Award, BarChart3, BookOpen, CalendarCheck, CalendarDays, CalendarOff, CalendarRange, ClipboardList, FileEdit, FileText, Flame, Hash, HelpCircle, History, Layers, LayoutDashboard, Lightbulb, Map, Megaphone, MessageSquare, Phone, PlayCircle, PlusCircle, Printer, School, Settings, ShieldCheck, SlidersHorizontal, Sparkles, Sun, Target, TrendingUp, UserCog, UserPlus, Users, UsersRound, Video, Zap, RotateCcw , LifeBuoy } from "lucide-react";
 import { useRouter } from "next/router";
 import React, {
   createContext,
@@ -24,6 +24,24 @@ export const NMNContextProvider = ({ children }) => {
   // D1 redesign: "Today" is the default-expanded nav group.
   const [sk, setSK] = useState(new Set(["Today"]));
   const [ctxSlug, setCTXSlug] = useState("dashboard");
+  // Deep links (Sep 2026): /?p=<slug> mirrors the active section so URLs
+  // like study.ipmcareer.com/pyqs (redirected to /?p=pyqconcept by
+  // pages/[deepLink].js) land students on the right screen, and the
+  // address bar stays shareable. Sync is shallow — no re-render storms.
+  const _router = useRouter();
+  const _syncedOnce = typeof window !== "undefined";
+  useEffect(() => {
+    if (!_router.isReady || _router.pathname !== "/") return;
+    const p = _router.query.p;
+    if (typeof p === "string" && p && p !== ctxSlug) setCTXSlug(p);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_router.isReady]);
+  useEffect(() => {
+    if (!_router.isReady || _router.pathname !== "/") return;
+    if (_router.query.p === ctxSlug) return;
+    _router.replace({ pathname: "/", query: { ...(_router.query || {}), p: ctxSlug } }, undefined, { shallow: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctxSlug]);
   const [sideBar, setSideBar] = useState(false);
   const [isDemo, setDemo] = useState(false);
   const [sideBarContent, setSideBarContent] = useState(<p>Content</p>);
@@ -316,6 +334,13 @@ export const NMNContextProvider = ({ children }) => {
           icon: <UserCog size={20} />,
         },
         {
+          title: "Support",
+          type: "admin",
+          action: "support",
+          id: 242,
+          icon: <CalendarCheck size={20} />,
+        },
+        {
           title: "Teacher Manager",
           type: "admin",
           action: "teacher-manager",
@@ -438,6 +463,14 @@ export const NMNContextProvider = ({ children }) => {
           action: "dbts",
           id: 7,
           icon: <HelpCircle size={20} />,
+        },
+        {
+          title: "Connect",
+          type: "user",
+          demo: false,
+          action: "connect",
+          id: 460,
+          icon: <LifeBuoy size={20} />,
         },
       ],
     },

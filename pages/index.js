@@ -99,6 +99,8 @@ const EnrollmentManager = dynamic(() => import("@/components/EnrollmentManager")
 const QuestionAudit = dynamic(() => import("@/components/QuestionAudit"), { ssr: false, loading: () => null });
 const AttendanceSync = dynamic(() => import("@/components/AttendanceSync"), { ssr: false, loading: () => null });
 const StudentsDirectory = dynamic(() => import("@/components/StudentsDirectory"), { ssr: false, loading: () => null });
+const SupportAdmin = dynamic(() => import("@/components/SupportAdmin"), { ssr: false, loading: () => null });
+const ConnectHub = dynamic(() => import("@/components/ConnectHub"), { ssr: false, loading: () => null });
 const Announcements = dynamic(() => import("@/components/Announcements"), { ssr: false, loading: () => null });
 const PYQManager = dynamic(() => import("@/components/PYQManager"), { ssr: false, loading: () => null });
 const ConfigManager = dynamic(() => import("@/components/Configurator"), { ssr: false, loading: () => null });
@@ -3271,6 +3273,12 @@ export default function Home(props) {
                 )}
                 {slug == "students" && props?.type == "admin" && (
                   <StudentsDirectory />
+                )}
+                {slug == "support" && props?.type == "admin" && (
+                  <SupportAdmin />
+                )}
+                {slug == "connect" && (
+                  <ConnectHub />
                 )}
                 {slug == "attendance" && props?.type == "admin" && (
                   <AttendanceSync />
