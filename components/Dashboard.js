@@ -214,7 +214,14 @@ export default function Dashboard({ userData }) {
       const bTime = b?.created_at ? new Date(b.created_at).getTime() : 0;
       return aTime - bTime;
     });
-    setClasses(deduped);
+    // 2026-09 owner fix: "Today's classes" showed the whole week's classes.
+    // Keep only classes scheduled for TODAY (daysOfWeek contains today's
+    // weekday). Rows with no daysOfWeek (legacy one-off classes) stay.
+    const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+    const todaysOnly = deduped.filter(
+      (c) => !Array.isArray(c?.daysOfWeek) || c.daysOfWeek.length === 0 || c.daysOfWeek.includes(todayName)
+    );
+    setClasses(todaysOnly);
   }
 
   async function checkAdminStatus() {

@@ -161,6 +161,9 @@ export default function AttendanceSync() {
   const [absentSessionId, setAbsentSessionId] = useState(undefined);
   const [assigning, setAssigning] = useState(undefined); // record/session id mid-post
   const [searches, setSearches] = useState({}); // recordId → picker search text
+  // manual tools (Sep 2026): mark attendance / add recording link by hand
+  const [manual, setManual] = useState({ open: false, title: "", date: isoDay(Date.now()), duration: 60, present: {}, saving: false });
+  const [recAdd, setRecAdd] = useState({ open: false, title: "", date: isoDay(Date.now()), url: "", notes: "", faculty: "", passcode: "", saving: false });
   const stopRef = useRef(false);
 
   const rows = Array.isArray(students) ? students : [];
@@ -416,6 +419,60 @@ export default function AttendanceSync() {
     return Math.round((present / cols.length) * 100);
   };
 
+  const openManual = () => {
+    const pres = {};
+    for (const st of rows) if (st && st.email) pres[st.email] = true;
+    setManual((m) => ({ ...m, open: !m.open, present: pres }));
+  };
+  const saveManual = async () => {
+    if (manual.saving) return;
+    if (selBatch == null) { toast.error("Pick a batch first"); return; }
+    const present = Object.entries(manual.present).filter(([, v]) => v).map(([e]) => e);
+    setManual((m) => ({ ...m, saving: true }));
+    try {
+      const headers = { ...((await getAuthHeaders()) || {}), "Content-Type": "application/json" };
+      const r = await fetch("/api/attendance/manual", {
+        method: "POST", headers,
+        body: JSON.stringify({ batchId: selBatch, title: manual.title || "Class", date: manual.date, durationMin: manual.duration, present }),
+      });
+      const j = await r.json();
+      if (j && j.ok) {
+        toast.success("Attendance saved: " + j.present + " present, " + (rows.length - j.present) + " absent");
+        setManual((m) => ({ ...m, open: false, saving: false }));
+        loadData(selBatch, fromDate, toDate);
+      } else {
+        toast.error((j && j.error) || "Save failed");
+        setManual((m) => ({ ...m, saving: false }));
+      }
+    } catch (e) {
+      toast.error("Save failed");
+      setManual((m) => ({ ...m, saving: false }));
+    }
+  };
+  const saveRecAdd = async () => {
+    if (recAdd.saving) return;
+    if (selBatch == null) { toast.error("Pick a batch first"); return; }
+    setRecAdd((m) => ({ ...m, saving: true }));
+    try {
+      const headers = { ...((await getAuthHeaders()) || {}), "Content-Type": "application/json" };
+      const r = await fetch("/api/recordings/manual", {
+        method: "POST", headers,
+        body: JSON.stringify({ batchId: selBatch, title: recAdd.title, date: recAdd.date, url: recAdd.url, notesUrl: recAdd.notes, facultyName: recAdd.faculty, passcode: recAdd.passcode }),
+      });
+      const j = await r.json();
+      if (j && j.ok) {
+        toast.success("Recording added, students can see it now");
+        setRecAdd({ open: false, title: "", date: isoDay(Date.now()), url: "", notes: "", faculty: "", passcode: "", saving: false });
+      } else {
+        toast.error((j && j.error) || "Save failed");
+        setRecAdd((m) => ({ ...m, saving: false }));
+      }
+    } catch (e) {
+      toast.error("Save failed");
+      setRecAdd((m) => ({ ...m, saving: false }));
+    }
+  };
+
   const searchMap = searches && typeof searches === "object" && !Array.isArray(searches) ? searches : {};
   const configured = cfg ? !!cfg.any : null; // null = still loading
 
@@ -527,6 +584,86 @@ export default function AttendanceSync() {
             {recFetch.notes.map((n, i) => (
               <div key={i}>{String(n)}</div>
             ))}
+          </div>
+        ) : null}
+      </div>
+
+      {/* ── manual tools (Sep 2026): work without Zoom until sync is automatic ── */}
+      <div className="mt-7 max-w-[1000px]" style={{ ...card, padding: "20px 24px" }}>
+        <div style={kicker}>Manual tools {selBatch == null ? "· pick a batch below first" : ""}</div>
+        <div className="flex items-center gap-3 flex-wrap" style={{ marginTop: 8 }}>
+          <button type="button" onClick={openManual} disabled={selBatch == null} style={goldBtn(selBatch == null)}>
+            {manual.open ? "Close manual attendance" : "Mark attendance manually"}
+          </button>
+          <button type="button" onClick={() => setRecAdd((m) => ({ ...m, open: !m.open }))} disabled={selBatch == null}
+            style={{ ...ghostBtn, opacity: selBatch == null ? 0.55 : 1 }}>
+            {recAdd.open ? "Close recording form" : "Add recording link"}
+          </button>
+        </div>
+
+        {manual.open && selBatch != null ? (
+          <div className="mt-4" style={{ borderTop: "1px solid var(--c-border-faint)", paddingTop: 14 }}>
+            <div className="flex items-center gap-3 flex-wrap">
+              <input placeholder="Class title (e.g. QA/LR Class)" value={manual.title}
+                onChange={(e) => setManual((m) => ({ ...m, title: e.target.value }))} style={{ ...inputStyle, width: 240 }} />
+              <input type="date" value={manual.date} onChange={(e) => setManual((m) => ({ ...m, date: e.target.value }))} style={inputStyle} />
+              <label style={{ fontSize: 12.5, color: "var(--c-text-secondary)", fontWeight: 600 }}>
+                Minutes{" "}
+                <input type="number" min={15} max={300} value={manual.duration}
+                  onChange={(e) => setManual((m) => ({ ...m, duration: Number(e.target.value) || 60 }))} style={{ ...inputStyle, width: 80, marginLeft: 6 }} />
+              </label>
+              <button type="button" style={ghostBtn}
+                onClick={() => setManual((m) => { const p = {}; for (const st of rows) if (st && st.email) p[st.email] = true; return { ...m, present: p }; })}>
+                All present
+              </button>
+              <button type="button" style={ghostBtn}
+                onClick={() => setManual((m) => ({ ...m, present: {} }))}>
+                All absent
+              </button>
+            </div>
+            <div className="mt-3" style={{ maxHeight: 300, overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 6 }}>
+              {rows.map((st) => (
+                <label key={st.email} className="flex items-center gap-2" style={{ fontSize: 13, cursor: "pointer", padding: "4px 6px" }}>
+                  <input type="checkbox" checked={!!manual.present[st.email]}
+                    onChange={(e) => setManual((m) => ({ ...m, present: { ...m.present, [st.email]: e.target.checked } }))} />
+                  <span style={{ color: manual.present[st.email] ? "var(--c-text-primary)" : "var(--c-text-tertiary)" }}>
+                    {st.name || st.email}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div className="mt-3" style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
+              {Object.values(manual.present).filter(Boolean).length} of {rows.length} marked present. Unticked students count as absent.
+            </div>
+            <button type="button" onClick={saveManual} disabled={manual.saving} style={{ ...goldBtn(manual.saving), marginTop: 10 }}>
+              {manual.saving ? "Saving…" : "Save attendance"}
+            </button>
+          </div>
+        ) : null}
+
+        {recAdd.open && selBatch != null ? (
+          <div className="mt-4" style={{ borderTop: "1px solid var(--c-border-faint)", paddingTop: 14 }}>
+            <div className="flex items-center gap-3 flex-wrap">
+              <input placeholder="Class title (students see this)" value={recAdd.title}
+                onChange={(e) => setRecAdd((m) => ({ ...m, title: e.target.value }))} style={{ ...inputStyle, width: 240 }} />
+              <input type="date" value={recAdd.date} onChange={(e) => setRecAdd((m) => ({ ...m, date: e.target.value }))} style={inputStyle} />
+              <input placeholder="Faculty (optional)" value={recAdd.faculty}
+                onChange={(e) => setRecAdd((m) => ({ ...m, faculty: e.target.value }))} style={{ ...inputStyle, width: 160 }} />
+            </div>
+            <div className="mt-3 flex items-center gap-3 flex-wrap">
+              <input placeholder="Recording link — Google Drive / Zoom / YouTube" value={recAdd.url}
+                onChange={(e) => setRecAdd((m) => ({ ...m, url: e.target.value }))} style={{ ...inputStyle, width: 380 }} />
+              <input placeholder="Passcode (optional)" value={recAdd.passcode}
+                onChange={(e) => setRecAdd((m) => ({ ...m, passcode: e.target.value }))} style={{ ...inputStyle, width: 140 }} />
+              <input placeholder="Notes link (optional)" value={recAdd.notes}
+                onChange={(e) => setRecAdd((m) => ({ ...m, notes: e.target.value }))} style={{ ...inputStyle, width: 220 }} />
+            </div>
+            <div className="mt-2" style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
+              For Drive links: set the file to "Anyone with the link can view" first, or students will hit a permission wall.
+            </div>
+            <button type="button" onClick={saveRecAdd} disabled={recAdd.saving} style={{ ...goldBtn(recAdd.saving), marginTop: 10 }}>
+              {recAdd.saving ? "Saving…" : "Add recording"}
+            </button>
           </div>
         ) : null}
       </div>
