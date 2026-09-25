@@ -84,6 +84,15 @@ const Game = () => {
   // cleared the overlay and dumped the student back with no message.
   const [submitError, setSubmitError] = useState(null);
   const [lastReport, setLastReport] = useState(null);
+  // 2026-09: slow-save reassurance — on a cold server / weak network the
+  // save + redirect can take 10s+; after 8s the overlay says so explicitly
+  // so nobody thinks it's stuck (their answers are already draft-saved).
+  const [slowHint, setSlowHint] = useState(false);
+  useEffect(() => {
+    if (!submitting) { setSlowHint(false); return; }
+    const t = setTimeout(() => setSlowHint(true), 8000);
+    return () => clearTimeout(t);
+  }, [submitting]);
   const router = useRouter();
 
   // Ship 7 (P0): the submit insert had NO timeout. On a flaky mobile connection
@@ -662,6 +671,12 @@ const Game = () => {
         <p style={{ fontSize: 13.5, color: "var(--c-text-secondary)", margin: 0, maxWidth: "40ch", lineHeight: 1.5 }}>
           Just a moment while we record your answers. You&apos;ll be redirected to your result page.
         </p>
+        {slowHint && (
+          <p style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", margin: "14px 0 0", maxWidth: "44ch", lineHeight: 1.6 }}>
+            Taking longer than usual — slow connection or a waking server. Your answers are already
+            saved on this device, so keep this tab open; it will finish on its own.
+          </p>
+        )}
         <style jsx global>{`
           @keyframes ipm-spin { to { transform: rotate(360deg); } }
         `}</style>

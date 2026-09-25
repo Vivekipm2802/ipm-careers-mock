@@ -373,29 +373,14 @@ const ConceptAnalytics = ({ result }) => {
           </table>
         </Card>
 
-        {/* QUESTION PALETTE */}
-        <Card title="Question palette" meta="Click any cell to view the question + your answer">
-          <PaletteGrid items={items} getStatus={getQStatus} onClick={(q) => setActiveQuestion(q)} />
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 16, fontSize: 12, color: "var(--c-text-secondary)" }}>
-            <LegendDot color="#22c55e" label="Correct" count={stats.correctCount} />
-            <LegendDot color="#ef4444" label="Wrong" count={stats.wrongCount} />
-            <LegendDot gray label="Skipped" count={stats.skippedCount} />
-          </div>
-        </Card>
-
-        {/* TIME PER QUESTION */}
+        {/* TIME PER QUESTION
+            2026-09 owner call: question palette removed (question-wise
+            review already lives behind "View result" up top), cumulative
+            progression and answer distribution removed (the marks ledger
+            tells that story). Time-per-question stays — on a short
+            single-chapter test it's the real diagnostic. */}
         <Card title="Time per question" meta="Wrong answers in red · long times in amber">
           <TimeBars items={items} getStatus={getQStatus} questionTimes={questionTimes} />
-        </Card>
-
-        {/* SCORE PROGRESSION */}
-        <Card title="Cumulative score progression" meta="Where you gained marks · red dots are negative marks">
-          <ScoreProgressionChart items={items} getStatus={getQStatus} pos={increment} neg={-decrement} />
-        </Card>
-
-        {/* ANSWER DISTRIBUTION (single concept) */}
-        <Card title="Answer distribution">
-          <DistRow name={testTitle} correct={stats.correctCount} wrong={stats.wrongCount} skipped={stats.skippedCount} />
         </Card>
 
         {/* SLOWEST / FASTEST WRONG */}
@@ -547,40 +532,8 @@ function MockTrendChart({ history }) {
     </div>
   );
 }
-function LegendDot({ color, gray, label, count }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-      <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 3, background: gray ? "var(--c-surface-sunken, var(--c-surface-muted))" : color, border: gray ? "1px solid var(--c-border-soft)" : "none" }} />
-      {label} · <b style={{ color: "var(--c-text-primary)", fontVariantNumeric: "tabular-nums" }}>{count}</b>
-    </span>
-  );
-}
-
-function PaletteGrid({ items, getStatus, onClick }) {
-  if (!items || items.length === 0) {
-    return <div style={{ padding: "20px 0", textAlign: "center", color: "var(--c-text-tertiary)", fontSize: 13 }}>No questions</div>;
-  }
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 6 }}>
-      {items.map(({ q, idx }) => {
-        const status = getStatus(q);
-        const styles = {
-          correct: { bg: "#22c55e", color: "#fff", border: "none" },
-          wrong: { bg: "#ef4444", color: "#fff", border: "none" },
-          skipped: { bg: "var(--c-surface-sunken, var(--c-surface-muted))", color: "var(--c-text-secondary)", border: "1px solid var(--c-border-soft)" },
-        };
-        const s = styles[status] || styles.skipped;
-        return (
-          <button key={q.id} onClick={() => onClick(q)} title={`Q ${idx + 1} · ${status}`} style={{
-            aspectRatio: "1", borderRadius: 6,
-            background: s.bg, color: s.color, border: s.border,
-            font: "600 11px/1 inherit", cursor: "pointer", fontVariantNumeric: "tabular-nums",
-          }}>{idx + 1}</button>
-        );
-      })}
-    </div>
-  );
-}
+// 2026-09: LegendDot + PaletteGrid removed with the palette card
+// (question-wise review lives behind "View result").
 function TimeBars({ items, getStatus, questionTimes }) {
   if (!items || items.length === 0) {
     return <div style={{ padding: "20px 0", textAlign: "center", color: "var(--c-text-tertiary)", fontSize: 13 }}>No data</div>;
@@ -609,88 +562,8 @@ function TimeBars({ items, getStatus, questionTimes }) {
     </>
   );
 }
-function ScoreProgressionChart({ items, getStatus, pos, neg }) {
-  if (!items || items.length === 0) return null;
-  let running = 0;
-  const points = items.map(({ q }, i) => {
-    const status = getStatus(q);
-    let delta = 0;
-    if (status === "correct") { delta = pos; running += pos; }
-    // 2026-08 canonical rule: SA/input wrongs never cost marks.
-    else if (status === "wrong") { const d = q?.type === "input" ? 0 : neg; delta = d; running += d; }
-    return { i, score: running, delta };
-  });
-  const finalScore = running;
-  const maxAbs = Math.max(...points.map((p) => Math.abs(p.score)), 1);
-  const w = 600, h = 200;
-  const padding = 20;
-  const innerW = w - padding * 2;
-  const innerH = h - padding * 2;
-  const xStep = points.length > 1 ? innerW / (points.length - 1) : 0;
-  const yMid = padding + innerH / 2;
-  const pts = points.map((p, i) => ({
-    x: padding + i * xStep,
-    y: yMid - (p.score / maxAbs) * (innerH / 2),
-    ...p,
-  }));
-  const linePath = pts.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(" ");
-  const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${yMid} L ${pts[0].x} ${yMid} Z`;
-  return (
-    <>
-      <div style={{ height: 200, position: "relative" }}>
-        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: "100%", height: "100%", overflow: "visible" }}>
-          <defs>
-            <linearGradient id="scoreGradT" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--c-brand-primary)" stopOpacity="0.3"/>
-              <stop offset="100%" stopColor="var(--c-brand-primary)" stopOpacity="0"/>
-            </linearGradient>
-          </defs>
-          <line x1="0" y1={padding + innerH * 0.25} x2={w} y2={padding + innerH * 0.25} stroke="var(--c-border-faint)" strokeDasharray="2 4"/>
-          <line x1="0" y1={yMid} x2={w} y2={yMid} stroke="var(--c-border-soft)"/>
-          <line x1="0" y1={padding + innerH * 0.75} x2={w} y2={padding + innerH * 0.75} stroke="var(--c-border-faint)" strokeDasharray="2 4"/>
-          <path d={areaPath} fill="url(#scoreGradT)"/>
-          <path d={linePath} stroke="var(--c-brand-primary)" strokeWidth="2.5" fill="none"/>
-          {pts.filter((p) => p.delta < 0).map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="4" fill="var(--c-danger)"/>)}
-        </svg>
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 8, fontVariantNumeric: "tabular-nums" }}>
-        <span>Q 1</span>
-        {/* Ship 4: show the true final score — clamping to 0 contradicted a
-            line that visibly dips below the midline */}
-        <span>Final score: <b style={{ color: "var(--c-text-primary)" }}>{finalScore}</b></span>
-      </div>
-    </>
-  );
-}
-function DistRow({ name, correct, wrong, skipped }) {
-  const sum = correct + wrong + skipped;
-  if (sum === 0) return null;
-  const pc = (correct / sum) * 100;
-  const pw = (wrong / sum) * 100;
-  const ps = (skipped / sum) * 100;
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "1.3fr 3fr", gap: 14, alignItems: "center", padding: "12px 0" }}>
-      <div style={{ fontWeight: 500, color: "var(--c-text-primary)", fontSize: 13.5 }}>{name}</div>
-      <div style={{ height: 26, borderRadius: 6, overflow: "hidden", display: "flex", background: "var(--c-surface-sunken, var(--c-surface-muted))", border: "1px solid var(--c-border-faint)" }}>
-        {correct > 0 && <Seg color="#22c55e" pct={pc} label={`${correct} correct`} />}
-        {wrong > 0 && <Seg color="#ef4444" pct={pw} label={`${wrong} wrong`} />}
-        {skipped > 0 && <Seg muted pct={ps} label={`${skipped} skipped`} />}
-      </div>
-    </div>
-  );
-}
-function Seg({ color, muted, pct, label }) {
-  return (
-    <div style={{
-      width: `${pct}%`, height: "100%",
-      background: muted ? "var(--c-surface-muted)" : color,
-      color: muted ? "var(--c-text-tertiary)" : "#fff",
-      display: "grid", placeItems: "center",
-      fontSize: 11, fontWeight: 600, fontVariantNumeric: "tabular-nums",
-      whiteSpace: "nowrap", overflow: "hidden",
-    }}>{pct > 8 ? label : ""}</div>
-  );
-}
+// 2026-09: ScoreProgressionChart / DistRow / Seg removed with their
+// cards — the marks ledger tells that story now (owner call).
 function WrongList({ list, onClick, emptyMsg, hideSection }) {
   if (!list || list.length === 0) {
     return <div style={{ padding: "20px 0", textAlign: "center", fontSize: 13, color: "var(--c-text-tertiary)" }}>{emptyMsg}</div>;

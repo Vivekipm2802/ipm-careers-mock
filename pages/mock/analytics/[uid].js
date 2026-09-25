@@ -408,6 +408,45 @@ export default function MockAnalytics({ result }) {
     return timeout / sections.length;
   }, [result, sections]);
 
+  // ── CHAPTERS BEHIND YOUR WRONGS — lights up once the one-time
+  // chapter-tagging run (scripts/tag-mock-chapters.mjs) has been
+  // applied; until then q.topic is undefined and this stays null.
+  const chapterDamage = useMemo(() => {
+    if (!scored || !questions) return null;
+    const tagged = questions.filter((q) => q.topic);
+    if (tagged.length < questions.length * 0.6) return null; // bank not tagged yet
+    const map = new Map(); // topic → { wrong, wrongMarks, att, unopened, unopenedMarks }
+    const incOf = new Map();
+    scored.perSection.forEach((p) => {
+      // per-section increments for mark math
+      (modules || []).filter((m) => m.parent_sub === p.sec.id).forEach((mod) => {
+        (questions || []).filter((q) => q.parent === mod.module.id).forEach((q) => incOf.set(String(q.id), p.increment || 4));
+      });
+    });
+    tagged.forEach((q) => {
+      const v = scored.verdictById[String(q.id)];
+      const inc = incOf.get(String(q.id)) || 4;
+      const row = map.get(q.topic) || { wrong: 0, wrongMarks: 0, att: 0, unopened: 0, unopenedMarks: 0 };
+      if (v === true || v === false) {
+        row.att += 1;
+        if (v === false) {
+          row.wrong += 1;
+          row.wrongMarks += inc + (normType(q.type) === "input" ? 0 : 1);
+        }
+      } else {
+        row.unopened += 1;
+        row.unopenedMarks += inc;
+      }
+      map.set(q.topic, row);
+    });
+    const rows = [...map.entries()]
+      .map(([topic, r]) => ({ topic, ...r, cost: r.wrongMarks + (r.unopened >= 2 ? r.unopenedMarks : 0) }))
+      .filter((r) => r.wrong >= 2 || (r.unopened >= 2 && r.unopenedMarks >= 8))
+      .sort((a, b) => b.cost - a.cost)
+      .slice(0, 5);
+    return rows.length ? rows : null;
+  }, [scored, questions, modules]);
+
   // ── NEXT 3 MOVES: written from the report above ──
   const moves = useMemo(() => {
     if (!scored || !ledger) return [];
@@ -736,6 +775,36 @@ export default function MockAnalytics({ result }) {
             </table>
           </div>
         </div>
+
+        {/* ── CHAPTERS BEHIND YOUR WRONGS (needs tagged bank) ── */}
+        {chapterDamage && (
+          <div style={{ marginTop: 34, paddingTop: 26, borderTop: "1px solid var(--c-border-faint)" }}>
+            <div style={seclabel}>Chapters that cost you</div>
+            {chapterDamage.map((r, i) => (
+              <div key={r.topic} style={{ display: "flex", gap: 14, alignItems: "baseline", padding: "11px 0", borderTop: i === 0 ? "none" : "1px solid var(--c-border-faint)", flexWrap: "wrap" }}>
+                <span style={{ flex: 1, minWidth: 200, fontSize: 13.5 }}>
+                  <b>{r.topic}</b>
+                  <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)", marginLeft: 8 }}>
+                    {r.wrong > 0 ? `${r.wrong} wrong of ${r.att}` : ""}
+                    {r.wrong > 0 && r.unopened >= 2 ? " · " : ""}
+                    {r.unopened >= 2 ? `${r.unopened} never opened` : ""}
+                  </span>
+                </span>
+                <b style={{ color: "var(--c-danger)", fontSize: 13.5, whiteSpace: "nowrap" }}>
+                  {r.wrongMarks > 0 ? `−${r.wrongMarks}` : ""}
+                  {r.wrongMarks > 0 && r.unopened >= 2 ? " · " : ""}
+                  {r.unopened >= 2 ? `${r.unopenedMarks} unclaimed` : ""}
+                </b>
+                <button onClick={() => router.push("/review")} style={{ ...pillGhost, height: 30, fontSize: 11.5, color: "var(--c-brand-gold)", borderColor: "var(--c-brand-gold)" }}>
+                  drill →
+                </button>
+              </div>
+            ))}
+            <div style={{ fontSize: 11, color: "var(--c-text-tertiary)", marginTop: 8 }}>
+              Wrongs and avoided questions traced to their chapter — avoidance is a signal too.
+            </div>
+          </div>
+        )}
 
         {/* ── ACROSS YOUR MOCKS ── */}
         <div style={{ marginTop: 34, paddingTop: 26, borderTop: "1px solid var(--c-border-faint)" }}>

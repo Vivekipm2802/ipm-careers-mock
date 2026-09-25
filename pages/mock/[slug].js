@@ -441,6 +441,14 @@ const MockTest = ({
   const [loading, setLoading] = useState(false);
   const [submitModal, setSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false); // Phase 13 Ship A: clean submitting overlay
+  // 2026-09: slow-save reassurance (same as concept player) — after 8s the
+  // overlay tells the student it's a slow connection/waking server, not a hang.
+  const [slowHint, setSlowHint] = useState(false);
+  useEffect(() => {
+    if (!submitting) { setSlowHint(false); return; }
+    const t = setTimeout(() => setSlowHint(true), 8000);
+    return () => clearTimeout(t);
+  }, [submitting]);
   const [gamestate, setGameState] = useState(0);
   const [questions, setQuestions] = useState(previewQuestions || undefined);
   const [organized, setOrganized] = useState();
@@ -1114,6 +1122,12 @@ const MockTest = ({
         <p style={{ fontSize: 13.5, color: "var(--c-text-secondary)", margin: 0, maxWidth: "42ch", lineHeight: 1.5 }}>
           Just a moment while we record your answers across all sections. You&apos;ll be redirected to your result page.
         </p>
+        {slowHint && (
+          <p style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", margin: "14px 0 0", maxWidth: "44ch", lineHeight: 1.6 }}>
+            Taking longer than usual — slow connection or a waking server. Keep this tab open;
+            it will finish on its own.
+          </p>
+        )}
         <style jsx global>{`
           @keyframes ipm-spin { to { transform: rotate(360deg); } }
         `}</style>
