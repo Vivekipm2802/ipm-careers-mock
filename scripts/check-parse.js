@@ -74,6 +74,11 @@ const files = [
   "components/ReviewHub.js",
   "components/PYQManager.js",
   "components/PerformanceUser.js",
+  // 2026-09 design sprint 1: analytics revamp additions
+  "components/PYQReadiness.js",
+  "components/PaperMockReport.js",
+  "components/ConsistencyStrip.js",
+  "lib/paperCutoffs.js",
   "components/XPChip.js",
   "layouts/DefaultLayout.js",
   "pages/test/components/HeaderMock.js",

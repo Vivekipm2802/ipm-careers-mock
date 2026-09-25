@@ -28,6 +28,10 @@ import { BUCKET_PATTERN, accuracyOf, classify, shortName } from "./AdaptivePlan"
 import { vaultState, DAILY_CAP } from "./MistakeVault";
 import PageHeader from "./PageHeader";
 import { useLang } from "@/lib/lang";
+// 2026-09 design sprint 1 — new Performance sections
+import PaperMockReport from "./PaperMockReport";
+import PYQReadiness from "./PYQReadiness";
+import ConsistencyStrip from "./ConsistencyStrip";
 
 // ── pure helpers ──────────────────────────────────────────────
 
@@ -494,6 +498,12 @@ export default function PerformanceUser() {
           </div>
         </div>
       </div>
+
+      {/* 3c · real-paper mocks + PYQ readiness + consistency
+          (2026-09 design sprint 1 — each card self-hides on no data) */}
+      <PaperMockReport />
+      <PYQReadiness />
+      <ConsistencyStrip />
 
       {/* 4 · chapter map */}
       <div className="mt-4" style={card}>

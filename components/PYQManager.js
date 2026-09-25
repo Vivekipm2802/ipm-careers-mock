@@ -46,7 +46,7 @@ import {
 // paper mocks so the Library can offer "Attempt as full mock".
 // BBA DBE has no full-paper mock (only 50 recovered questions), so
 // it carries no entry and shows no button.
-const PAPER_MOCKS = {
+export const PAPER_MOCKS = {
   ipmat_indore: [
     { y: 2026, uid: "985595e7-c04d-47d7-b444-473546323778" },
     { y: 2025, uid: "11f4ad91-8d2e-4101-a0f1-9131c3ef0eb6" },

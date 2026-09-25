@@ -1,7 +1,11 @@
 // ============================================================
-// Concept Test Analytics — Phase 9.1
+// Concept Test Analytics — Phase 9.1 + 2026-09 v5 alignment.
 // All widgets inlined (palette grid, time bars, score progression,
-// distribution stack). Matches the v3 preview exactly. Dark mode safe.
+// distribution stack). Dark mode safe.
+// 2026-09 (design sprint 1): same language as the mock analytics
+// v5 page — marks ledger with computed verdict up top, next-moves
+// list at the bottom, and ranks NEVER show a denominator (owner
+// rule; small cohorts shouldn't be advertised).
 // ============================================================
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -256,11 +260,50 @@ const ConceptAnalytics = ({ result }) => {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 0, background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, overflow: "hidden" }}>
             <Stat k="Score" v={Math.max(0, stats.totalScore)} u={`/ ${stats.maxScore}`} />
             <Stat k="Accuracy" v={stats.accuracy} u="%" />
-            <Stat k="Rank" v={ats.atsRank || "—"} u={ats.totalRank ? `of ${ats.totalRank}` : ""} gold={ats.atsRank === 1} />
+            <Stat k="Rank" v={ats.atsRank != null && ats.atsRank !== "—" ? `#${ats.atsRank}` : "—"} u="" gold={ats.atsRank === 1} />
             <Stat k="Time taken" v={totalTimeMin || "—"} u={totalTimeMin ? "min" : ""} />
             <Stat k="Without negatives" v={Math.max(0, stats.positiveScore)} u="" success />
           </div>
         </div>
+
+        {/* MARKS LEDGER — v5 alignment (same story as the mock page) */}
+        {stats.maxScore > 0 && (() => {
+          const banked = Math.max(0, stats.totalScore);
+          const wrongLeft = stats.wrongCount * increment;
+          const unopened = stats.skippedCount * increment;
+          const seg = (w, bg, fg, label) =>
+            w > 0 ? (
+              <div style={{ width: `${Math.max(0.5, Math.min(100, w))}%`, background: bg, display: "grid", placeItems: "center", overflow: "hidden" }}>
+                {label ? <span style={{ fontSize: 10.5, fontWeight: 700, color: fg, whiteSpace: "nowrap", padding: "0 4px" }}>{label}</span> : null}
+              </div>
+            ) : null;
+          let verdict = null;
+          if (banked / stats.maxScore >= 0.88) {
+            verdict = (<><b>Very little left on the table.</b> {banked} of {stats.maxScore} banked — refinement now beats repair.</>);
+          } else if (unopened >= stats.negativeScore && unopened >= wrongLeft && unopened >= 8) {
+            verdict = (<><b>Selection was the ceiling, not knowledge.</b> The {stats.skippedCount} skipped questions held +{unopened}.</>);
+          } else if (stats.negativeScore >= 4 && stats.negativeScore >= wrongLeft / 2) {
+            verdict = (<><b>Negatives did the damage.</b> −{stats.negativeScore} eaten — without them you&apos;d sit at {Math.max(0, stats.positiveScore)}.</>);
+          } else if (wrongLeft >= 8) {
+            verdict = (<><b>Accuracy was the bottleneck.</b> The {stats.wrongCount} wrongs were worth {wrongLeft} — half of them right changes this score&apos;s story.</>);
+          }
+          return (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ ...eyebrowStyle, marginBottom: 8 }}>The marks ledger · every mark accounted for</div>
+              <div style={{ display: "flex", height: 32, borderRadius: 10, overflow: "hidden", border: "1px solid var(--c-border-faint)" }}>
+                {seg((banked / stats.maxScore) * 100, "var(--c-stat-grad)", "#241a05", `${banked} banked`)}
+                {seg((stats.negativeScore / stats.maxScore) * 100, "var(--c-danger)", "#fff", stats.negativeScore > 0 ? `−${stats.negativeScore}` : "")}
+                {seg((wrongLeft / stats.maxScore) * 100, "var(--c-danger-soft, rgba(197,48,48,.25))", "var(--c-danger)", wrongLeft >= stats.maxScore * 0.08 ? `${wrongLeft} on wrongs` : "")}
+                {seg((unopened / stats.maxScore) * 100, "var(--c-surface-muted, var(--c-bg))", "var(--c-text-tertiary)", unopened >= stats.maxScore * 0.1 ? `${unopened} skipped` : "")}
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--c-text-tertiary)", marginTop: 6, flexWrap: "wrap", gap: 6 }}>
+                <span>banked · eaten by negatives · left on wrongs · skipped</span>
+                <span>{stats.maxScore} marks total</span>
+              </div>
+              {verdict && <div style={{ fontSize: 14, lineHeight: 1.6, marginTop: 10, maxWidth: 700, color: "var(--c-text-secondary)" }}>{verdict}</div>}
+            </div>
+          );
+        })()}
 
         {/* MULTI-TEST TREND */}
         {history && history.length >= 2 && (
@@ -364,6 +407,39 @@ const ConceptAnalytics = ({ result }) => {
             <WrongList list={fastestWrong} onClick={(q) => setActiveQuestion(q)} emptyMsg="No wrong answers" hideSection />
           </Card>
         </div>
+
+        {/* NEXT MOVES — v5 alignment */}
+        {(() => {
+          const moves = [];
+          if (stats.skippedCount >= 3) {
+            moves.push({ t: `Attempt the ${stats.skippedCount} skipped questions cold`, d: `They held +${stats.skippedCount * increment}. See how many were actually within reach.`, href: `/test/result/${router.query.uid}`, cta: "Review them" });
+          }
+          const fastWrong = wrongList.filter((x) => x.t > 0 && x.t < 30).length;
+          if (fastWrong >= 2) {
+            moves.push({ t: `Redo the ${fastWrong} under-30-second wrongs`, d: "Impulse picks, not concept gaps — they're waiting in your Mistake Vault.", href: "/vault", cta: "Open Vault" });
+          }
+          if (stats.wrongCount >= 3 && fastWrong < stats.wrongCount) {
+            moves.push({ t: "Re-solve this chapter's wrongs untimed", d: "Method first, clock later — then retake a test from the same chapter.", href: "/vault", cta: "Open Vault" });
+          }
+          if (!moves.length) return null;
+          return (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ ...eyebrowStyle, marginBottom: 4 }}>Your next {moves.length === 1 ? "move" : "moves"}</div>
+              {moves.slice(0, 3).map((m, i) => (
+                <div key={i} style={{ display: "flex", gap: 14, alignItems: "baseline", padding: "12px 0", borderTop: i === 0 ? "none" : "1px solid var(--c-border-faint)", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 14, color: "var(--c-brand-gold)", fontWeight: 700, width: 16, flexShrink: 0 }}>{i + 1}</span>
+                  <span style={{ flex: 1, minWidth: 200, fontSize: 13.5 }}>
+                    <b>{m.t}</b>
+                    <span style={{ display: "block", fontSize: 12, color: "var(--c-text-tertiary)", marginTop: 2, lineHeight: 1.5 }}>{m.d}</span>
+                  </span>
+                  <button onClick={() => router.push(m.href)} style={{ ...pillGhost, height: 32, fontSize: 12, color: "var(--c-brand-gold)", borderColor: "var(--c-brand-gold)" }}>
+                    {m.cta} <ArrowRight size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
       </div>
 
