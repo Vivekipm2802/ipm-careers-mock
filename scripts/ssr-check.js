@@ -445,6 +445,38 @@ const journeyFixture = [
   check(html.includes("one point is not a line"), "single-mock empty state renders");
 }
 {
+  // 4a2 · viewer-identity gate: an admin opening a STUDENT's link must
+  // not see their own journey mixed into the student's report.
+  stateQueue = [[sec], [mod], mockQuestions, journeyFixture];
+  const html = clean(ReactDOMServer.renderToString(React.createElement(MockAnalytics, { result: { ...mockResultRow, user: "someone.else@x.com" } })));
+  stateQueue = null;
+  check(html.includes("Viewing another student") && !html.includes("Score across mocks"),
+    "viewer gate: cross-mock views hidden + note shown on another student's play");
+  check(html.includes("marks ledger"),
+    "viewer gate: play-local views (ledger) still render for the admin");
+
+  // admin path (adminView=true, journey fetched with ?as=): the full
+  // student journey renders under an explicit admin note.
+  // state order: sections, modules, questions, journey, profileCat,
+  // catOverride, adminView
+  stateQueue = [[sec], [mod], mockQuestions, journeyFixture, null, null, true];
+  const htmlAdmin = clean(ReactDOMServer.renderToString(React.createElement(MockAnalytics, { result: { ...mockResultRow, user: "someone.else@x.com" } })));
+  stateQueue = null;
+  check(htmlAdmin.includes("Admin view") && htmlAdmin.includes("Score across mocks"),
+    "admin view: student's journey renders with the admin note");
+  check(!htmlAdmin.includes("Viewing another student"),
+    "admin view: the gated note is gone");
+
+  // non-admin confirmed (blocked=true): full block screen, no report
+  // state order: sections, modules, questions, journey, profileCat,
+  // catOverride, adminView, blocked
+  stateQueue = [[sec], [mod], mockQuestions, [], null, null, false, true];
+  const htmlBlocked = clean(ReactDOMServer.renderToString(React.createElement(MockAnalytics, { result: { ...mockResultRow, user: "someone.else@x.com" } })));
+  stateQueue = null;
+  check(htmlBlocked.includes("belongs to another student") && !htmlBlocked.includes("marks ledger"),
+    "owner lock: non-admin gets the block screen, not the report");
+}
+{
   // 4b · v5 additions: marks ledger + next moves + no denominators
   stateQueue = [[sec], [mod], mockQuestions, journeyFixture];
   const html = clean(ReactDOMServer.renderToString(React.createElement(MockAnalytics, { result: mockResultRow })));
@@ -1195,8 +1227,8 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
   // 12h · DSBChallenge — banked affordances
   const DSBChallenge = require(path.join(root, "components", "DSBChallenge.js")).default;
   // state order: xp, board, myRank, todayQuiz, todayGulp, todaySos,
-  // weekDi, activeTrainer, sim, simSummary (+ BadgeVault child next)
-  stateQueue = [null, [], null, true, true, true, true, null, null, null];
+  // weekDi, everDi, activeTrainer, sim, simSummary (+ BadgeVault next)
+  stateQueue = [null, [], null, true, true, true, true, true, null, null, null];
   let html = clean(ReactDOMServer.renderToString(React.createElement(DSBChallenge, { userData: { email: "me@x.com" } })));
   stateQueue = null;
   check(/Review today.{0,8}s runs/.test(html), "dsb all-banked: main card button reads 'Review today's runs'");
@@ -1205,7 +1237,7 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
   check(/Review today.{0,8}s run\s*</.test(html), "dsb all-banked: trainer cards read 'Review today's run'");
   check(/Review this week.{0,8}s run/.test(html), "dsb all-banked: Weekly DI card carries its own weekly review label");
 
-  stateQueue = [null, [], null, false, false, false, false, null, null, null];
+  stateQueue = [null, [], null, false, false, false, false, true, null, null, null];
   html = clean(ReactDOMServer.renderToString(React.createElement(DSBChallenge, { userData: { email: "me@x.com" } })));
   stateQueue = null;
   check(/>Start\s*</.test(html) || html.includes("Start <"), "dsb fresh day: Start button back");
@@ -1214,6 +1246,13 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
   // 2026-09 lineup: Duels retired, Weekly DI in its place
   check(html.includes("Weekly DI") && !html.includes("Duels"),
     "dsb lineup: Weekly DI card present, Duels entry point gone");
+  check(!/>New</.test(html), "dsb: no NEW pill once the student has ever banked a Weekly DI");
+
+  // first-timer (everDi false) → gold NEW pill on the Weekly DI card
+  stateQueue = [null, [], null, false, false, false, false, false, null, null, null];
+  html = clean(ReactDOMServer.renderToString(React.createElement(DSBChallenge, { userData: { email: "me@x.com" } })));
+  stateQueue = null;
+  check(/>New</.test(html), "dsb: NEW pill shows for students who never banked a Weekly DI");
 }
 {
   // 12i · Weekly DI — bank integrity + Monday-anchored rotation

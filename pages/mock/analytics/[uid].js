@@ -63,6 +63,14 @@ export default function MockAnalytics({ result }) {
   const [journey, setJourney] = useState(null); // null = loading, [] = none/failed
   const [profileCat, setProfileCat] = useState(null); // student_profiles.category
   const [catOverride, setCatOverride] = useState(null); // reality-check switcher
+  // 2026-09 admin view: when an ADMIN opens a student's link, the page
+  // fetches the STUDENT's journey (?as=) so mentors see the real rank,
+  // batch position, histogram and across-mocks — with an admin note.
+  // Non-admin viewers of someone else's play stay gated.
+  const [adminView, setAdminView] = useState(false);
+  // Owner-or-admin lock (2026-09): a non-admin opening another
+  // student's link gets a polite block screen, not the report.
+  const [blocked, setBlocked] = useState(false);
 
   const router = useRouter();
   const { userDetails, isRouting } = useNMNContext();
@@ -100,13 +108,38 @@ export default function MockAnalytics({ result }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Cross-mock history — server-side canonical rescoring.
+  // Cross-mock history — server-side canonical rescoring. For a play
+  // that isn't the viewer's own, admins get the student's journey via
+  // ?as= (server-verified); everyone else gets an empty journey.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const headers = await getAuthHeaders();
-        const res = await fetch("/api/mock-journey", { headers });
+        const playOwner = String(result?.user || "").toLowerCase();
+        let ownEmail = "";
+        try {
+          const { data: u } = await supabase.auth.getUser();
+          ownEmail = String(u?.user?.email || "").toLowerCase();
+        } catch (e) { /* fall through to own journey */ }
+        let url = "/api/mock-journey";
+        if (playOwner && ownEmail && playOwner !== ownEmail) {
+          // someone else's play — journey only if the server says admin
+          const res2 = await fetch(`/api/mock-journey?as=${encodeURIComponent(playOwner)}`, { headers });
+          if (res2.ok) {
+            const data2 = await res2.json();
+            if (!cancelled) {
+              setAdminView(true);
+              setJourney(Array.isArray(data2?.mocks) ? data2.mocks : []);
+            }
+          } else if (!cancelled) {
+            // Not an admin — this report is not theirs to see.
+            setJourney([]);
+            setBlocked(true);
+          }
+          return;
+        }
+        const res = await fetch(url, { headers });
         if (!res.ok) { if (!cancelled) setJourney([]); return; }
         const data = await res.json();
         if (!cancelled) setJourney(Array.isArray(data?.mocks) ? data.mocks : []);
@@ -115,7 +148,8 @@ export default function MockAnalytics({ result }) {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.user]);
 
   // Admission category (own-row RLS read) → default for the
   // reality-check card. Missing profile/category → General.
@@ -179,14 +213,28 @@ export default function MockAnalytics({ result }) {
     return result.report.reduce((m, r) => (typeof r.at === "number" && r.at > m ? r.at : m), 0);
   }, [result]);
 
+  // ── viewer identity gate (2026-09) ──
+  // /api/mock-journey is always the LOGGED-IN user's history. When an
+  // admin/mentor opens a student's analytics link, mixing the viewer's
+  // journey (rank, batch avg, across-mocks, histogram, best self) into
+  // the student's report is flat wrong — the owner hit exactly this.
+  // Cross-mock views therefore render only for the play's own student.
+  const viewingOthers =
+    userDetails?.email != null &&
+    result?.user != null &&
+    String(userDetails.email).toLowerCase() !== String(result.user).toLowerCase();
+  // Admins get the student's own journey (fetched with ?as=) — full view.
+  const gated = viewingOthers && !adminView;
+  const effJourney = gated ? [] : journey;
+
   // ── journey slices ──
   const fullMocks = useMemo(
-    () => (Array.isArray(journey) ? journey.filter((m) => m.sectionCount > 1) : []),
-    [journey]
+    () => (Array.isArray(effJourney) ? effJourney.filter((m) => m.sectionCount > 1) : []),
+    [effJourney]
   );
   const currentEntry = useMemo(
-    () => (Array.isArray(journey) ? journey.find((m) => sameId(m.testId, result?.test_id?.id)) : null),
-    [journey, result]
+    () => (Array.isArray(effJourney) ? effJourney.find((m) => sameId(m.testId, result?.test_id?.id)) : null),
+    [effJourney, result]
   );
   const fullIdx = useMemo(
     () => fullMocks.findIndex((m) => sameId(m.testId, result?.test_id?.id)),
@@ -505,6 +553,17 @@ export default function MockAnalytics({ result }) {
       </div>
     );
   }
+  if (blocked) {
+    return (
+      <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: 24 }}>
+        <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>This report belongs to another student.</p>
+        <p style={{ fontSize: 13, color: "var(--c-text-tertiary)", marginBottom: 18, maxWidth: "44ch", lineHeight: 1.6 }}>
+          Mock reports are private to the student who took the mock (and the IPM Careers team).
+        </p>
+        <Button color="primary" onClick={() => router.push("/")}>Back to dashboard</Button>
+      </div>
+    );
+  }
   if (questions == undefined || result == undefined || scored == null) {
     return (
       <div style={{ background: "var(--c-bg)", color: "var(--c-text-primary)", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
@@ -806,10 +865,21 @@ export default function MockAnalytics({ result }) {
           </div>
         )}
 
-        {/* ── ACROSS YOUR MOCKS ── */}
+        {/* ── ACROSS YOUR MOCKS (play owner, or admin via ?as=) ── */}
+        {viewingOthers && adminView && (
+          <div style={{ marginTop: 30, fontSize: 12, color: "var(--c-brand-gold)", fontWeight: 600, borderTop: "1px solid var(--c-border-faint)", paddingTop: 14 }}>
+            Admin view — rank, batch position and the sections below are {result?.user}&apos;s own journey.
+          </div>
+        )}
+        {gated && (
+          <div style={{ marginTop: 30, fontSize: 12, color: "var(--c-text-tertiary)", borderTop: "1px solid var(--c-border-faint)", paddingTop: 14 }}>
+            Viewing another student&apos;s attempt — rank, batch comparison and cross-mock views are shown only to the student who took it.
+          </div>
+        )}
+        {!gated && (
         <div style={{ marginTop: 34, paddingTop: 26, borderTop: "1px solid var(--c-border-faint)" }}>
           <div style={seclabel}>Across your mocks</div>
-          {journey === null ? null : fullMocks.length >= 2 ? (
+          {effJourney === null ? null : fullMocks.length >= 2 ? (
             <JourneyCard mocks={fullMocks.slice(-6)} />
           ) : (
             <div style={{ ...card, padding: "22px 26px", marginBottom: 14 }}>
@@ -899,6 +969,7 @@ export default function MockAnalytics({ result }) {
             </div>
           )}
         </div>
+        )}
 
         {/* ── NEXT 3 MOVES ── */}
         {moves.length > 0 && (

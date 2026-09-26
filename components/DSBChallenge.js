@@ -84,6 +84,10 @@ export default function DSBChallenge({ userData }) {
   const [todayGulp, setTodayGulp] = useState(false);
   const [todaySos, setTodaySos] = useState(false);
   const [weekDi, setWeekDi] = useState(false); // Weekly DI banked this ISO week?
+  // "NEW" pill on the Weekly DI card until the student banks their
+  // FIRST run ever — then it never shows again (their own trainer_runs
+  // are the state; no schema change, no localStorage).
+  const [everDi, setEverDi] = useState(true); // assume seen until proven new
   const [activeTrainer, setActiveTrainer] = useState(null); // trainer id | null
   // Sim Room: { stage: 0|1|2, results: { quiz, gulp, sos } } or null
   const [sim, setSim] = useState(null);
@@ -128,6 +132,15 @@ export default function DSBChallenge({ userData }) {
       .gte("created_at", startOfWeekISO())
       .limit(1)
       .then(({ data }) => setWeekDi(Boolean(data && data.length)));
+
+    // Ever banked a Weekly DI? Drives the one-time "NEW" pill.
+    supabase
+      .from("trainer_runs")
+      .select("id")
+      .eq("user", userData.email)
+      .eq("trainer", "weekly-di")
+      .limit(1)
+      .then(({ data }) => setEverDi(Boolean(data && data.length)));
   }, [userData?.email, activeTrainer, sim]);
 
   const lvl = useMemo(() => levelFromXp(xp?.total_xp || 0), [xp]);
@@ -210,7 +223,7 @@ export default function DSBChallenge({ userData }) {
   const trainers = [
     { Icon: Target, name: "Skip or Solve", tag: "Decision trainer", desc: "8 seconds a question. Solve the scorers, skip the traps.", live: true, done: todaySos, open: () => setActiveTrainer("skip-or-solve") },
     { Icon: Zap, name: "Gulp Protocol", tag: "Speed reading", desc: "Process 3–5 word chunks at 350+ WPM. Built for VA's reading load.", live: true, done: todayGulp, open: () => setActiveTrainer("gulp-protocol") },
-    { Icon: BarChart3, name: "Weekly DI", tag: "Data interpretation · resets Monday", desc: "One table or caselet, five questions, one attempt a week. Exam-style: no feedback until you submit.", live: true, done: weekDi, doneLabel: "Review this week's run", open: () => setActiveTrainer("weekly-di") },
+    { Icon: BarChart3, name: "Weekly DI", tag: "Data interpretation · resets Monday", desc: "One table or caselet, five questions, one attempt a week. Exam-style: no feedback until you submit.", live: true, done: weekDi, doneLabel: "Review this week's run", isNew: !everDi, open: () => setActiveTrainer("weekly-di") },
     { Icon: Skull, name: "Sudden Death", tag: "One wrong = out", desc: "No second chances. How long can you survive?", red: true, live: true, open: () => setActiveTrainer("sudden-death") },
   ];
 
@@ -417,7 +430,7 @@ export default function DSBChallenge({ userData }) {
         <span style={{ fontSize: 11.5, color: "var(--c-text-tertiary)" }}>unique to IPM Careers</span>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8" data-tour="dsb-trainers">
-        {trainers.map(({ Icon, name, tag, desc, red, live, done, doneLabel, open }) => (
+        {trainers.map(({ Icon, name, tag, desc, red, live, done, doneLabel, isNew, open }) => (
           <div
             key={name}
             onClick={live ? open : undefined}
@@ -435,7 +448,14 @@ export default function DSBChallenge({ userData }) {
             <div className="grid place-items-center mb-3" style={{ width: 38, height: 38, borderRadius: 12, background: red ? "var(--c-danger-soft)" : "var(--c-brand-gold-tint)", color: red ? "var(--c-danger)" : "var(--c-brand-gold)" }}>
               <Icon size={18} />
             </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text-primary)" }}>{name}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text-primary)", display: "flex", alignItems: "center", gap: 7 }}>
+              {name}
+              {isNew && (
+                <span style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: "0.09em", textTransform: "uppercase", borderRadius: 999, padding: "2.5px 8px", background: "var(--c-stat-grad)", color: "#241a05" }}>
+                  New
+                </span>
+              )}
+            </div>
             <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: red ? "var(--c-danger)" : "var(--c-brand-gold)", margin: "3px 0 7px" }}>{tag}</div>
             <p style={{ fontSize: 12, color: "var(--c-text-secondary)", lineHeight: 1.55 }}>{desc}</p>
             {live ? (

@@ -19,7 +19,7 @@
 //      student's first attempt of each mock; best attempt per mock)
 // ============================================================
 
-const { getAuthUser } = require("@/lib/apiAuth");
+const { getAuthUser, isAdminEmail } = require("@/lib/apiAuth");
 const { createClient } = require("@supabase/supabase-js");
 const scoring = require("@/lib/scoring");
 
@@ -44,7 +44,18 @@ export default async function handler(req, res) {
   if (!supabase) return res.status(500).json({ error: "Server configuration error" });
 
   try {
-    const email = String(user.email || "").toLowerCase();
+    let email = String(user.email || "").toLowerCase();
+
+    // 2026-09 admin view: ?as=<student email> returns THAT student's
+    // journey — admins only, verified server-side. Mentors reviewing a
+    // student's analytics page see the student's real rank/journey
+    // instead of their own data (the viewer-identity fix).
+    const asRaw = req.query && req.query.as ? String(req.query.as).toLowerCase().trim() : "";
+    if (asRaw && asRaw !== email) {
+      const admin = await isAdminEmail(email);
+      if (!admin) return res.status(403).json({ error: "Admins only" });
+      email = asRaw;
+    }
 
     // 1 · the student's own plays, oldest first (chronology anchor)
     const { data: myPlays, error: mpErr } = await supabase
