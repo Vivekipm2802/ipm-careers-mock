@@ -445,6 +445,19 @@ const journeyFixture = [
   check(html.includes("one point is not a line"), "single-mock empty state renders");
 }
 {
+  // 4a1b · same-exam journey (2026-09 owner feedback): a mock from a
+  // DIFFERENT category must not appear in this mock's journey views.
+  const mixed = [
+    ...journeyFixture.map((m) => ({ ...m, category: 13 })),
+    { ...journeyFixture[0], testId: 99, title: "ROHTAK-INTRUDER", category: 14 },
+  ];
+  stateQueue = [[sec], [mod], mockQuestions, mixed];
+  const htmlMix = clean(ReactDOMServer.renderToString(React.createElement(MockAnalytics, { result: { ...mockResultRow, test_id: { ...mockResultRow.test_id, category: 13 } } })));
+  stateQueue = null;
+  check(!htmlMix.includes("ROHTAK-INTRUDER") && htmlMix.includes("Score across mocks"),
+    "same-exam journey: other-category mocks are filtered out of the trend");
+}
+{
   // 4a2 · viewer-identity gate: an admin opening a STUDENT's link must
   // not see their own journey mixed into the student's report.
   stateQueue = [[sec], [mod], mockQuestions, journeyFixture];

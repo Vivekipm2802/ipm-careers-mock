@@ -228,9 +228,22 @@ export default function MockAnalytics({ result }) {
   const effJourney = gated ? [] : journey;
 
   // ── journey slices ──
+  // 2026-09 owner feedback: the journey must stay SAME-EXAM. Mixing
+  // Rohtak (/480), JIPMAT (/400) and IIM B (/180) attempts into one
+  // trend line (and one "topper gap") compared different scales and
+  // meant nothing. Filter by the current test's category when both
+  // sides carry one (older cached payloads without category pass).
+  const curCategory = result?.test_id?.category ?? null;
   const fullMocks = useMemo(
-    () => (Array.isArray(effJourney) ? effJourney.filter((m) => m.sectionCount > 1) : []),
-    [effJourney]
+    () =>
+      Array.isArray(effJourney)
+        ? effJourney.filter(
+            (m) =>
+              m.sectionCount > 1 &&
+              (curCategory == null || m.category == null || sameId(m.category, curCategory))
+          )
+        : [],
+    [effJourney, curCategory]
   );
   const currentEntry = useMemo(
     () => (Array.isArray(effJourney) ? effJourney.find((m) => sameId(m.testId, result?.test_id?.id)) : null),
@@ -885,7 +898,7 @@ export default function MockAnalytics({ result }) {
             <div style={{ ...card, padding: "22px 26px", marginBottom: 14 }}>
               <div style={capStyle}>Score across mocks</div>
               <div style={{ fontSize: 13.5, color: "var(--c-text-secondary)", marginTop: 6 }}>
-                Your journey starts with your second mock, one point is not a line.
+                Your journey starts with your second mock of this exam, one point is not a line.
               </div>
             </div>
           )}

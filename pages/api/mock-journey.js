@@ -79,7 +79,7 @@ export default async function handler(req, res) {
     // 2 · shared structure for those tests
     const [{ data: groupsRaw }, { data: tests }] = await Promise.all([
       supabase.from("mock_groups").select("*,subject(*)").in("test", testIds),
-      supabase.from("mock_test").select("id,title,config").in("id", testIds),
+      supabase.from("mock_test").select("id,title,config,category").in("id", testIds),
     ]);
     const groups = groupsRaw || [];
     const { data: modsRaw } = groups.length
@@ -170,6 +170,10 @@ export default async function handler(req, res) {
       const testMeta = (tests || []).find((x) => x.id === testId);
       mocks.push({
         testId,
+        // 2026-09 owner feedback: cross-exam mixing made the journey
+        // meaningless (Rohtak /480 next to IIM B /180). The category
+        // lets the analytics page keep the journey same-exam only.
+        category: testMeta ? testMeta.category : null,
         title: (testMeta && testMeta.title) || "Mock",
         timeoutSec:
           testMeta && testMeta.config && Number(testMeta.config.timeout) > 0
