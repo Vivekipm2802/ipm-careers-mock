@@ -10,13 +10,13 @@
 // the banked run — same no-re-attempt rule as the daily
 // trainers, just on a weekly clock.
 //
-// Set rotation: seeded no-repeat cycle over the 12-set bank
+// Set rotation: seeded no-repeat cycle over the bank
 // (weeklyDIBank.js), cloned from Gulp's passage rotation —
 // mulberry32/cycleOrder are imported from GulpProtocol so the
 // shuffle math stays identical. weekNumberFor is Monday-
 // anchored (ISO-style): every student worldwide sees the same
-// set for the same week, and no set repeats until all 12 have
-// run.
+// set for the same week, and no set repeats until the whole
+// bank has run.
 // ============================================================
 
 import { useEffect, useRef, useState } from "react";

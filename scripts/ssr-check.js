@@ -1258,16 +1258,16 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
   // 12i · Weekly DI — bank integrity + Monday-anchored rotation
   const wdMod = require(path.join(root, "components", "WeeklyDI.js"));
   const DI_SETS = require(path.join(root, "components", "weeklyDIBank.js")).default;
-  check(DI_SETS.length === 12, `weekly-di bank: ${DI_SETS.length} sets (expected 12)`);
+  check(DI_SETS.length === 10, `weekly-di bank: ${DI_SETS.length} sets (expected 10 — 2026-09 v2, owner's PDF bank)`);
   check(new Set(DI_SETS.map((s) => s.id)).size === DI_SETS.length, "weekly-di bank: ids unique");
   check(DI_SETS.every((s) => s.questions.length === 5), "weekly-di bank: every set carries exactly 5 questions");
   check(DI_SETS.every((s) => ["table", "caselet"].includes(s.kind)), "weekly-di bank: every set is table or caselet (no graphs)");
   check(DI_SETS.every((s) => typeof s.intro === "string" && s.intro.length > 20), "weekly-di bank: every set carries an intro");
   check(DI_SETS.filter((s) => s.kind === "table").every((s) => s.table && s.table.head.length >= 2 && s.table.rows.length >= 1 && s.table.rows.every((r) => r.length === s.table.head.length)),
     "weekly-di bank: table sets have consistent head/row widths");
-  check(DI_SETS.every((s) => s.questions.every((q) => q.o.length === 4 && Number.isInteger(q.a) && q.a >= 0 && q.a < 4)),
-    "weekly-di bank: every question has 4 options and a valid answer index");
-  check(DI_SETS.every((s) => s.questions.every((q) => new Set(q.o.map((o) => String(o).trim())).size === 4)),
+  check(DI_SETS.every((s) => s.questions.every((q) => (q.o.length === 4 || q.o.length === 5) && Number.isInteger(q.a) && q.a >= 0 && q.a < q.o.length)),
+    "weekly-di bank: every question has 4-5 options and a valid answer index");
+  check(DI_SETS.every((s) => s.questions.every((q) => new Set(q.o.map((o) => String(o).trim())).size === q.o.length)),
     "weekly-di bank: no duplicate options inside a question");
   check(DI_SETS.every((s) => s.questions.every((q) => typeof q.e === "string" && q.e.length > 10)),
     "weekly-di bank: EVERY question carries a worked explanation");
@@ -1277,7 +1277,7 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
   const cycle0 = Array.from({ length: n }, (_, w) => setIndexForWeek(w, n));
   const cycle1 = Array.from({ length: n }, (_, w) => setIndexForWeek(n + w, n));
   check(new Set(cycle0).size === n && new Set(cycle1).size === n,
-    "weekly-di rotation: a full cycle covers all 12 sets with no repeats (cycles 0 and 1)");
+    "weekly-di rotation: a full cycle covers the whole bank with no repeats (cycles 0 and 1)");
   check(cycle0.every((v, w) => v === setIndexForWeek(w, n)),
     "weekly-di rotation: deterministic — same week, same set on every call");
   check(JSON.stringify(cycle0) !== JSON.stringify(cycle1),
