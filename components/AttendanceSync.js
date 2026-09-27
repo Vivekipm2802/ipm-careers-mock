@@ -424,6 +424,17 @@ export default function AttendanceSync() {
     for (const st of rows) if (st && st.email) pres[st.email] = true;
     setManual((m) => ({ ...m, open: !m.open, present: pres }));
   };
+  // 2026-09 owner bug report: on a flaky connection the save request
+  // can hang forever and the button sits on "Saving…" with no way out
+  // (same failure mode the concept-test submit had). 20s timeout +
+  // clear message; the server never got the request, so retrying is
+  // always safe.
+  const fetchWithTimeout = (url, opts, ms = 20000) =>
+    Promise.race([
+      fetch(url, opts),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms)),
+    ]);
+
   const saveManual = async () => {
     if (manual.saving) return;
     if (selBatch == null) { toast.error("Pick a batch first"); return; }
@@ -431,7 +442,7 @@ export default function AttendanceSync() {
     setManual((m) => ({ ...m, saving: true }));
     try {
       const headers = { ...((await getAuthHeaders()) || {}), "Content-Type": "application/json" };
-      const r = await fetch("/api/attendance/manual", {
+      const r = await fetchWithTimeout("/api/attendance/manual", {
         method: "POST", headers,
         body: JSON.stringify({ batchId: selBatch, title: manual.title || "Class", date: manual.date, durationMin: manual.duration, present }),
       });
@@ -445,7 +456,11 @@ export default function AttendanceSync() {
         setManual((m) => ({ ...m, saving: false }));
       }
     } catch (e) {
-      toast.error("Save failed");
+      toast.error(
+        e && e.message === "timeout"
+          ? "Slow connection — the save didn't reach the server. Nothing was recorded; tap Save again."
+          : "Save failed — check your connection and try again."
+      );
       setManual((m) => ({ ...m, saving: false }));
     }
   };
@@ -455,7 +470,7 @@ export default function AttendanceSync() {
     setRecAdd((m) => ({ ...m, saving: true }));
     try {
       const headers = { ...((await getAuthHeaders()) || {}), "Content-Type": "application/json" };
-      const r = await fetch("/api/recordings/manual", {
+      const r = await fetchWithTimeout("/api/recordings/manual", {
         method: "POST", headers,
         body: JSON.stringify({ batchId: selBatch, title: recAdd.title, date: recAdd.date, url: recAdd.url, notesUrl: recAdd.notes, facultyName: recAdd.faculty, passcode: recAdd.passcode }),
       });
@@ -468,7 +483,11 @@ export default function AttendanceSync() {
         setRecAdd((m) => ({ ...m, saving: false }));
       }
     } catch (e) {
-      toast.error("Save failed");
+      toast.error(
+        e && e.message === "timeout"
+          ? "Slow connection — the save didn't reach the server. Nothing was recorded; tap again."
+          : "Save failed — check your connection and try again."
+      );
       setRecAdd((m) => ({ ...m, saving: false }));
     }
   };
