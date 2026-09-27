@@ -1812,6 +1812,16 @@ function buildEmbed(url) {
   }
   const vm = url.match(/vimeo\.com\/(\d+)/i);
   if (vm) return `https://player.vimeo.com/video/${vm[1]}`;
+  // 2026-09 owner bug report: a Google Drive /view share link iframed
+  // raw shows Drive's "You need access" page even when sharing is set
+  // to anyone-with-link (Drive's viewer UI refuses framing; only the
+  // /preview endpoint is embeddable). Swap to /preview — same trick
+  // buildPdfEmbed already uses for notes.
+  const gd =
+    url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i) ||
+    url.match(/drive\.google\.com\/open\?id=([^&#]+)/i) ||
+    url.match(/drive\.google\.com\/uc\?id=([^&#]+)/i);
+  if (gd) return `https://drive.google.com/file/d/${gd[1]}/preview`;
   return url; // assume it's already embeddable
 }
 

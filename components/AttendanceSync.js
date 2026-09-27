@@ -657,9 +657,46 @@ export default function AttendanceSync() {
                 onChange={(e) => setRecAdd((m) => ({ ...m, passcode: e.target.value }))} style={{ ...inputStyle, width: 140 }} />
               <input placeholder="Notes link (PDF/Drive, optional)" value={recAdd.notes}
                 onChange={(e) => setRecAdd((m) => ({ ...m, notes: e.target.value }))} style={{ ...inputStyle, width: 220 }} />
+              {/* 2026-09 owner request: direct PDF upload for notes (no
+                  Drive round-trip). Same unsigned Cloudinary preset the
+                  profile photos use; the returned URL drops straight
+                  into the notes field. */}
+              <label style={{ fontSize: 12.5, fontWeight: 600, color: "var(--c-brand-gold)", cursor: recAdd.uploading ? "wait" : "pointer", whiteSpace: "nowrap" }}>
+                {recAdd.uploading ? "Uploading…" : "or upload PDF ↑"}
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  style={{ display: "none" }}
+                  disabled={!!recAdd.uploading}
+                  onChange={async (e) => {
+                    const file = e.target.files && e.target.files[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    if (file.size > 20 * 1024 * 1024) { toast.error("PDF must be under 20 MB"); return; }
+                    setRecAdd((m) => ({ ...m, uploading: true }));
+                    try {
+                      const fd = new FormData();
+                      fd.append("file", file);
+                      fd.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_IMAGE_PRESET);
+                      const r = await fetch(
+                        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_KEY}/auto/upload/`,
+                        { method: "POST", body: fd }
+                      );
+                      const j = await r.json();
+                      const url = j.secure_url || j.url;
+                      if (!url) throw new Error((j && j.error && j.error.message) || "no URL returned");
+                      setRecAdd((m) => ({ ...m, notes: url, uploading: false }));
+                      toast.success("Notes PDF uploaded — link filled in");
+                    } catch (err) {
+                      setRecAdd((m) => ({ ...m, uploading: false }));
+                      toast.error("Upload failed: " + (err.message || "try again or paste a link"));
+                    }
+                  }}
+                />
+              </label>
             </div>
             <div className="mt-2" style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
-              Give a recording link, a notes link, or both. For Drive links set "Anyone with the link can view" first.
+              Give a recording link, a notes link (or upload the PDF directly), or both. For Drive links set "Anyone with the link can view" first.
             </div>
             <button type="button" onClick={saveRecAdd} disabled={recAdd.saving} style={{ ...goldBtn(recAdd.saving), marginTop: 10 }}>
               {recAdd.saving ? "Saving…" : "Add recording"}
