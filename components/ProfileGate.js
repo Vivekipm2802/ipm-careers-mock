@@ -57,6 +57,8 @@ export default function ProfileGate() {
         const { data } = await supabase.auth.getUser();
         const em = data?.user?.email;
         if (!em) { setState("hidden"); return; }
+        // demo account never sees the gate (demo-that-sells, 2026-09)
+        if (em.toLowerCase() === "slee23137@gmail.com") { setState("hidden"); return; }
         setEmail(em.toLowerCase());
         // admins skip the gate
         try {

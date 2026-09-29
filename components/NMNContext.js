@@ -149,12 +149,12 @@ export const NMNContextProvider = ({ children }) => {
 
   const router = useRouter();
   useEffect(() => {
-    if (router.pathname === "/demo") {
-      setDemo(true);
-    } else {
-      setDemo(false);
-    }
-  }, [router.pathname]);
+    // 2026-09 demo-that-sells: demo mode is the DEMO ACCOUNT on the
+    // real portal (the old /demo fork is retired to a redirect), so
+    // the flag keys off the signed-in email as well as the path.
+    const demoEmail = String(userDetails?.email || "").toLowerCase() === "slee23137@gmail.com";
+    setDemo(router.pathname === "/demo" || demoEmail);
+  }, [router.pathname, userDetails?.email]);
 
   useEffect(() => {
     const handleRouteChangeStart = () => setIsRouting(true);

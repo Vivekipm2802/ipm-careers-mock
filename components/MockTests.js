@@ -25,6 +25,7 @@ import { toast } from "react-hot-toast";
 import { useNMNContext } from "./NMNContext";
 import { CtoLocal } from "@/utils/DateUtil";
 import { pickLiveMock } from "@/lib/featuredMock";
+import { openUpsell } from "@/lib/demo";
 import {
   isAfter,
   isBefore,
@@ -1416,7 +1417,9 @@ function MockRow({
   if (locked) {
     action = (
       <button
-        onClick={() => toast.success("Please contact us to unlock.")}
+        // 2026-09: the toast is gone — locked mocks open the upgrade
+        // modal (WhatsApp + plans), for every free student.
+        onClick={() => openUpsell("mock")}
         style={{
           height: 34,
           padding: "0 16px",

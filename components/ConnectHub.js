@@ -13,6 +13,7 @@ import { CalendarCheck, LifeBuoy, Video, X } from "lucide-react";
 import { supabase } from "@/utils/supabaseClient";
 import { getAuthHeaders } from "@/utils/authHeaders";
 import { useLang } from "@/lib/lang";
+import { isDemoEmail, openUpsell } from "@/lib/demo";
 
 const card = { background: "var(--c-surface)", border: "1px solid var(--c-border-faint)", borderRadius: 16, boxShadow: "var(--c-shadow-xs)" };
 const inp = { height: 42, padding: "0 12px", background: "var(--c-surface)", color: "var(--c-text-primary)", border: "1px solid var(--c-border-soft)", borderRadius: 10, fontSize: 14, fontFamily: "inherit", width: "100%" };
@@ -56,6 +57,12 @@ export default function ConnectHub() {
   useEffect(() => { load(); loadTickets(); }, []);
 
   const book = async (slotId) => {
+    // 2026-09 demo-that-sells: the demo account sees mentors and open
+    // slots (the value) but booking routes to the upgrade modal.
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      if (isDemoEmail(u?.user?.email)) { openUpsell("mentor"); return; }
+    } catch (e) { /* fall through to normal booking */ }
     setBusy(slotId);
     try {
       const headers = { ...((await getAuthHeaders()) || {}), "Content-Type": "application/json" };

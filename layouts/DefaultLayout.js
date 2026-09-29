@@ -8,6 +8,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import LanguageToggle from '@/components/LanguageToggle';
 import XPChip from '@/components/XPChip';
 import ProfileGate from '@/components/ProfileGate';
+import UpsellModal, { DemoBanner } from '@/components/UpsellModal';
 
 function DefaultLayout(props){
 
@@ -43,6 +44,7 @@ function DefaultLayout(props){
       <LanguageToggle />
       <XPChip />
       <ProfileGate />
+      <UpsellModal />
 
       <Modal isOpen={reportActive} onClose={() => { setReportActive(false); }}>
         <ModalContent>
@@ -149,6 +151,7 @@ function DefaultLayout(props){
       </div>
 
       <div className={`${styles.right} p-2`} style={{ background: 'var(--c-bg)' }}>
+        {isDemo && <DemoBanner />}
         {props.children}
       </div>
     </div>
