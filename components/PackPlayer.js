@@ -30,6 +30,7 @@
 import { supabase } from "@/utils/supabaseClient";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNMNContext } from "@/components/NMNContext";
+import { openUpsell } from "@/lib/demo";
 import { toast } from "react-hot-toast";
 
 const FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
@@ -149,6 +150,20 @@ export default function PackPlayer({
     };
   }, [group, categoryName, listName, demoListName, isDemo]);
 
+  // ── Demo gating (2026-09 demo-that-sells, owner spec) ─────────
+  // Videos in the demo: QA opens only Profit and Loss, LR opens only
+  // Direction & Distance and Blood Relations, VA is fully locked (the
+  // pack itself is gated in VideoGroups). Locked chapters stay VISIBLE,
+  // sorted below the open ones, and clicking them opens the upgrade
+  // modal instead of expanding.
+  const DEMO_OPEN_CHAPTERS = [/profit and loss/i, /direction and distance/i, /blood relation/i];
+  const chapterLocked = (ch) => !!(isDemo && ch && !DEMO_OPEN_CHAPTERS.some((re) => re.test(ch.title || "")));
+  const orderedChapters = useMemo(
+    () => (isDemo ? [...chapters].sort((a, b) => (chapterLocked(a) ? 1 : 0) - (chapterLocked(b) ? 1 : 0)) : chapters),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chapters, isDemo]
+  );
+
   // ────────────────────────────────────────────────────────────
   // Default open chapter — first one. But if a sessionStorage
   // "ipm-topic-intent" is present (set by VideoGroups.TopicCard),
@@ -166,7 +181,7 @@ export default function PackPlayer({
       /* ignore */
     }
 
-    let targetChapter = chapters[0];
+    let targetChapter = (isDemo ? chapters.find((c) => !chapterLocked(c)) : chapters[0]) || chapters[0];
     if (intent) {
       const intentId = parseInt(intent, 10);
       const match = chapters.find((c) => c.id === intentId);
@@ -456,20 +471,22 @@ export default function PackPlayer({
               No chapters yet, admin hasn't added any content.
             </div>
           ) : (
-            chapters.map((ch) => (
+            orderedChapters.map((ch) => (
               <ChapterAccordion
                 key={ch.id}
                 chapter={ch}
                 meta={chapterMeta(ch.id)}
                 active={activeChapterId === ch.id}
+                locked={chapterLocked(ch)}
                 subs={subs.filter((s) => s.parent === ch.id)}
                 videos={videos}
                 currentVideoId={currentVideo?.id}
-                onToggle={() =>
+                onToggle={() => {
+                  if (chapterLocked(ch)) { openUpsell("videos"); return; }
                   setActiveChapterId(
                     activeChapterId === ch.id ? null : ch.id,
-                  )
-                }
+                  );
+                }}
                 onPickVideo={(v) => setCurrentVideo(v)}
               />
             ))
@@ -574,6 +591,7 @@ function ChapterAccordion({
   chapter,
   meta,
   active,
+  locked,
   subs,
   videos,
   currentVideoId,
@@ -643,6 +661,11 @@ function ChapterAccordion({
             }}
           >
             {chapter.title}
+            {locked && (
+              <span style={{ marginLeft: 8, fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em", padding: "2px 8px", borderRadius: 999, background: "var(--c-brand-gold-tint)", color: "var(--c-brand-gold)", textTransform: "uppercase" }}>
+                🔒 Locked
+              </span>
+            )}
           </div>
           <div
             style={{

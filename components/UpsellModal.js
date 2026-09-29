@@ -15,10 +15,10 @@ import { X, Lock, MessageCircle, ArrowRight } from "lucide-react";
 import { WHATSAPP_UPSELL_URL, PLANS_URL } from "@/lib/demo";
 
 const PERKS = [
-  "Every full mock — 100+ across IPMAT Indore, Rohtak, JIPMAT, Kozhikode & IIM Bangalore",
-  "All real past-year papers as timed mocks, with the deep analytics report after every attempt",
-  "Live classes, recordings and class notes from IIM-alumni faculty",
-  "1-on-1 mentor sessions, doubt solving and the daily skill trainers",
+  "100+ full mocks for IPMAT Indore, Rohtak, JIPMAT, Kozhikode and IIM Bangalore",
+  "Every real past year paper as a timed mock, with a detailed report after each attempt",
+  "Live classes, recordings and class notes from IIM alumni faculty",
+  "1-on-1 mentor sessions, doubt solving and daily practice trainers",
 ];
 
 export default function UpsellModal() {
@@ -68,7 +68,7 @@ export default function UpsellModal() {
           rel="noreferrer"
           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14, padding: "13px 18px", borderRadius: 999, background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", fontWeight: 700, fontSize: 14, textDecoration: "none" }}
         >
-          <MessageCircle size={16} /> WhatsApp us — instant reply
+          <MessageCircle size={16} /> Chat with us on WhatsApp
         </a>
         <a
           href={PLANS_URL}
@@ -76,10 +76,10 @@ export default function UpsellModal() {
           rel="noreferrer"
           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 9, padding: "11px 18px", borderRadius: 999, background: "transparent", border: "1px solid var(--c-border-soft)", color: "var(--c-text-secondary)", fontWeight: 600, fontSize: 13, textDecoration: "none" }}
         >
-          See plans & pricing <ArrowRight size={14} />
+          See plans and pricing <ArrowRight size={14} />
         </a>
         <div style={{ fontSize: 11, color: "var(--c-text-tertiary)", textAlign: "center", marginTop: 10 }}>
-          Talk to an IIM-alumni mentor before you decide — the call is free.
+          Not sure yet? Talk to an IIM alumni mentor first. The call is free.
         </div>
       </div>
     </div>
@@ -90,16 +90,18 @@ export default function UpsellModal() {
 export function DemoBanner() {
   return (
     <div
-      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "8px 14px", background: "var(--c-brand-gold-tint)", borderBottom: "1px solid var(--c-border-faint)", fontSize: 12.5, color: "var(--c-text-secondary)", flexWrap: "wrap" }}
+      // left-aligned with a wide right gutter so the fixed XP/theme
+      // chips never sit on top of the button (owner bug report)
+      style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 12, padding: "8px 16px", paddingRight: 340, background: "var(--c-brand-gold-tint)", borderBottom: "1px solid var(--c-border-faint)", fontSize: 12.5, color: "var(--c-text-secondary)", flexWrap: "wrap" }}
     >
       <span>
-        You&apos;re exploring the <b style={{ color: "var(--c-brand-gold)" }}>demo portal</b> as a sample student.
+        This is a <b style={{ color: "var(--c-brand-gold)" }}>demo</b> of the IPM Careers student portal.
       </span>
       <button
         onClick={() => window.dispatchEvent(new CustomEvent("ipm:upsell", { detail: { source: "banner" } }))}
         style={{ background: "var(--c-mock-banner-btn-bg)", color: "var(--c-mock-banner-btn-fg)", border: "none", borderRadius: 999, padding: "5px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
       >
-        Unlock full access →
+        Get full access →
       </button>
     </div>
   );

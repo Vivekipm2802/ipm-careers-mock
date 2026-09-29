@@ -26,6 +26,8 @@ import { ArrowLeft, ChevronRight, Search, X } from "lucide-react";
 import { CircularProgress } from "@nextui-org/react";
 import PageHeader from "@/components/PageHeader";
 import PillDropdown from "@/components/ui/PillDropdown";
+import { openUpsell } from "@/lib/demo";
+import { Lock } from "lucide-react";
 
 // ── Difficulty band from a sub-level (m_category) title ──
 function diffBandOf(title) {
@@ -102,7 +104,7 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
   // Live search over both grids — hook stays ABOVE the loading
   // early return (hooks-order rule).
   const [topicQuery, setTopicQuery] = useState("");
-  const { userDetails } = useNMNContext();
+  const { userDetails, isDemo } = useNMNContext();
   const router = useRouter();
   const isAdmin = role === "admin";
 
@@ -254,6 +256,27 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
     if (!categories) return [];
     return categories.filter(cat => topicModel[cat.id]?.weak);
   }, [categories, topicModel]);
+
+  // ── Demo gating (2026-09 demo-that-sells) ──────────────────────
+  // Owner spec: in the demo, EVERY topic and every test stays visible,
+  // but only the FIRST test of a handful of topics is attemptable —
+  // the rest show a lock and open the upgrade modal.
+  const DEMO_OPEN_TOPICS = [/number system/i, /percentage/i, /simple and compound/i, /narration/i, /blood relation/i];
+  const demoAllowedUuids = useMemo(() => {
+    if (!isDemo || !categories) return null;
+    const allowed = new Set();
+    categories.forEach((cat) => {
+      if (!DEMO_OPEN_TOPICS.some((re) => re.test(cat.title || ""))) return;
+      const subs = topicModel[cat.id]?.subs || [];
+      for (const sub of subs) {
+        const lv = (levelsByMCat[sub.id] || [])[0];
+        if (lv?.uuid) { allowed.add(lv.uuid); break; } // first test of the topic
+      }
+    });
+    return allowed;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemo, categories, topicModel, levelsByMCat]);
+  const demoLockCheck = (uuid) => !!(isDemo && demoAllowedUuids && !demoAllowedUuids.has(uuid));
 
   // ── Open a topic's test drawer (same target the old card tap had) ──
   async function openLevel(mCat) {
@@ -576,9 +599,13 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
             plays={plays}
             isAdmin={isAdmin}
             onClose={closeDrawer}
-            onStart={(testUuid) => router.push(`/test/${testUuid}`)}
+            onStart={(testUuid) => {
+              if (demoLockCheck(testUuid)) { openUpsell("concept"); return; }
+              router.push(`/test/${testUuid}`);
+            }}
             onViewResult={(playUid) => router.push(`/test/result/${playUid}`)}
             onPreview={(testUuid) => router.push(`/test/${testUuid}?preview=true`)}
+            isLocked={demoLockCheck}
             userDetails={userDetails}
           />
         )}
@@ -712,7 +739,7 @@ function DrawerOverlay({ open, onClose, children }) {
 }
 
 // ── Level drawer content ──
-function LevelDrawer({ mCat, levels, plays, isAdmin, onClose, onStart, onViewResult, onPreview, userDetails }) {
+function LevelDrawer({ mCat, levels, plays, isAdmin, onClose, onStart, onViewResult, onPreview, isLocked, userDetails }) {
   return (
     <>
       <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--c-border-faint)", position: "relative" }}>
@@ -759,6 +786,8 @@ function LevelDrawer({ mCat, levels, plays, isAdmin, onClose, onStart, onViewRes
           const play = plays && level.uuid ? plays[level.uuid] : null;
           const completed = !!play;
           const passed = play && play.isPassed === true;
+          // demo gating: visible but locked → the click upsells
+          const locked = typeof isLocked === "function" && isLocked(level.uuid) && !completed && !isAdmin;
 
           const handleClick = () => {
             if (completed && !isAdmin) {
@@ -796,6 +825,11 @@ function LevelDrawer({ mCat, levels, plays, isAdmin, onClose, onStart, onViewRes
                   <span style={{ fontSize: 15, fontWeight: 600, color: "var(--c-text-primary)", letterSpacing: "-0.01em" }}>
                     {level.title}
                   </span>
+                  {locked && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", padding: "3px 8px", borderRadius: 999, background: "var(--c-brand-gold-tint)", color: "var(--c-brand-gold)", textTransform: "uppercase" }}>
+                      <Lock size={10} /> Locked
+                    </span>
+                  )}
                   {completed && (
                     <span style={{
                       fontSize: 10, fontWeight: 600, letterSpacing: "0.04em",

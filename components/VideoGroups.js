@@ -43,15 +43,27 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import ImageUploader from "./ImageUploader";
 import { useNMNContext } from "./NMNContext";
+import { openUpsell } from "@/lib/demo";
 
 const FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
 
 export default function VideoGroups({ type, children, role, title }) {
   const [selectedGroup, setSelectedGroup] = useState();
+  const ctx = useNMNContext();
+  const isDemo = ctx?.isDemo;
 
   function clearSelection() {
     setSelectedGroup();
   }
+
+  // Demo gating (2026-09 demo-that-sells, owner spec): the Verbal
+  // Ability pack is fully locked for free/demo users — selecting it
+  // opens the upgrade modal instead. QA and LR open with per-chapter
+  // locks inside PackPlayer.
+  // onSelect receives the pack ID (video_groups.id). VA pack = 6.
+  const DEMO_LOCKED_PACK_IDS = [6];
+  const demoPackLocked = (gid) =>
+    !!(isDemo && role !== "admin" && DEMO_LOCKED_PACK_IDS.includes(Number(gid)));
 
   return selectedGroup ? (
     children({ group: selectedGroup, clearSelection })
@@ -60,7 +72,13 @@ export default function VideoGroups({ type, children, role, title }) {
       title={title}
       role={role}
       type={type}
+      isDemo={isDemo}
+      demoPackLocked={demoPackLocked}
       onSelect={(e) => {
+        if (demoPackLocked(e)) {
+          openUpsell("videos");
+          return;
+        }
         setSelectedGroup(e);
       }}
     />
@@ -126,7 +144,7 @@ const TOPICS = [
 // Selector — main view
 // ============================================================
 
-const Selector = ({ type, onSelect, role, title }) => {
+const Selector = ({ type, onSelect, role, title, demoPackLocked }) => {
   const ctx = useNMNContext();
   const userDetails = ctx?.userDetails;
   const isAdmin = role === "admin";
@@ -906,6 +924,7 @@ const Selector = ({ type, onSelect, role, title }) => {
               key={pack.id}
               pack={pack}
               isAdmin={isAdmin}
+              locked={typeof demoPackLocked === "function" && demoPackLocked(pack.id)}
               onAccess={() => onSelect(pack.id)}
               onDelete={() => deleteGroupbyId(pack.id)}
               onToggleDemo={(v) => toggleDemo(v, pack.id)}
@@ -1647,6 +1666,7 @@ function TopicCard({ title, packTitle, videoCount, accent, onClick }) {
 function PackCard({
   pack,
   isAdmin,
+  locked,
   onAccess,
   onDelete,
   onToggleDemo,
@@ -1694,6 +1714,26 @@ function PackCard({
           background: "var(--c-surface-sunken, var(--c-surface-muted))",
         }}
       >
+        {locked && (
+          <span
+            style={{
+              position: "absolute",
+              top: 10,
+              left: 10,
+              zIndex: 2,
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              padding: "3px 10px",
+              borderRadius: 999,
+              background: "rgba(20,19,15,0.72)",
+              color: "#F5C56B",
+            }}
+          >
+            🔒 Locked
+          </span>
+        )}
         {pack.image ? (
           <img
             src={pack.image}

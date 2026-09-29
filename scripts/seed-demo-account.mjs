@@ -145,12 +145,14 @@ async function seedConceptPlays() {
 
 async function seedTrainers() {
   const runs = [];
-  for (let d = 4; d >= 0; d--) {
+  // past days only — TODAY stays unseeded so demo visitors can actually
+  // attempt the daily trainers (owner: "review does not give a chance
+  // to attempt"); same reason weekly-di is not seeded.
+  for (let d = 5; d >= 1; d--) {
     runs.push({ user: DEMO, trainer: "daily-quiz", score: 6 + Math.floor(rnd() * 4), details: { seeded: true }, created_at: daysAgo(d, 8) });
     if (d !== 2) runs.push({ user: DEMO, trainer: "gulp-protocol", score: 260 + Math.floor(rnd() * 90), details: { seeded: true }, created_at: daysAgo(d, 9) });
     if (d % 2 === 0) runs.push({ user: DEMO, trainer: "skip-or-solve", score: 55 + Math.floor(rnd() * 25), details: { seeded: true }, created_at: daysAgo(d, 19) });
   }
-  runs.push({ user: DEMO, trainer: "weekly-di", score: 4, details: { seeded: true }, created_at: daysAgo(1, 20) });
   await post("trainer_runs", runs);
   console.log(`trainer runs seeded: ${runs.length}`);
 }

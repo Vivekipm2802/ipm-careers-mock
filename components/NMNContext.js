@@ -502,7 +502,9 @@ export const NMNContextProvider = ({ children }) => {
     {
       title: "Connect",
       subtitle: "Mentor session ya ticket",
-      demo: true,
+      // 2026-09 owner call: Connect (mentor booking / tickets) is for
+      // enrolled students only — hidden from the demo portal.
+      demo: false,
       isExpanded: false,
       flat: true, // single-item group → clicking "Connect" opens the page directly
       icon: <LifeBuoy size={22} />,
