@@ -11,6 +11,10 @@ import { NMNContextProvider } from '@/components/NMNContext';
 import {  posthog } from 'posthog-js';
 import { useRouter } from 'next/router';
 import {PostHogProvider} from 'posthog-js/react'
+// 2026-09: Vercel Web Analytics (pages router build) — the component
+// only ships its tiny script in production; the Analytics tab must
+// also be enabled once on the Vercel project (dashboard side).
+import { Analytics } from '@vercel/analytics/react';
 export default function App({ Component, pageProps }) {
   
 const [userData,setUserData] = useState();
@@ -63,6 +67,7 @@ getUserData()
     <Toaster position="bottom-right" toastOptions={{className:" font-sans text-sm",duration: 2000}}></Toaster>
     <NMNContextProvider>
     <Component {...pageProps} /></NMNContextProvider></PostHogProvider>
+    <Analytics />
     {/* 2026-09 maintenance: many questions are Word-pasted HTML with inline
         color:black — invisible on the dark theme ("blank questions" bug).
         Force question/option content to the theme text color in dark mode. */}
