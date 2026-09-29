@@ -258,7 +258,15 @@ export default function WelcomeScreen() {
                 </p>
               </div>
               <Link
-                href="/demo"
+                href="/"
+                // 2026-09 demo-that-sells: the old /demo fork is retired.
+                // "Free panel" = the REAL portal with the free tier (one
+                // open mock per exam, all PYQ papers, DSB, upsell gates).
+                // The flag below tells "/" to skip the welcome screen for
+                // this browser; enrolling later makes it irrelevant.
+                onClick={() => {
+                  try { window.localStorage.setItem("ipm_free_panel", "1"); } catch (e) {}
+                }}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",

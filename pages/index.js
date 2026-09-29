@@ -1393,7 +1393,18 @@ export default function Home(props) {
     );
   }
 
-  if (props?.type != "admin" && coursesEnrolled == undefined) {
+  // 2026-09 demo-that-sells: the demo account has no enrolled course by
+  // design, but must land INSIDE the portal (public mocks, PYQs, DSB,
+  // seeded progress) — not on the welcome screen, which links back to
+  // /demo and would loop forever.
+  const isDemoAccount = String(userData?.email || "").toLowerCase() === "slee23137@gmail.com";
+  // Free-panel flag: set by the WelcomeScreen CTA — a course-less user
+  // who chose the free panel goes INTO the portal (free tier + upsell
+  // gates) instead of looping back to the welcome screen.
+  const freePanel =
+    isDemoAccount ||
+    (typeof window !== "undefined" && window.localStorage.getItem("ipm_free_panel") === "1");
+  if (props?.type != "admin" && coursesEnrolled == undefined && !freePanel) {
     return (
       <div className="h-screen w-full flex flex-col text-center items-center bg-gray-200 justify-center sf align-middle p-4">
         <Modal
@@ -1449,7 +1460,7 @@ export default function Home(props) {
     );
   }
 
-  if (props?.type != "admin" && requriedInfo == false) {
+  if (props?.type != "admin" && requriedInfo == false && !isDemoAccount) {
     return (
       <div className="w-full h-screen p-2 font-sans flex flex-col justify-center items-center align-middle bg-gray-100">
         {/*  <Toaster className="sf" position="bottom-right" toastOptions={{
