@@ -48,6 +48,12 @@ export default function ProfileGate() {
   useEffect(() => {
     (async () => {
       try {
+        // 2026-09 owner call: the demo experience (/demo) never shows
+        // the profile gate — demo visitors aren't real students.
+        if (typeof window !== "undefined" && window.location.pathname.startsWith("/demo")) {
+          setState("hidden");
+          return;
+        }
         const { data } = await supabase.auth.getUser();
         const em = data?.user?.email;
         if (!em) { setState("hidden"); return; }
