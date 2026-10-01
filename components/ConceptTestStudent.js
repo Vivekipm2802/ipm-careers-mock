@@ -152,7 +152,7 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
         levelsData.forEach(l => {
           counts[l.parent] = (counts[l.parent] || 0) + 1;
           if (!byMCat[l.parent]) byMCat[l.parent] = [];
-          byMCat[l.parent].push({ id: l.id, uuid: l.uuid });
+          byMCat[l.parent].push({ id: l.id, uuid: l.uuid, title: l.title });
         });
         setTestCountByMCat(counts);
         setLevelsByMCat(byMCat);
@@ -259,32 +259,34 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
 
   // ── Demo gating (2026-09 demo-that-sells) ──────────────────────
   // Owner spec: in the demo, EVERY topic and every test stays visible,
-  // but only the FIRST test of a handful of topics is attemptable —
-  // the rest show a lock and open the upgrade modal.
-  const DEMO_OPEN_TOPICS = [/number system/i, /percentage/i, /simple and compound/i, /narration/i, /blood relation/i];
-  const demoAllowedUuids = useMemo(() => {
-    if (!isDemo || !categories) return null;
-    const allowed = new Set();
-    categories.forEach((cat) => {
-      if (!DEMO_OPEN_TOPICS.some((re) => re.test(cat.title || ""))) return;
-      const subs = topicModel[cat.id]?.subs || [];
-      for (const sub of subs) {
-        const lv = (levelsByMCat[sub.id] || [])[0];
-        if (lv?.uuid) { allowed.add(lv.uuid); break; } // first test of the topic
-      }
-    });
-    return allowed;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDemo, categories, topicModel, levelsByMCat]);
-  const demoLockCheck = (uuid) => !!(isDemo && demoAllowedUuids && !demoAllowedUuids.has(uuid));
+  // but only a handful of first-tests are attemptable — the rest show
+  // a lock and open the upgrade modal.
+  //
+  // The source of truth is the DATABASE, not a client list: RLS on
+  // `levels`/`questions` lets a non-enrolled (demo) account read only
+  // rows flagged demo=true. So a drawer row that came back from the
+  // direct RLS query IS attemptable (the test page can load it too);
+  // a row we only know from the concept-tree RPC (security definer,
+  // sees everything) is locked. Which tests are open is controlled by
+  // the `levels.demo` flag — scripts/set-demo-concept-levels.mjs.
+  const demoLockCheck = (uuid) => {
+    if (!isDemo) return false;
+    const row = (levelData || []).find((r) => r.uuid === uuid);
+    return !!(row && row.__demoLocked);
+  };
 
   // ── Open a topic's test drawer (same target the old card tap had) ──
   async function openLevel(mCat) {
     setActiveLevel(mCat);
     setLevelData(null);
+    // Demo accounts: the embedded questions join makes Postgres walk
+    // the questions RLS check per row and the statement TIMES OUT
+    // (observed live: error 57014), which surfaced as "No tests" under
+    // every topic. Plain levels select is fast — demo skips the join
+    // (the question-count chip just stays hidden there).
     const { data, error } = await supabase
       .from("levels")
-      .select("*,questions!questions_parent_fkey(id)")
+      .select(isDemo ? "*" : "*,questions!questions_parent_fkey(id)")
       .eq("parent", mCat.id)
       .order("created_at", { ascending: true });
     if (error) {
@@ -292,7 +294,24 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
       setLevelData([]); // empty array → drawer shows "No tests" instead of infinite spinner
       return;
     }
-    setLevelData(data || []);
+    let rows = data || [];
+    if (isDemo) {
+      // Merge with the concept-tree cache (security definer RPC — sees
+      // ALL levels). RLS-visible rows are attemptable and keep their
+      // question counts; tree-only rows render locked. Tree order wins.
+      const byUuid = {};
+      rows.forEach((r) => { byUuid[r.uuid] = r; });
+      const treeRows = levelsByMCat[mCat.id] || [];
+      const merged = treeRows.map((l) =>
+        byUuid[l.uuid]
+          ? byUuid[l.uuid]
+          : { id: l.id, uuid: l.uuid, title: l.title, questions: [], __demoLocked: true }
+      );
+      // any RLS row missing from the tree cache still shows (unlocked)
+      rows.forEach((r) => { if (!treeRows.some((l) => l.uuid === r.uuid)) merged.push(r); });
+      rows = merged;
+    }
+    setLevelData(rows);
   }
   function closeDrawer() { setActiveLevel(null); setLevelData(null); }
   function openTopic(cat) {

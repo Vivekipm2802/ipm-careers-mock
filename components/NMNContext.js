@@ -149,11 +149,56 @@ export const NMNContextProvider = ({ children }) => {
 
   const router = useRouter();
   useEffect(() => {
-    // 2026-09 demo-that-sells: demo mode is the DEMO ACCOUNT on the
-    // real portal (the old /demo fork is retired to a redirect), so
-    // the flag keys off the signed-in email as well as the path.
-    const demoEmail = String(userDetails?.email || "").toLowerCase() === "slee23137@gmail.com";
-    setDemo(router.pathname === "/demo" || demoEmail);
+    // 2026-09 demo-that-sells: demo mode is the free experience on the
+    // real portal (the old /demo fork is retired to a redirect). It
+    // applies to ALL free users, not just the showcase account:
+    //   1. the /demo path or the seeded demo account → always demo;
+    //   2. any signed-in account with ZERO enrollments → demo, unless
+    //      it is an admin (admins must never see locks/upsells).
+    const email = String(userDetails?.email || "").toLowerCase();
+    const demoEmail = email === "slee23137@gmail.com";
+    if (router.pathname === "/demo" || demoEmail) {
+      setDemo(true);
+      return undefined;
+    }
+    if (!email) {
+      setDemo(false);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { count, error } = await supabase
+          .from("enrollments")
+          .select("id", { count: "exact", head: true })
+          .eq("email", userDetails.email);
+        if (cancelled) return;
+        if (error || (count || 0) > 0) {
+          setDemo(false);
+          return;
+        }
+        // No enrollments — free user, unless admin. If the admin check
+        // itself fails we leave demo OFF (never lock an admin out by
+        // accident; the free user just sees the plain portal until a
+        // refresh).
+        let admin = false;
+        try {
+          const { getAuthHeaders } = await import("@/utils/authHeaders");
+          const headers = await getAuthHeaders();
+          const res = await fetch("/api/isAdmin", { method: "POST", headers });
+          const j = res.ok ? await res.json() : null;
+          admin = !!j?.success;
+          if (!cancelled) setDemo(!admin);
+        } catch (_e) {
+          if (!cancelled) setDemo(false);
+        }
+      } catch (_e) {
+        if (!cancelled) setDemo(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [router.pathname, userDetails?.email]);
 
   useEffect(() => {
