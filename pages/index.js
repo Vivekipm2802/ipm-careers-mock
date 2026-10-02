@@ -1460,7 +1460,10 @@ export default function Home(props) {
     );
   }
 
-  if (props?.type != "admin" && requriedInfo == false && !isDemoAccount) {
+  // Required-details gate (WhatsApp number + centre) is for ENROLLED
+  // students only — free/demo visitors have no centre and must never be
+  // blocked by it (owner, 2026-10).
+  if (props?.type != "admin" && requriedInfo == false && !isDemoAccount && coursesEnrolled != undefined) {
     return (
       <div className="w-full h-screen p-2 font-sans flex flex-col justify-center items-center align-middle bg-gray-100">
         {/*  <Toaster className="sf" position="bottom-right" toastOptions={{

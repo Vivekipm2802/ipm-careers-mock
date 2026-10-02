@@ -65,6 +65,15 @@ export default function ProfileGate() {
           const r = await axios.post("/api/isAdmin", {}, { headers: await getAuthHeaders() });
           if (r?.data?.success) { setState("hidden"); return; }
         } catch (e) { /* not admin */ }
+        // free accounts (zero enrollments) skip the gate too — the
+        // profile form is for enrolled students only (owner, 2026-10)
+        try {
+          const { count } = await supabase
+            .from("enrollments")
+            .select("id", { count: "exact", head: true })
+            .ilike("email", em);
+          if ((count || 0) === 0) { setState("hidden"); return; }
+        } catch (e) { /* count failed — fall through to profile check */ }
         const { data: rows, error } = await supabase
           .from("student_profiles").select("email").ilike("email", em).limit(1);
         if (error) { setState("hidden"); return; } // table missing → never block the portal
