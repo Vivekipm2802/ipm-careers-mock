@@ -1,6 +1,6 @@
 // ============================================================
-// Gulp Protocol passage library — 2026-09 expanded bank.
-// 16 passages across three tiers:
+// Gulp Protocol passage library — 2026-10 bank (46 passages).
+// Three tiers:
 //   · easy     — authored ~150-word warm-ups, 5 recall questions.
 //   · moderate — owner-supplied exam RCs, recall-leaning sets.
 //   · hard     — owner-supplied exam RCs, inference-heavy sets.
@@ -998,7 +998,2252 @@ const PASSAGES = [
         "e": "The erratic-looking run-and-tumble pattern turns out to be a control mechanism: tumbling is suppressed up-gradient and increased down-gradient, steering the cell. That supports A. C is contradicted, since the favoured hypothesis requires a brief memory."
       }
     ]
-  }
+  },
+  // ──────────────────────────────────────────────────────────
+  // 2026-10 expansion — 30 passages from the owner's four RC files
+  // ("Reading Comprehension for Portal" docx parts 1-3 + PDF).
+  // Sources carried their own answer + explanation per question;
+  // explanations were de-templated, answers kept as keyed.
+  // ──────────────────────────────────────────────────────────
+{
+  "id": "right-to-work-laws",
+  "title": "Right-to-Work Laws",
+  "tier": "moderate",
+  "words": 464,
+  "text": "The Taft-Hartley Act, passed by the United States Congress in 1947, gave states the power to enact \"right-to-work\" legislation that prohibits union shop () agreements. According to such an agreement, a labor union negotiates wages and working conditions for all workers in a business, and all workers are required to belong to the union. Since 1947, 20 states have adopted right-to-work laws. Much of the literature concerning right-to-work laws implies that such legislation has not actually had a significant impact. This point of view, however, has not gone uncriticized. Thomas V Carroll has proposed that the conclusions drawn by previous researchers are attributable to their myopic focus on the premise that, unless right-to-work laws significantly reduce union membership within a state, they have no effect. Carroll argues that the right-to-work laws \"do matter\" in that such laws generate differences in real wages across states. Specifically, Carroll indicates that while right-to-work laws may not \"destroy\" unions by reducing the absolute number of unionized workers, they do impede the spread of unions and thereby reduce wages within right-to-work states. Because the countervailing power of unions is weakened in right-to-work states, manufacturers and their suppliers can act cohesively in competitive labor markers, thus lowering wages in the affected industries.\nSuch a finding has important implications regarding the demographics of employment and wages in right-to-work states. Specifically, if right-to-work laws lower wages by weakening union power, minority workers can be expected to suffer a relatively greater economic disadvantage in right-to-work states than in union shop states. This is so because, contrary to what was once thought, union tend to have a significant positive impact on the economic position of minority workers, especially Black workers, relative to White workers. Most studies concerned with the impact of unionism on the Black worker's economic position relative to the White worker's have concentrated on the changes in Black wages due to union membership. That is, they have concentrated on union versus nonunion groups. In a pioneering study, however, Ashenfelter finds that these studies overlook an important fact: although craft unionism increase the differential between the wages of White workers and Black workers due to the traditional exclusion of minority workers from unions in the craft sectors of the labor market, strong positive wage gains are made by Black workers within industrial unions. In fact, Ashenfelter estimates that industrial unionism decreases the differential between the wages of Black workers and White workers by about 3 percent. If state right-to-work laws weaken the economic power of unions to raise wages, Black workers will experience a disproportionate decline in their relative wage positions. Black workers in right-to-work states would therefore experience a decline in their relative economic positions unless there is strong economic growth in right-to-work states, creating labor shortages and thereby driving up wages.",
+  "questions": [
+    {
+      "q": "The reasoning behind the \"literature\" (line 9), as that reasoning is presented in the passage, is most analogous to the reasoning behind which one of the following situations?",
+      "o": [
+        "A law is proposed that benefits many but disadvantages a few: those advocating passage of the law argue that the disadvantages to few are not so serious that the benefits should be denied to many.",
+        "A new tax on certain categories of consumer items is proposed: those in favor of the tax argue that those affected by the tax are well able to pay it, since the items taxed are luxury items.",
+        "A college sets strict course requirements that every student must complete before graduating; students already enrolled argue that it is unfair for the new requirements to apply to those enrolled before the change.",
+        "A fare increase in a public transportation system does not significantly reduce the number of fares sold: the management of the public transportation system asserts, therefore, that the fare hike has had no negative effects."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: a fare increase in a public transportation system does not significantly reduce the number of fares sold: the management of the public transportation system asserts, therefore, that the fare hike has had no negative effects."
+    },
+    {
+      "q": "According to the passage, which one of the following is true of Carroll's study?",
+      "o": [
+        "It implies that right-to-work laws have had a negligible effect on workers in right-to-work states.",
+        "It demonstrates that right-to-work laws have significantly decreased union membership from what it once was in right-to-work states.",
+        "It argues that right-to-work laws have affected wages in right-to-work states.",
+        "It supports the findings of most earlier researchers."
+      ],
+      "a": 2,
+      "e": "The passage directly supports this: it argues that right-to-work laws have affected wages in right-to-work states. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "It can be inferred from the passage that the author believes which one of following about craft unions?",
+      "o": [
+        "Craft unions have been successful in ensuring that the wages of their members remain higher than the wages of nonunion workers in the same occupational groups.",
+        "The number of minority workers joining craft unions has increased sharply in states that have not adopted right-to-work legislation.",
+        "Wages for workers belonging to craft unions have generally risen faster and more steadily than wages for workers belonging to industrial unions.",
+        "The wages of workers belonging to craft unions have not been significantly affected by right-to-work legislation, although the wages of workers belonging to industrial unions have been negatively affected."
+      ],
+      "a": 0,
+      "e": "It can be inferred from the passage that craft unions have been successful in ensuring that the wages of their members remain higher than the wages of nonunion workers in the same occupational groups."
+    },
+    {
+      "q": "Which one of the following best describes the effect industrial unionism has had on the wages of Black workers relative to those of White workers, as that effect is presented in the passage?",
+      "o": [
+        "Prior to 1947, industrial unionism had little effect on the wages of Black workers relative to those of White workers: since 1947, it has had a slight positive effect.",
+        "Prior to 1947, industrial unionism had a strong positive effect on the wages of Black workers relative to those of White workers: since 1947, it has had little effect.",
+        "Prior to 1947, industrial unionism had a negative effect on the wages of Black workers relative to those of White workers: since 1947, it has had a significant positive effect.",
+        "Industrial unionism has contributed strongly to a 3 percent decrease in the wage differential between Black workers and White workers."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: industrial unionism has contributed strongly to a 3 percent decrease in the wage differential between black workers and white workers."
+    },
+    {
+      "q": "According to the passage, which one of the following could counteract the effects of a decrease in unions' economic power to raise wages in right-to-work states?",
+      "o": [
+        "a decease in the number of union shop agreements",
+        "strong economic growth that creates labor shortages",
+        "a decrease in membership in craft unions",
+        "the merging of large industrial unions"
+      ],
+      "a": 1,
+      "e": "The passage directly supports this: strong economic growth that creates labor shortages. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "Which one of the following best describes the passage as a whole?",
+      "o": [
+        "an overview of a problem in research methodology and a recommended solution to that problem",
+        "a comparison of two competing theories and a suggestion for reconciling them",
+        "a critique of certain legislation and a proposal for modification of that legislation",
+        "a review of research that challenges the conclusions of earlier researchers"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: a review of research that challenges the conclusions of earlier researchers."
+    }
+  ]
+},
+{
+  "id": "women-physicians-abroad",
+  "title": "Women Physicians Abroad",
+  "tier": "moderate",
+  "words": 450,
+  "text": "In the late nineteenth century, the need for women physicians in missionary hospitals in Canton, China, led to expanded opportunities for both Western women and Chinese women. The presence of Western women as medical missionaries in China was made possible by certain changes within the Western missionary movement. Beginning in the 1870s, increasingly large numbers of women were forming women's foreign mission societies dedicated to the support of women's foreign mission work. Beyond giving the women who organized the societies a formal activity outside their home circles, these organizations enabled an increasing number of single women missionaries (as opposed to women who were part of the more typical husband-wife missionary teams) to work abroad. Before the formation of these women's organizations, mission funds had been collected by ministers and other church leaders, most of whom emphasized local parish work. What money was spent on foreign missions was under the control of exclusively male foreign mission boards whose members were uniformly uneasy about the new idea of sending single women out into the mission field. But as women's groups began raising impressive amounts of money donated specifically in support of single women missionaries, the home churches bowed both to women's changing roles at home and to increasing numbers of single professional missionary women abroad.\nAlthough the idea of employing a woman physician was a daring one for most Western missionaries in China, the advantages of a well-trained Western woman physician could not be ignored by Canton mission hospital administrators. A woman physician could attend women patients without offending any of the accepted conventions of female modesty. Eventually, some of these women were able to found and head separate women's medical institutions, thereby gaining access to professional responsibilities far beyond those available to them at home.\nThese developments also led to the attainment of valuable training and status by a significant number of Chinese women. The presence of women physicians in Canton mission hospitals led many Chinese women to avail themselves of Western medicine who might otherwise have failed to do so because of their culture's emphasis on physical modesty. In order to provide enough women physicians for these patients, growing numbers of young Chinese women were given instruction in medicine. This enabled them to earn an independent income, something that was then largely unavailable to women within traditional Chinese society. Many women graduates were eventually able to go out on their own into private practice, freeing themselves of dependence upon the mission community.\nThe most important result of these opportunities was the establishment of clear evidence of women's abilities and strengths, clear reasons for affording women expanded opportunities, and clear role models for how these abilities and responsibilities might be exercised.",
+  "questions": [
+    {
+      "q": "Which one of the following statements about Western women missionaries working abroad can be inferred from the passage?",
+      "o": [
+        "There were very few women involved in foreign missionary work before the 1870s.",
+        "Most women working abroad as missionaries before the 1870s were financed by women's foreign mission societies.",
+        "Most women employed in mission hospitals abroad before the 1870s were trained as nurses rather than as physicians.",
+        "Most women missionaries working abroad before the 1870s were married to men who were also missionaries."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that most women missionaries working abroad before the 1870s were married to men who were also missionaries."
+    },
+    {
+      "q": "The author mentions that most foreign mission boards were exclusively male most probably in order to",
+      "o": [
+        "Contrast foreign mission boards with the boards of secular organizations sending aid to China.",
+        "Explain the policy of foreign mission boards toward training Chinese women in medicine.",
+        "Justify the preference of foreign mission boards for professionally qualified missionaries.",
+        "Help account for the attitude of foreign mission boards towards sending single women missionaries abroad."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: help account for the attitude of foreign mission boards towards sending single women missionaries abroad."
+    },
+    {
+      "q": "Which one of the following best describes the organization of the passage?",
+      "o": [
+        "A situation is described, conditions that brought about the situation are explained, and results of the situation are enumerated.",
+        "An assertion is made, statements supporting and refuting the assertion are examined, and a conclusion is drawn.",
+        "An obstacle is identified, a variety of possible ways to overcome the obstacle are presented, and an opinion is ventured.",
+        "A predicament is outlined, factors leading up to the predicament are scrutinized, and a tentative resolution of the predicament is recommended."
+      ],
+      "a": 0,
+      "e": "The passage supports option A: a situation is described, conditions that brought about the situation are explained, and results of the situation are enumerated."
+    },
+    {
+      "q": "Which one of the following, if true, would most undermine the author's analysis of the reason for the increasing number of single women missionaries sent abroad beginning in the 1870s?",
+      "o": [
+        "The Western church boards that sent the greatest number of single women missionaries abroad had not received any financial support from women's auxiliary groups.",
+        "The women who were sent abroad as missionary physicians had been raised in families with a strong history of missionary commitment.",
+        "Most of the single missionary women sent abroad were trained as teachers and translators rather than as medical practitioners.",
+        "The western church boards tended to send abroad single missionary women who had previously been active in local parish work."
+      ],
+      "a": 0,
+      "e": "The passage supports option A: the western church boards that sent the greatest number of single women missionaries abroad had not received any financial support from women's auxiliary groups."
+    },
+    {
+      "q": "According to the passage, which one of the following was a factor in the acceptance of Western women as physicians in mission hospitals in Canton, China?",
+      "o": [
+        "The number of male physicians practicing in that region.",
+        "The specific women's foreign mission society that supplied the funding.",
+        "The specific home parishes from which the missionary women came.",
+        "The cultural conventions of the host society."
+      ],
+      "a": 3,
+      "e": "The passage directly supports this: the cultural conventions of the host society. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "The passage suggests which one of the following about medical practices in late-nineteenth-century Canton, China?",
+      "o": [
+        "There was great suspicion of non-Chinese medical practices.",
+        "Medical care was more often administered in the home than in hospitals.",
+        "It was customary for women physicians to donate a portion of their income for the maintenance of their extended family.",
+        "It was not customary for female patients to be treated by male physicians."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that it was not customary for female patients to be treated by male physicians."
+    }
+  ]
+},
+{
+  "id": "early-music-movement",
+  "title": "The Early Music Movement",
+  "tier": "hard",
+  "words": 452,
+  "text": "In recent years the early music movement, which advocates performing a work as it was performed at the time of its composition, has taken on the character of a crusade, particularly as it has moved beyond the sphere of medieval and baroque music and into music from the late eighteenth and early nineteenth centuries by composers such as Mozart and Beethoven. Granted, knowledge about the experience of playing old music on now-obsolete instruments has been of inestimable value to scholars. Nevertheless, the early music approach to performance raises profound and troubling questions.\nEarly music advocates assume that composers write only for the instruments available to them, but evidence suggests that composers of Beethoven's stature imagined extraordinarily high and low notes as part of their compositions, even when they recognized that such notes could not be played on instruments available at the time. In the score of Beethoven's first piano concerto, there is a \"wrong\" note, a high F-natural where the melody obviously calls for a high F-sharp, but pianos did not have this high an F-sharp when Beethoven composed the concerto. Because Beethoven once expressed a desire to revise his early works to exploit the extended range of pianos that became available to him some years later, it seems likely that he would have played the F-sharp if given the opportunity. To use a piano exactly contemporary with the work's composition would require playing a note that was probably frustrating for Beethoven himself to have had to play.\nIn addition, early music advocates often inadvertently divorce music and its performance from the life of which they were, and are, a part. The discovery that Haydn's and Mozart's symphonies were conducted during their lifetimes by a pianist who played the chords to keep the orchestra together has given rise to early music recordings in which a piano can be heard obtrusively in the foreground, despite evidence indicating that the orchestral piano was virtually inaudible to audiences at eighteenth-century concerts and was dropped as musically unnecessary when a better way to beat time was found. And although in the early nineteenth century the first three movements (sections) of Mozart's and Beethoven's symphonies were often played faster, and the last movement slower than today, this difference can readily be explained by the fact that at that time audiences applauded at the end of each movement, rather than withholding applause until the end of the entire work. As a result, musicians were not forced into extra brilliance in the finale in order to generate applause, as they are now. To restore the original tempo of these symphonies represents an irrational denial of the fact that our concepts of musical intensity and excitement have quite simply, changed.",
+  "questions": [
+    {
+      "q": "It can be inferred from the passage that by \"a piano exactly contemporary\" (line 30) with the composition of Beethoven's first piano concerto, the author means the kind of piano that was",
+      "o": [
+        "Designed to be inaudible to the audience when used by conductors of orchestras.",
+        "Incapable of playing the high F-natural that is in the score of Beethoven's original version of the concerto.",
+        "Unavailable to Mozart and Haydn.",
+        "Incapable of playing the high F-sharp that the melody of the concerto calls for."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that incapable of playing the high f-sharp that the melody of the concerto calls for."
+    },
+    {
+      "q": "Which one of the following best expresses the main idea of the passage?",
+      "o": [
+        "The early music movement has yet to resolve a number of troubling questions regarding its approach to the performance of music.",
+        "The early music movement, while largely successful in its approach to the performance of medieval and baroque music, has yet to justify its use of obsolete instruments in the performance of music by Beethoven and Mozart.",
+        "The early music approach to performance often assumes that composers write music that is perfectly tailored to the limitations of the instruments on which it will be performed during their lifetimes.",
+        "Although advocates of early music know much about the instruments used to perform music at the time it was composed, they lack information regarding how the style of such performances has changed since such music was written."
+      ],
+      "a": 0,
+      "e": "The passage supports option A: the early music movement has yet to resolve a number of troubling questions regarding its approach to the performance of music."
+    },
+    {
+      "q": "In the second paragraph, the author discusses Beethoven's first piano concerto primarily in order to",
+      "o": [
+        "Illustrate how piano music began to change in response to the extended range of pianos that became available during Beethoven's lifetime.",
+        "Illustrate how Beethoven's work failed to anticipate the changes in the design of instruments that were about to be made during his lifetime.",
+        "Suggest that early music advocates commonly perform music using scores that do not reflect revisions made to the music years after it was originally composed.",
+        "Illustrate how composers like Beethoven sometimes composed music that called for notes that could not be played on instruments that were currently available."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: illustrate how composers like beethoven sometimes composed music that called for notes that could not be played on instruments that were currently available."
+    },
+    {
+      "q": "The author suggests that the final movements of symphonies by Mozart and Beethoven might be played more slowly by today's orchestras if which one of the following were to occur?",
+      "o": [
+        "Orchestras were to use instruments no more advanced in design than those used by orchestras at the time Mozart and Beethoven composed their symphonies.",
+        "Audiences were to return to the custom of applauding at the end of each movement of a symphony.",
+        "Audiences were to reserve their most enthusiastic applause for the most brilliantly played finales.",
+        "Conductors were to return to the practice of playing the chords on an orchestral piano to keep the orchestra together."
+      ],
+      "a": 1,
+      "e": "It can be inferred from the passage that audiences were to return to the custom of applauding at the end of each movement of a symphony."
+    },
+    {
+      "q": "Which one of the following best describes the organization of the last paragraph?",
+      "o": [
+        "A generalization is made evidence undermining it is presented, and a conclusion rejecting it is then drawn.",
+        "A criticism is stated and then elaborated with two supporting examples.",
+        "An assumption is identified and then evidence undermining its validity is presented.",
+        "An assumption is identified and then evidence frequently provided in support of it is then critically evaluated."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: a criticism is stated and then elaborated with two supporting examples."
+    },
+    {
+      "q": "It can be inferred from the passage that the author's explanation in lines 50-54 would be most weakened if which one of the following were true?",
+      "o": [
+        "Musicians who perform in modern orchestras generally receive more extensive training than did their nineteenth-century counterparts.",
+        "Breaks between the movements of symphonies performed during the early nineteenth century often lasted longer than they do today because nineteenth-century musicians needed to retune their instruments between each movement.",
+        "Early nineteenth-century orchestral musicians were generally as concerned with the audience's response to their music as are the musicians who perform today in modern orchestras.",
+        "Early nineteenth-century audience applauded only perfunctorily after the first three movements of symphonies and conventionally withheld their most enthusiastic applause until the final movement was completed."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that early nineteenth-century audience applauded only perfunctorily after the first three movements of symphonies and conventionally withheld their most enthusiastic applause until the final movement was completed."
+    }
+  ]
+},
+{
+  "id": "minimills-and-big-steel",
+  "title": "Minimills and Big Steel",
+  "tier": "moderate",
+  "words": 456,
+  "text": "Although the United States steel industry faces widely publicized economic problems that have eroded its steel production capacity, not all branches of the industry have been equally affected. The steel industry is not monolithic: it includes integrated producers, minimills, and specialty-steel mills. The integrated producers start with iron ore and coal and produce a wide assortment of shaped steels. The minimills reprocess scrap steel into a limited range of low-quality products, such as reinforcing rods for concrete. The specialty-steel mills are similar to minimills in that they tend to be smaller than the integrated producers and are based on scrap, but they manufacture much more expensive products than minimills do and commonly have an active in-house research-and-development effort.\nBoth minimills and specialty-steel mills have succeeded in avoiding the worst of the economic difficulties that are afflicting integrated steel producers, and some of the mills are quite profitable. Both take advantage of new technology for refining and casting steel, such as continuous casting, as soon as it becomes available. The minimills concentrate on producing a narrow range of products for sale in their immediate geographic area, whereas specialty-steel mills preserve flexibility in their operations in order to fulfill a customer's particular specifications.\nAmong the factors that constrain the competitiveness of integrated producers are excessive labor, energy, and capital costs, as well as manufacturing inflexibility. Their equipment is old and less automated, and does not incorporate many of the latest refinement in steelmaking technology. (For example, only about half of the United States integrated producers have continuous casters, which combine pouring and rolling into one operation and thus save the cost of separate rolling equipment.) One might conclude that the older labor-intensive machinery still operating in United States integrated plants is at fault for the poor performance of the United States industry, but this cannot explain why Japanese integrated producers, who produce a higher-quality product using less energy and labor, are also experiencing economic trouble. The fact is that the common technological denominator of integrated producers is an inherently inefficient process that is still rooted in the nineteenth century.\nIntegrated producers have been unable to compete successfully with minimills because the minimills, like specialty-steel mills, have dispensed almost entirely with the archaic energy and capital-intensive front end of integrated steelmaking: the iron-smelting process, including the mining and preparation of the raw materials and the blast-furnace operation. In addition, minimills have found a profitable way to market steel products: as indicated above, they sell their finished products locally, thereby reducing transportation costs, and concentrate on a limited range of shapes and sizes within a narrow group of products that can be manufactured economically. For these reasons, minimills have been able to avoid the economic decline affecting integrated steel producers.",
+  "questions": [
+    {
+      "q": "Which one of the following best expresses the main idea of the passage?",
+      "o": [
+        "United States steel producers face economic problems that are shared by producers in other nations.",
+        "Minimills are the most successful steel producers because they best meet market demands for cheap steel.",
+        "Minimills and specialty-steel mills are more economically competitive than integrated producers because they use new technology and avoid the costs of the iron-smelting process.",
+        "United States steel producers are experiencing an economic decline that can be traced back to the nineteenth century."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: minimills and specialty-steel mills are more economically competitive than integrated producers because they use new technology and avoid the costs of the iron-smelting process."
+    },
+    {
+      "q": "The author mentions all of the following as features of minimills EXCEPT",
+      "o": [
+        "flexibility in their operations",
+        "local sale of their products",
+        "avoidance of mining operations",
+        "use of new steel-refining technology"
+      ],
+      "a": 0,
+      "e": "The passage supports option A: flexibility in their operations."
+    },
+    {
+      "q": "The author of the passage refers to \"Japanese integrated producers\" (line 43) primarily in order to support the view that",
+      "o": [
+        "different economic difficulties face the steel industries of different nations",
+        "not all integrated producers share a common technological denominator",
+        "labor-intensive machinery cannot be blamed for the economic condition of United States integrated steel producers",
+        "modern steelmaking technology is generally labor-and energy-efficient"
+      ],
+      "a": 2,
+      "e": "The passage supports option C: labor-intensive machinery cannot be blamed for the economic condition of united states integrated steel producers."
+    },
+    {
+      "q": "Which one of the following best describes the organization of the third paragraph?",
+      "o": [
+        "A hypothesis is proposed and supported; then an opposing view is presented and criticized.",
+        "A debate is described and illustrated: then a contrast is made and the debate is resolved.",
+        "A dilemma is described and cited as evidence for a broader criticism.",
+        "General statements are made and details given; then an explanation is proposed and rejected, and an alternative is offered."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: general statements are made and details given; then an explanation is proposed and rejected, and an alternative is offered."
+    },
+    {
+      "q": "It can be inferred from the passage that United States specialty-steel mills generally differ from integrated steel producers in that the specialty-steel mills",
+      "o": [
+        "sell products in a restricted geographical area",
+        "share the economic troubles of the minimills",
+        "resemble specialty-steel mills found in Japan",
+        "do not operate blast furnaces"
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that do not operate blast furnaces."
+    },
+    {
+      "q": "Each of the following describes an industry facing a problem also experienced by United Stated integrated steel producers EXCEPT",
+      "o": [
+        "a paper-manufacturing company that experiences difficulty in obtaining enough timber and other raw materials to meet its orders",
+        "a food-canning plant whose canning machines must constantly be tended by human operators",
+        "a textile firm that spends heavily on capital equipment and energy to process raw cotton before it is turned into fabric",
+        "a window-glass manufacturer that is unable to produce quickly different varieties of glass with special features required by certain customers"
+      ],
+      "a": 0,
+      "e": "The passage supports option A: a paper-manufacturing company that experiences difficulty in obtaining enough timber and other raw materials to meet its orders."
+    }
+  ]
+},
+{
+  "id": "work-and-the-family",
+  "title": "Work and the Family",
+  "tier": "moderate",
+  "words": 462,
+  "text": "The labor force is often organized as if workers had no family responsibilities. Preschool-age children need full-time care; children in primary school need care after school and during school vacations. Although day-care services can resolve some scheduling conflicts between home and office, workers cannot always find or afford suitable care. Even when they obtain such care, parents must still cope with emergencies, such as illnesses, that keep children at home. Moreover, children need more than tending; they also need meaningful time with their parents. Conventional full-time workdays, especially when combined with unavoidable household duties, are too inflexible for parents with primary child-care responsibility.\nAlthough a small but increasing number of working men are single parents, those barriers against successful participation in the labor market that are related to primary child-care responsibilities mainly disadvantage women. Even in families where both parents work, cultural pressures are traditionally much greater on mothers than on fathers to bear the primary child-rearing responsibilities.\nIn reconciling child-rearing responsibilities with participation in the labor market, many working mothers are forced to make compromises. For example, approximately one-third of all working mothers are employed only part-time, even though part-time jobs are dramatically underpaid and often less desirable in comparison to full-time employment. Even though part-time work is usually available only in occupations offering minimal employee responsibility and little opportunity for advancement or self-enrichment, such employment does allow many women the time and flexibility to fulfill their family duties, but only at the expense of the advantages associated with full-time employment.\nMoreover, even mothers with full-time employment must compromise opportunities in order to adjust to barriers against parents in the labor market. Many choose jobs entailing little challenge or responsibility or those offering flexible scheduling, often available only in poorly paid positions, while other working mothers, although willing and able to assume as much responsibility as people without children, find that their need to spend regular and predictable time with their children inevitably causes them to lose career opportunities to those without such demands. Thus, women in education are more likely to become teachers than school administrators, whose more conventional full-time work schedules do not correspond to the schedules of school-age children, while female lawyers are more likely to practice law in trusts and estates, where they can control their work schedules, than in litigation, where they cannot. Nonprofessional women are concentrated in secretarial work and department store sales, where their absences can be covered easily by substitutes and where they can enter and leave the work force with little loss, since the jobs offer so little personal gain. Indeed, as long as the labor market remains hostile to parents, and family roles continue to be allocated on the basis of gender, women will be seriously disadvantaged in that labor market.",
+  "questions": [
+    {
+      "q": "Which one of the following best summarizes the main idea of the passage?",
+      "o": [
+        "Current trends in the labor force indicate that working parents, especially women, may not always need to choose between occupational and child-care responsibilities.",
+        "In order for mothers to have an equal opportunity for advancement in the labor force, traditional family roles have to be reexamined and revised.",
+        "Although single parents who work have to balance parental and career demands, single mothers suffer resulting employment disadvantages that single fathers can almost always avoid.",
+        "Traditional work schedules are too inflexible to accommodate the child-care responsibilities of many parents, a fact that severely disadvantages women in the labor force."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: traditional work schedules are too inflexible to accommodate the child-care responsibilities of many parents, a fact that severely disadvantages women in the labor force."
+    },
+    {
+      "q": "Which one of the following statements about part-time work can be inferred from the information presented in the passage?",
+      "o": [
+        "One-third of all part-time workers are working mothers.",
+        "Part-time work generally offers fewer opportunities for advancement to working mothers than to women generally.",
+        "Part-time work, in addition to having relatively poor wages, often requires that employees work during holidays, when their children are out of school.",
+        "Part-time employment, despite its disadvantages, provides working mothers with an opportunity to address some of the demands of caring for children."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that part-time employment, despite its disadvantages, provides working mothers with an opportunity to address some of the demands of caring for children."
+    },
+    {
+      "q": "It can be inferred from the passage that the author would be most likely to agree with which one of the following statements about working fathers in two-parent families?",
+      "o": [
+        "They are equally burdened by the employment disadvantages placed upon all parents---male and female---in the labor market.",
+        "They are so absorbed in their jobs that they often do not see the injustice going on around them.",
+        "They are shielded by the traditional allocation of family roles from many of the pressures associated with child-rearing responsibilities.",
+        "They help compound the inequities in the labor market by keeping women form competing with men for career opportunities."
+      ],
+      "a": 2,
+      "e": "It can be inferred from the passage that they are shielded by the traditional allocation of family roles from many of the pressures associated with child-rearing responsibilities."
+    },
+    {
+      "q": "Of the following, which one would the author most likely say is the most troublesome barrier facing working parents with primary child-care responsibility?",
+      "o": [
+        "the lack of full-time jobs open to women",
+        "the inflexibility of work schedules",
+        "the low wages of part-time employment",
+        "the limited advancement opportunities for nonprofessional employees"
+      ],
+      "a": 1,
+      "e": "The passage supports option B: the inflexibility of work schedules."
+    },
+    {
+      "q": "The passage suggests that day care is at best a limited solution to the pressures associated with child rearing for all of the following reasons EXCEPT:",
+      "o": [
+        "Even the best day care available cannot guarantee that children will have meaningful time with their parents.",
+        "Some parents cannot afford day-care services.",
+        "Working parents sometimes have difficulty finding suitable day care for their children.",
+        "Parents who send their children to day care still need to provide care for their children during vacations."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that parents who send their children to day care still need to provide care for their children during vacations."
+    },
+    {
+      "q": "According to the passage, many working parents may be forced to make any of the following types of career decisions EXCEPT",
+      "o": [
+        "declining professional positions for nonprofessional ones, which typically have less conventional work schedules",
+        "accepting part-time employment rather than full-time employment",
+        "taking jobs with limited responsibility, and thus more limited career opportunities, in order to have a more flexible schedule",
+        "pursuing career specializations that allow them to control their work schedules instead of pursuing a more desirable specialization in the same field"
+      ],
+      "a": 0,
+      "e": "The passage directly supports this: declining professional positions for nonprofessional ones, which typically have less conventional work schedules. This information is stated in the passage, making it the most accurate answer based on the text."
+    }
+  ]
+},
+{
+  "id": "websters-contradictions",
+  "title": "Webster's Contradictory Characters",
+  "tier": "hard",
+  "words": 467,
+  "text": "Critics have long been puzzled by the inner contradictions of major characters in John Webster's tragedies. In his The Duchess of Malfi, for instance, the Duchess is \"good\" in demonstrating the obvious tenderness and sincerity of her love for Antonio, but \"bad\" in ignoring the wishes and welfare of her family and in making religion a \"cloak\" hiding worldly self-indulgence. Bosola is \"bad\" in serving Ferdinand, \"good\" in turning the Duchess' thoughts toward heaven and in planning to avenge her murder. The ancient Greek philosopher Aristotle implied that such contradictions are virtually essential to the tragic personality, and yet critics keep coming back to this element of inconsistency as though it were an eccentric feature of Webster's own tragic vision.\nThe problem is that, as an Elizabethan playwright, Webster has become a prisoner of our critical presuppositions. We have, in recent years, been dazzled by the way the earlier Renaissance and medieval theater, particularly the morality play, illuminates Elizabethan drama. We now understand how the habit of mind that saw the world as a battleground between good and evil produced the morality play. Morality plays allegorized that conflict by presenting characters whose actions were defined as the embodiment of good or evil. This model of reality lived on, overlaid by different conventions, in the most sophisticated Elizabethan works of the following age. Yet Webster seems not to have been as heavily influenced by the morality play's model of reality as were his Elizabethan contemporaries; he was apparently more sensitive to the more morally complicated Italian drama than to these English sources. Consequently, his characters cannot be evaluated according to reductive formulas of good and evil, which is precisely what modern critics have tried to do. They choose what seem to be the most promising of the contradictor values that are dramatized in the play, and treat those values as if they were the only basis for analyzing the moral development of the play's major characters, attributing the inconsistencies in a character's behavior to artistic incompetence on Webster's part. The lack of consistency in Webster's characters can be better understood if we recognize that the ambiguity at the heart of his tragic vision lies not in the external world but in the duality of human nature. Webster establishes tension in his plays by setting up conflicting systems of value that appear immoral only when one value system is viewed exclusively from the perspective of the other. He presents us not only with characters that we condemn intellectually or ethically and at the same time impulsively approve of, but also with judgments we must accept as logically sound and yet find emotionally repulsive. The dilemma is not only dramatic: it is tragic, because the conflict is irreconcilable, and because it is ours as much as that of the characters.",
+  "questions": [
+    {
+      "q": "The primary purpose of the passage is to",
+      "o": [
+        "clarify an ambiguous assertion",
+        "provide evidence in support of a commonly held view",
+        "analyze an unresolved question and propose an answer",
+        "offer an alternative to a flawed interpretation"
+      ],
+      "a": 3,
+      "e": "Taken as a whole, the passage is organised around option D: offer an alternative to a flawed interpretation."
+    },
+    {
+      "q": "The author suggests which one of the following about the dramatic works that most influenced Webster's tragedies?",
+      "o": [
+        "They were not concerned with dramatizing the conflict between good and evil that was presented in morality plays.",
+        "They were not as sophisticated as the Italian sources from which other Elizabethan tragedies were derived.",
+        "They have never been adequately understood by critics.",
+        "They have only recently been used to illuminate the conventions of Elizabethan drama."
+      ],
+      "a": 0,
+      "e": "It can be inferred from the passage that they were not concerned with dramatizing the conflict between good and evil that was presented in morality plays."
+    },
+    {
+      "q": "The author's allusion to Aristotle's view of tragedy in lines 11-13 serves which one of the following functions in the passage?",
+      "o": [
+        "It introduces a commonly held view of Webster's tragedies that the author plans to defend.",
+        "It supports the author's suggestion that Webster's conception of tragedy is not idiosyncratic.",
+        "It provides an example of an approach to Webster's tragedies that the author criticizes.",
+        "It establishes the similarity between classical and modern approaches to tragedy."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: it supports the author's suggestion that webster's conception of tragedy is not idiosyncratic."
+    },
+    {
+      "q": "It can be inferred from the passage that modern critics' interpretations of Webster's tragedies would be more valid if",
+      "o": [
+        "the ambiguity inherent in Webster's tragic vision resulted from the duality of human nature",
+        "Webster's conception of the tragic personality were similar to that of Aristotle",
+        "Webster had been heavily influenced by the morality play",
+        "Elizabethan dramatists had been more sensitive to Italian sources of influence"
+      ],
+      "a": 2,
+      "e": "It can be inferred from the passage that webster had been heavily influenced by the morality play."
+    },
+    {
+      "q": "With which one of the following statements regarding Elizabethan drama would the author be most likely to agree?",
+      "o": [
+        "The skill of Elizabethan dramatists has in recent years been overestimated.",
+        "The conventions that shaped Elizabethan drama are best exemplified by Webster's drama.",
+        "Elizabethan drama, for the most part, can be viewed as being heavily influenced by the morality play.",
+        "Only by carefully examining the work of his Elizabethan contemporaries can Webster's achievement as a dramatist be accurately measured."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: elizabethan drama, for the most part, can be viewed as being heavily influenced by the morality play."
+    },
+    {
+      "q": "It can be inferred from the passage that most modern critics assume which one of the following in their interpretation of Webster's tragedies?",
+      "o": [
+        "Webster's play tended to allegorize the conflict between good and evil more than did those of his contemporaries.",
+        "Webster's plays were derived more from Italian than from English sources.",
+        "The artistic flaws in Webster's tragedies were largely the result of his ignorance of the classical definition of tragedy.",
+        "In writing his tragedies, Webster was influenced by the same sources as his contemporaries."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that in writing his tragedies, webster was influenced by the same sources as his contemporaries."
+    }
+  ]
+},
+{
+  "id": "bacteria-that-help-crops",
+  "title": "Bacteria That Help Crops",
+  "tier": "moderate",
+  "words": 449,
+  "text": "Cultivation of a single crop on a given tract of land leads eventually to decreased yields. One reason for this is that harmful bacterial phytopathogens, organisms parasitic on plant hosts, increase in the soil surrounding plant roots. The problem can be cured by crop rotation, denying the pathogens a suitable host for a period of time. However, even if crops are not rotated, the severity of diseases brought on by such phytopathogens often decreases after a number of years as the microbial population of the soil changes and the soil becomes \"suppressive\" to those diseases. While there may be many reasons for this phenomenon, it is clear that levels of certain bacteria, such as Pseudomonas fluorescens, a bacterium antagonistic to a number of harmful phytopathogens, are greater in suppressive than in nonsuppressive soil. This suggests that the presence of such bacteria suppresses phytopathogens. There is now considerable experimental support for this view. Wheat yield increases of 27 percent have been obtained in field trials by treatment of wheat seeds with fluorescent pseudomonads. Similar treatment of sugar beets, cotton, and potatoes has had similar results.\nThese improvements in crop yields through the application of Pseudomonas fluorescens suggest that agriculture could benefit from the use of bacteria genetically altered for specific purposes. For example, a form of phytopathogen altered to remove its harmful properties could be released into the environment in quantities favorable to its competing with and eventually excluding the harmful normal strain. Some experiments suggest that deliberately releasing altered nonpathogenic Pseudomonas syringae could crowd out the nonaltered variety that causes frost damage. Opponents of such research have objected that the deliberate and large-scale release of genetically altered bacteria might have deleterious results. Proponents, on the other hand, argue that this particular strain is altered only by the removal of the gene responsible for the strain's propensity to cause frost damage, thereby rendering it safer than the phytopathogen from which it was derived.\nSome proponents have gone further and suggest that genetic alteration techniques could create organisms with totally new combinations of desirable traits not found in nature. For example, genes responsible for production of insecticidal compounds have been transposed from other bacteria into pseudomonads that colonize corn roots. Experiments of this kind are difficult and require great care: such bacteria are developed in highly artificial environments and may not compete well with natural soil bacteria. Nevertheless, proponents contend that the prospects for improved agriculture through such methods seem excellent. These prospects lead many to hope that current efforts to assess the risks of deliberate release of altered microorganisms will successfully answer the concerns of opponents and create a climate in which such research can go forward without undue impediment.",
+  "questions": [
+    {
+      "q": "Which one of the following best summarizes the main idea of the passage?",
+      "o": [
+        "Recent field experiments with genetically altered Pseudomonas bacteria have shown that releasing genetically altered bacteria into the environment would not involve any significant danger.",
+        "Encouraged by current research, advocates of agricultural use of genetically altered bacteria are optimistic that such use will eventually result in improved agriculture, though opponents remain wary.",
+        "Current research indicates that adding genetically altered Pseudomonas syringae bacteria to the soil surrounding crop plant roots will have many beneficial effects, such as the prevention of frost damage in certain crops.",
+        "Genetic alteration of a number of harmful phytopathogens has been advocated by many researchers who contend that these techniques will eventually replace such outdated methods as crop rotation."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: encouraged by current research, advocates of agricultural use of genetically altered bacteria are optimistic that such use will eventually result in improved agriculture, though opponents remain wary."
+    },
+    {
+      "q": "The author discusses naturally occurring Pseudomonas fluorescens bacteria in the first paragraph primarily in order to do which one of the following?",
+      "o": [
+        "prove that increases in the level of such bacteria in the soil are the sole cause of soil suppressivity",
+        "explain why yields increased after wheat fields were sprayed with altered Pseudomonas fluorescens bacteria",
+        "detail the chemical processes that such bacteria use to suppress organisms parasitic to crop plants, such as wheat, sugar beets, and potatoes",
+        "provide background information to support the argument that research into the agricultural use of genetically altered bacteria would be fruitful"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: provide background information to support the argument that research into the agricultural use of genetically altered bacteria would be fruitful."
+    },
+    {
+      "q": "It can be inferred from the author's discussion of Pseudomonas fluorescens bacteria that which one of the following would be true of crops impervious to parasitical organisms?",
+      "o": [
+        "Pseudomonas fluorescens bacteria would be absent from the soil surrounding their roots.",
+        "They would crowd out and eventually exclude other crop plants if their growth were not carefully regulated.",
+        "Their yield would not be likely to be improved by adding Pseudomonas fluorescens bacteria to the soil.",
+        "They would mature more quickly than crop plants that were susceptible to parasitical organisms."
+      ],
+      "a": 2,
+      "e": "It can be inferred from the passage that their yield would not be likely to be improved by adding pseudomonas fluorescens bacteria to the soil."
+    },
+    {
+      "q": "It can be inferred from the passage that crop rotation can increase yields in part because",
+      "o": [
+        "moving crop plants around makes them hardier and more resistant to disease",
+        "the number of Pseudomonas fluorescens bacteria in the soil usually increases when crops are rotated",
+        "the roots of many crop plants produce compounds that are antagonistic to phytopathogens harmful to other crop plants",
+        "phytopathogens typically attack some plant species but find other species to be unsuitable hosts"
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that phytopathogens typically attack some plant species but find other species to be unsuitable hosts."
+    },
+    {
+      "q": "According to the passage, proponents of the use of genetically altered bacteria in agriculture argue that which one of the following is true of the altered bacteria used in the frost-damage experiments?",
+      "o": [
+        "The altered bacteria had a genetic constitution differing from that of the normal strain only in that the altered variety had one less gene.",
+        "Although the altered bacteria competed effectively with the nonaltered strain in the laboratory, they were not as viable in natural environments.",
+        "The altered bacteria were much safer and more effective than the naturally occurring Pseudomonas fluorescens bacteria used in earlier experiments.",
+        "The altered bacteria were antagonistic to several types of naturally occurring phytopathogens in the soil surrounding the roots of frost-damaged crops."
+      ],
+      "a": 0,
+      "e": "The passage directly supports this: the altered bacteria had a genetic constitution differing from that of the normal strain only in that the altered variety had one less gene. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "Which one of the following, if true, would most seriously weaken the proponents' argument regarding the safety of using altered Pseudomonas syringae bacteria to control frost damage?",
+      "o": [
+        "Pseudomonas syringae bacteria are primitive and have a simple genetic constitution.",
+        "The altered bacteria are derived from a strain that is parasitic to plants and can cause damage to crops.",
+        "Current genetic-engineering techniques permit the large-scale commercial production of such bacteria.",
+        "Often genes whose presence is responsible for one harmful characteristic must be present in order to prevent other harmful characteristics."
+      ],
+      "a": 3,
+      "e": "This option most directly addresses the argument in question. It provides evidence or reasoning that bears on the claim being evaluated, while the other options are either irrelevant, supportive of the wrong conclusion, or do not address the specific argument."
+    }
+  ]
+},
+{
+  "id": "the-dawes-act",
+  "title": "The Dawes Act",
+  "tier": "moderate",
+  "words": 450,
+  "text": "In 1887 the Dawes Act legislated wide-scale private ownership of reservation lands in the United States for Native Americans. The act allotted plots of 80 acres to each Native American adult. However, the Native Americans were not granted outright title to their lands. The act defined each grant as a \"trust patent,\" meaning that the Bureau of Indian Affairs (BIA), the governmental agency in charge of administering policy regarding Native Americans, would hold the allotted land in trust for 25 years, during which time the Native American owners could use, but not alienate (sell) the land. After the 25-year period, the Native American allottee would receive a \"fee patent\" awarding full legal ownership of the land.\nTwo main reasons were advanced for the restriction on the Native Americans' ability to sell their lands. First, it was claimed that free alienability would lead to immediate transfer of large amounts of former reservation land to non-Native Americans, consequently threatening the traditional way of life on those reservations. A second objection to free alienation was that Native Americans were unaccustomed to, and did not desire, a system of private landownership. Their custom, it was said, favored communal use of land.\nHowever, both of these arguments bear only on the transfer of Native American lands to non-Native Americans: neither offers a reason for prohibiting Native Americans from transferring land among themselves. Selling land to each other would not threaten the Native American culture. Additionally, if communal land use remained preferable to Native Americans after allotment, free alienability would have allowed allottees to sell their lands back to the tribe.\nWhen stated rationales for government policies prove empty, using an interest-group model often provides an explanation. While neither Native Americans nor the potential non-Native American purchasers benefited from the restraint on alienation contained in the Dawes Act, one clearly defined group did benefit: the BIA bureaucrats. It has been convincingly demonstrated that bureaucrats seek to maximize the size of their staffs and their budgets in order to compensate for the lack of other sources of fulfillment, such as power and prestige. Additionally, politicians tend to favor the growth of governmental bureaucracy because such growth provides increased opportunity for the exercise of political patronage. The restraint on alienation vastly increased the amount of work, and hence the budgets, necessary to implement the statute. Until allotment was ended in 1934, granting fee patents and leasing Native American lands were among the principal activities of the United States government. One hypothesis, then, for the temporary restriction on alienation in the Dawes Act is that it reflected a compromise between non-Native Americans favoring immediate alienability so they could purchase land and the BIA bureaucrats who administered the privatization system.",
+  "questions": [
+    {
+      "q": "Which one of the following best summarizes the main idea of the passage?",
+      "o": [
+        "United States government policy toward Native Americans has tended to disregard their needs and consider instead the needs of non-Native American purchasers of land.",
+        "In order to preserve the unique way of life on Native American reservations, use of Native American lands must be communal rather than individual.",
+        "The Dawes Act's restriction on the right of Native Americans to sell their land may have been implemented primarily to serve the interests of politicians and bureaucrats.",
+        "The clause restricting free alienability in the Dawes Act greatly expanded United States governmental activity in the area of land administration."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: the dawes act's restriction on the right of native americans to sell their land may have been implemented primarily to serve the interests of politicians and bureaucrats."
+    },
+    {
+      "q": "Which one of the following statements concerning the reason for the end of allotment, if true, would provide the most support for the author's view of politicians?",
+      "o": [
+        "Politicians realized that allotment was damaging the Native American way of life.",
+        "Politicians decided that allotment would be more congruent with the Native American custom of communal land use.",
+        "Politicians believed that allotment's continuation would not enhance their opportunities to exercise patronage.",
+        "Politicians felt that the staff and budgets of the BIA had grown too large."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: politicians believed that allotment's continuation would not enhance their opportunities to exercise patronage."
+    },
+    {
+      "q": "Which one of the following best describes the organization of the passage?",
+      "o": [
+        "The passage of a law is analyzed in detail, the benefits and drawbacks of one of its clauses are studied, and a final assessment of the law is offered.",
+        "The history of a law is narrated, the effects of one of its clauses on various populations are studied, and repeal of the law is advocated",
+        "A law is examined, the political and social backgrounds of one of its clauses are characterized, and the permanent effects of the law are studied.",
+        "A law is described, the rationale put forward for one of its clauses is outlined and dismissed, and a different rationale for the clause is presented."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: a law is described, the rationale put forward for one of its clauses is outlined and dismissed, and a different rationale for the clause is presented."
+    },
+    {
+      "q": "The author's attitude toward the reasons advanced for the restriction on alienability in the Dawes Act at the time of its passage can best be described as",
+      "o": [
+        "completely credulous",
+        "partially approving",
+        "basically indecisive",
+        "highly skeptical"
+      ],
+      "a": 3,
+      "e": "The author's tone throughout the passage is best characterised as reflected in this answer. The language and rhetorical choices in the passage support this reading."
+    },
+    {
+      "q": "It can be inferred from the passage that which one of the following was true of Native American life immediately before passage of the Dawes Act?",
+      "o": [
+        "Most Native Americans supported themselves through farming.",
+        "Not many Native Americans personally owned the land on which they lived.",
+        "The land on which most Native Americans lived had been bought from their tribes.",
+        "Few Native Americans had much contact with their non-Native American neighbors."
+      ],
+      "a": 1,
+      "e": "It can be inferred from the passage that not many native americans personally owned the land on which they lived."
+    },
+    {
+      "q": "According to the passage, the type of landownership initially obtainable by Native Americans under the Dawes Act differed from the type of ownership obtainable after a 25-year period in that only the latter allowed",
+      "o": [
+        "owners of land to farm it",
+        "owners of land to sell it",
+        "government some control over how owners disposed of land",
+        "owners of land to build on it with relatively minor governmental restrictions"
+      ],
+      "a": 1,
+      "e": "The passage directly supports this: owners of land to sell it. This information is stated in the passage, making it the most accurate answer based on the text."
+    }
+  ]
+},
+{
+  "id": "law-and-literature",
+  "title": "Law and Literature",
+  "tier": "hard",
+  "words": 439,
+  "text": "The law-and-literature movement claims to have introduced a valuable pedagogical innovation into legal study: instructing students in techniques of literary analysis for the purpose of interpreting laws and in the reciprocal use of legal analysis for the purpose of interpreting literary texts. The results, according to advocates, are not only conceptual breakthroughs in both law and literature but also more sensitive and humane lawyers. Whatever the truth of this last claim, there can be no doubt that the movement is a success: law-and-literature is an accepted subject in law journals and in leading law schools. Indeed, one indication of the movement's strength is the fact that its most distinguished critic, Richard A. Posner, paradoxically ends up expressing qualified support for the movement in a recent study in which he systematically refutes the writings of its leading legal scholars and cooperating literary critics.\nCritiquing the movement's assumption that lawyers can offer special insights into literature that deals with legal matters, Posner points out that writers of literature use the law loosely to convey a particular idea or as a metaphor for the workings of the society envisioned in their fiction. Legal questions per se, about which a lawyer might instruct readers, are seldom at issue in literature. This is why practitioners of law-and-literature end up discussing the law itself far less than one might suppose. Movement leader James White, for example, in his discussion of arguments in the Iliad, barely touches on law, and then so generally as to render himself vulnerable to Posner's devastating remark that \"any argument can be analogized to a legal dispute.\"\nSimilarly, the notion that literary criticism can be helpful in interpreting law is problematic. Posner argues that literary criticism in general aims at exploring richness and variety of meaning in texts, whereas legal interpretation aims at discovering a single meaning. A literary approach can thus only confuse the task of interpreting the law, especially if one adopts current fashions like deconstruction, which holds that all texts are inherently uninterpretable.\nNevertheless, Posner writes that law-and-literature is a field with \"promise\". Why? Perhaps, recognizing the success of a movement that, in the past, has singled him out for abuse, he is attempting to appease his detractors, paying obeisance to the movements institutional success by declaring that it \"deserves a place in legal research\" while leaving it to others to draw the conclusion from his cogent analysis that it is an entirely factitious undertaking, deserving of no intellectual respect whatsoever. As a result, his work stands both as a rebuttal of law-and-literature and as a tribute to the power it has come to exercise in academic circles.",
+  "questions": [
+    {
+      "q": "The primary purpose of the passage is to",
+      "o": [
+        "assess the law-and-literature movement by examining the position of one of its most prominent critics",
+        "assert that a mutually beneficial relationship exists between the study of law and the study of literature",
+        "provide examples of the law-and-literature movement in practice by discussing the work of its proponents",
+        "dismiss a prominent critics recent study of the law-and-literature movement"
+      ],
+      "a": 0,
+      "e": "Taken as a whole, the passage is organised around option A: assess the law-and-literature movement by examining the position of one of its most prominent critics."
+    },
+    {
+      "q": "Posner's stated position with regard to (with regard to: adv.) the law-and-literature movement is most analogous to which one of the following?",
+      "o": [
+        "a musician who is trained in the classics but frequently plays modern music while performing on stage",
+        "a partisan who transfers allegiance to a new political party that demonstrates more promise but has fewer documented accomplishments",
+        "a sports fan who wholeheartedly supports the team most likely to win rather than his or her personal favorite",
+        "a salesperson who describes the faults in a fashionable product while conceding that it may have some value"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: a salesperson who describes the faults in a fashionable product while conceding that it may have some value."
+    },
+    {
+      "q": "The passage suggests that Posner regards legal practitioners as using an approach to interpreting law that",
+      "o": [
+        "eschews discovery of multiple meanings",
+        "employs techniques like deconstruction",
+        "interprets laws in light of varying community standards",
+        "is informed by the positions of literary critics"
+      ],
+      "a": 0,
+      "e": "It can be inferred from the passage that eschews discovery of multiple meanings."
+    },
+    {
+      "q": "The Passage suggests that Posner might find legal training useful in the interpretation of a literary text in which",
+      "o": [
+        "a legal dispute symbolizes the relationship between two characters",
+        "an oppressive law is used to symbolize an oppressive culture",
+        "one of the key issues involves the answer to a legal question",
+        "a legal controversy is used to represent a moral conflict"
+      ],
+      "a": 2,
+      "e": "It can be inferred from the passage that one of the key issues involves the answer to a legal question."
+    },
+    {
+      "q": "The author uses the word \"success\" in line 11 to refer to the law-and-literature movement's",
+      "o": [
+        "positive effect on the sensitivity of lawyers",
+        "widespread acceptance by law schools and law journals",
+        "ability to offer fresh insights into literary texts",
+        "ability to encourage innovative approaches in two disciplines"
+      ],
+      "a": 1,
+      "e": "The passage supports option B: widespread acceptance by law schools and law journals."
+    },
+    {
+      "q": "According to the passage, Posner argues that legal analysis is not generally useful in interpreting literature because",
+      "o": [
+        "use of the law in literature is generally of a quite different nature than use of the law in legal practice",
+        "law is rarely used to convey important ideas in literature",
+        "lawyers do not have enough literary training to analyze literature competently",
+        "legal interpretations of literature tend to focus on legal issues to the exclusion of other important elements"
+      ],
+      "a": 0,
+      "e": "The passage directly supports this: use of the law in literature is generally of a quite different nature than use of the law in legal practice. This information is stated in the passage, making it the most accurate answer based on the text."
+    }
+  ]
+},
+{
+  "id": "historians-of-science",
+  "title": "Historians of Science",
+  "tier": "hard",
+  "words": 462,
+  "text": "A recent generation of historians of science, far from portraying accepted scientific views as objectively accurate reflections of a natural world, explain the acceptance of such views in terms of the ideological biases of certain influential scientists or the institutional and rhetorical power such scientists wield. As an example of ideological bias, it has been argued that Pasteur rejected the theory of spontaneous generation not because of experimental evidence but because he rejected the materialist ideology implicit in that doctrine. These historians seem to find allies in certain philosophers of science who argue that scientific views are not imposed by reality but are free inventions of creative minds, and that scientific claims are never more than brave conjectures, always subject to inevitable future falsification. While these philosophers of science themselves would not be likely to have much truck with the recent historians, it is an easy step from their views to the extremism of the historians.\nWhile this rejection of the traditional belief that scientific views are objective reflections of the world may be fashionable, it is deeply implausible. We now know, for example, that water is made of hydrogen and oxygen and that parents each contribute one-half of their children's complement of genes. I do not believe any serious-minded and informed person can claim that these statements are not factual descriptions of the world or that they will inevitably be falsified.\nHowever, science's accumulation of lasting truths about the world is not by any means a straightforward matter. We certainly need to get beyond the naive view that the truth will automatically reveal itself to any scientist who looks in the right direction; most often, in fact, a whole series of prior discoveries is needed to tease reality's truths from experiment and observation. And the philosophers of science mentioned above are quite right to argue that new scientific ideas often correct old ones by indicating errors and imprecision (as, say, Newton's ideas did to Kepler's). Nor would I deny that there are interesting questions to be answered about the social processes in which scientific activity is embedded. The persuasive processes by which particular scientific groups establish their experimental results as authoritative are themselves social activities and can be rewardingly studied as such. Indeed, much of the new work in the history of science has been extremely revealing about the institutional interactions and rhetorical devices that help determine whose results achieve prominence.\nBut one can accept all this without accepting the thesis that natural reality never plays any part at all in determining what scientists believe. What the new historians ought to be showing us is how those doctrines that do in fact fit reality work their way through the complex social processes of scientific activity to eventually receive general scientific acceptance.",
+  "questions": [
+    {
+      "q": "It can be inferred from the passage that the author would be most likely to agree with which one of the following characterizations of scientific truth?",
+      "o": [
+        "It is often implausible.",
+        "It is subject to inevitable falsification.",
+        "It is rarely obvious and transparent .",
+        "It is rarely discovered by creative processes."
+      ],
+      "a": 2,
+      "e": "It can be inferred from the passage that it is rarely obvious and transparent ."
+    },
+    {
+      "q": "According to the passage, Kepler's ideas provide an example of scientific ideas that were",
+      "o": [
+        "corrected by subsequent inquiries",
+        "dependent on a series of prior observations",
+        "originally thought to be imprecise and then later confirmed",
+        "established primarily by the force of an individuals rhetorical power"
+      ],
+      "a": 0,
+      "e": "The passage directly supports this: corrected by subsequent inquiries. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "In the third paragraph of the passage, the author is primarily concerned with",
+      "o": [
+        "presenting conflicting explanations for a phenomenon",
+        "suggesting a field for possible future research",
+        "qualifying a previously expressed point of view",
+        "providing an answer to a theoretical question"
+      ],
+      "a": 2,
+      "e": "The passage supports option C: qualifying a previously expressed point of view."
+    },
+    {
+      "q": "The use of the words \"any serious-minded and informed person' (lines 28-29) serves which one of the following functions in the context of the passage?",
+      "o": [
+        "to satirize chronologically earlier notions about the composition of water",
+        "to reinforce a previously stated opinion about certain philosophers of science",
+        "to suggest the author's reservations about the \"traditional belief\" mentioned in line 22",
+        "to discredit someone who would argue that certain scientific assertions do not factually describe reality"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: to discredit someone who would argue that certain scientific assertions do not factually describe reality."
+    },
+    {
+      "q": "It can be inferred from the passage that the author would most likely agree with which one of the following statements about the relationship between the views of \"certain philosophers of science\" (lines l2-13) and those of the recent historians?",
+      "o": [
+        "These two views are difficult to differentiate.",
+        "These two views share some similarities.",
+        "The views of the philosophers ought to be seen as the source of the historians' views.",
+        "Both views emphasize the rhetorical power of scientists."
+      ],
+      "a": 1,
+      "e": "It can be inferred from the passage that these two views share some similarities."
+    },
+    {
+      "q": "Which one of the following best characterizes the author's assessment of the opinions of the new historians of science, as these opinions are presented in the passage?",
+      "o": [
+        "They lack any credibility.",
+        "They themselves can be rewardingly studied as social phenomena.",
+        "They are least convincing when they concern the actions of scientific groups.",
+        "Although they are gross overstatements, they lead to some valuable insights."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: although they are gross overstatements, they lead to some valuable insights."
+    }
+  ]
+},
+{
+  "id": "cherokee-removal",
+  "title": "The Cherokee Removal",
+  "tier": "moderate",
+  "words": 455,
+  "text": "Until recently, it was thought that the Cherokee, a Native American tribe, were compelled to assimilate Euro-American culture during the 1820s. During that decade, it was supposed, White missionaries arrived and, together with their part-Cherokee intermediaries, imposed the benefits of \"civilization\" on Cherokee tribes while the United States government actively promoted acculturalization by encouraging the Cherokee to switch from hunting to settled agriculture. This view was based on the assumption that the end of a Native American group's economic and political autonomy would automatically mean the end of its cultural autonomy as well.\nWilliam G. McLaughlin has recently argued that not only did Cherokee culture flourish during and after the 1820s, but the Cherokee themselves actively and continually reshaped their culture. Missionaries did have a decisive impact during these years, he argues, but that impact was far from what it was intended to be. The missionaries' tendency to cater to the interests of an acculturating part-Cherokee elite (who comprised the bulk of their converts) at the expense of the more traditionalist full-Cherokee majority created great intratribal tensions. As the elite initiated reforms designed to legitimize their own and the Cherokee Nation's place in the new republic of the United States, antimission Cherokee reacted by fostering revivals of traditional religious beliefs and practices. However, these revivals did not, according to McLaughlin, undermine the elitist reforms, but supplemented them with popular traditionalist counterparts.\nTraditionalist Cherokee did not reject the elitist reforms outright, McLaughlin argues, simply because they recognized that there was more than one way to use the skills the missionaries could provide them. As he quotes one group as saying, \"We want our children to learn English so that the White man cannot cheat us.\" Many traditionalists Cherokee welcomed the missionaries for another reason: they perceived that it would be useful to have White allies. In the end, McLaughlin asserts, most members of the Cherokee council, including traditionalists, supported a move which preserved many of the reforms of the part-Cherokee elite but limited the activities and influence of the missionaries and other White settlers. According to McLaughlin, the identity and culture that resulted were distinctively Cherokee, yet reflected the larger political and social setting in which they flourished.\nBecause his work concentrates on the nineteenth century, McLaughlin unfortunately overlooks earlier sources of influence, such as eighteen-century White resident traders and neighbors, thus obscuring the relative impact of the missionaries of the 1820s in contributing to both acculturalization and resistance to it among the Cherokee. However, McLaughlin is undoubtedly correct in recognizing that culture is an ongoing process rather than a static entity, and he has made a significant contribution to our understanding of how Cherokee culture changed while retaining its essential identity after confronting the missionaries.",
+  "questions": [
+    {
+      "q": "Which one of the following best states the main idea of the passage?",
+      "o": [
+        "McLaughlin's studies of the impact of missionaries on Cherokee culture during the 1820s are fundamentally flawed, since McLaughlin ignores the greater impact of White resident traders in the eighteenth century.",
+        "Though his work is limited in perspective, McLaughlin is substantially correct that changes in Cherokee culture in the 1820s were mediated by the Cherokee themselves rather than simply imposed by the missionaries.",
+        "Although McLaughlin is correct in asserting that cultural changes among the Cherokee were autonomous and so not a result of the presence of missionaries, he overemphasizes the role of intertribal conflicts.",
+        "McLaughlin has shown that Cherokee culture not only flourished during and after the 1820s, but that changes in Cherokee culture during this time developed naturally from elements already present in Cherokee culture."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: though his work is limited in perspective, mclaughlin is substantially correct that changes in cherokee culture in the 1820s were mediated by the cherokee themselves rather than simply imposed by the missionaries."
+    },
+    {
+      "q": "Which one of the following statements regarding the Cherokee council in the 1820s can be inferred from the passage?",
+      "o": [
+        "Members of the Cherokee council were elected democratically by the entire Cherokee Nation.",
+        "In order for a policy to come into effect for the Cherokee Nation, it had to have been approved by a unanimous vote of the Cherokee council.",
+        "Despite the fact that the Cherokee were dominated politically and economically by the United States in the 1820s, the Cherokee council was able to override policies set by the United States government.",
+        "Though it did not have complete autonomy in governing the Cherokee Nation, it was able to set some policies affecting the activities of White people living in tribal areas."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that though it did not have complete autonomy in governing the cherokee nation, it was able to set some policies affecting the activities of white people living in tribal areas."
+    },
+    {
+      "q": "Which one of the following statements regarding the attitudes of traditionalist Cherokee toward the reforms that were instituted in the 1820s can be inferred from the passage?",
+      "o": [
+        "They supported the reforms merely as a way of placating the increasingly vocal acculturating elite.",
+        "They thought that the reforms would lead to the destruction of traditional Cherokee culture but felt powerless to stop the reforms.",
+        "They supported the reforms only because they thought that they were inevitable and it was better that the reforms appear to have been initiated by the Cherokee themselves.",
+        "They viewed the reforms as a means of preserving the Cherokee Nation and protecting it against exploitation."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that they viewed the reforms as a means of preserving the cherokee nation and protecting it against exploitation."
+    },
+    {
+      "q": "According to the passage, McLaughlin cites which one of the following as a contributing factor in the revival of traditional religious beliefs among the Cherokee in the 1820s?",
+      "o": [
+        "Missionaries were gaining converts at an increasing rate as the 1820s progressed.",
+        "The traditionalist Cherokee majority thought that most of the reforms initiated by the missionaries' converts would corrupt Cherokee culture.",
+        "Missionaries unintentionally created conflict among the Cherokee by favoring the interests of the acculturating elite at the expense of the more traditionalist majority.",
+        "Traditionalist Cherokee recognized that only some of the reforms instituted by a small Cherokee elite would be beneficial to all Cherokee."
+      ],
+      "a": 2,
+      "e": "The passage directly supports this: missionaries unintentionally created conflict among the cherokee by favoring the interests of the acculturating elite at the expense of the more traditionalist majority. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "Which one of the following, if true, would most seriously undermine McLaughlin's account of the course of reform among the Cherokee during the 1820s?",
+      "o": [
+        "Traditionalist Cherokee gained control over the majority of seats on the Cherokee council during the 1820s.",
+        "The United States government took an active interest in political and cultural developments within Native American tribes.",
+        "The missionaries living among the Cherokee in the 1820s were strongly in favor of the cultural reforms initiated by the acculturating elite.",
+        "Revivals of traditional Cherokee religious beliefs and practices began late in the eighteenth century, before the missionaries arrived."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: revivals of traditional cherokee religious beliefs and practices began late in the eighteenth century, before the missionaries arrived."
+    },
+    {
+      "q": "It can be inferred from the author's discussion of McLaughlin's views that the author thinks that Cherokee acculturalization in the 1820s",
+      "o": [
+        "was reversed in the decades following the 1820s",
+        "may have been part of an already-existing process of acculturalization",
+        "could have been the result of earlier contacts with missionaries",
+        "would not have occurred without the encouragement of the United States government"
+      ],
+      "a": 1,
+      "e": "It can be inferred from the passage that may have been part of an already-existing process of acculturalization."
+    }
+  ]
+},
+{
+  "id": "the-luminists",
+  "title": "The Luminists",
+  "tier": "hard",
+  "words": 467,
+  "text": "In the history of nineteenth-century landscape painting in the United States, the Luminists are distinguished by their focus on atmosphere and light. The accepted view of Luminist paintings is that they are basically spiritual and imply a tranquil mysticism that contrasts with earlier American artists' concept of nature as dynamic and energetic. According to this view, the Luminist atmosphere, characterized by \"pure and constant light,\" guides the onlooker toward a lucid transcendentalism, an idealized vision of the world.\nWhat this view fails to do is to identify the true significance of this transcendental atmosphere in Luminist paintings. The prosaic factors that are revealed by a closer examination of these works suggest that the glowing appearance of nature in Luminism is actually a sign of nature's domestication, its adaptation to human use. The idealized Luminist atmosphere thus seems to convey, not an intensification of human responses to nature, but rather a muting of those emotions, like awe and fear, which untamed nature elicits.\nOne critic, in describing the spiritual quality of harbor scenes by Fitz Hugh Lane, an important Luminist, carefully notes that \"at the peak of Luminist development in the 1850s and 1860s, spiritualism in America was extremely widespread.\" It is also true, however, that the 1850s and 1860s were a time of trade expansion. From 1848 until his death in 1865, Lane lived in a house with a view of the harbor of Gloucester, Massachusetts, and he made short trips to Maine, New York, Baltimore, and probably Puerto Rico. In all of these places he painted the harbors with their ships - the instruments of expanding trade.\nLane usually depicts places like New York Harbor, with ships at anchor, ), but even when he depicts more remote, less commercially active harbors, nature appears pastoral and domesticated rather than primitive or unexplored. The ships, rather than the surrounding landscapes - including the sea - are generally the active element in his pictures. For Lane the sea is, in effect, a canal or a trade route for commercial activity, not a free powerful element, as it is in the early pictures of his predecessor, Cole. For Lane nature is subdued, even when storms are approaching; thus, the sea is always a viable highway for the transport of goods. In sum, I consider Lane's sea simply an environment for human activity - nature no longer inviolate. The luminescence that Lane paints symbolizes nature's humbled state, for the light itself is as docile as the Luminist sea, and its tranquility in a sense signifies no more than good conditions on the highway to progress. Progress, probably even more than transcendence, is the secret message of Luminism. In a sense, Luminist pictures are an ideological justification of the atmosphere necessary for business, if also an exaggerated, idealistic rendering of that atmosphere.",
+  "questions": [
+    {
+      "q": "The passage is primarily concerned with discussing",
+      "o": [
+        "the importance of religion to the art of a particular period",
+        "the way one artist's work illustrates a tradition of painting",
+        "the significance of the sea in one artist's work",
+        "differences in the treatment of nature as a more active or a less active force"
+      ],
+      "a": 1,
+      "e": "The passage supports option B: the way one artist's work illustrates a tradition of painting."
+    },
+    {
+      "q": "The author argues that nature is portrayed in Lane's pictures as",
+      "o": [
+        "wild and unexplored",
+        "idealized and distant",
+        "continually changing",
+        "subordinate to human concerns"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: subordinate to human concerns."
+    },
+    {
+      "q": "The passage contains information to suggest that the author would most probably agree with which one of the following statements?",
+      "o": [
+        "The prevailing religious principles of a given time can be reflected in the art of that time.",
+        "In order to interest viewers, works of art must depict familiar subjects in detail.",
+        "Because commerce is unusual as a subject in art, the painter of commercial activity must travel and observe it widely.",
+        "Knowing about the environment in which an artist lived can aid in an understanding of a work by that artist."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that knowing about the environment in which an artist lived can aid in an understanding of a work by that artist."
+    },
+    {
+      "q": "According to the author, a supporter of the view of Luminism described in the first paragraph would most likely",
+      "o": [
+        "be unimpressed by the paintings glowing light",
+        "consider Luminist scenes to be undomesticated and wild",
+        "interpret the Luminist depiction of nature incorrectly",
+        "see Luminist paintings as practical rather than mystical"
+      ],
+      "a": 2,
+      "e": "The passage directly supports this: interpret the luminist depiction of nature incorrectly. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "According to the author, the sea is significant in Lane's paintings because of its association with",
+      "o": [
+        "exploration",
+        "commerce",
+        "canals",
+        "idealism"
+      ],
+      "a": 1,
+      "e": "The passage directly supports this: commerce. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "The author's primary purpose is to",
+      "o": [
+        "refute a new theory",
+        "replace an inadequate analysis",
+        "summarize current critics' attitudes",
+        "support another critic's evaluation"
+      ],
+      "a": 1,
+      "e": "Taken as a whole, the passage is organised around option B: replace an inadequate analysis."
+    }
+  ]
+},
+{
+  "id": "recombinant-dna",
+  "title": "The rDNA Breakthrough",
+  "tier": "moderate",
+  "words": 449,
+  "text": "After thirty years of investigation into cell genetics, researchers made startling discoveries in the 1960s and early 1970s which culminated in the development of processes, collectively known as recombinant deoxyribonucleic acid (rDNA) technology, for the active manipulation of a cell's genetic code. The technology has created excitement and controversy because it involves altering DNA - which contains the building blocks of the genetic code.\nUsing rDNA technology, scientists can transfer a portion of the DNA from one organism to a single living cell of another. The scientist chemically \"snips\" the DNA chain of the host cell at a predetermined point and attaches another piece of DNA from a donor cell at that place, creating a completely new organism.\nProponents of rDNA research and development claim that it will allow scientists to find cures for disease and to better understand how genetic information controls an organism's development. They also see many other potentially practical benefits, especially in the pharmaceutical industry. Some corporations employing the new technology even claim that by the end of the century all major diseases will be treated with drugs derived from microorganisms created through rDNA technology. Pharmaceutical products already developed, but not yet marketed, indicate that these predictions may be realized.\nProponents also cite nonmedical applications for this technology. Energy production and waste disposal may benefit: genetically altered organisms could convert sewage and other organic material into methane fuel. Agriculture might also take advantage of rDNA technology to produce new varieties of crops that resist foul weather, pests, and the effects of poor soil.\nA major concern of the critics of rDNA research is that genetically altered microorganisms might escape from the laboratory. Because these microorganisms are laboratory creations that, in all probability, do not occur in nature, their interaction with the natural world cannot be predicted with certainty. It is possible that they could cause previously unknown, perhaps incurable diseases. The effect of genetically altered microorganisms on the world's microbiological predator-prey relationships is another potentially serious problem pointed out by the opponents of rDNA research. Introducing a new species may disrupt or even destroy the existing ecosystem. The collapse of interdependent relationships among species, extrapolated to its extreme, could eventually result in the destruction of humanity.\nOpponents of rDNA technology also cite ethical problems with it. For example, it gives scientists the power to instantly cross evolutionary and species boundaries that nature took millennia to establish. The implications of such power would become particularly profound if genetic engineers were to tinker with human genes, a practice that would bring us one step closer to Aldous Huxley's grim vision in Brave New World of a totalitarian society that engineers () human beings to fulfill specific roles.",
+  "questions": [
+    {
+      "q": "In the passage, the author is primarily concerned with doing which one of the following?",
+      "o": [
+        "explaining the process and applications of rDNA technology",
+        "advocating continued rDNA research and development",
+        "providing evidence indicating the need for regulation of rDNA research and development",
+        "summarizing the controversy surrounding rDNA research and development"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: summarizing the controversy surrounding rdna research and development."
+    },
+    {
+      "q": "According to the passage, which one of the following is an accurate statement about research into the genetic code of cells?",
+      "o": [
+        "It led to the development of processes for the manipulation of DNA.",
+        "It was initiated by the discovery of rDNA technology.",
+        "It led to the use of new treatments for major diseases.",
+        "It was universally heralded as a great benefit to humanity."
+      ],
+      "a": 0,
+      "e": "The passage directly supports this: it led to the development of processes for the manipulation of dna. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "The potential benefits of rDNA technology referred to in the passage include all of the following EXCEPT",
+      "o": [
+        "new methods of waste treatment",
+        "new biological knowledge",
+        "enhanced food production",
+        "development of less expensive drugs"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: development of less expensive drugs."
+    },
+    {
+      "q": "Which one of the following, if true, would most weaken an argument of opponents of rDNA technology?",
+      "o": [
+        "New safety procedures developed by rDNA researchers make it impossible for genetically altered microorganisms to escape from laboratories.",
+        "A genetically altered microorganism accidentally released from a laboratory is successfully contained.",
+        "A particular rDNA-engineered microorganism introduced into an ecosystem attracts predators that keep its population down.",
+        "Genetically altered organisms designed to process sewage into methane cannot survive outside the waste treatment plant."
+      ],
+      "a": 0,
+      "e": "This option most directly addresses the argument in question. It provides evidence or reasoning that bears on the claim being evaluated, while the other options are either irrelevant, supportive of the wrong conclusion, or do not address the specific argument."
+    },
+    {
+      "q": "The author's reference in the last sentence of the passage to a society that engineers human beings to fulfill specific roles serves to",
+      "o": [
+        "emphasize the potential medical dangers of rDNA technology",
+        "advocate research on the use of rDNA technology in human genetics",
+        "warn of the possible disasters that could result from upsetting the balance of nature",
+        "illustrate the sociopolitical ramifications of applying genetic engineering to humans"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: illustrate the sociopolitical ramifications of applying genetic engineering to humans."
+    },
+    {
+      "q": "Which one of the following, if true, would most strengthen an argument of the opponents of rDNA technology?",
+      "o": [
+        "Agricultural products developed through rDNA technology are no more attractive to consumers than are traditional crops.",
+        "Genetically altered microorganisms have no natural predators but can prey on a wide variety of other microorganisms.",
+        "Drugs produced using rDNA technology cost more to manufacture than drugs produced with traditional technologies.",
+        "Ecosystems are impermanent systems that are often liable to collapse, and occasionally do so."
+      ],
+      "a": 1,
+      "e": "This option most directly addresses the argument in question. It provides evidence or reasoning that bears on the claim being evaluated, while the other options are either irrelevant, supportive of the wrong conclusion, or do not address the specific argument."
+    }
+  ]
+},
+{
+  "id": "gray-marketing",
+  "title": "Gray Marketing",
+  "tier": "moderate",
+  "words": 450,
+  "text": "Gray marketing, the selling of trademarked products through channels of distribution not authorized by the trademark holder, can involve distribution of goods either within a market region or across market boundaries. Gray marketing within a market region (\"channel flow diversion\") occurs when manufacturer-authorized distributors sell trademarked goods to unauthorized distributors who then sell the goods to consumers within the same region. For example, quantity discounts from manufacturers may motivate authorized dealers to enter the gray market because they can purchase larger quantities of a product than they themselves intend to stock if they can sell the extra units through gray marketing channels.\nWhen gray marketing occurs across market boundaries, it is typically in an international setting and may be called \"parallel importing.\" Manufacturers often produce and sell products in more than one country and establish a network of authorized dealers in each country. Parallel importing occurs when trademarked goods intended for one country are diverted from proper channels (channel flow diversion) and then exported to unauthorized distributors in another country.\nTrademark owners justifiably argue against gray marketing practices since such practices clearly jeopardize the goodwill established by trademark owners: consumers who purchase trademarked goods in the gray market do not get the same \"extended product,\" which typically includes pre- and postsale service. Equally important, authorized distributors may cease to promote the product if it becomes available for much lower prices through unauthorized channels.\nCurrent debate over regulation of gray marketing focuses on three disparate theories in trademark law that have been variously and confusingly applied to parallel importation cases: universality, exhaustion, and territoriality. The theory of universality holds that a trademark is only an indication of the source or origin of the product. This theory does not recognize the goodwill functions of a trademark. When the courts apply this theory, gray marketing practices are allowed to continue because the origin of the product remains the same regardless of the specific route of the product through the channel of distribution. The exhaustion theory holds that a trademark owner relinquishes all rights once a product has been sold. When this theory is applied, gray marketing practices are allowed to continue because the trademark owners' rights cease as soon as their products are sold to a distributor. The theory of territoriality holds that a trademark is effective in the country in which it is registered. Under the theory of territoriality, trademark owners can stop gray marketing practices in the registering countries on products bearing their trademarks. Since only the territoriality theory affords trademark owners any real legal protection against gray marketing practices, I believe it is inevitable as well as desirable that it will come to be consistently applied in gray marketing cases.",
+  "questions": [
+    {
+      "q": "Which one of the following best expresses the main point of the passage?",
+      "o": [
+        "Gray marketing is unfair to trademark owners and should be legally controlled.",
+        "Gray marketing is practiced in many different forms and places, and legislators should recognize the futility of trying to regulate it.",
+        "The mechanisms used to control gray marketing across markets are different from those most effective in controlling gray marketing within markets.",
+        "The three trademark law theories that have been applied in gray marketing cases lead to different case outcomes."
+      ],
+      "a": 0,
+      "e": "The passage supports option A: gray marketing is unfair to trademark owners and should be legally controlled."
+    },
+    {
+      "q": "The function of the passage as a whole is to",
+      "o": [
+        "criticize the motives and methods of those who practice gray marketing",
+        "evaluate the effects of both channel flow diversion and parallel importation",
+        "discuss the methods that have been used to regulate gray marketing and evaluate such methods' degrees of success",
+        "describe a controversial marketing practice and evaluate several legal views regarding it"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: describe a controversial marketing practice and evaluate several legal views regarding it."
+    },
+    {
+      "q": "Which one of the following does the author offer as an argument against gray marketing?",
+      "o": [
+        "Manufacturers find it difficult to monitor the effectiveness of promotional efforts made on behalf of products that are gray marketed.",
+        "Gray marketing can discourage product promotion by authorized distributors.",
+        "Gray marketing forces manufacturers to accept the low profit margins that result from quantity discounting.",
+        "Gray marketing discourages competition among unauthorized dealers."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: gray marketing can discourage product promotion by authorized distributors."
+    },
+    {
+      "q": "The information in the passage suggests that proponents of the theory of territoriality would probably differ from proponents of the theory of exhaustion on which one of the following issues?",
+      "o": [
+        "the right of trademark owners to enforce, in countries in which the trademarks are registered, distribution agreements intended to restrict distribution to authorized channels",
+        "the right of trademark owners to sell trademarked goods only to those distributors who agree to abide by distribution agreements",
+        "the legality of channel flow diversion that occurs in a country other than the one in which a trademark is registered",
+        "the significance consumers attach to a trademark"
+      ],
+      "a": 0,
+      "e": "It can be inferred from the passage that the right of trademark owners to enforce, in countries in which the trademarks are registered, distribution agreements intended to restrict distribution to authorized channels."
+    },
+    {
+      "q": "The author discusses the impact of gray marketing on goodwill in order to",
+      "o": [
+        "fault trademark owners for their unwillingness to offer a solution to a major consumer complaint against gray marketing",
+        "indicate a way in which manufacturers sustain damage against which they ought to be protected",
+        "highlight one way in which gray marketing across markets is more problematic than gray marketing within a market",
+        "demonstrate that gray marketing does not always benefit the interests of unauthorized distributors"
+      ],
+      "a": 1,
+      "e": "The passage supports option B: indicate a way in which manufacturers sustain damage against which they ought to be protected."
+    },
+    {
+      "q": "The author's attitude toward the possibility that the courts will come to exercise consistent control over gray marketing practices can best be characterized as one of",
+      "o": [
+        "resigned tolerance",
+        "utter dismay",
+        "reasoned optimism",
+        "unbridled fervor"
+      ],
+      "a": 2,
+      "e": "The author's tone throughout the passage is best characterised as reflected in this answer. The language and rhetorical choices in the passage support this reading."
+    }
+  ]
+},
+{
+  "id": "slave-narratives",
+  "title": "Authorship and Slave Narratives",
+  "tier": "hard",
+  "words": 484,
+  "text": "Any study of autobiographical narratives that appeared under the ostensible authorship of African American writers between 1760 and 1865 inevitably raises concerns about authenticity and interpretation. Should an autobiography whose written composition was literally out of the hands of its narrator be considered as the literary equivalent of those autobiographies that were authored independently by their subjects?\nIn many cases, the so-called edited narrative of an ex-slave ought to be treated as a ghostwritten account insofar as literary analysis is concerned, especially when it was composed by its editor from \"a statement of facts\" provided by an African American subject. Blassingame has taken pains to show that the editors of several of the more famous antebellum slave narratives were \"noted for their integrity\" and thus were unlikely to distort the facts given them by slave narrators. From a literary standpoint, however, it is not the moral integrity of these editors that is at issue (at issue 1: in a state of controversy: in disagreement 2 also in issue: under discussion or in dispute) but the linguistic, structural, and tonal integrity of the narratives they produces. Even if an editor faithfully reproduced the facts of a narrator's life, it was still the editor who decided what to make of these facts, how they should be emphasized, in what order they ought to be presented, and what was extraneous or germane. Readers of African American autobiography then and now have too readily accepted the presumption of these eighteenth- and nineteenth-century editors that experiential facts recounted orally could be recorded and sorted by an amanuensis-editor, taken out of their original contexts, and then published with editorial prefaces, footnotes, and appended commentary, all without compromising the validity of the narrative as a product of an African American consciousness.\nTranscribed narratives in which an editor explicitly delimits his or her role undoubtedly may be regarded as more authentic and reflective of the narrator's thought in action than those edited works that flesh (to clothe or cover with or as if with flesh; broadly: to give substance to usually used with out) out a statement of facts in ways unaccounted for. Still, it would be naïve to accord dictated oral narratives the same status as autobiographies composed and written by the subjects of the stories themselves. This point is illustrated by an analysis of Works Progress Administration interviews with ex-slaves in the 1930s that suggests that narrators often told interviewers what they seemed to want to hear. If it seemed impolitic for former slaves to tell all they knew and thought about the past to interviewers in the 1930s, the same could be said of escaped slaves on the run in the antebellum era. Dictated narratives, therefore, are literary texts whose authenticity is difficult to determine. Analysts should reserve close analytic readings for independently authored texts. Discussion of collaborative texts should take into account the conditions that governed their production.",
+  "questions": [
+    {
+      "q": "Which one of the following best summarizes the main point of the passage?",
+      "o": [
+        "The personal integrity of an autobiography's editor has little relevance to its value as a literary work.",
+        "Autobiographies dictated to editors are less valuable as literature than are autobiographies authored by their subjects.",
+        "The facts that are recorded in an autobiography are less important than the personal impressions of its author.",
+        "The circumstances under which an autobiography was written should affect the way it is interpreted as literature."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: the circumstances under which an autobiography was written should affect the way it is interpreted as literature."
+    },
+    {
+      "q": "The information in the passage suggests that the role of the \"editor\" (lines 23-24) is most like that of",
+      "o": [
+        "an artist who wishes to invent a unique method of conveying the emotional impact of a scene in a painting",
+        "a worker who must interpret the instructions of an employer",
+        "a critic who must provide evidence to support opinions about a play being reviewed",
+        "a historian who must decide how to direct the reenactment of a historical event"
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that a historian who must decide how to direct the reenactment of a historical event."
+    },
+    {
+      "q": "Which one of the following best describes the author's opinion about applying literary analysis to edited autobiographies?",
+      "o": [
+        "The author is adamantly opposed to the application of literary analysis to edited autobiographies.",
+        "The author is skeptical of the value of close analytical reading in the case of edited autobiographies.",
+        "The author believes that literary analysis of the prefaces, footnotes, and commentaries that accompany edited autobiographies would be more useful than an analysis of the text of the autobiographies.",
+        "The author believes that an exclusively literary analysis of edited autobiographies is more valuable than a reading that emphasizes their historical import."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: the author is skeptical of the value of close analytical reading in the case of edited autobiographies."
+    },
+    {
+      "q": "The passage supports which one of the following statements about the readers of autobiographies of African Americans that were published between 1760 and 1865?",
+      "o": [
+        "They were more concerned with the personal details in the autobiographies than with their historical significance.",
+        "They were unable to distinguish between ghostwritten and edited autobiographies.",
+        "They were less naïve about the facts of slave life than are readers today.",
+        "They presumed that the editing of the autobiographies did not affect their authenticity."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: they presumed that the editing of the autobiographies did not affect their authenticity."
+    },
+    {
+      "q": "When one of the following words, as it is used in the passage, best serves to underscore the author's concerns about the authenticity of the autobiographies discussed?",
+      "o": [
+        "\"ostensible\" (line 2)",
+        "\"integrity\" (line 18)",
+        "\"extraneous\" (line 27)",
+        "\"delimits\" (line 39)"
+      ],
+      "a": 0,
+      "e": "The passage supports option A: \"ostensible\" (line 2)."
+    },
+    {
+      "q": "According to the passage, close analytic reading of an autobiography is appropriate only when the",
+      "o": [
+        "autobiography has been dictated to an experienced amanuensis-editor",
+        "autobiography attempts to reflect the narrator's thought in action",
+        "autobiography was authored independently by its subject",
+        "moral integrity of the autobiography's editor is well established"
+      ],
+      "a": 2,
+      "e": "The passage directly supports this: autobiography was authored independently by its subject. This information is stated in the passage, making it the most accurate answer based on the text."
+    }
+  ]
+},
+{
+  "id": "britains-real-wealth",
+  "title": "Who Really Held Britain's Wealth",
+  "tier": "moderate",
+  "words": 452,
+  "text": "A conventional view of nineteenth-century Britain holds that iron manufacturers and textile manufacturers from the north of England became the wealthiest and most powerful people in society after about 1832. According to Marxist historians, these industrialists were the target of the working class in its struggle for power. A new study by Rubinstein, however, suggests that the real wealth lay with the bankers and merchants of London. Rubinstein does not deny that a northern industrial elite existed but argues that it was consistently outnumbered and outdone by a London-based commercial elite. His claims are provocative and deserve consideration.\nRubinstein's claim about the location of wealth comes from his investigation of probate records. These indicate the value of personal property, excluding real property (buildings and land), left by individuals at death. It does seem as if large fortunes were more frequently made in commerce than in industry and, within industry, more frequently from alcohol or tobacco than from textiles or metal. However, such records do not unequivocally make Rubinstein's case. Uncertainties abound about how the probate rules for valuing assets were actually applied. Mills and factories, being real property, were clearly excluded: machinery may also have been, for the same reason. What the valuation conventions were for stock-in-trade (goods for sale) is also uncertain. It is possible that their probate values were much lower than their actual market value: cash or near-cash, such as bank balances or stocks, were, on the other hand, invariably considered at full face value. A further complication is that probate valuations probably took no notice of a business's goodwill (favor with the public) which, since it represents expectations about future profit-making, would today very often be a large fraction of market value. Whether factors like these introduced systematic biases into the probate valuations of individuals with different types of businesses would be worth investigating.\nThe orthodox view that the wealthiest individuals were the most powerful is also questioned by Rubinstein's study. The problem for this orthodox view is that Rubinstein finds many millionaires who are totally unknown to nineteenth-century historians: the reason for their obscurity could be that they were not powerful. Indeed, Rubinstein dismisses any notion that great wealth had anything to do with entry into the governing elite, as represented by bishops, higher civil servants, and chairmen of manufacturing companies. The only requirements were university attendance and a father with a middle-class income.\nRubinstein, in another study, has begun to buttress his findings about the location of wealth by analyzing income tax returns, which reveal a geographical distribution of middle-class incomes similar to that of wealthy incomes revealed by probate records. But until further confirmatory investigation is done, his claims can only be considered partially convincing.",
+  "questions": [
+    {
+      "q": "The main idea of the passage is that",
+      "o": [
+        "the Marxist interpretation of the relationship between class and power in nineteenth-century Britain is no longer viable",
+        "a simple equation between wealth and power is unlikely to be supported by new data from nineteenth-century British archives",
+        "a recent historical investigation has challenged but not disproved the orthodox view of the distribution of wealth and the relationship of wealth to power in nineteenth-century Britain",
+        "probate records provide the historian with a revealing but incomplete glimpse of the extent and location of wealth in nineteenth-century Britain"
+      ],
+      "a": 2,
+      "e": "The passage supports option C: a recent historical investigation has challenged but not disproved the orthodox view of the distribution of wealth and the relationship of wealth to power in nineteenth-century britain."
+    },
+    {
+      "q": "The author of the passage implies that probate records as a source of information about wealth in nineteenth-century Britain are",
+      "o": [
+        "self-contradictory and misleading",
+        "ambiguous and outdated",
+        "controversial but readily available",
+        "revealing but difficult to interpret"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: revealing but difficult to interpret."
+    },
+    {
+      "q": "The author suggests that the total probate valuations of the personal property of individuals holding goods for sale in nineteenth-century Britain may have been",
+      "o": [
+        "affected by the valuation conventions for such goods",
+        "less accurate than the valuations for such goods provided by income tax returns",
+        "less, on average, if such goods were tobacco-related than if they were alcohol-related",
+        "greater, on average, than the total probate valuations of those individuals who held bank balances"
+      ],
+      "a": 0,
+      "e": "It can be inferred from the passage that affected by the valuation conventions for such goods."
+    },
+    {
+      "q": "According to the passage, Rubinstein has provided evidence that challenges which one of the following claims about nineteenth-century Britain?",
+      "o": [
+        "The distribution of great wealth between commerce and industry was not equal.",
+        "Large incomes were typically made in alcohol and tobacco rather than in textiles and metal.",
+        "A London-based commercial elite can be identified.",
+        "There was a necessary relationship between great wealth and power."
+      ],
+      "a": 3,
+      "e": "The passage directly supports this: there was a necessary relationship between great wealth and power. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "The author mentions that goodwill was probably excluded from the probate valuation of a business in nineteenth-century Britain most likely in order to",
+      "o": [
+        "give an example of a business asset about which little was known in the nineteenth century",
+        "suggest that the probate valuations of certain businesses may have been significant underestimations of their true market value",
+        "make the point that this exclusion probably had an equal impact on the probate valuations of all nineteenth-century British businesses",
+        "indicate that expectations about future profit-making is the single most important factor in determining the market value of certain businesses"
+      ],
+      "a": 1,
+      "e": "The passage supports option B: suggest that the probate valuations of certain businesses may have been significant underestimations of their true market value."
+    },
+    {
+      "q": "Which one of the following studies would provide support for Rubinstein's claims?",
+      "o": [
+        "a study that indicated that many members of the commercial elite in nineteenth-century London had insignificant holdings of real property",
+        "a study that indicated that in the nineteenth century, industrialists from the north of England were in fact a target for working-class people",
+        "a study that indicated that, in nineteenth-century Britain, probate values of goods for sale were not as high as probate values of cash assets",
+        "a study that indicated that the wealth of nineteenth-century British industrialists did not appear to be significantly greater when the full value of their real property holdings was actually considered"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: a study that indicated that the wealth of nineteenth-century british industrialists did not appear to be significantly greater when the full value of their real property holdings was actually considered."
+    }
+  ]
+},
+{
+  "id": "video-art",
+  "title": "Video Art and Technology",
+  "tier": "hard",
+  "words": 437,
+  "text": "Many argue that recent developments in electronic technology such as computers and videotape have enabled artists to vary their forms of expression. For example, video art can now achieve images whose effect is produced by \"digitalization\": breaking up the picture using computerized information processing. Such new technologies create new ways of seeing and hearing by adding different dimensions to older forms, rather than replacing those forms. Consider Locale, a film about a modern dance company. The camera operator wore a SteadicamTM, an uncomplicated device that allows a camera to be mounted on a person so that the camera remains steady no matter how the operator moves. The SteadicamTM captures the dance in ways impossible with traditional mounts. Such new equipment also allows for the preservation of previously unrecordable aspects of performances, thus enriching archives.\nBy Contrast, others claim that technology subverts the artistic enterprise: that artistic efforts achieved with machines preempt human creativity, rather than being inspired by it. The originality of musical performance, for example, might suffer, as musicians would be deprived of the opportunity to spontaneously change pieces of music before live audiences. Some even worry that technology will eliminate live performance altogether; performances will be recorded for home viewing, abolishing the relationship between performer and audience. But these negative views assume both that technology poses an unprecedented challenge to the arts and that we are not committed enough to the artistic enterprise to preserve the live performance, assumptions that seem unnecessarily cynical. In fact, technology has traditionally assisted our capacity for creative expression and can refine our notions of any give art form.\nFor example, the portable camera and the snapshot were developed at the same time as the rise of impressionist painting in the nineteenth century. These photographic technologies encouraged a new appreciation. In addition, impressionist artists like Degas studied the elements of light and movement captured by instantaneous photography and used their new understanding of the way our perceptions distort reality to try to more accurately capture realty in their work. Since photos can capture the \"moments\" of a movement, such as a hand partially raised in a gesture of greeting, Impressionist artists were inspired to paint such moments in order to more effectively convey the quality of spontaneous human action. Photography freed artists from the preconception that a subject should be painted in a static, artificial entirety, and inspired them to capture the random and fragmentary qualities of our world. Finally, since photography preempted painting as the means of obtaining portraits, painters had more freedom to vary their subject matter, thus giving rise to the abstract creations characteristic of modern art.",
+  "questions": [
+    {
+      "q": "Which one of the following statements best expresses the main idea of the passage?",
+      "o": [
+        "The progress of art relies primarily on technology.",
+        "Technological innovation can be beneficial to art.",
+        "There are risks associated with using technology to create art.",
+        "Technology will transform the way the public responds to art."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: technological innovation can be beneficial to art."
+    },
+    {
+      "q": "It can be inferred from the passage that the author shares which one of the following opinions with the opponents of the use of new technology in art?",
+      "o": [
+        "The live performance is an important aspect of the artistic enterprise.",
+        "The public's commitment to the artistic enterprise is questionable.",
+        "Recent technological innovations present an entirely new sort of challenge to art.",
+        "Technological innovations of the past have been very useful to artists."
+      ],
+      "a": 0,
+      "e": "It can be inferred from the passage that the live performance is an important aspect of the artistic enterprise."
+    },
+    {
+      "q": "Which one of the following, if true, would most undermine the position held by opponents of the use of new technology in art concerning the effect of technology on live performance?",
+      "o": [
+        "Surveys show that when recordings of performances are made available for home viewing, the public becomes far more knowledgeable about different performing artists.",
+        "Surveys show that some people feel comfortable responding spontaneously to artistic performances when they are viewing recordings of those performances at home.",
+        "After a live performance, sales of recordings for home viewing of the particular performing artist generally increase.",
+        "The distribution of recordings of artists' performances has begun to attract many new audience members to their live performances."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: the distribution of recordings of artists' performances has begun to attract many new audience members to their live performances."
+    },
+    {
+      "q": "The author uses the example of the SteadicamTM primarily in order to suggest that",
+      "o": [
+        "the filming of performances should not be limited by inadequate equipment",
+        "new technologies do not need to be very complex in order to benefit art",
+        "the interaction of a traditional art form with a new technology will change attitudes toward technology in general",
+        "new technology does not so much preempt as enhance a traditional art form"
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that new technology does not so much preempt as enhance a traditional art form."
+    },
+    {
+      "q": "According to the passage, proponents of the use of new electronic technology in the arts claim that which one of the following is true?",
+      "o": [
+        "Most people who reject the use of electronic technology in art forget that machines require a person to operate them.",
+        "Electronic technology allows for the expansion of archives because longer performances can be recorded.",
+        "Electronic technology assists artists in finding new ways to present their material.",
+        "Electronic technology makes the practice of any art form more efficient by speeding up the creative process."
+      ],
+      "a": 2,
+      "e": "The passage directly supports this: electronic technology assists artists in finding new ways to present their material. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "It can be inferred from the passage that the author would agree with which one of the following statements regarding changes in painting since the nineteenth century?",
+      "o": [
+        "The artistic experiments of the nineteenth century led painters to use a variety of methods in creating portraits, which they then applied to other subject matter.",
+        "The nineteenth-century knowledge of light and movement provided by photography inspired the abstract works characteristic of modern art.",
+        "Once painters no longer felt that they had to paint conventional portraits, they turned exclusively to abstract portraiture.",
+        "Once painters painted fewer conventional portraits, they had greater opportunity to move beyond the literal depiction of objects. During the 1940s and 1950s the United States government developed a new policy toward Native Americans, often known as \"readjustment.\" Because the increased awareness of civil rights in these decades helped reinforce the belief that life on reservations prevented Native Americans from exercising the rights guaranteed to citizens under the United States Constitution, the readjustment movement advocated the end of the federal government's involvement in Native American affairs and encouraged the assimilation of Native Americans as individuals into mainstream society. However, the same years also saw the emergence of a Native American leadership and efforts to develop tribal instructions and reaffirm tribal identity. The clash of these two trends may be traced in the attempts on the part of the Bureau of Indian Affairs (BIA) to convince the Oneida tribe of Wisconsin to accept readjustment. The culmination of BIA efforts to sway the Oneida occurred at a meeting that took place in the fall of 1956. The BIA suggested that it would be to the Oneida's benefit to own their own property and, like other homeowners, pay real estate taxes on it. The BIA also emphasized that, after readjustment, the government would not attempt to restrict Native Americans' ability to sell their individually owned lands. The Oneida were then offered a one-time lump-sum payment of $60,000 in lieu of (in lieu of: , ) the $0.52 annuity guaranteed in perpetuity to each member of the tribe under the Canandaigua Treaty. The efforts of the BIA to \"sell\" readjustment to the tribe failed because the Oneida realized that they had heard similar offers before. The Oneida delegates reacted negatively to the BIA's first suggestion because taxation of Native American lands had been one past vehicle for dispossessing the Oneida: after the distribution of some tribal lands to individual Native Americans in the late nineteenth century, Native American lands became subject to taxation, resulting in new and impossible financial burdens, foreclosures, and subsequent tax sales of property. The Oneida delegates were equally suspicious of the BIA's emphasis on the rights of individual landowners, since in the late nineteenth century many individual Native Americans had been convinced by unscrupulous speculators to sell their lands. Finally, the offer of a lump-sum payment was unanimously opposed by the Oneida delegates, who saw that changing the terms of a treaty might jeopardize the many pending land claims based upon the treaty. As a result of the 1956 meeting, the Oneida rejected readjustment. Instead, they determined to improve tribal life by lobbying for federal monies for postsecondary education, for the improvement of drainage on tribal lands, and for the building of a convalescent home for tribal members. Thus, by learning the lessons of history, the Oneida were able to survive as a tribe in their homeland."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that once painters painted fewer conventional portraits, they had greater opportunity to move beyond the literal depiction of objects. during the 1940s and 1950s the united states government developed a new policy toward native americans, often known as \"readjustment.\" because the increased awareness of civil rights in these decades helped reinforce the belief that life on reservations prevented native americans from exercising the rights guaranteed to citizens under the united states constitution, the readjustment movement advocated the end of the federal government's involvement in native american affairs and encouraged the assimilation of native americans as individuals into mainstream society. however, the same years also saw the emergence of a native american leadership and efforts to develop tribal instructions and reaffirm tribal identity. the clash of these two trends may be traced in the attempts on the part of the bureau of indian affairs (bia) to convince the oneida tribe of wisconsin to accept readjustment. the culmination of bia efforts to sway the oneida occurred at a meeting that took place in the fall of 1956. the bia suggested that it would be to the oneida's benefit to own their own property and, like other homeowners, pay real estate taxes on it. the bia also emphasized that, after readjustment, the government would not attempt to restrict native americans' ability to sell their individually owned lands. the oneida were then offered a one-time lump-sum payment of $60,000 in lieu of (in lieu of: , ) the $0.52 annuity guaranteed in perpetuity to each member of the tribe under the canandaigua treaty. the efforts of the bia to \"sell\" readjustment to the tribe failed because the oneida realized that they had heard similar offers before. the oneida delegates reacted negatively to the bia's first suggestion because taxation of native american lands had been one past vehicle for dispossessing the oneida: after the distribution of some tribal lands to individual native americans in the late nineteenth century, native american lands became subject to taxation, resulting in new and impossible financial burdens, foreclosures, and subsequent tax sales of property. the oneida delegates were equally suspicious of the bia's emphasis on the rights of individual landowners, since in the late nineteenth century many individual native americans had been convinced by unscrupulous speculators to sell their lands. finally, the offer of a lump-sum payment was unanimously opposed by the oneida delegates, who saw that changing the terms of a treaty might jeopardize the many pending land claims based upon the treaty. as a result of the 1956 meeting, the oneida rejected readjustment. instead, they determined to improve tribal life by lobbying for federal monies for postsecondary education, for the improvement of drainage on tribal lands, and for the building of a convalescent home for tribal members. thus, by learning the lessons of history, the oneida were able to survive as a tribe in their homeland."
+    }
+  ]
+},
+{
+  "id": "termination-policy",
+  "title": "The Termination Policy",
+  "tier": "moderate",
+  "words": 454,
+  "text": "During the 1940s and 1950s the United States government developed a new policy toward Native Americans, often known as \"readjustment.\" Because the increased awareness of civil rights in these decades helped reinforce the belief that life on reservations prevented Native Americans from exercising the rights guaranteed to citizens under the United States Constitution, the readjustment movement advocated the end of the federal government's involvement in Native American affairs and encouraged the assimilation of Native Americans as individuals into mainstream society. However, the same years also saw the emergence of a Native American leadership and efforts to develop tribal instructions and reaffirm tribal identity. The clash of these two trends may be traced in the attempts on the part of the Bureau of Indian Affairs (BIA) to convince the Oneida tribe of Wisconsin to accept readjustment.\nThe culmination of BIA efforts to sway the Oneida occurred at a meeting that took place in the fall of 1956. The BIA suggested that it would be to the Oneida's benefit to own their own property and, like other homeowners, pay real estate taxes on it. The BIA also emphasized that, after readjustment, the government would not attempt to restrict Native Americans' ability to sell their individually owned lands. The Oneida were then offered a one-time lump-sum payment of $60,000 in lieu of the $0.52 annuity guaranteed in perpetuity to each member of the tribe under the Canandaigua Treaty.\nThe efforts of the BIA to \"sell\" readjustment to the tribe failed because the Oneida realized that they had heard similar offers before. The Oneida delegates reacted negatively to the BIA's first suggestion because taxation of Native American lands had been one past vehicle for dispossessing the Oneida: after the distribution of some tribal lands to individual Native Americans in the late nineteenth century, Native American lands became subject to taxation, resulting in new and impossible financial burdens, foreclosures, and subsequent tax sales of property. The Oneida delegates were equally suspicious of the BIA's emphasis on the rights of individual landowners, since in the late nineteenth century many individual Native Americans had been convinced by unscrupulous speculators to sell their lands. Finally, the offer of a lump-sum payment was unanimously opposed by the Oneida delegates, who saw that changing the terms of a treaty might jeopardize the many pending land claims based upon the treaty.\nAs a result of the 1956 meeting, the Oneida rejected readjustment. Instead, they determined to improve tribal life by lobbying for federal monies for postsecondary education, for the improvement of drainage on tribal lands, and for the building of a convalescent home for tribal members. Thus, by learning the lessons of history, the Oneida were able to survive as a tribe in their homeland.",
+  "questions": [
+    {
+      "q": "Which one of the following would be most consistent with the policy of readjustment described in the passage?",
+      "o": [
+        "the establishment among Native Americans of a tribal system of a elected government",
+        "the creation of a national project to preserve Native American language and oral history",
+        "the establishment of programs to encourage Native Americans to move from reservations to urban areas",
+        "the development of a large-scale effort to restore Native American lands to their original tribes"
+      ],
+      "a": 2,
+      "e": "The passage supports option C: the establishment of programs to encourage native americans to move from reservations to urban areas."
+    },
+    {
+      "q": "According to the passage, after the 1956 meeting the Oneida resolved to",
+      "o": [
+        "obtain improved social services and living conditions for members of the tribe",
+        "pursue litigation designed to reclaim tribal lands",
+        "secure recognition of their unique status as a self-governing Native American nation within the United States",
+        "establish new kinds of tribal institutions"
+      ],
+      "a": 0,
+      "e": "The passage directly supports this: obtain improved social services and living conditions for members of the tribe. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "Which one of the following best describes the function of the first paragraph in the context of the passage as a whole?",
+      "o": [
+        "It summarizes the basis of a conflict underlying negotiations described elsewhere in the passage.",
+        "It presents two positions, one of which is defended by evidence provided in succeeding paragraphs.",
+        "It compares competing interpretations of a historical conflict.",
+        "It analyzes the causes of a specific historical event and predicts a future development."
+      ],
+      "a": 0,
+      "e": "The passage supports option A: it summarizes the basis of a conflict underlying negotiations described elsewhere in the passage."
+    },
+    {
+      "q": "The author refers to the increased awareness of civil rights during the 1940s and 1950s most probably in order to",
+      "o": [
+        "contrast the readjustment movement with other social phenomena",
+        "account for the stance of the Native American leadership",
+        "help explain the impetus for the readjustment movement",
+        "explain the motives of BIA bureaucrats"
+      ],
+      "a": 2,
+      "e": "The passage supports option C: help explain the impetus for the readjustment movement."
+    },
+    {
+      "q": "The passage suggests that advocates of readjustment would most likely agree with which one of the following statements regarding the relationship between the federal government and Native Americans?",
+      "o": [
+        "The federal government should work with individual Native Americans to improve life on reservations.",
+        "The federal government should be no more involved in the affaires of Native Americans than in the affairs of other citizens.",
+        "The federal government should assume more responsibility for providing social services to Native Americans.",
+        "The federal government should share its responsibility for maintaining Native American territories with tribal leaders."
+      ],
+      "a": 1,
+      "e": "It can be inferred from the passage that the federal government should be no more involved in the affaires of native americans than in the affairs of other citizens."
+    },
+    {
+      "q": "The passage suggests that the Oneida delegates viewed the Canandaigua Treaty as",
+      "o": [
+        "a valuable safeguard of certain Oneida rights and privileges",
+        "the source of many past problems for the Oneida tribe",
+        "a model for the type of agreement they hoped to reach with the federal government",
+        "an important step toward recognition of their status as an independent Native American nation"
+      ],
+      "a": 0,
+      "e": "It can be inferred from the passage that a valuable safeguard of certain oneida rights and privileges."
+    }
+  ]
+},
+{
+  "id": "coming-of-literacy",
+  "title": "The Coming of Literacy",
+  "tier": "hard",
+  "words": 459,
+  "text": "Direct observation of contemporary societies at the threshold of widespread literacy has not assisted our understanding of how such literacy altered ancient Greek society, in particular its political culture. The discovery of what Goody has called the \"enabling effects\" of literacy in contemporary societies tends to seduce the observer into confusing often rudimentary knowledge of how to read with popular access to important books and documents: this confusion is then projected onto ancient societies. \"In ancient Greece,\" Goody writes, \"alphabetic reading and writing was important for the development of political democracy.\"\nAn examination of the ancient Greek city Athens exemplifies how this sort of confusion is detrimental to understanding ancient politics. In Athens, the early development of a written law code was retrospectively mythologized as the critical factor in breaking the power monopoly of the old aristocracy: hence the Greek tradition of the \"law-giver,\" which has captured the imaginations of scholars like Goody. But the application and efficacy of all law codes depend on their interpretation by magistrates and courts, and unless the right of interpretation is \"democratized,\" the mere existence of written laws changes little.\nIn fact, never in antiquity did any but the elite consult documents and books. Even in Greek courts the juries heard only the relevant statutes read out during the proceedings, as they heard verbal testimony, and they then rendered their verdict on the spot, without the benefit of any discussion among themselves. True, in Athens the juries were representative of a broad spectrum of the population, and these juries, drawn from diverse social classes, both interpreted what they had heard and determined matters of fact. However, they guided solely by the speeches prepared for the parties by professional pleaders and by the quotations of laws or decrees within the speeches, rather than by their own access to any kind of document or book.\nGranted, people today also rely heavily on a truly knowledgeable minority for information and its interpretation, often transmitted orally. Yet this is still fundamentally different from an ancient society in which there was no \"popular literature,\" i.e., no newspapers, magazines, or other media that dealt with sociopolitical issues. An ancient law code would have been analogous to the Latin Bible, a venerated document but a closed book. The resistance of the medieval Church to vernacular translations of the Bible, in the West at least, is therefore a pointer to the realities of ancient literacy. When fundamental documents are accessible for study only to an elite, the rest of the society is subject to the elite's interpretation of the rules of behavior, including right political behavior. Athens, insofar as it functioned as a democracy, did so not because of widespread literacy, but because the elite had chosen to accept democratic institutions.",
+  "questions": [
+    {
+      "q": "Which one of the following statements best expresses the main idea of the passage?",
+      "o": [
+        "Democratic political institutions grow organically from the traditions and conventions of a society.",
+        "Democratic political institutions are not necessarily the outcome of literacy in a society.",
+        "Religious authority, like political authority, can determine who in a given society will have access to important books and documents.",
+        "Those who are best educated are most often those who control the institutions of authority in a society."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: democratic political institutions are not necessarily the outcome of literacy in a society."
+    },
+    {
+      "q": "It can be inferred from the passage that the author assumes which one of the following about societies in which the people possess a rudimentary reading ability?",
+      "o": [
+        "They are more politically advanced than societies without rudimentary reading ability.",
+        "They are unlikely to exhibit the positive effects of literacy.",
+        "They are rapidly evolving toward widespread literacy.",
+        "Many of their people might not have access to important documents and books."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that many of their people might not have access to important documents and books."
+    },
+    {
+      "q": "The author refers to the truly knowledgeable minority in contemporary societies in the context of the fourth paragraph in order to imply which one of the following?",
+      "o": [
+        "Because they have a popular literature that closes the gap between the elite and the majority, contemporary societies rely far less on the knowledge of experts than did ancient societies.",
+        "Contemporary societies rely on the knowledge of experts, as did ancient societies, because contemporary popular literature so frequently conveys specious information.",
+        "Although contemporary societies rely heavily on the knowledge of experts, access to popular literature makes contemporary societies less dependent on experts for information about rules of behavior than were ancient societies.",
+        "While only some members of the elite can become experts, popular literature gives the majority in contemporary society an opportunity to become members of such an elite."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: although contemporary societies rely heavily on the knowledge of experts, access to popular literature makes contemporary societies less dependent on experts for information about rules of behavior than were ancient societies."
+    },
+    {
+      "q": "According to the passage, each of the following statements concerning ancient Greek juries is true EXCEPT:",
+      "o": [
+        "They were somewhat democratic insofar as they were composed largely of people from the lowest social classes.",
+        "They were exposed to the law only insofar as they heard relevant statutes read out during legal proceedings.",
+        "They ascertained the facts of a case and interpreted the laws.",
+        "They did not have direct access to important books and documents that were available to the elite."
+      ],
+      "a": 0,
+      "e": "The passage directly supports this: they were somewhat democratic insofar as they were composed largely of people from the lowest social classes. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "The author characterizes the Greek tradition of the \"law-giver\" (line 21) as an effect mythologizing most probably in order to",
+      "o": [
+        "illustrate the ancient Greek tendency to memorialize historical events by transforming them into myths",
+        "convey the historical importance of the development of the early Athenian written law code",
+        "convey the high regard in which the Athenians held their legal tradition",
+        "suggest that the development of a written law code was not primarily responsible for diminishing the power of the Athenian aristocracy"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: suggest that the development of a written law code was not primarily responsible for diminishing the power of the athenian aristocracy."
+    },
+    {
+      "q": "The author draws an analogy between the Latin Bible and an early law code (lines 49-51) in order to make which one of the following points?",
+      "o": [
+        "Documents were considered authoritative in premodern society in proportion to their inaccessibility to the majority.",
+        "Documents that were perceived as highly influential in premodern societies were not necessarily accessible to the society's majority.",
+        "What is most revered in a nondemocratic society is what is most frequently misunderstood.",
+        "Political documents in premodern societies exerted a social influence similar to that exerted by religious documents."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: documents that were perceived as highly influential in premodern societies were not necessarily accessible to the society's majority."
+    }
+  ]
+},
+{
+  "id": "colonial-english-identity",
+  "title": "Colonial English Identity",
+  "tier": "hard",
+  "words": 446,
+  "text": "The English who in the seventeenth and eighteenth centuries inhabited those colonies that would later become the United States shared a common political vocabulary with the English in England. Steeped as they were in the English political language, these colonials failed to observe that their experience in America had given the words a significance quite different from that accepted by the English with whom they debated; in fact, they claimed that they were more loyal to the English political tradition than were the English in England.\nIn many respects the political institutions of England were reproduced in these American colonies. By the middle of eighteenth century, all of these colonies except four were headed by Royal Governors appointed by the King and perceived as bearing a relation to the people of the colony similar to that of the King to the English people. Moreover, each of these colonies enjoyed a representative assembly, which was consciously modeled, in powers and practices, after the English Parliament. In both England and these colonies, only property holders could vote.\nNevertheless, though English and colonial institutions were structurally similar, attitudes toward those institutions differed. For example, English legal development from the early seventeenth century had been moving steadily toward the absolute power of Parliament. The most unmistakable sign of this tendency was the legal assertion that the King was subject to the law. Together with this resolute denial of the absolute right of kings went the assertion that Parliament was unlimited in its power: it could change even the Constitution by its ordinary acts of legislation. By the eighteenth century the English had accepted the idea that the parliamentary representatives of the people were omnipotent.\nThe citizens of these colonies did not look upon the English Parliament with such fond eyes, nor did they concede that their own assemblies possessed such wide powers. There were good historical reasons for this. To the English the word \"constitution\" meant the whole body of law and legal custom formulated since the beginning of the kingdom, whereas to these colonials a constitution was a specific written document, enumerating specific powers. This distinction in meaning can be traced to the fact that the foundations of government in the various colonies were written charters granted by the Crown. These express () authorizations to govern were tangible, definite things. Over the years these colonial had often repaired to the charters to justify themselves in the struggle against tyrannical governors or officials of the Crown. More than a century of government under written constitutions convinced these colonists of the necessity for and efficacy of protecting their liberties against governmental encroachment by explicitly defining all governmental powers in a document.",
+  "questions": [
+    {
+      "q": "Which one of the following best expresses the main idea of the passage?",
+      "o": [
+        "The colonials and the English mistakenly thought that they shared a common political vocabulary.",
+        "The colonials and the English shared a variety of institutions.",
+        "The colonials and the English had conflicting interpretations of the language and institutional structures that they shared.",
+        "Colonial attitudes toward English institutions grew increasingly hostile in the eighteenth century."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: the colonials and the english had conflicting interpretations of the language and institutional structures that they shared."
+    },
+    {
+      "q": "The passage supports all of the following statements about the political conditions present by the middle of the eighteenth century in the American colonies discussed in the passage EXCEPT:",
+      "o": [
+        "Colonials who did not own property could not vote.",
+        "All of these colonies had representative assemblies modeled after the British Parliament.",
+        "Some of these colonies had Royal Governors.",
+        "Royal Governors could be removed from office by colonial assemblies."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: royal governors could be removed from office by colonial assemblies."
+    },
+    {
+      "q": "The passage implies which one of the following about English kings prior to the early seventeenth century?",
+      "o": [
+        "They were the source of all law.",
+        "They frequently flouted laws made by Parliament.",
+        "Their power relative to that of Parliament was considerably greater than it was in the eighteenth century.",
+        "They were more often the sources of legal reform than they were in the eighteenth century."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: their power relative to that of parliament was considerably greater than it was in the eighteenth century."
+    },
+    {
+      "q": "The author mentions which one of the following as evidence for the eighteenth-century English attitude toward Parliament?",
+      "o": [
+        "The English had become uncomfortable with institutions that could claim absolute authority.",
+        "The English realized that their interests were better guarded by Parliament than by the King.",
+        "The English allowed Parliament to make constitutional changes by legislative enactment.",
+        "The English felt that the King did not possess the knowledge that could enable him to rule responsibly."
+      ],
+      "a": 2,
+      "e": "The author's tone throughout the passage is best characterised as reflected in this answer. The language and rhetorical choices in the passage support this reading."
+    },
+    {
+      "q": "The passage implies that the colonials discussed in the passage would have considered which one of the following to be a source of their debates with England?",
+      "o": [
+        "their changed use of the English political vocabulary",
+        "English commitment to parliamentary representation",
+        "their uniquely English experience",
+        "their greater loyalty to the English political traditions"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: their greater loyalty to the english political traditions."
+    },
+    {
+      "q": "According to the passage, the English attitude toward the English Constitution differed from the colonial attitude toward constitutions in that the English regarded their Constitution as",
+      "o": [
+        "the legal foundation of the kingdom",
+        "a document containing a collection of customs",
+        "a cumulative corpus of legislation and legal traditions",
+        "a record alterable by royal authority"
+      ],
+      "a": 2,
+      "e": "The passage directly supports this: a cumulative corpus of legislation and legal traditions. This information is stated in the passage, making it the most accurate answer based on the text."
+    }
+  ]
+},
+{
+  "id": "offshore-platforms",
+  "title": "Offshore Platforms",
+  "tier": "moderate",
+  "words": 445,
+  "text": "Oil companies needs offshore platforms primarily because the oil or natural gas the companies extract from the ocean floor has to be processed before pumps can be used to move the substances ashore. But because processing crude (unprocessed oil or gas) on a platform rather than at facilities onshore exposes workers to the risks of explosion and to an unpredictable environment, researchers are attempting to diminish the need for human labor on platforms and even to eliminate platforms altogether by redesigning two kinds of pumps to handle crude. These pumps could then be used to boost the natural pressure driving the flow of crude, which, by itself, is sufficient only to bring the crude to the platform, located just above the wellhead. Currently, pumps that could boost this natural pressure sufficiently to drive the crude through a pipeline to the shore do not work consistently because of the crude's content. Crude may consist of oil or natural gas in multiphase states - combinations of liquids, gases, and solids under pressure - that do not reach the wellhead in constant proportions. The flow of crude oil, for example, can change quickly from 60 percent liquid to 70 percent gas. This surge in gas content causes loss of \"head\", or pressure inside a pump, with the result that a pump can no longer impart enough energy to transport the crude mixture through the pipeline and to the shore.\nOf two pumps being redesigned, the positive-displacement pump is promising because it is immune to sudden shifts in the proportion of liquid to gas in the crude mixture. But the pump's design, which consists of a single or twin screw pushing the fluid from one end of the pump to the other, brings crude into close contact with most parts of the pump, and thus requires that it be made of expensive, corrosion-resistant material. The alternative is the centrifugal pump, which has a rotating impeller that sucks fluid in at one end and forces fluid out at the other. Although this pump has a proven design and has worked for years with little maintenance in waste-disposal plants, researchers have discovered that because the swirl of its impeller separates gas out from the oil that normally accompanies it, significant reductions in head can occur as it operates.\nResearch in the development of these pumps is focused mainly on trying to reduce the cost of the positive-displacement pump and attempting to make the centrifugal pump more tolerant of gas. Other researchers are looking at ways of adapting either kind of pump for use underwater, so that crude could be moved directly from the sea bottom to processing facilities onshore, eliminating platforms.",
+  "questions": [
+    {
+      "q": "Which one of following best expresses the main idea of the passage?",
+      "o": [
+        "Oil companies are experimenting with technologies that may help diminish the danger to workers from offshore crude processing.",
+        "Oil companies are seeking methods of installing processing facilities underwater.",
+        "Researchers are developing several new pumps designed to enhance human labor efficiency in processing facilities.",
+        "Researchers are seeking to develop equipment that would preempt (to replace with something considered to be of greater value or priority: take precedence over) the need for processing facilities onshore."
+      ],
+      "a": 0,
+      "e": "The passage supports option A: oil companies are experimenting with technologies that may help diminish the danger to workers from offshore crude processing."
+    },
+    {
+      "q": "The passage supports which one of the following statements about the natural pressure driving the flow of crude?",
+      "o": [
+        "It is higher than that created by the centrifugal pump.",
+        "It is constant regardless of relative proportions of gas and liquid.",
+        "It is able to carry the crude only as far as the wellhead.",
+        "It is able to carry the crude to the platform."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: it is able to carry the crude to the platform."
+    },
+    {
+      "q": "Which one of the following best describes the relationship of the second paragraph to the passage as a whole?",
+      "o": [
+        "It offers concrete detail designed to show that the argument made in the first paragraph is flawed.",
+        "It provides detail that expands upon the information presented in the first paragraph.",
+        "It enhances the author's discussion by objectively presenting in detail the pros and cons of a claim made in the first paragraph.",
+        "It detracts from the author's discussion by presenting various problems that qualify the goals presented."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: it provides detail that expands upon the information presented in the first paragraph."
+    },
+    {
+      "q": "Which one of the following phrases, if substituted for the word \"head\" in line 47, would LEAST change the meaning of the sentence?",
+      "o": [
+        "the flow of the crude inside the pump",
+        "the volume of oil inside the pump",
+        "the volume of gas inside the pump",
+        "the pressure inside of the pump"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: the pressure inside of the pump."
+    },
+    {
+      "q": "With which one of the following statements regarding offshore platforms would the author most likely agree?",
+      "o": [
+        "If a reduction of human labor on offshore platform is achieved, there is no real need to eliminate platforms altogether.",
+        "Reducing human labor on offshore platforms is desirable because researchers' knowledge about the transportation of crude is dangerously incomplete.",
+        "The dangers involved in working on offshore platforms make their elimination a desirable goal.",
+        "The positive-displacement pump is the better alternative for researchers, because it would allow them to eliminate platforms altogether."
+      ],
+      "a": 2,
+      "e": "Option C best fits the arguments presented: The dangers involved in working on offshore platforms make their elimination a desirable goal."
+    },
+    {
+      "q": "Which one of the following can be inferred from the passage about pumps that are currently available to boost the natural pressure of crude?",
+      "o": [
+        "The efficiency of these pumps depends on there being no gas in the flow of crude.",
+        "These pumps are more efficient when the crude is less subject to sudden increases in the proportion of gas to liquid.",
+        "A sudden change from solid to liquid in the flow of crude increases the efficiency of these pumps.",
+        "The proportion of liquid to gas in the flow of crude does not affect the efficiency of these pumps."
+      ],
+      "a": 1,
+      "e": "It can be inferred from the passage that these pumps are more efficient when the crude is less subject to sudden increases in the proportion of gas to liquid."
+    }
+  ]
+},
+{
+  "id": "venetian-narrative-painting",
+  "title": "Venetian Narrative Painting",
+  "tier": "hard",
+  "words": 462,
+  "text": "To critics accustomed to the style of fifteenth-century narrative paintings by Italian artists from Tuscany, the Venetian examples of narrative paintings with religious subjects that Patricia Fortini Brown analyzes in a recent book will come as a great surprise. While the Tuscan paintings present large-scale figures, clear narratives, and simple settings, the Venetians filled their pictures with dozens of small figures and elaborate building, in addition to a wealth of carefully observed anecdotal detail often irrelevant to the paintings' principal subjects - the religious stories they narrate. Although it occasionally obscured these stories, this accumulation of circumstantial detail from Venetian life - the inclusion of prominent Venetian citizens, for example - was considered appropriate to the narration of historical subjects and underlined the authenticity of the historical events depicted. Indeed, Brown argues that the distinctive style of the Venetian paintings - what she calls the \"eyewitness style\" - was influenced by Venetian affinity for a strongly parochial type of historical writing, consisting almost exclusively of vernacular chronicles of local events embroidered with all kinds of inconsequential detail.\nAnd yet, while Venetian attitudes toward history that are reflected in their art account in part for the difference in style between Venetian and Tuscan narrative paintings, Brown has overlooked some practical influences, such as climate. Tuscan churches are filled with frescoes that, in contrast to Venetian narrative paintings, consist mainly of large figures and easily recognized religious stories, as one would expect of paintings that are normally viewed from a distance and are designed primarily to remind the faithful of their religious tenets. In Venice, where the damp climate is unsuited to fresco, narrative frescoes in churches were almost nonexistent, with the result that Venetian artists and their public had no practical experience of the large-scale representation of familiar religious stories. Their model for painted stories was the cycle () of secular historical paintings in the Venetian magistrate's palace, which were indeed the counterpart of written history and were made all the more authoritative by a proliferation of circumstantial detail.\nMoreover, because painting frescoes requires an unusually sure hand, particularly in the representation of human form, the development of drawing skill was central to artistic training in Tuscany, and by 1500 the public there tended to distinguish artists on the basis of how well they could draw human figures. In Venice, a city virtually without frescoes, this kind of skill was acquired and appreciated much later. Gentile Bellini, for example, although regarded as one of the supreme painters of the day, was feeble at drawing. On the other hand, the emphasis on architecture so evident in the Venetian narrative paintings was something that local painters obviously prized, largely because painting architecture in perspective was seen as a particular test of the Venetian painter's skill.",
+  "questions": [
+    {
+      "q": "Which one of the following best states the main idea of the passage?",
+      "o": [
+        "Tuscan painters' use of fresco explains the prominence of human figures in the narrative paintings that they produced during the fifteenth century.",
+        "In addition to fifteenth-century Venetian attitudes toward history, other factors may help to explain the characteristic features of Venetian narrative paintings with religious subjects produced during that period.",
+        "The inclusion of authentic detail from Venetian life distinguished fifteenth-century Venetian narrative paintings from those that were produced in Tuscany.",
+        "Venetian painters were generally more skilled at painting buildings than Tuscan painters were at drawing human forms."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: in addition to fifteenth-century venetian attitudes toward history, other factors may help to explain the characteristic features of venetian narrative paintings with religious subjects produced during that period."
+    },
+    {
+      "q": "In the passage, the author is primarily concerned with",
+      "o": [
+        "Pointing out the superiority of one painting style over another.",
+        "Citing evidence that requires a reevaluation of a conventionally held view.",
+        "Discussing factors that explain a difference in painting styles.",
+        "Outlining the strengths and weaknesses of two opposing views regarding the evolution of a painting style."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: discussing factors that explain a difference in painting styles."
+    },
+    {
+      "q": "As it is described in the passage, Brown's explanation of the use of the eyewitness style in Venetian narrative painting suggests that",
+      "o": [
+        "The painting of architecture in perspective requires greater drawing skill than does the representation of a human form in a fresco.",
+        "Certain characteristics of a style of painting can reflect a style of historical writing that was common during the same period.",
+        "The eyewitness style in Venetian narrative paintings with religious subjects was largely the result of the influence of Tuscan artists who worked primarily in fresco.",
+        "The historical detail in Venetian narrative paintings with religious subjects can be traced primarily to the influence of the paintings in the Venetian magistrate's palace."
+      ],
+      "a": 1,
+      "e": "It can be inferred from the passage that certain characteristics of a style of painting can reflect a style of historical writing that was common during the same period."
+    },
+    {
+      "q": "The author suggests that fifteenth-century Venetian narrative paintings with religious subjects were painted by artists who",
+      "o": [
+        "were able to draw human figures with more skill after they were apprenticed to painters in Tuscany",
+        "assumed that their paintings would typically be viewed from a distance",
+        "were a major influence on the artists who produced the cycle of historical paintings in the Venetian magistrate's palace",
+        "were better at painting architecture in perspective than they were at drawing human figures"
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that were better at painting architecture in perspective than they were at drawing human figures."
+    },
+    {
+      "q": "The author implies that Venetian narrative paintings with religious subjects included the representation of elaborate buildings in part because",
+      "o": [
+        "the ability to paint architecture in perspective was seen in Venice as proof of a painter's skill",
+        "the subjects of such paintings were often religious stories",
+        "large frescoes were especially conducive to representing architecture in perspective",
+        "the architecture of Venice in the fifteenth century was more elaborate than was the architecture of Tuscany"
+      ],
+      "a": 0,
+      "e": "The passage supports option A: the ability to paint architecture in perspective was seen in venice as proof of a painter's skill."
+    },
+    {
+      "q": "Which one of the following, if true, would most weaken the author's contention that fifteenth-century Venetian artists \"had no practical experience of the large-scale representation of familiar religious stories\" (line 40-42)?",
+      "o": [
+        "The style of secular historical paintings in the palace of the Venetian magistrate was similar to that of Venetian narrative paintings with religious subjects.",
+        "The style of the historical writing produced by fifteenth-century Venetian authors was similar in its inclusion of anecdotal details to secular paintings produced during that century in Tuscany.",
+        "Many of the artists who produced Venetian narrative paintings with religious subjects served as apprentices in Tuscany, where they had become familiar with the technique of painting of frescoes.",
+        "Few of the frescoes painted in Tuscany during the fifteenth century had secular subjects, and those that did often betrayed the artist's inability to represent elaborate architecture in perspective."
+      ],
+      "a": 2,
+      "e": "This option most directly addresses the argument in question. It provides evidence or reasoning that bears on the claim being evaluated, while the other options are either irrelevant, supportive of the wrong conclusion, or do not address the specific argument."
+    }
+  ]
+},
+{
+  "id": "when-rules-run-out",
+  "title": "When Legal Rules Run Out",
+  "tier": "hard",
+  "words": 434,
+  "text": "Currently, legal scholars agree that in some cases legal rules do not specify a definite outcome. These scholars believe that such indeterminacy results from the vagueness of language: the boundaries of the application of a term are often unclear. Nevertheless, they maintain that the system of legal rules by and large rests on clear core meanings that do determine definite outcomes for most cases. Contrary to this view, an earlier group of legal philosophers, called \"realists,\" argued that indeterminacy pervades every part of the law.\nThe realists held that there is always a cluster of rules relevant to the decision in any litigated case. For example, deciding whether an aunt's promise to pay her niece a sum of money if she refrained from smoking is enforceable would involve a number of rules regarding such issues as offer, acceptance, and revocation. Linguistic vagueness in any one of these rules would affect the outcome of the case, making possible multiple points of indeterminacy, not just one or two, in any legal case.\nFor the realists, an even more damaging kind of indeterminacy stems from the fact that in a common-law system based on precedent, a judge's decision is held to be binding on judges in subsequent similar cases. Judicial decisions are expressed in written opinions, commonly held to consist of two parts: the holding (the decision for or against the plaintiff and the essential grounds or legal reasons for it, that is, what subsequent judges are bound by), and the dicta (everything in an opinion not essential to the decision, for example, comments about points of law not treated as the basis of the outcome). The realists argued that in practice the common-law system treats the \"holding/dicta\" distinction loosely. They pointed out that even when the judge writing an opinion characterizes part of it as \"the holding,\" judges writing subsequent opinions, although unlikely to dispute the decision itself, are not bound by the original judge's perception of what was essential to the decision. Later judges have tremendous leeway in being able to redefine the holding and the dicta in a precedential case. This leeway enables judges to choose which rules of law formed the basis of the decision in the earlier case. When judging almost any case, then, a judge can find a relevant precedential case which, in subsequent opinions, has been read by one judge as stating one legal rule, and by another judge as stating another, possibly contradictory one. A judge thus faces an indeterminate legal situation in which he or she has to choose which rules are to govern the case at hand.",
+  "questions": [
+    {
+      "q": "According to the passage, the realists argued that which one of the following is true of a common-law system?",
+      "o": [
+        "It gives rise to numerous situations in which the decisions of earlier judges are found to be in error by later judges.",
+        "It possesses a clear set of legal rules in theory, but in practice most judges are unaware of the strict meaning of those rules.",
+        "Its strength lies in the requirement that judges decide cases according to precedent rather than according to a set of abstract principles.",
+        "It treats the difference between the holding and the dicta in a written opinion rather loosely in practice."
+      ],
+      "a": 3,
+      "e": "The passage directly supports this: it treats the difference between the holding and the dicta in a written opinion rather loosely in practice. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "According to the passage, which one of the following best describes the relationship between a judicial holding and a judicial decision?",
+      "o": [
+        "The holding is not commonly considered binding on subsequent judges, but the decision is.",
+        "The holding formally states the outcome of the case, while the decision explains it.",
+        "The holding explains the decision but does not include it.",
+        "The holding sets forth and justifies a decision."
+      ],
+      "a": 3,
+      "e": "The passage directly supports this: the holding sets forth and justifies a decision. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "The information in the passage suggests that the realists would most likely have agreed with which one of the following statements about the reaction of judges to past interpretations of a precedential case, each of which states a different legal rule?",
+      "o": [
+        "The judges would most likely disagree with one or more of the interpretations and overturn the earlier judges' decisions.",
+        "The judges might differ from each other concerning which of the interpretations would apply in a given case.",
+        "The judges probably would consider themselves bound by all the legal rules stated in the interpretations.",
+        "The judges would regard the lack of unanimity among interpretations as evidence that no precedents existed."
+      ],
+      "a": 1,
+      "e": "It can be inferred from the passage that the judges might differ from each other concerning which of the interpretations would apply in a given case."
+    },
+    {
+      "q": "It can be inferred from the passage that most legal scholars today would agree with the realists that",
+      "o": [
+        "Linguistic vagueness can cause indeterminacy regarding the outcome of a litigated case.",
+        "In any litigated case, several different and possibly contradictory legal rules are relevant to the decision of the case.",
+        "The distinction between holding and dicta in a written opinion is usually difficult to determine in practice.",
+        "The boundaries of applicability of terms may sometimes be difficult to determine, but the core meanings of the terms are well established."
+      ],
+      "a": 0,
+      "e": "It can be inferred from the passage that linguistic vagueness can cause indeterminacy regarding the outcome of a litigated case."
+    },
+    {
+      "q": "The passage suggests that the realists believed which one of the following to be true of the dicta in a judge's written opinion?",
+      "o": [
+        "The judge writing the opinion is usually careful to specify those parts of the opinion he or she considers part of the dicta.",
+        "The appropriateness of the judge's decision would be disputed by subsequent judges on the basis of legal rules expressed in the dicta.",
+        "A consensus concerning what constitutes the dicta in a judge's opinion comes to be fixed over time as subsequent similar cases are decided.",
+        "Subsequent judges can consider parts of what the original judge saw as the dicta to be essential to the original opinion."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that subsequent judges can consider parts of what the original judge saw as the dicta to be essential to the original opinion."
+    },
+    {
+      "q": "Which one of the following best describes the overall organization of the passage?",
+      "o": [
+        "A traditional point of view is explained and problems arising from it are described.",
+        "Two conflicting systems of thought are compared point for point and then evaluated.",
+        "A legal concept is defined and arguments justifying that definition are refuted.",
+        "Two viewpoints on an issue are briefly described and one of those viewpoints is discussed at greater length."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: two viewpoints on an issue are briefly described and one of those viewpoints is discussed at greater length."
+    }
+  ]
+},
+{
+  "id": "theorising-civil-rights",
+  "title": "Theorising the Civil Rights Movement",
+  "tier": "hard",
+  "words": 469,
+  "text": "Years after the movement to obtain civil rights for black people in the United States made its most important gains, scholars are reaching for a theoretical perspective capable of clarifying its momentous developments. New theories of social movements are being discussed, not just among social psychologists, but also among political theorists.\nOf the many competing formulations of the \"classical\" social psychological theory of social movement, three are prominent in the literature on the civil rights movement: \"rising expectations,\" \"relative deprivation,\" and \"J-curve.\" Each conforms to a causal sequence characteristic of classical social movement theory, linking some unusual condition, or \"system strain,\" to the generation of unrest. When these versions of the classical theory are applied to the civil rights movement, the source of strain is identified as a change in black socioeconomic status that occurred shortly before the widespread protest activity of the movement.\nFor example, the theory of rising expectations asserts that protest activity was a response to psychological tensions generated by gains experienced immediately prior to the civil rights movement. Advancement did not satisfy ambition, but created the desire for further advancement. Only slightly different is the theory of relative deprivation. Here the impetus to protest is identified as gains achieved during the premovement period, coupled with simultaneous failure to make any appreciable headway relative to the dominant group. The J-curve theory argues that the movement occurred because a prolonged period of rising expectations and gratification was followed by a sharp reversal.\nPolitical theorists have been dismissive of these applications of classical theory to the civil rights movement. Their arguments rest on the conviction that, implicitly, the classical theory trivializes the political ends of movement participants, focusing rather on presumed psychological dysfunctions: reduction of complex social situations to simple paradigms of stimulus and response obviates the relevance of all but the shortest-term analysis. Furthermore, the theories lack predictive value: \"strain\" is always present to some degree, but social movement is not. How can we know which strain will provoke upheaval?\nThese very legitimate complaints having frequently been made, it remains to find a means of testing the strength of the theories. Problematically, while proponents of the various theories have contradictory interpretations of socioeconomic conditions leading to the civil rights movement, examination of various statistical records regarding the material status of black Americans yields ample evidence to support any of the three theories. The steady rise in median black family income supports the rising expectations hypothesis; the stability of the economic position of black vis-à-vis (prep....,..., ) white Americans lends credence to the relative deprivation interpretation; unemployment data are consistent with the J-curve theory. A better test is the comparison of each of these economic indicators with the frequency of movement-initiated events reported in the press; unsurprisingly, none correlates significantly with the pace of reports about movement activity.",
+  "questions": [
+    {
+      "q": "It can be inferred from the passage that the classical theory of social movement would not be appropriately applied to an annual general election because such an election",
+      "o": [
+        "may focus on personalities rather than on political issues",
+        "is not provoked primarily by an unusual condition",
+        "may be decided according to the psychological needs of voters",
+        "may not entail momentous developments"
+      ],
+      "a": 1,
+      "e": "It can be inferred from the passage that is not provoked primarily by an unusual condition."
+    },
+    {
+      "q": "According to the passage, the \"rising expectations\" and \"relative deprivation\" models differ in which one of the following ways?",
+      "o": [
+        "They predict different responses to the same socioeconomic conditions.",
+        "They disagree about the relevance of psychological explanations for protest movements.",
+        "They are meant to explain different kinds of social change.",
+        "They describe the motivation of protesters in slightly different ways."
+      ],
+      "a": 3,
+      "e": "The passage directly supports this: they describe the motivation of protesters in slightly different ways. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "The author implies that political theorists attribute which one of the following assumptions to social psychologists who apply the classical theory of social movements to the civil rights movement?",
+      "o": [
+        "Participants in any given social movement have conflicting motivations.",
+        "Social movements are ultimately beneficial to society.",
+        "Only strain of a socioeconomic nature can provoke a social movement.",
+        "Psychological motivations of movement participants better illuminate the causes of social movements than do participants' political motivations."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: psychological motivations of movement participants better illuminate the causes of social movements than do participants' political motivations."
+    },
+    {
+      "q": "Which one of the following statements is supported by the results of the \"better test\" discussed in the last paragraph of the passage?",
+      "o": [
+        "The test confirms the three classical theories discussed in the passage.",
+        "The test provides no basis for deciding among the three classical theories discussed in the passage.",
+        "The test shows that it is impossible to apply any theory of social movements to the civil rights movement.",
+        "The test indicates that press coverage of the civil rights movement was biased."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: the test provides no basis for deciding among the three classical theories discussed in the passage."
+    },
+    {
+      "q": "The validity of the \"better test\" (line 65) as proposed by the author might be undermined by the fact that",
+      "o": [
+        "the press is selective about the movement activities it chooses to cover",
+        "not all economic indicators receive the same amount of press coverage",
+        "economic indicators often contradict one another",
+        "a movement-initiated event may not correlate significantly with any of the three economic indicators"
+      ],
+      "a": 0,
+      "e": "The passage supports option A: the press is selective about the movement activities it chooses to cover."
+    },
+    {
+      "q": "The main purpose of the passage is to",
+      "o": [
+        "Persuade historians of the indispensability of a theoretical framework for understanding recent history.",
+        "Present a new model of social movement.",
+        "Account for a shift in a theoretical debate.",
+        "Discuss the reasoning behind and shortcomings of certain social psychological theories. # LSAT 12 SECTION III Time 35 minutes 26 Questions Directions: Each passage in this section is followed by a group of questions to be answered on the basis of what is stated or implied in the passage. For some of the questions, more than one of the choices could conceivably answer the question. However, you are to choose the best answer, that is, the response that most accurately and completely answers the question, and blacken the corresponding space on your answer sheet. Nearly every writer on the philosophy of civil rights activist Martin Luther King, Jr., makes a connection between King and Henry David Thoreau, usually via Thoreau's famous essay, \"Civil Disobedience\" (1849). In his book Stride Toward Freedom (1958), King himself stated that Thoreau's essay was his first intellectual contact with the theory of passive resistance to governmental laws that are perceived as morally unjust. However, this emphasis on Thoreau's influence on King is unfortunate: first, King would not have agreed with many other aspects of Thoreau's philosophy, including Thoreau's ultimate acceptance of violence as a form of protest; second, an overemphasis on the influence of one essay has kept historians from noting other correspondences between King's philosophy and transcendentalism (1: a philosophy that emphasizes the a priori conditions of knowledge and experience or the unknowable character of ultimate reality or that emphasizes the transcendent as the fundamental reality; 2: a philosophy that asserts the primacy of the spiritual and transcendental over the material and empirical). \"Civil Disobedience\" was the only example of transcendentalist writing with which King was familiar, and in many other transcendentalist writings, including works by Ralph Waldo Emerson and Margaret Fuller, King would have found ideas more nearly akin to his own. The kind of civil disobedience King had in mind was, in fact, quite different from Thoreau's view of civil disobedience . Thoreau, like most other transcendentalists, was primarily interested in reform of the individual, whereas King was primarily interested in reform of society. As a protest against the Mexican War, Thoreau refused to pay taxes, but he did not hope by his action to force a change in national policy. While he encouraged others to adopt similar protests, he did not attempt to mount any mass protest action against unjust laws. In contrast to Thoreau, King began to advocate the use of mass civil disobedience to effect revolutionary changes within the social system. However, King's writings suggest that, without realizing it, he was an incipient transcendentalist. Most transcendentalists subscribed to the concept of \"higher law\" and included civil disobedience to unjust laws as part of their strategy. They often invoked the concept of higher law to justify their opposition to slavery and to advocate disobedience to the strengthened Fugitive Slave Law of 1850. In his second major book, King's discussion of just and unjust laws and the responsibility of the individual is very similar to the transcendentalists' discussion of higher law. In reference to how one can advocate breaking some laws and obeying others, King notes that there are two types of laws, just and unjust; he describes a just law as a \"code that squares with (square with: ()...[]) the moral law \" and an unjust law as a \"code that is out of harmony with the moral law.\" Thus, King's opposition to the injustice of legalized segregation in the twentieth century is philosophically akin to the transcendentalists' opposition to the Fugitive Slave Law in the nineteenth century."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: discuss the reasoning behind and shortcomings of certain social psychological theories. # lsat 12 section iii time 35 minutes 26 questions directions: each passage in this section is followed by a group of questions to be answered on the basis of what is stated or implied in the passage. for some of the questions, more than one of the choices could conceivably answer the question. however, you are to choose the best answer, that is, the response that most accurately and completely answers the question, and blacken the corresponding space on your answer sheet. nearly every writer on the philosophy of civil rights activist martin luther king, jr., makes a connection between king and henry david thoreau, usually via thoreau's famous essay, \"civil disobedience\" (1849). in his book stride toward freedom (1958), king himself stated that thoreau's essay was his first intellectual contact with the theory of passive resistance to governmental laws that are perceived as morally unjust. however, this emphasis on thoreau's influence on king is unfortunate: first, king would not have agreed with many other aspects of thoreau's philosophy, including thoreau's ultimate acceptance of violence as a form of protest; second, an overemphasis on the influence of one essay has kept historians from noting other correspondences between king's philosophy and transcendentalism (1: a philosophy that emphasizes the a priori conditions of knowledge and experience or the unknowable character of ultimate reality or that emphasizes the transcendent as the fundamental reality; 2: a philosophy that asserts the primacy of the spiritual and transcendental over the material and empirical). \"civil disobedience\" was the only example of transcendentalist writing with which king was familiar, and in many other transcendentalist writings, including works by ralph waldo emerson and margaret fuller, king would have found ideas more nearly akin to his own. the kind of civil disobedience king had in mind was, in fact, quite different from thoreau's view of civil disobedience . thoreau, like most other transcendentalists, was primarily interested in reform of the individual, whereas king was primarily interested in reform of society. as a protest against the mexican war, thoreau refused to pay taxes, but he did not hope by his action to force a change in national policy. while he encouraged others to adopt similar protests, he did not attempt to mount any mass protest action against unjust laws. in contrast to thoreau, king began to advocate the use of mass civil disobedience to effect revolutionary changes within the social system. however, king's writings suggest that, without realizing it, he was an incipient transcendentalist. most transcendentalists subscribed to the concept of \"higher law\" and included civil disobedience to unjust laws as part of their strategy. they often invoked the concept of higher law to justify their opposition to slavery and to advocate disobedience to the strengthened fugitive slave law of 1850. in his second major book, king's discussion of just and unjust laws and the responsibility of the individual is very similar to the transcendentalists' discussion of higher law. in reference to how one can advocate breaking some laws and obeying others, king notes that there are two types of laws, just and unjust; he describes a just law as a \"code that squares with (square with: ()...[]) the moral law \" and an unjust law as a \"code that is out of harmony with the moral law.\" thus, king's opposition to the injustice of legalized segregation in the twentieth century is philosophically akin to the transcendentalists' opposition to the fugitive slave law in the nineteenth century."
+    }
+  ]
+},
+{
+  "id": "kings-philosophy",
+  "title": "King's Philosophy of Nonviolence",
+  "tier": "moderate",
+  "words": 444,
+  "text": "Nearly every writer on the philosophy of civil rights activist Martin Luther King, Jr., makes a connection between King and Henry David Thoreau, usually via Thoreau's famous essay, \"Civil Disobedience\" (1849). In his book Stride Toward Freedom (1958), King himself stated that Thoreau's essay was his first intellectual contact with the theory of passive resistance to governmental laws that are perceived as morally unjust. However, this emphasis on Thoreau's influence on King is unfortunate: first, King would not have agreed with many other aspects of Thoreau's philosophy, including Thoreau's ultimate acceptance of violence as a form of protest; second, an overemphasis on the influence of one essay has kept historians from noting other correspondences between King's philosophy and transcendentalism. \"Civil Disobedience\" was the only example of transcendentalist writing with which King was familiar, and in many other transcendentalist writings, including works by Ralph Waldo Emerson and Margaret Fuller, King would have found ideas more nearly akin to his own.\nThe kind of civil disobedience King had in mind was, in fact, quite different from Thoreau's view of civil disobedience. Thoreau, like most other transcendentalists, was primarily interested in reform of the individual, whereas King was primarily interested in reform of society. As a protest against the Mexican War, Thoreau refused to pay taxes, but he did not hope by his action to force a change in national policy. While he encouraged others to adopt similar protests, he did not attempt to mount any mass protest action against unjust laws. In contrast to Thoreau, King began to advocate the use of mass civil disobedience to effect revolutionary changes within the social system.\nHowever, King's writings suggest that, without realizing it, he was an incipient transcendentalist. Most transcendentalists subscribed to the concept of \"higher law\" and included civil disobedience to unjust laws as part of their strategy. They often invoked the concept of higher law to justify their opposition to slavery and to advocate disobedience to the strengthened Fugitive Slave Law of 1850. In his second major book, King's discussion of just and unjust laws and the responsibility of the individual is very similar to the transcendentalists' discussion of higher law. In reference to how one can advocate breaking some laws and obeying others, King notes that there are two types of laws, just and unjust; he describes a just law as a \"code that squares with...[]) the moral law \" and an unjust law as a \"code that is out of harmony with the moral law.\" Thus, King's opposition to the injustice of legalized segregation in the twentieth century is philosophically akin to the transcendentalists' opposition to the Fugitive Slave Law in the nineteenth century.",
+  "questions": [
+    {
+      "q": "Which one of the following best states the main idea of the passage?",
+      "o": [
+        "King's philosophy was more influenced by Thoreau's essay on civil disobedience than by any other writing of the transcendentalists.",
+        "While historians may have overestimated Thoreau's influence on King, King was greatly influenced by a number of the transcendentalist philosophers.",
+        "Thoreau's and King's views on civil disobedience differed in that King was more concerned with the social reform than with the economic reform of society.",
+        "Although historians have overemphasized Thoreau's influence on King, there are parallels between King's philosophy and transcendentalism that have not been fully appreciated."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: although historians have overemphasized thoreau's influence on king, there are parallels between king's philosophy and transcendentalism that have not been fully appreciated."
+    },
+    {
+      "q": "Which one of the following statements about \"Civil Disobedience\" would the author consider most accurate?",
+      "o": [
+        "It was not King's first contact with the concept of passive resistance to unjust laws.",
+        "It was one of many examples of transcendentalist writing with which King was familiar.",
+        "It provided King with a model for using passive resistance to effect social change.",
+        "It influenced King's philosophy on passive resistance to unjust laws."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: it influenced king's philosophy on passive resistance to unjust laws."
+    },
+    {
+      "q": "In the first paragraph, the author is primarily concerned with",
+      "o": [
+        "chronicling the development of King's philosophy on passive resistance to unjust law",
+        "suggesting that a common emphasis on one influence on King's philosophy has been misleading",
+        "providing new information about the influence of twentieth-century philosophers on King's work",
+        "summarizing the work of historians of the most important influences on King's philosophy"
+      ],
+      "a": 1,
+      "e": "The passage supports option B: suggesting that a common emphasis on one influence on king's philosophy has been misleading."
+    },
+    {
+      "q": "According to the passage, which one of the following is true of' Emerson and Fuller?",
+      "o": [
+        "Some of their ideas were less typical of transcendentalism than were some of Thoreau's ideas.",
+        "They were more concerned with the reform of society than with the reform of the individual.",
+        "They would have been more likely than Thoreau to agree with King on the necessity of mass protest in civil disobedience.",
+        "Some of their ideas were more similar to King's than were some of Thoreau's."
+      ],
+      "a": 3,
+      "e": "The passage directly supports this: some of their ideas were more similar to king's than were some of thoreau's. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "According to the passage, King differed from most transcendentalists in that he",
+      "o": [
+        "opposed violence as a form of civil protest",
+        "opposed war as an instrument of foreign policy under any circumstances",
+        "believed that just laws had an inherent moral value",
+        "was more interested in reforming society than in reforming the individual"
+      ],
+      "a": 3,
+      "e": "The passage directly supports this: was more interested in reforming society than in reforming the individual. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "The passage suggests which one of the following about Thoreau?",
+      "o": [
+        "He was the first to develop fully the theory of civil disobedience.",
+        "His work has had a greater influence on contemporary thinkers than has the work of Emerson and Fuller.",
+        "His philosophy does not contain all of the same elements as the philosophies of the other transcendentalists.",
+        "He advocated using civil disobedience to force the federal government to change its policies on war."
+      ],
+      "a": 2,
+      "e": "It can be inferred from the passage that his philosophy does not contain all of the same elements as the philosophies of the other transcendentalists."
+    }
+  ]
+},
+{
+  "id": "life-histories",
+  "title": "Life Histories",
+  "tier": "moderate",
+  "words": 448,
+  "text": "Anthropologist David Mandelbaum makes a distinction between life-passage studies and life-history studies which emerged primarily out of research concerning Native Americans. Life-passage studies, he says, \"emphasize the requirements of society, showing how groups socialize and enculturate (v. ) their young in order to make them into viable members of society.\" Life histories, however, \"emphasize the experiences and requirements of the individual, how the person copes with society rather than how society copes with the stream of individuals.\" Life-passage studies bring out the general cultural characteristics and commonalities (a common feature or attribute) that broadly define a culture, but are unconcerned with an individual's choices or how the individual perceives and responds to the demands and expectations imposed by the constraints of his or her culture. This distinction can clearly be seen in the autobiographies of Native American women. For example, some early recorded autobiographies, such as The Autobiography of a Fox (Fox: ()) Indian Woman, a life passage recorded by anthropologist Truman Michelson, emphasizes prescribed roles. The narrator presents her story in a way that conforms with tribal expectations. Michelson's work is valuable as ethnography, as a reflection of the day-to-day responsibilities of Mesquakie women, yet as is often the case with life-passage studies, it presents little of the central character's psychological motivation. The Fox woman's life story focuses on her tribal education and integration into the ways of her people, and relates only what Michelson ultimately decided was worth preserving. The difference between the two types of studies is often the result of the amount of control the narrator maintains over the material; autobiographies in which there are no recorder-editors are far more reflective of the life-history category, for there are no outsiders shaping the story to reflect their preconceived notions of what the general cultural patterns are. For example, in Maria Campbell's account of growing up as a Canadian Metis who was influenced strongly, and often negatively, by the non-Native American world around her, one learns a great deal about the life of Native American women, but Campbell's individual story, which is told to us directly, is always the center of her narrative. Clearly it is important to her to communicate to the audience what her experiences as a Native American have been. Through Campbell's story of her family the reader learns of the effect of poverty and prejudice on a people. The reader becomes an intimate of Campbell the writer, sharing her pain and celebrating her small victories. Although Campbell's book is written as a life history (the dramatic moments, the frustrations, and the fears are clearly hers), it reveals much about ethnic relations in Canada while reflecting the period in which it was written.",
+  "questions": [
+    {
+      "q": "Which one of the following is the most accurate expression of the main point of the passage?",
+      "o": [
+        "The contributions of life-history studies to anthropology have made life-passage studies obsolete.",
+        "Despite their dissimilar approaches to the study of culture, life-history and lifepassage studies have similar goals.",
+        "The autobiographies of Native American women illustrate the differences between life-history and life-passage studies.",
+        "The roots of Maria Campbell's autobiography can be traced to earlier narratives such as The Autobiography of a Fox Indian Woman."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: the autobiographies of native american women illustrate the differences between lifehistory and life-passage studies."
+    },
+    {
+      "q": "The term \"prescribed roles\" in line 24 of the passage refers to the",
+      "o": [
+        "Function of life-passage studies in helping ethnologists to understand cultural tradition.",
+        "Function of life-history studies in helping ethnologists to gather information.",
+        "Way in which a subject of a life passage views himself or herself.",
+        "Roles generally adopted by individuals in order to comply with cultural demands."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: roles generally adopted by individuals in order to comply with cultural demands."
+    },
+    {
+      "q": "The reference to the \"psychological motivation\" (line 30) of the subject of The Autobiography of a Fox Indian Woman serves primarily to",
+      "o": [
+        "Dismiss as irrelevant the personal perspective in the life-history study.",
+        "Identify an aspect of experience that is not commonly a major focus of life-passage studies.",
+        "Clarify the narrator's self-acknowledged purpose in relating a life passage.",
+        "Suggest a common conflict between the goals of the narrator and those of the recorder in most life-passage studies."
+      ],
+      "a": 1,
+      "e": "The passage supports option B: identify an aspect of experience that is not commonly a major focus of life-passage studies."
+    },
+    {
+      "q": "Which one of following statements about Maria Campbell can be inferred from material in the passage?",
+      "o": [
+        "She was familiar with the very early history of her tribe but lacked insight into the motivations of non-Native Americans.",
+        "She was unfamiliar with Michelson's work but had probably read a number of lifepassage studies about Native Americans.",
+        "She had training as a historian but was not qualified as an anthropologist.",
+        "Her life history provides more than a record of her personal experience."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that her life history provides more than a record of her personal experience."
+    },
+    {
+      "q": "According to the passage, one way in which life history studies differ from life-passage studies is that life-history studies are",
+      "o": [
+        "Usually told in the subject's native language.",
+        "Less reliable because they rely solely on the subject's recall.",
+        "More likely to be told without the influence of an intermediary.",
+        "More creative in the way they interpret the subject's cultural legacy."
+      ],
+      "a": 2,
+      "e": "The passage directly supports this: more likely to be told without the influence of an intermediary. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "Which one of the following pairings best illustrates the contrast between life passages and life histories?",
+      "o": [
+        "A study of the attitudes of a society toward a mainstream religion and an analysis of techniques used to instruct members of that religious group.",
+        "A study of how a preindustrial society maintains peace with neighboring societies and a study of how a postindustrial society does the same.",
+        "A study of the way a military organization establishes and maintains discipline and a newly enlisted soldier's narrative describing his initial responses to the military environment.",
+        "An analysis of a society's means of subsistence and a study of how its members celebrate religious holidays."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: a study of the way a military organization establishes and maintains discipline and a newly enlisted soldier's narrative describing his initial responses to the military environment."
+    }
+  ]
+},
+{
+  "id": "asteroid-satellites",
+  "title": "Do Asteroids Have Satellites?",
+  "tier": "hard",
+  "words": 453,
+  "text": "Until recently many astronomers believed that asteroids travel about the solar system unaccompanied by satellites. These astronomers assumed this because they considered asteroid-satellite systems inherently unstable. Theoreticians could have told them otherwise: even minuscule bodies in the solar system can theoretically have satellites, as long as everything is in proper scale. If a bowling ball were orbiting about the Sun in the asteroid belt, it could have a pebble orbiting it as far away as a few hundred radii (or about 50 meters) without losing the pebble to the Sun's gravitational pull. Observations now suggest that asteroid satellites may exists not only in theory but also in reality. Several astronomers have noticed, while watching asteroids pass briefly in front of stars, that something besides the known asteroid sometimes blocks out the star as well. Is that something a satellite? The most convincing such report concerns the asteroid Herculina, which was due to pass in front of a star in 1978. Astronomers waiting for the predicted event found not just one occultation, or eclipse, of the star, but two distinct drops in brightness. One was the predicted occultation, exactly on time. The other, lasting about five seconds, preceded the predicted event by about two minutes. The presence of a secondary body near Herculina thus seemed strongly indicated. To cause the secondary occultation, an unseen satellite would have to be about 45 kilometers in diameter, a quarter of the size of Herculina, and at a distance of 990 kilometers from the asteroid at the time. These values are within theoretical bounds, and such an asteroid-satellite pair could be stable. With the Herculina event, apparent secondary occultations became \"respectable\" - and more commonly reported. In fact, so common did reports of secondary events become that they are now simply too numerous for all of them to be accurate. Even if every asteroid has as many satellites as can be fitted around it without an undue number of collisions, only one in every hundred primary occultations would be accompanied by a secondary event (one in every thousand if asteroid satellites system resembled those of the planets). Yet even astronomers who find the case for asteroid satellites unconvincing at present say they would change their minds if a photoelectric record were made of a well-behaved secondary event. By \"well-behaved\" they mean that during occultation the observed brightness must drop sharply as the star winks out () and must rise sharply as it reappears from behind the obstructing object, but the brightness during the secondary occultation must drop to that of the asteroid, no higher and no lower. This would make it extremely unlikely that an airplane or a glitch in the instruments was masquerading as an occulting body.",
+  "questions": [
+    {
+      "q": "Which one of the following best expresses the main idea of the passage?",
+      "o": [
+        "The observation of Herculina represented the crucial event that astronomical observers and theoreticians had been waiting for to establish a convincing case for the stability of asteroid-satellite systems.",
+        "Although astronomers long believed that observation supports the existence of stable asteroid-satellite systems, numerous recent reports have increased skepticism on this issue in astronomy.",
+        "Theoreticians' views on the stability of asteroid-satellite systems may be revised in the light of reports like those about Herculina.",
+        "The Herculina event suggests that theoreticians' views about asteroid-satellite systems may be correct, and astronomers agree about the kind of evidence needed to clearly resolve the issue."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: the herculina event suggests that theoreticians' views about asteroid-satellite systems may be correct, and astronomers agree about the kind of evidence needed to clearly resolve the issue."
+    },
+    {
+      "q": "Which one of the following is mentioned in the passage as providing evidence that Herculina has a satellite?",
+      "o": [
+        "the diameter of a body directly observed near Herculina",
+        "the distance between Herculina and planet nearest to it",
+        "the shortest possible time in which satellites of Herculina, if any, could complete a single orbit",
+        "the occultation that occurred shortly before the predicted occultation by Herculina"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: the occultation that occurred shortly before the predicted occultation by herculina."
+    },
+    {
+      "q": "According to the passage, the attitude of astronomers toward asteroid satellites since the Herculina event can best described as",
+      "o": [
+        "open-mindedness combined with a concern for rigorous standards of proof",
+        "contempt for and impatience with the position held by theoreticians",
+        "bemusement at a chaotic mix of theory, inadequate or spurious data, and calls for scientific rigor",
+        "hardheaded skepticism, implying rejection of all data not recorded automatically by state-of-the-art instruments"
+      ],
+      "a": 0,
+      "e": "The passage directly supports this: open-mindedness combined with a concern for rigorous standards of proof. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "The author implies that which one of the following was true prior to reports of the Herculina event?",
+      "o": [
+        "Since no good theoretical model existed, all claims that reports of secondary occultations were common were disputed.",
+        "Some of the reported observations of secondary occultations were actually observations of collisions of satellites with one another.",
+        "If there were observations of phenomena exactly like the phenomena now labeled secondary occultations, astronomers were less likely than to have reported such observations.",
+        "The prevailing standards concerning what to classify as a well-behaved secondary event were less stringent than they are now."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: if there were observations of phenomena exactly like the phenomena now labeled secondary occultations, astronomers were less likely than to have reported such observations."
+    },
+    {
+      "q": "The information presented in the passage implies which one of the following about the frequency of reports of secondary occultations after the Herculina event?",
+      "o": [
+        "The percentage of reports of primary occultations that also included reports of secondary occultations increased tenfold compared to the time before the Herculina event.",
+        "Primary occultations by asteroids were reported to have been accompanied by secondary occultations in about one out of every thousand cases.",
+        "The absolute number of reports of secondary occultations increased tenfold compared to the time before the Herculina event.",
+        "Primary occultations by asteroids were reported to have been accompanied by secondary occultations in more than one out of every hundred cases."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: primary occultations by asteroids were reported to have been accompanied by secondary occultations in more than one out of every hundred cases."
+    },
+    {
+      "q": "The primary purpose of the passage is to",
+      "o": [
+        "cast doubts on existing reports of secondary occultations of stars",
+        "describe experimental efforts by astronomers to separate theoretically believable observations of satellites of asteroids from spurious ones",
+        "review the development of ideas among astronomers about whether or not satellites of asteroids exist",
+        "bring a theoretician's perspective to bear on an incomplete discussion of satellites of asteroids"
+      ],
+      "a": 2,
+      "e": "Taken as a whole, the passage is organised around option C: review the development of ideas among astronomers about whether or not satellites of asteroids exist."
+    }
+  ]
+},
+{
+  "id": "boyles-laboratory",
+  "title": "Inside Boyle's Laboratory",
+  "tier": "hard",
+  "words": 445,
+  "text": "Historians attempting to explain how scientific work was done in the laboratory of the seventeenth-century chemist and natural philosopher Robert Boyle must address a fundamental discrepancy between how such experimentation was actually performed and the seventeenth-century rhetoric describing it. Leaders of the new Royal Society of London in the 1660s insisted that authentic science depended upon actual experiments performed, observed, and recorded by the scientists themselves. Rejecting the traditional contempt for manual operations, these scientists, all members of the English upper class, were not to think themselves demeaned by the mucking about with chemicals, furnaces, and pumps; rather, the willingness of each of them to become, as Boyle himself said, a mere \"drudge\" and \"under-builder\" in the search for God's truth in nature was taken as a sign of their nobility and Christian piety. This rhetoric has been so effective that one modern historian assures us that Boyle himself actually performed all of the thousand or more experiments he reported. In fact, due to poor eyesight, fragile health, and frequent absences from his laboratory, Boyle turned over much of the labor of obtaining and recording experimental results to paid technicians, although published accounts of the experiments rarely, if ever, acknowledged the technicians' contributions. Nor was Boyle unique in relying on technicians without publicly crediting their work. Why were the contributions of these technicians not recognized by their employers? One reason is the historical tendency, which has persisted into the twentieth century, to view scientific discovery as resulting from momentary flashes of individual insight rather than from extended periods of cooperative work by individuals with varying levels of knowledge and skill. Moreover, despite the clamor of seventeenth-century scientific rhetoric commending a hands-on approach, science was still overwhelmingly an activity of the English upper class, and the traditional contempt that genteel society maintained for manual labor was pervasive and deeply rooted. Finally, all of Boyle's technicians were \"servants,\" which in seventeenth-century usage meant anyone who worked for pay. To seventeenth-century sensibilities, the wage relationship was charged with political significance. Servants, meaning wage earners, were excluded from the franchise because they were perceived as ultimately dependent on their wages and thus controlled by the will of their employers. Technicians remained invisible in the political economy of science for the same reasons that underlay servants' general political exclusion. The technicians' contribution, their observations and judgment, if acknowledged, would not have been perceived in the larger scientific community as objective because the technicians were dependent on the wages paid to them by their employers. Servants might have made the apparatus work, but their contributions to the making of scientific knowledge were largely - and conveniently - ignored by their employers.",
+  "questions": [
+    {
+      "q": "Which one of the following best summarizes the main idea of the passage?",
+      "o": [
+        "Seventeenth-century scientific experimentation would have been impossible without the work of paid laboratory technicians.",
+        "Seventeenth-century social conventions prohibited upper-class laboratory workers from taking public credit for their work.",
+        "Seventeenth-century views of scientific discovery combined with social class distinctions to ensure that laboratory technicians' scientific work was never publicly acknowledged.",
+        "Seventeenth-century scientists were far more dependent on their laboratory technicians than are scientists today, yet far less willing to acknowledge technicians' scientific contributions."
+      ],
+      "a": 2,
+      "e": "The passage supports option C: seventeenth-century views of scientific discovery combined with social class distinctions to ensure that laboratory technicians' scientific work was never publicly acknowledged."
+    },
+    {
+      "q": "It can be inferred from the passage that the \"seventeenth-century rhetoric\" mentioned in line 6 would have more accurately described the experimentation performed in Boyle's laboratory if which one of the following were true?",
+      "o": [
+        "Unlike many seventeenth-century scientists, Boyle recognized that most scientific discoveries resulted from the cooperative efforts of many individuals.",
+        "Unlike many seventeenth-century scientists, Boyle maintained a deeply rooted and pervasive contempt for manual labor.",
+        "Unlike many seventeenth-century scientists, Boyle was a member of the Royal Society of London.",
+        "Boyle himself performed the actual labor of obtaining and recording experimental results."
+      ],
+      "a": 3,
+      "e": "It can be inferred from the passage that boyle himself performed the actual labor of obtaining and recording experimental results."
+    },
+    {
+      "q": "According to the author, servants of seventeenth-century England were excluded from the franchised because of the belief that",
+      "o": [
+        "their interests were adequately represented by their employers",
+        "their education was inadequate to make informed political decisions",
+        "the independence of their political judgment would be compromised by their economic dependence on their employers",
+        "their participation in the elections would be a polarizing influence on the political process"
+      ],
+      "a": 2,
+      "e": "The passage directly supports this: the independence of their political judgment would be compromised by their economic dependence on their employers. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "According to the author, the Royal Society of London insisted that scientists abandon the",
+      "o": [
+        "belief that the primary purpose of scientific discovery was to reveal the divine truth that could be found in nature",
+        "view that scientific knowledge results largely from the insights of a few brilliant individuals rather than from the cooperative efforts of many workers",
+        "seventeenth-century belief that servants should be denied the right to vote because they were dependent on wages paid to them by their employers",
+        "traditional disdain for manual labor that was maintained by most members of the English upper class during the seventeenth-century"
+      ],
+      "a": 3,
+      "e": "The passage directly supports this: traditional disdain for manual labor that was maintained by most members of the english upper class during the seventeenth-century. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "The author implies that which one of the following beliefs was held in both the seventeenth and the twentieth centuries?",
+      "o": [
+        "Individual insights rather than cooperative endeavors produce most scientific discoveries.",
+        "How science is practiced is significantly influenced by the political beliefs and assumption of scientists.",
+        "Scientific research undertaken for pay cannot be considered objective.",
+        "Scientific discovery can reveal divine truth in nature."
+      ],
+      "a": 0,
+      "e": "The passage supports option A: individual insights rather than cooperative endeavors produce most scientific discoveries."
+    },
+    {
+      "q": "Which one of the following best describes the organization of the last paragraph?",
+      "o": [
+        "Several alternative answers are presented to a question posed in the previous paragraph, and the last is adopted as the most plausible.",
+        "A question regarding the cause of the phenomenon described in the previous paragraph is posed, two possible explanations are rejected, and evidence is provided in support of a third.",
+        "A question regarding the phenomenon described in the previous paragraph is posed, and several incompatible views are presented.",
+        "A question regarding the cause of the phenomenon described in the previous paragraph is posed, and several contributing factors are then discussed."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: a question regarding the cause of the phenomenon described in the previous paragraph is posed, and several contributing factors are then discussed."
+    }
+  ]
+},
+{
+  "id": "monopoly-and-antitrust",
+  "title": "Monopoly Power and Antitrust",
+  "tier": "moderate",
+  "words": 524,
+  "text": "One type of violation of the antitrust laws is the abuse of monopoly power. Monopoly power is the ability of a firm to raise its prices above the competitive level - that is, above the level that would exist naturally if several firms had to compete - without driving away so many customers as to make the price increase unprofitable. In order to show that a firm has abused monopoly power, and thereby violated the antitrust laws, two essential facts must be established. First, a firm must be shown to possess monopoly power, and second, that power must have been used to exclude competition in the monopolized market or related markets. The price a firm may charge for its product is constrained by the availability of close substitutes for the product. If a firm attempts to charge a higher price - a supracompetitive price - consumers will turn to other firms able to supply substitute products at competitive prices. If a firm provides a large percentage of the products actually or potentially available, however, customers may find it difficult to buy from alternative suppliers. Consequently, a firm with a large share of the relevant market of substitutable products may be able to raise its price without losing many customers. For this reason courts often use market share as a rough indicator of monopoly power. Supracompetitive prices are associated with a loss of consumers' welfare because such prices force some consumers to buy a less attractive mix of products than they would ordinarily buy. Supracompetitive prices, however, do not themselves constitute an abuse of monopoly power. Antitrust laws do not attempt to counter the mere existence of monopoly power, or even the use of monopoly power to extract extraordinarily high profits. For example, a firm enjoying economies of scale - that is, low unit production costs due to high volume - does not violate the antitrust laws when it obtains a large market share by charging prices that are profitable but so low that its smaller rivals cannot survive. If the antitrust laws posed disincentives to the existence and growth of such firms, the laws could impair consumers' welfare. Even if the firm, upon acquiring monopoly power, chose to raise prices in order to increase profits, it would not be in violation of the antitrust laws. The antitrust prohibitions focus instead on abuses of monopoly power that exclude competition in the monopolized market or involve leverage - the use of power in one market to reduce competition in another. One such forbidden practice is a tying arrangement, in which a monopolist conditions the sale of a product in one market on the buyer's purchase of another product in a different market. For example, a firm enjoying a monopoly in the communications systems market might not sell its products to a consumer unless that customer also buys its computer systems, which are competing with other firms' computer systems. The focus on the abuse of monopoly power, rather than on monopoly itself, follows from the primary purpose of the antitrust laws: to promote consumers' welfare through assurance of the quality and quantity of products available to consumers.",
+  "questions": [
+    {
+      "q": "Which one of the following distinctions between monopoly power and the abuse of monopoly power would the author say underlies the antitrust laws discussed in the passage?",
+      "o": [
+        "Monopoly power is assessed in term of market share, whereas abuse of monopoly power is assessed in term of market control.",
+        "Monopoly power is easy to demonstrate, whereas abuse of monopoly power is difficult to demonstrate.",
+        "Monopoly power involves only one market, whereas abuse of monopoly power involves at least two or more related markets.",
+        "Monopoly power does not necessarily hurt consumer welfare, whereas abuse of monopoly power does."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: monopoly power does not necessarily hurt consumer welfare, whereas abuse of monopoly power does."
+    },
+    {
+      "q": "Would the use of leverage meet the criteria for abuse of monopoly power outlined in the first paragraph?",
+      "o": [
+        "No, because leverage involves a nonmonopolized market.",
+        "No, unless the leverage involves a tying arrangement.",
+        "Yes, because leverage is a characteristic of monopoly power.",
+        "Yes, because leverage is used to eliminate competition in a related market."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: yes, because leverage is used to eliminate competition in a related market."
+    },
+    {
+      "q": "What is the main purpose of the third paragraph (lines 28---47)?",
+      "o": [
+        "to distinguish between supracompetitive prices and supracompetitive profits",
+        "to describe the positive use of monopoly power",
+        "to introduce the concept of economies of scale",
+        "to distinguish what is not covered by the antitrust law under discussion from what is covered"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: to distinguish what is not covered by the antitrust law under discussion from what is covered."
+    },
+    {
+      "q": "Given only the information in the passage, with which one of the following statements about competition would those responsible for the antitrust laws most likely agree?",
+      "o": [
+        "Competition is essential to consumers' welfare.",
+        "There are acceptable and unacceptable ways for firms to reduce their competition.",
+        "The preservation of competition is the principal aim of the antitrust laws.",
+        "Supracompetitive prices lead to reductions in competition."
+      ],
+      "a": 1,
+      "e": "Option B best fits the arguments presented: There are acceptable and unacceptable ways for firms to reduce their competition."
+    },
+    {
+      "q": "Which one of the following sentences would best complete the last paragraph of the passage?",
+      "o": [
+        "By limiting consumers' choices, abuse of monopoly power reduces consumers' welfare, but monopoly alone can sometimes actually operate in the consumers' best interest.",
+        "What is needed now is a set of related laws to deal with the negative impacts that monopoly itself has on consumers' ability to purchase products at reasonable cost.",
+        "Over time, the antitrust laws have been very effective in ensuring competition and, consequently, consumers' welfare in the volatile communications and computer systems industries.",
+        "By controlling supracompetitive prices and corresponding supracompetitive profits, the antitrust laws have, indeed, gone a long way toward meeting that objective."
+      ],
+      "a": 0,
+      "e": "The passage supports option A: by limiting consumers' choices, abuse of monopoly power reduces consumers' welfare, but monopoly alone can sometimes actually operate in the consumers' best interest."
+    }
+  ]
+},
+{
+  "id": "navajo-weaving",
+  "title": "Navajo Weaving",
+  "tier": "moderate",
+  "words": 457,
+  "text": "Amsden has divided Navajo weaving into four distinct styles. He argues that three of them can be identified by the type of design used to form horizontal bands: colored strips, zigzags, or diamonds. The fourth, or bordered, style he identifies by a distinct border surrounding centrally placed, dominating figures. Amsden believes that the diamond style appeared after 1869 when, under Anglo influence and encouragement, the blanket became a rug with larger designs and bolder lines. The bordered style appeared about 1890, and, Amsden argues, it reflects the greatest number of Anglo influences on the newly emerging rug business. The Anglo desire that anything with a graphic designs have a top, bottom, and border is a cultural preference that the Navajo abhorred, as evidenced, he suggests, by the fact that in early bordered specimens strips of color unexpectedly break through the enclosing pattern. Amsden argues that the bordered rug represents a radical break with previous styles. He asserts that the border changed the artistic problem facing weavers: a blank area suggests the use of isolated figures, while traditional, banded Navajo designs were continuous and did not use isolated figures. The old patterns alternated horizontal decorative zones in a regular order. Amsden's view raises several questions. First, what is involved in altering artistic styles? Some studies suggest that artisans' motor habits and thought processes must be revised when a style changes precipitously. In the evolution of Navajo weaving, however, no radical revisions in the way articles are produced need be assumed. After all, all weaving subordinates design to the physical limitations created by the process of weaving, which includes creating an edge or border. The habits required to make decorative borders are, therefore, latent and easily brought to the surface. Second, is the relationship between the banded and bordered styles as simple as Amsden suggests? He assumes that a break in style is a break in psychology. But if style results from constant quests for invention, such stylistic breaks are inevitable. When a style has exhausted the possibilities inherent in its principles, artists cast about (v., ) for new, but not necessarily alien, principles. Navajo weaving may have reached this turning point prior to 1890. Third, is there really a significant stylistic gap? Two other styles lie between the banded styles and the bordered styles. They suggest that disintegration of the bands may have altered visual and motor habits and prepared the way for a border filled with separate units. In the Chief White Antelope blanket, dated prior to 1865, ten years before the first Anglo trading post on the Navajo reservation, whole and partial diamonds interrupt the flowing design and become separate forms. Parts of diamonds arranged vertically at each side may be seen to anticipate the border.",
+  "questions": [
+    {
+      "q": "The author's central thesis is that",
+      "o": [
+        "the Navajo rejected the stylistic influences of Anglo culture",
+        "Navajo weaving cannot be classified by Amsden's categories",
+        "the Navajo changed their style of weaving because they sought the challenge of new artistic problems",
+        "the casual factors leading to the emergence of the bordered style are not as clearcut as Amsden suggests"
+      ],
+      "a": 3,
+      "e": "The passage supports option D: the casual factors leading to the emergence of the bordered style are not as clear-cut as amsden suggests."
+    },
+    {
+      "q": "It can be inferred from the passage that Amsden views the use of \"strips of color\" (line 18) in the early bordered style as",
+      "o": [
+        "a sign of resistance to a change in style",
+        "an echo of the diamond style",
+        "a feature derived from Anglo culture",
+        "an attempt to disintegrate the rigid form of the banded style"
+      ],
+      "a": 0,
+      "e": "It can be inferred from the passage that a sign of resistance to a change in style."
+    },
+    {
+      "q": "The author's view of Navajo weaving suggests which one of the following?",
+      "o": [
+        "The appearance of the first trading post on the Navajo reservation coincided with the appearance of the diamond style.",
+        "Traces of thought processes and motor habits of one culture can generally be found in the art of another culture occupying the same period and region.",
+        "The bordered style may have developed gradually from the banded style as a result of Navajo experiencing with design.",
+        "The influence of Anglo culture was not the only non-Native American influence on Navajo weaving."
+      ],
+      "a": 2,
+      "e": "It can be inferred from the passage that the bordered style may have developed gradually from the banded style as a result of navajo experiencing with design."
+    },
+    {
+      "q": "According to the passage, Navajo weavings made prior to 1890 typically were characterized by all of the following EXCEPT",
+      "o": [
+        "repetition of forms",
+        "overall patterns",
+        "horizontal bands",
+        "isolated figures"
+      ],
+      "a": 3,
+      "e": "The passage directly supports this: isolated figures. This information is stated in the passage, making it the most accurate answer based on the text."
+    },
+    {
+      "q": "The author would most probably agree with which one of the following conclusions about the stylistic development of Navajo weaving?",
+      "o": [
+        "The styles of Navajo weaving changed in response to changes in Navajo motor habits and thought processes.",
+        "The zigzag style was the result of stylistic influences from Anglo culture.",
+        "Navajo weaving used isolated figures in the beginning, but combined naturalistic and abstract designs in later styles.",
+        "Navajo weaving changed gradually from a style in which the entire surface was covered by horizontal bands to one in which central figures dominated the surface."
+      ],
+      "a": 3,
+      "e": "The passage supports option D: navajo weaving changed gradually from a style in which the entire surface was covered by horizontal bands to one in which central figures dominated the surface."
+    },
+    {
+      "q": "The author suggests that Amsden's claim that borders in Navajo weaving were inspired by Anglo culture could be",
+      "o": [
+        "conceived as a response to imagined correspondences between Anglo and Navajo art",
+        "biased by Amsden's feelings about Anglo culture",
+        "a result of Amsden's failing to take into account certain aspects of Navajo weaving",
+        "based on a limited number of specimens of the styles of Navajo weaving"
+      ],
+      "a": 2,
+      "e": "It can be inferred from the passage that a result of amsden's failing to take into account certain aspects of navajo weaving."
+    }
+  ]
+},
 ];
 
 export default PASSAGES;

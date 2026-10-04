@@ -207,12 +207,12 @@ export default function WeeklyDI({ userData, onExit }) {
             </div>
             <h2 className="ds-display" style={{ fontSize: 26 }}>{set.title}</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: "var(--c-text-secondary)", marginTop: 10 }}>
-              One Data Interpretation set drops every week — a table or caselet with 5 questions on it.
+              One Data Interpretation set drops every week — a table or caselet with a handful of questions on it.
               Read the data first, then work through all five. No feedback until you submit, exactly like
               the real exam. One attempt per week; after that this page shows your review.
             </p>
             <ul style={{ fontSize: 13.5, lineHeight: 1.9, color: "var(--c-text-secondary)", marginTop: 10, paddingLeft: 18 }}>
-              <li>5 questions on one data set — answer all, then submit.</li>
+              <li>All questions sit on one data set — answer every one, then submit.</li>
               <li>No negative marking here. Accuracy first, speed next.</li>
               <li>Banked run earns <b style={{ color: "var(--c-brand-gold)" }}>+{XP_PER_RUN} XP</b>. A fresh set arrives Monday.</li>
             </ul>
@@ -292,7 +292,7 @@ export default function WeeklyDI({ userData, onExit }) {
               </button>
               {!allAnswered && (
                 <span style={{ fontSize: 12.5, color: "var(--c-text-tertiary)" }}>
-                  {set.questions.filter((_, i) => picked[i] != null).length}/5 answered
+                  {set.questions.filter((_, i) => picked[i] != null).length}/{set.questions.length} answered
                 </span>
               )}
             </div>

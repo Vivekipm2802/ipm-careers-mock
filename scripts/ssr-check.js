@@ -1271,9 +1271,9 @@ console.log("\n[12] DSB trainers — 2026-09 overhaul");
   // 12i · Weekly DI — bank integrity + Monday-anchored rotation
   const wdMod = require(path.join(root, "components", "WeeklyDI.js"));
   const DI_SETS = require(path.join(root, "components", "weeklyDIBank.js")).default;
-  check(DI_SETS.length === 10, `weekly-di bank: ${DI_SETS.length} sets (expected 10 — 2026-09 v2, owner's PDF bank)`);
+  check(DI_SETS.length === 30, `weekly-di bank: ${DI_SETS.length} sets (expected 30 — 2026-10 v3, owner's PDF + two DI docs)`);
   check(new Set(DI_SETS.map((s) => s.id)).size === DI_SETS.length, "weekly-di bank: ids unique");
-  check(DI_SETS.every((s) => s.questions.length === 5), "weekly-di bank: every set carries exactly 5 questions");
+  check(DI_SETS.every((s) => s.questions.length >= 3 && s.questions.length <= 7), "weekly-di bank: every set carries 3-7 questions (v3 sets keep the source paper's count)");
   check(DI_SETS.every((s) => ["table", "caselet"].includes(s.kind)), "weekly-di bank: every set is table or caselet (no graphs)");
   check(DI_SETS.every((s) => typeof s.intro === "string" && s.intro.length > 20), "weekly-di bank: every set carries an intro");
   check(DI_SETS.filter((s) => s.kind === "table").every((s) => s.table && s.table.head.length >= 2 && s.table.rows.length >= 1 && s.table.rows.every((r) => r.length === s.table.head.length)),
