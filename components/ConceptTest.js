@@ -669,7 +669,7 @@ export default function Concept({ role, group, onBack }) {
   // Load AI-generated concept tests that target this group
   async function loadAiConceptTests() {
     const { data } = await supabase
-      .from("mock_test")
+      .from("mock_test_slim") // slim view: config minus instructions (perf)
       .select("id, title, description, uid, config, start_time, end_time")
       .order("id", { ascending: false });
 

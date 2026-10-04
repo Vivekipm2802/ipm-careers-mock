@@ -175,8 +175,9 @@ const SectionalTest = ({
   // ============================================================
 
   async function loadTests() {
+    // 2026-10 perf: slim view = config minus the 25KB instructions HTML
     const { data } = await supabase
-      .from("mock_test")
+      .from("mock_test_slim")
       .select(
         "id, title, description, category, course, seq, start_time, end_time, uid, config",
       )
@@ -188,7 +189,7 @@ const SectionalTest = ({
       setTests(sectional);
     }
     const { data: allData } = await supabase
-      .from("mock_test_view")
+      .from("mock_test_view_slim")
       .select(
         "id, title, description, category, course, seq, start_time, end_time, uid, config",
       )
@@ -245,10 +246,15 @@ const SectionalTest = ({
       currentlyHidden ? "Showing test..." : "Hiding test...",
     );
     try {
-      const test =
-        tests.find((t: any) => t.id === testId) ||
-        allTests.find((t: any) => t.id === testId);
-      const newConfig = { ...(test?.config || {}), hidden: !currentlyHidden };
+      // Read the FULL config from the table before writing — the list rows
+      // come from the slim view (no instructions) and writing them back
+      // would wipe the instructions HTML from the mock.
+      const { data: fullRow } = await supabase
+        .from("mock_test")
+        .select("config")
+        .eq("id", testId)
+        .single();
+      const newConfig = { ...(fullRow?.config || {}), hidden: !currentlyHidden };
       const { error } = await supabase
         .from("mock_test")
         .update({ config: newConfig })

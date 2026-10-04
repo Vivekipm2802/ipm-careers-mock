@@ -272,7 +272,7 @@ export default function Dashboard({ userData }) {
   useEffect(() => {
     async function getNextMock() {
       const { data } = await supabase
-        .from("mock_test")
+        .from("mock_test_slim") // slim view: config minus instructions (perf)
         .select("title, start_time, end_time, config")
         .order("start_time", { ascending: true });
       if (!data) return;

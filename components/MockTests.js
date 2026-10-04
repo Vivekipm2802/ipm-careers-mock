@@ -243,9 +243,14 @@ export default function MockTests({ enrolled = [], role = "user" }) {
     }
   }
 
+  // 2026-10 perf: list pages read the *_slim views — identical rows but
+  // config minus the 25KB instructions HTML per mock. The old full-config
+  // list pulled ~4MB on every visit (the "loading forever" incident,
+  // Oct 4). The attempt page still reads mock_test directly for the
+  // full instructions of its ONE mock.
   async function getTests() {
     const { data } = await supabase
-      .from("mock_test")
+      .from("mock_test_slim")
       .select(
         "id, title, description, category, course, seq, start_time, end_time, uid, config",
       )
@@ -261,7 +266,7 @@ export default function MockTests({ enrolled = [], role = "user" }) {
 
   async function getAllTests() {
     const { data } = await supabase
-      .from("mock_test_view")
+      .from("mock_test_view_slim")
       .select(
         "id, title, description, category, course, seq, start_time, end_time, uid, config",
       )
