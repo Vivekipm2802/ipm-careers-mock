@@ -27,6 +27,7 @@ const { createClient } = require("@supabase/supabase-js");
 const {
   buildConceptLeaderboard,
   buildMockLeaderboard,
+  displayName,
 } = require("@/lib/leaderboard");
 
 function getServiceClient() {
@@ -68,10 +69,27 @@ async function attachNames(supabase, plays) {
   } catch (e) {
     // name lookup is best-effort — board still renders with fallbacks
   }
+  const persist = []; // [{table-agnostic: ids per table handled by caller}]
   for (const p of plays || []) {
     const em = p.user ? String(p.user).toLowerCase() : "";
-    if ((!p.name || !String(p.name).trim()) && found[em]) p.name = found[em];
+    if (!p.name || !String(p.name).trim()) {
+      // found name, or the derived email-prefix fallback — either way
+      // STORE it so this student never triggers the auth pagination again
+      const resolved = found[em] || displayName({ user: p.user });
+      p.name = resolved;
+      if (p.id != null) persist.push({ id: p.id, name: resolved, table: p.test_id != null ? "mock_plays" : "plays" });
+    }
   }
+  // 2026-10: self-healing write-back (fire-and-forget; board never waits)
+  try {
+    const byTable = {};
+    persist.forEach((r) => { (byTable[r.table] = byTable[r.table] || []).push(r); });
+    await Promise.all(Object.entries(byTable).map(([table, rows]) =>
+      Promise.all(rows.slice(0, 200).map((r) =>
+        supabase.from(table).update({ name: r.name }).eq("id", r.id)
+      ))
+    ));
+  } catch (e) { /* best-effort */ }
 }
 
 // ── 2026-10 thundering-herd fix ───────────────────────────────
@@ -141,66 +159,71 @@ export default async function handler(req, res) {
       boardPromise = cached.promise;
     } else {
       boardPromise = (async () => {
-        const { data: groups, error: gErr } = await supabase
-          .from("mock_groups")
-          .select("*,subject(*)")
-          .eq("test", testId)
-          .order("seq", { ascending: true });
-        if (gErr || !groups || groups.length === 0) return { notFound: true };
-        const sectionRows = groups.filter(
-          (s) => s.type === "subject" || (s.subject != null && s.module == null)
+        // 2026-10 leaderboard-at-scale v2: plays FIRST. Since submit
+        // stores score/attempted/correct/max_marks (+ one-time backfill),
+        // the common case needs NO test content at all — the whole route
+        // is auth + this one small indexed query. Groups/questions are
+        // fetched only when legacy rows still need a re-score.
+        let { data: rows, error } = await supabase
+          .from("mock_plays")
+          .select("id,uid,created_at,test_id,user,name,score,duration,status,attempted,correct,max_marks")
+          .eq("test_id", testId)
+          .order("created_at", { ascending: true })
+          .limit(MAX_PLAYS);
+        if (error) {
+          // stat columns not added yet — legacy full fetch
+          ({ data: rows } = await supabase
+            .from("mock_plays")
+            .select("id,uid,created_at,test_id,user,name,report,score,duration,status")
+            .eq("test_id", testId)
+            .order("created_at", { ascending: true })
+            .limit(MAX_PLAYS));
+          rows = rows || [];
+        }
+        rows = rows || [];
+        const legacy = rows.filter(
+          (p) => !(Number.isFinite(p.score) && Number.isFinite(p.attempted) && Number.isFinite(p.correct) && Number.isFinite(p.max_marks))
         );
-        const { data: moduleRowsRaw } = await supabase
-          .from("mock_groups")
-          .select("*,module(*)")
-          .in("parent_sub", groups.map((g) => g.id));
-        const moduleRows = (moduleRowsRaw || []).filter((m) => m.module);
-        const [{ data: questions }, playsWrapped] = await Promise.all([
-          moduleRows.length
-            ? supabase
+        let sectionRows = [], moduleRows = [], questions = [];
+        if (legacy.length) {
+          if (!legacy[0].report) {
+            const { data: reports } = await supabase
+              .from("mock_plays")
+              .select("id,report")
+              .in("id", legacy.map((p) => p.id));
+            const byId = new Map((reports || []).map((r) => [r.id, r.report]));
+            legacy.forEach((p) => { p.report = byId.get(p.id) || []; });
+          }
+          const { data: groups } = await supabase
+            .from("mock_groups")
+            .select("*,subject(*)")
+            .eq("test", testId)
+            .order("seq", { ascending: true });
+          sectionRows = (groups || []).filter(
+            (s) => s.type === "subject" || (s.subject != null && s.module == null)
+          );
+          const { data: moduleRowsRaw } = (groups || []).length
+            ? await supabase
+                .from("mock_groups")
+                .select("*,module(*)")
+                .in("parent_sub", groups.map((g) => g.id))
+            : { data: [] };
+          moduleRows = (moduleRowsRaw || []).filter((m) => m.module);
+          const { data: qrows } = moduleRows.length
+            ? await supabase
                 .from("mock_questions")
                 .select("id,parent,type,options")
                 .in("parent", moduleRows.map((m) => m.module.id))
-            : Promise.resolve({ data: [] }),
-          (async () => {
-            // 2026-10 leaderboard-at-scale: rank from the stored scalar
-            // columns (score/attempted/correct/max_marks, written at
-            // submit + one-time backfill) — the heavy report JSON is
-            // fetched ONLY for legacy rows that still lack them.
-            let { data: rows, error } = await supabase
-              .from("mock_plays")
-              .select("id,uid,created_at,test_id,user,name,score,duration,status,attempted,correct,max_marks")
-              .eq("test_id", testId)
-              .order("created_at", { ascending: true })
-              .limit(MAX_PLAYS);
-            if (error) {
-              // columns not added yet — fall back to the full fetch
-              ({ data: rows } = await supabase
-                .from("mock_plays")
-                .select("id,uid,created_at,test_id,user,name,report,score,duration,status")
-                .eq("test_id", testId)
-                .order("created_at", { ascending: true })
-                .limit(MAX_PLAYS));
-              return { data: rows || [] };
-            }
-            rows = rows || [];
-            const legacy = rows.filter(
-              (p) => !(Number.isFinite(p.score) && Number.isFinite(p.attempted) && Number.isFinite(p.correct) && Number.isFinite(p.max_marks))
-            );
-            if (legacy.length) {
-              const { data: reports } = await supabase
-                .from("mock_plays")
-                .select("id,report")
-                .in("id", legacy.map((p) => p.id));
-              const byId = new Map((reports || []).map((r) => [r.id, r.report]));
-              legacy.forEach((p) => { p.report = byId.get(p.id) || []; });
-            }
-            return { data: rows };
-          })().then((r) => r),
-        ]);
-        const plays = playsWrapped && playsWrapped.data ? playsWrapped.data : [];
-        await attachNames(supabase, plays);
-        return { sectionRows, moduleRows, questions: questions || [], plays };
+            : { data: [] };
+          questions = qrows || [];
+        }
+        if (rows.length === 0) {
+          // distinguish "no plays yet" from "no such test" cheaply
+          const { data: t } = await supabase.from("mock_test_slim").select("id").eq("id", testId).limit(1);
+          if (!t || t.length === 0) return { notFound: true };
+        }
+        await attachNames(supabase, rows);
+        return { sectionRows, moduleRows, questions, plays: rows };
       })();
       _mockBoardCache.set(String(testId), { at: Date.now(), promise: boardPromise });
     }
