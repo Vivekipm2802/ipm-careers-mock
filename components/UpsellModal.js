@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from "react";
 import { X, Lock, MessageCircle, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { WHATSAPP_UPSELL_URL, PLANS_URL } from "@/lib/demo";
 
 const PERKS = [
@@ -78,9 +79,12 @@ export default function UpsellModal() {
         >
           See plans and pricing <ArrowRight size={14} />
         </a>
-        <div style={{ fontSize: 11, color: "var(--c-text-tertiary)", textAlign: "center", marginTop: 10 }}>
-          Not sure yet? Talk to an IIM alumni mentor first. The call is free.
-        </div>
+        <Link
+          href="/connect"
+          style={{ display: "block", fontSize: 11.5, color: "var(--c-text-secondary)", textAlign: "center", marginTop: 10, textDecoration: "underline", textUnderlineOffset: 3 }}
+        >
+          Not sure yet? Book a free call with an IIM alumni mentor →
+        </Link>
       </div>
     </div>
   );

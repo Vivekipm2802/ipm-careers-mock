@@ -537,7 +537,9 @@ export const NMNContextProvider = ({ children }) => {
         {
           title: "Your Performance",
           type: "user",
-          demo: false,
+          // 2026-10 owner call: Performance IS shown in demo — with the
+          // seeded showcase data it is the strongest selling screen, and
+          // new free users see gentle empty states, not a blank page.
           action: "performance",
           id: 1,
           icon: <TrendingUp size={20} />,

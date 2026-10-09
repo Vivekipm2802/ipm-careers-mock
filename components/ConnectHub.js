@@ -57,11 +57,21 @@ export default function ConnectHub() {
   useEffect(() => { load(); loadTickets(); }, []);
 
   const book = async (slotId) => {
-    // 2026-09 demo-that-sells: the demo account sees mentors and open
-    // slots (the value) but booking routes to the upgrade modal.
+    // 2026-10 owner decision: free/demo users get ONE free mentor call —
+    // it is the strongest sales conversation. The second attempt routes
+    // to the upgrade modal. (Entry point: the upsell modal's own
+    // "free mentor call" link → /connect.)
     try {
       const { data: u } = await supabase.auth.getUser();
-      if (isDemoEmail(u?.user?.email)) { openUpsell("mentor"); return; }
+      const em = String(u?.user?.email || "").toLowerCase();
+      if (em) {
+        const { count } = await supabase
+          .from("enrollments")
+          .select("id", { count: "exact", head: true })
+          .ilike("email", em);
+        const isFree = isDemoEmail(em) || (count || 0) === 0;
+        if (isFree && (data?.mine || []).length >= 1) { openUpsell("mentor"); return; }
+      }
     } catch (e) { /* fall through to normal booking */ }
     setBusy(slotId);
     try {

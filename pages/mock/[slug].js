@@ -659,6 +659,9 @@ const MockTest = ({
       const duration = startedAtRef.current
         ? Math.round((Date.now() - startedAtRef.current) / 1000)
         : null;
+      // 2026-10: hard timeout — under submit-storm load this call used
+      // to hang indefinitely and the student stared at "Submitting"
+      // forever. Now it fails over to the direct-insert path below.
       const apiRes = await axios.post(
         "/api/submitMock",
         {
@@ -667,7 +670,7 @@ const MockTest = ({
           data: b || [],
           duration,
         },
-        { headers },
+        { headers, timeout: 15000 },
       );
       if (apiRes.data?.data) {
         toast.success("Test Submitted Successfully");

@@ -2818,16 +2818,32 @@ export default function Home(props) {
                     role={props?.type}
                     type={"video"}
                   >
-                    {({ group, clearSelection }) => (
-                      <PackPlayer
-                        group={group}
-                        categoryName={"vcategory"}
-                        listName={"videos"}
-                        onBack={() => {
-                          clearSelection();
-                        }}
-                      />
-                    )}
+                    {({ group, clearSelection }) =>
+                      props?.type === "admin" ? (
+                        /* 2026-10: admins get the legacy editable manager
+                           (add/edit/delete chapters, videos, homework) —
+                           the student PackPlayer has no edit tools. */
+                        <PreRecorded
+                          role={props?.type}
+                          group={group}
+                          categoryName={"vcategory"}
+                          listName={"videos"}
+                          title="Self Learning"
+                          onBack={() => {
+                            clearSelection();
+                          }}
+                        />
+                      ) : (
+                        <PackPlayer
+                          group={group}
+                          categoryName={"vcategory"}
+                          listName={"videos"}
+                          onBack={() => {
+                            clearSelection();
+                          }}
+                        />
+                      )
+                    }
                   </VideoGroups>
                 ) : (
                   ""

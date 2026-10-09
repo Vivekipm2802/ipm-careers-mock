@@ -10,6 +10,46 @@ function getServiceClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
+// 2026-10 thundering-herd fix: when a mock's timer ends, 30-40 students
+// submit in the same few seconds and each request used to re-fetch the
+// test's sections + all 90 questions just to compute the score. That
+// data is identical for every one of them and changes only when the
+// admin edits the test — cache it per test for 10 minutes so a submit
+// is essentially auth + one INSERT.
+const _scoringCache = new Map(); // test_id -> {at, promise}
+const SCORING_TTL_MS = 10 * 60 * 1000;
+
+async function getScoringBundle(supabase, test_id) {
+  const key = String(test_id);
+  const hit = _scoringCache.get(key);
+  if (hit && Date.now() - hit.at < SCORING_TTL_MS) return hit.promise;
+  const promise = (async () => {
+    const { data: groups } = await supabase
+      .from('mock_groups')
+      .select('*,subject(*)')
+      .eq('test', test_id);
+    const sectionRows = (groups || []).filter(
+      (s) => s.type === 'subject' || (s.subject != null && s.module == null),
+    );
+    const { data: moduleRowsRaw } = (groups || []).length
+      ? await supabase
+          .from('mock_groups')
+          .select('*,module(*)')
+          .in('parent_sub', groups.map((g) => g.id))
+      : { data: [] };
+    const moduleRows = (moduleRowsRaw || []).filter((m) => m.module);
+    const { data: questions } = moduleRows.length
+      ? await supabase
+          .from('mock_questions')
+          .select('id,parent,type,options')
+          .in('parent', moduleRows.map((m) => m.module.id))
+      : { data: [] };
+    return { sectionRows, moduleRows, questions: questions || [] };
+  })();
+  _scoringCache.set(key, { at: Date.now(), promise });
+  return promise;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -40,27 +80,8 @@ export default async function handler(req, res) {
     // "You · 0"). Scoring failure never blocks a student's submission.
     let canonicalScore = null;
     try {
-      const { data: groups } = await supabase
-        .from('mock_groups')
-        .select('*,subject(*)')
-        .eq('test', test_id);
-      const sectionRows = (groups || []).filter(
-        (s) => s.type === 'subject' || (s.subject != null && s.module == null),
-      );
-      const { data: moduleRowsRaw } = (groups || []).length
-        ? await supabase
-            .from('mock_groups')
-            .select('*,module(*)')
-            .in('parent_sub', groups.map((g) => g.id))
-        : { data: [] };
-      const moduleRows = (moduleRowsRaw || []).filter((m) => m.module);
-      const { data: questions } = moduleRows.length
-        ? await supabase
-            .from('mock_questions')
-            .select('id,parent,type,options')
-            .in('parent', moduleRows.map((m) => m.module.id))
-        : { data: [] };
-      const scored = scoreMockPlay(sectionRows, moduleRows, questions || [], report || []);
+      const { sectionRows, moduleRows, questions } = await getScoringBundle(supabase, test_id);
+      const scored = scoreMockPlay(sectionRows, moduleRows, questions, report || []);
       if (scored && Number.isFinite(scored.total.score)) {
         canonicalScore = scored.total.score;
       }

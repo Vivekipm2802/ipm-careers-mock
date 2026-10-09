@@ -74,6 +74,16 @@ async function attachNames(supabase, plays) {
   }
 }
 
+// ── 2026-10 thundering-herd fix ───────────────────────────────
+// When a section timer ends, 30-40 students land on the result page
+// within the same few seconds and EACH request used to pull every
+// play's full report and re-score the whole test — exactly while the
+// same students' submits were trying to insert. The board barely
+// changes second to second, so concurrent/near-in-time requests now
+// share one computation per test (60s TTL + in-flight dedupe).
+const _mockBoardCache = new Map(); // testId -> {at, promise}
+const MOCK_BOARD_TTL_MS = 60 * 1000;
+
 export default async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -125,42 +135,58 @@ export default async function handler(req, res) {
     }
 
     // type === "mock" — testId = mock_test.id
-    const { data: groups, error: gErr } = await supabase
-      .from("mock_groups")
-      .select("*,subject(*)")
-      .eq("test", testId)
-      .order("seq", { ascending: true });
-    if (gErr || !groups || groups.length === 0) {
+    const cached = _mockBoardCache.get(String(testId));
+    let boardPromise;
+    if (cached && Date.now() - cached.at < MOCK_BOARD_TTL_MS) {
+      boardPromise = cached.promise;
+    } else {
+      boardPromise = (async () => {
+        const { data: groups, error: gErr } = await supabase
+          .from("mock_groups")
+          .select("*,subject(*)")
+          .eq("test", testId)
+          .order("seq", { ascending: true });
+        if (gErr || !groups || groups.length === 0) return { notFound: true };
+        const sectionRows = groups.filter(
+          (s) => s.type === "subject" || (s.subject != null && s.module == null)
+        );
+        const { data: moduleRowsRaw } = await supabase
+          .from("mock_groups")
+          .select("*,module(*)")
+          .in("parent_sub", groups.map((g) => g.id));
+        const moduleRows = (moduleRowsRaw || []).filter((m) => m.module);
+        const [{ data: questions }, { data: plays }] = await Promise.all([
+          moduleRows.length
+            ? supabase
+                .from("mock_questions")
+                .select("id,parent,type,options")
+                .in("parent", moduleRows.map((m) => m.module.id))
+            : Promise.resolve({ data: [] }),
+          supabase
+            .from("mock_plays")
+            // every column EXCEPT `data` (section-switch misc log — heavy
+            // and unused by the leaderboard)
+            .select("id,uid,created_at,test_id,user,name,report,score,duration,status")
+            .eq("test_id", testId)
+            .order("created_at", { ascending: true })
+            .limit(MAX_PLAYS),
+        ]);
+        await attachNames(supabase, plays);
+        return { sectionRows, moduleRows, questions: questions || [], plays: plays || [] };
+      })();
+      _mockBoardCache.set(String(testId), { at: Date.now(), promise: boardPromise });
+    }
+    const bundle = await boardPromise;
+    if (bundle.notFound) {
+      _mockBoardCache.delete(String(testId));
       return res.status(404).json({ error: "Test not found" });
     }
-    const sectionRows = groups.filter(
-      (s) => s.type === "subject" || (s.subject != null && s.module == null)
-    );
-    const { data: moduleRowsRaw } = await supabase
-      .from("mock_groups")
-      .select("*,module(*)")
-      .in("parent_sub", groups.map((g) => g.id));
-    const moduleRows = (moduleRowsRaw || []).filter((m) => m.module);
-    const [{ data: questions }, { data: plays }] = await Promise.all([
-      moduleRows.length
-        ? supabase
-            .from("mock_questions")
-            .select("id,parent,type,options")
-            .in("parent", moduleRows.map((m) => m.module.id))
-        : Promise.resolve({ data: [] }),
-      supabase
-        .from("mock_plays")
-        .select("*")
-        .eq("test_id", testId)
-        .order("created_at", { ascending: true })
-        .limit(MAX_PLAYS),
-    ]);
-    await attachNames(supabase, plays);
+    // Per-requester ranking is cheap — only the DB work is shared.
     const board = buildMockLeaderboard(
-      plays || [],
-      sectionRows,
-      moduleRows,
-      questions || [],
+      bundle.plays,
+      bundle.sectionRows,
+      bundle.moduleRows,
+      bundle.questions,
       user.email
     );
     return res.status(200).json({ type, testId, ...board });
