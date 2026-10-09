@@ -155,24 +155,52 @@ export default async function handler(req, res) {
           .select("*,module(*)")
           .in("parent_sub", groups.map((g) => g.id));
         const moduleRows = (moduleRowsRaw || []).filter((m) => m.module);
-        const [{ data: questions }, { data: plays }] = await Promise.all([
+        const [{ data: questions }, playsWrapped] = await Promise.all([
           moduleRows.length
             ? supabase
                 .from("mock_questions")
                 .select("id,parent,type,options")
                 .in("parent", moduleRows.map((m) => m.module.id))
             : Promise.resolve({ data: [] }),
-          supabase
-            .from("mock_plays")
-            // every column EXCEPT `data` (section-switch misc log — heavy
-            // and unused by the leaderboard)
-            .select("id,uid,created_at,test_id,user,name,report,score,duration,status")
-            .eq("test_id", testId)
-            .order("created_at", { ascending: true })
-            .limit(MAX_PLAYS),
+          (async () => {
+            // 2026-10 leaderboard-at-scale: rank from the stored scalar
+            // columns (score/attempted/correct/max_marks, written at
+            // submit + one-time backfill) — the heavy report JSON is
+            // fetched ONLY for legacy rows that still lack them.
+            let { data: rows, error } = await supabase
+              .from("mock_plays")
+              .select("id,uid,created_at,test_id,user,name,score,duration,status,attempted,correct,max_marks")
+              .eq("test_id", testId)
+              .order("created_at", { ascending: true })
+              .limit(MAX_PLAYS);
+            if (error) {
+              // columns not added yet — fall back to the full fetch
+              ({ data: rows } = await supabase
+                .from("mock_plays")
+                .select("id,uid,created_at,test_id,user,name,report,score,duration,status")
+                .eq("test_id", testId)
+                .order("created_at", { ascending: true })
+                .limit(MAX_PLAYS));
+              return { data: rows || [] };
+            }
+            rows = rows || [];
+            const legacy = rows.filter(
+              (p) => !(Number.isFinite(p.score) && Number.isFinite(p.attempted) && Number.isFinite(p.correct) && Number.isFinite(p.max_marks))
+            );
+            if (legacy.length) {
+              const { data: reports } = await supabase
+                .from("mock_plays")
+                .select("id,report")
+                .in("id", legacy.map((p) => p.id));
+              const byId = new Map((reports || []).map((r) => [r.id, r.report]));
+              legacy.forEach((p) => { p.report = byId.get(p.id) || []; });
+            }
+            return { data: rows };
+          })().then((r) => r),
         ]);
+        const plays = playsWrapped && playsWrapped.data ? playsWrapped.data : [];
         await attachNames(supabase, plays);
-        return { sectionRows, moduleRows, questions: questions || [], plays: plays || [] };
+        return { sectionRows, moduleRows, questions: questions || [], plays };
       })();
       _mockBoardCache.set(String(testId), { at: Date.now(), promise: boardPromise });
     }

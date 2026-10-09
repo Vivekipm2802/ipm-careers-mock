@@ -79,11 +79,17 @@ export default async function handler(req, res) {
     // score column was never written for mocks (→ leaderboards showed
     // "You · 0"). Scoring failure never blocks a student's submission.
     let canonicalScore = null;
+    // 2026-10 leaderboard-at-scale: persist the scalar stats too so the
+    // leaderboard can rank WITHOUT ever refetching/re-scoring reports.
+    let statAttempted = null, statCorrect = null, statMaxMarks = null;
     try {
       const { sectionRows, moduleRows, questions } = await getScoringBundle(supabase, test_id);
       const scored = scoreMockPlay(sectionRows, moduleRows, questions, report || []);
       if (scored && Number.isFinite(scored.total.score)) {
         canonicalScore = scored.total.score;
+        statAttempted = Number.isFinite(scored.total.attempted) ? scored.total.attempted : null;
+        statCorrect = Number.isFinite(scored.total.correct) ? scored.total.correct : null;
+        statMaxMarks = Number.isFinite(scored.total.maxMarks) ? scored.total.maxMarks : null;
       }
     } catch (e) {
       canonicalScore = null;
@@ -101,6 +107,9 @@ export default async function handler(req, res) {
         name: user.user_metadata?.full_name || user.email,
         duration: Number.isFinite(Number(duration)) ? Math.round(Number(duration)) : null,
         score: canonicalScore,
+        attempted: statAttempted,
+        correct: statCorrect,
+        max_marks: statMaxMarks,
       })
       .select();
 
