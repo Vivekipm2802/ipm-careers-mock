@@ -365,6 +365,37 @@ export default function Classes() {
               effectiveStart={effectiveStart}
               isDemo={isDemo}
               isAdmin={isAdmin}
+              onFixCapsuleDate={async (item) => {
+                // 2026-10 owner ask: recordings added late carry the
+                // add-date, not the class date — let admins correct it.
+                const cur = item?.created_at ? String(item.created_at).slice(0, 10) : "";
+                const next = window.prompt(
+                  "Class date for this recording (YYYY-MM-DD).\nStudents who joined after this date won't see it.",
+                  cur
+                );
+                if (!next || next === cur) return;
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(next.trim())) {
+                  toast.error("Use the format YYYY-MM-DD, e.g. 2026-07-15");
+                  return;
+                }
+                try {
+                  const headers = await getAuthHeaders();
+                  const r = await fetch("/api/recordings/set-date", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", ...headers },
+                    body: JSON.stringify({ capsuleId: item.id, date: next.trim() }),
+                  });
+                  const j = await r.json().catch(() => null);
+                  if (r.ok && j && j.ok) {
+                    toast.success("Class date updated");
+                    getHistory(currentBatch);
+                  } else {
+                    toast.error((j && j.error) || "Could not update date");
+                  }
+                } catch (e) {
+                  toast.error("Could not update date");
+                }
+              }}
               onDeleteCapsule={async (item) => {
                 // 2026-10 owner ask: admins can delete a recording capsule
                 if (!window.confirm(`Delete "${item?.title || "this recording"}"? Students will no longer see it.`)) return;
@@ -665,6 +696,7 @@ function InnerBatchView({
   isDemo,
   isAdmin,
   onDeleteCapsule,
+  onFixCapsuleDate,
   onOpenStudy,
   onSwitchTab,
   onBack,
@@ -713,6 +745,7 @@ function InnerBatchView({
           effectiveStart={effectiveStart}
           isAdmin={isAdmin}
           onDeleteCapsule={onDeleteCapsule}
+          onFixCapsuleDate={onFixCapsuleDate}
           onOpenStudy={onOpenStudy}
         />
       )}
@@ -896,7 +929,7 @@ function ClassRow({ classItem, attended }) {
 // ============================================================
 // HistoryPane — recordings list, now Class Capsules
 // ============================================================
-function HistoryPane({ history, reviewedIds, effectiveStart, isAdmin, onDeleteCapsule, onOpenStudy }) {
+function HistoryPane({ history, reviewedIds, effectiveStart, isAdmin, onDeleteCapsule, onFixCapsuleDate, onOpenStudy }) {
   // Ship A: hide capsules dated before the student's effective start
   // date (null = show everything). The server enforces the same rule
   // in /api/recordings/play — this is just the honest UI for it.
@@ -935,6 +968,7 @@ function HistoryPane({ history, reviewedIds, effectiveStart, isAdmin, onDeleteCa
               isReviewed={reviewedIds?.has(h.id)}
               onClick={() => onOpenStudy(h)}
               onDelete={isAdmin && onDeleteCapsule ? () => onDeleteCapsule(h) : null}
+              onFixDate={isAdmin && onFixCapsuleDate ? () => onFixCapsuleDate(h) : null}
             />
           ))}
           {visible.length === 0 && hiddenCount === 0 && (
@@ -1023,7 +1057,7 @@ function LockedHistoryRow({ date }) {
 // ============================================================
 // CapsuleRow — one row in the recordings list
 // ============================================================
-function CapsuleRow({ item, isReviewed, onClick, onDelete }) {
+function CapsuleRow({ item, isReviewed, onClick, onDelete, onFixDate }) {
   const dt = item.created_at ? CtoLocal(item.created_at) : null;
   const hasNotes = !!item.notes_url;
   const dur = item.duration_seconds
@@ -1171,6 +1205,29 @@ function CapsuleRow({ item, isReviewed, onClick, onDelete }) {
         >
           →
         </span>
+        {onFixDate && (
+          <button
+            title="Fix this recording's class date (admin)"
+            onClick={(e) => {
+              e.stopPropagation();
+              onFixDate();
+            }}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              background: "transparent",
+              border: "1px solid var(--c-border-faint)",
+              display: "grid",
+              placeItems: "center",
+              color: "var(--c-text-secondary)",
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            📅
+          </button>
+        )}
         {onDelete && (
           <button
             title="Delete this recording (admin)"
