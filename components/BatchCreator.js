@@ -143,11 +143,21 @@ export default function BatchCreator() {
   // string or "" to clear). Recordings before this date are hidden for
   // that student; null means no gating.
   async function updateAdmitStartDate(admitId, value) {
-    const { error } = await supabase
-      .from("batch_admits")
-      .update({ effective_start_date: value || null })
-      .eq("id", admitId);
-    if (error) {
+    // 2026-10: saved through the admin API — the old client-side UPDATE
+    // was silently swallowed by RLS (0 rows touched, no error), so start
+    // dates never reached the database and late joiners saw everything.
+    let ok = false;
+    try {
+      const { getAuthHeaders } = await import("@/utils/authHeaders");
+      const r = await fetch("/api/batch/admit-start-date", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify({ admitId, date: value || null }),
+      });
+      const j = await r.json().catch(() => null);
+      ok = !!(r.ok && j && j.ok);
+    } catch (e) { ok = false; }
+    if (!ok) {
       toast.error("Could not save start date");
       return false;
     }

@@ -364,6 +364,28 @@ export default function Classes() {
               reviewedIds={reviewedIds}
               effectiveStart={effectiveStart}
               isDemo={isDemo}
+              isAdmin={isAdmin}
+              onDeleteCapsule={async (item) => {
+                // 2026-10 owner ask: admins can delete a recording capsule
+                if (!window.confirm(`Delete "${item?.title || "this recording"}"? Students will no longer see it.`)) return;
+                try {
+                  const headers = await getAuthHeaders();
+                  const r = await fetch("/api/recordings/delete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", ...headers },
+                    body: JSON.stringify({ capsuleId: item.id }),
+                  });
+                  const j = await r.json().catch(() => null);
+                  if (r.ok && j && j.ok) {
+                    toast.success("Recording deleted");
+                    getHistory(currentBatch);
+                  } else {
+                    toast.error((j && j.error) || "Could not delete");
+                  }
+                } catch (e) {
+                  toast.error("Could not delete");
+                }
+              }}
               onOpenStudy={(item) => setStudyClass(item)}
               onSwitchTab={(tab) => {
                 if (tab === "history") {
@@ -641,6 +663,8 @@ function InnerBatchView({
   reviewedIds,
   effectiveStart,
   isDemo,
+  isAdmin,
+  onDeleteCapsule,
   onOpenStudy,
   onSwitchTab,
   onBack,
@@ -687,6 +711,8 @@ function InnerBatchView({
           history={history}
           reviewedIds={reviewedIds}
           effectiveStart={effectiveStart}
+          isAdmin={isAdmin}
+          onDeleteCapsule={onDeleteCapsule}
           onOpenStudy={onOpenStudy}
         />
       )}
@@ -870,7 +896,7 @@ function ClassRow({ classItem, attended }) {
 // ============================================================
 // HistoryPane — recordings list, now Class Capsules
 // ============================================================
-function HistoryPane({ history, reviewedIds, effectiveStart, onOpenStudy }) {
+function HistoryPane({ history, reviewedIds, effectiveStart, isAdmin, onDeleteCapsule, onOpenStudy }) {
   // Ship A: hide capsules dated before the student's effective start
   // date (null = show everything). The server enforces the same rule
   // in /api/recordings/play — this is just the honest UI for it.
@@ -908,6 +934,7 @@ function HistoryPane({ history, reviewedIds, effectiveStart, onOpenStudy }) {
               item={h}
               isReviewed={reviewedIds?.has(h.id)}
               onClick={() => onOpenStudy(h)}
+              onDelete={isAdmin && onDeleteCapsule ? () => onDeleteCapsule(h) : null}
             />
           ))}
           {visible.length === 0 && hiddenCount === 0 && (
@@ -996,7 +1023,7 @@ function LockedHistoryRow({ date }) {
 // ============================================================
 // CapsuleRow — one row in the recordings list
 // ============================================================
-function CapsuleRow({ item, isReviewed, onClick }) {
+function CapsuleRow({ item, isReviewed, onClick, onDelete }) {
   const dt = item.created_at ? CtoLocal(item.created_at) : null;
   const hasNotes = !!item.notes_url;
   const dur = item.duration_seconds
@@ -1144,6 +1171,29 @@ function CapsuleRow({ item, isReviewed, onClick }) {
         >
           →
         </span>
+        {onDelete && (
+          <button
+            title="Delete this recording (admin)"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              background: "transparent",
+              border: "1px solid var(--c-border-faint)",
+              display: "grid",
+              placeItems: "center",
+              color: "var(--c-danger)",
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            🗑
+          </button>
+        )}
       </div>
     </div>
   );

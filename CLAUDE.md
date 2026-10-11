@@ -70,6 +70,13 @@ concept drawer must avoid the embedded questions join (statement timeout under R
   when portal breaks mysteriously, grep pg_proc prosrc for http calls first.
 - Supabase project is in a US region; India-side slowness may be their gateway —
   check SQL Editor speed vs REST speed before blaming the database.
+- mock_plays carries scalar stat columns (score/attempted/correct/max_marks) written
+  by /api/submitMock at submit time; /api/leaderboard ranks from them and must NEVER
+  go back to fetching every report (the Oct 2026 submit-storm incident). Names are
+  stored on play rows (self-healing in attachNames) — never reintroduce per-request
+  auth.admin.listUsers pagination. Key indexes: mock_plays ("user",test_id) and
+  (test_id,created_at); plays ("user") and (test_uuid); trainer_runs ("user",created_at).
+  Backfill tool: scripts/backfill-mock-play-stats.mjs (re-runnable).
 
 ## Verification endpoints
 
