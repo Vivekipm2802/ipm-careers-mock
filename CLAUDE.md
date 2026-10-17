@@ -33,19 +33,54 @@ reads code. Vercel deploys from `main`; day-to-day work happens on branch `redes
 mock_test (config JSON: timeout/switch_section/instructions/public_access/featured)
 → mock_groups section rows (subject, pos/neg, seq, per-section `time` secs)
 → modules in table `mock` → link rows {test:null, isPsuedo:true, parent_sub, module}
-→ mock_questions {parent, seq, slug, correct:0, options:[{text:'',title,isCorrect}],
-   explanation, type:'options' | 'input' with options:{answer:"…"}}
+→ mock_questions {parent, seq, question:STEM-HTML, slug:'<parent><4 rand chars>',
+   isActive:true, correct:0, options:[{text:'',title,isCorrect}], explanation,
+   type:'options' | 'input' with options:{answer:"…"}} — the stem HTML goes in
+   `question`; `slug` is a short code, NOT the stem (Mock 11 Oct 17: stems were put
+   in slug → player showed options with no question text).
 → access_meta {type:'mt', course_id, content_id} — WITHOUT access_meta rows the mock is
    invisible to students (admin still sees it — deceptive when testing).
 Structure always clones the SIBLING mocks' pattern, never the PDF's.
 IPMAT Indore pattern (tests 220 "Hash IPMAT Mock 1", 242 "Hash IPMAT Mock 2", cat 39):
 3 sections, subjects 179/180/181 (QA-SA 15 input Qs +4/0, QA-MCQ 30 +4/−1, VA 45 +4/−1),
 2400s each, timeout 7200, switch_section false.
-IIM Bangalore UG pattern (cat 13, tests 219/221-223/238-241): VA 15 / QA 30 (DI folded) /
-LR 15, subjects 90/91/92, times 1800/3600/2700, timeout 8100, +3/−1.
+IIM Bangalore UG pattern (cat 13, tests 219/221-223/238-241/244+): section ORDER is
+VA → LR → QADI (owner directive Oct 16 2026): VA 15 Qs (subject 91, 1800s, seq 1),
+LR 15 Qs (subject 92, 2700s, seq 2), QADI 30 Qs with DI folded in (subject 90, 3600s,
+seq 3); timeout 8100, +3/−1. Section tab names are exactly VA / LR / QADI
+(mock_subjects 91/92/90 titles — shared by ALL IIM B mocks) and instructions2 must
+list the sections in that order with those names.
 Watch for: caselet/directions blocks with headers like "Directions (Q13–Q15):" that
 parsers miss; chart IMAGES in PDFs (pdfimages -list) whose data questions need; RC
-passage headers hidden inside previous Solution blocks.
+passage headers hidden inside previous Solution blocks. Section SPLITS come from the
+PDF's own section headers ("Verbal Ability"/"Logical Reasoning"/"Quantitative
+Aptitude"), which can sit unlabeled between a Solution block and the next Q — grep
+for them BEFORE assigning questions to sections; never infer the split from question
+content (Mock 10 Oct 17: Q30 Venn question was LR's 15th, wrongly put in QADI).
+MANDATORY post-import audit (Oct 2026, after repeated student-caught defects) — run on
+EVERY mock before telling the owner it is done: (1) exactly 4 options, exactly 1
+correct; (2) no "ANSWER KEY" text leaked into any stem/explanation (it leaked into the
+LAST question of 9 mocks); (3) no multi-bullet or ≥3-roman-numeral lists inside one
+<p>; (4) "Hence <letter>" in explanations matches the keyed option (PDF option order
+differs from ours — stale letters); (5) every <img> URL fetches 200 image/*; (6) stems
+that mention a table/graph/chart contain an <img> or <table>; (7) stems whose LAST
+paragraph ends with ":" while options look like list items (the committee-question bug:
+the PDF's condition list became the options — PDFs can themselves omit the question
+line; reconstruct from the PDF's own solution). Truncation sentinel: "I." at a line
+start may be a swallowed "…opposite I." — roman-numeral splitters eat single letters.
+(AUDIT 9) scan every option title for &lt;/&gt;/&amp;/&nbsp;/HTML tags — zero allowed
+(swept clean across all 11 mocks, Oct 15 2026).
+(8a) OPTION titles render as PLAIN TEXT in the player — never put HTML tags or
+entities in options: literal < > &, unicode superscripts (²³⁴). Stems/explanations
+ARE HTML. (8b) letter+digit is AMBIGUOUS: x2 may be x² (exponent) or x₂ (a point
+name — subscript); the PDF flattens both, so every letter-digit token in math
+questions must be adjudicated from context (Mock 9: Q50's x1,x2 were subscripts).
+Multi-digit exponents (ax2018) flatten too. (8c) NO added headings above caselets
+("Laptop Stack Puzzle", "Passage 1" etc.) — owner wants question content only.
+(8) pdftotext DROPS blank lines between paragraphs — caselet/passage/DI-set paragraph
+breaks MUST be rebuilt from pdftohtml -xml line gaps (same-page top-gap > ~23px = new
+paragraph; across pages, break only after sentence-final punctuation). The owner checks
+this (Mock 9); never ship a multi-paragraph block as one <p> blob.
 
 ## Demo portal (demo-that-sells)
 
@@ -59,6 +94,18 @@ anything opens the upgrade modal (lib/demo.js: WhatsApp wa.me/918299470392, plan
 https://ipmcareer.com/hash-ipmat/). Demo account reseed: scripts/seed-demo-account.mjs.
 RLS note: non-enrolled accounts only read `levels` rows flagged demo=true, and the
 concept drawer must avoid the embedded questions join (statement timeout under RLS).
+
+## Access-control landmines
+
+- The `levels` SELECT policy grants by access_meta type='lvl' with value='all' (or a
+  difficulty number) per course — it IGNORES content_id, so the admin panel's
+  per-level course assignments do nothing. Every content-bearing course needs ONE
+  {type:'lvl', course_id, value:'all'} row (added for courses 9/10/12 Oct 2026 after
+  a test-series student saw 404s/empty drawers). `questions` read-access cascades
+  from `levels`. If the owner ever wants genuinely selective per-course concept
+  access, the policy itself must be rewritten to honor content_id.
+- Mock list unlock reads config.courses (synced from access_meta type='mt' by the
+  Oct 2026 sweep); keep both in sync when granting mocks to a course.
 
 ## Performance landmines
 

@@ -895,6 +895,12 @@ const MockTest = ({
           _.find(filt, { id: questions[currentQ].id }),
         );
 
+        if (isFirst && config?.config?.switch_section == false) {
+          toast.error(
+            "You are at the first question of this section — previous sections cannot be revisited.",
+          );
+          return null;
+        }
         isFirst
           ? (setCurrentSection((res) => res - 1),
             setCurrentQ(

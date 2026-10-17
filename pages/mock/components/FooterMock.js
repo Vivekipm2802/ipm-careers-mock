@@ -97,7 +97,7 @@ export default function FooterMock({ state, isLoading, onNext, onInstruct, onPre
           <>
             {/* Left group: navigation + secondary actions */}
             <div className="flex flex-row items-center" style={{ gap: 8 }}>
-              {(config?.switch_questions && config?.switch_section) ?? false ? (
+              {(config?.switch_questions ?? false) ? (
                 <>
                   <button onClick={() => onPrev()} style={ghostBtn}>
                     <ArrowLeft size={14} /> Previous
@@ -122,7 +122,7 @@ export default function FooterMock({ state, isLoading, onNext, onInstruct, onPre
                 {isLoading ? "Submitting…" : "Submit test"}
               </button>
 
-              {config?.switch_questions && config?.switch_section ? null : (
+              {config?.switch_questions ? null : (
                 <button onClick={() => onNext()} style={primaryBtn}>
                   Save & next <ArrowRight size={14} />
                 </button>
