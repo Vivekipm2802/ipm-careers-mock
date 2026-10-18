@@ -77,6 +77,14 @@ name — subscript); the PDF flattens both, so every letter-digit token in math
 questions must be adjudicated from context (Mock 9: Q50's x1,x2 were subscripts).
 Multi-digit exponents (ax2018) flatten too. (8c) NO added headings above caselets
 ("Laptop Stack Puzzle", "Passage 1" etc.) — owner wants question content only.
+(10) DI DATA CAN GO MISSING from the PDF while its questions remain: a stem that
+references named data (months, departments, companies) with no table nearby means the
+data block was either swallowed into the PREVIOUS question's solution (Mock 13: the
+monthly-users line sat inside Q55's solution) or omitted entirely — reconstruct the
+table from the solutions' arithmetic (Mock 13 workforce table). Matrix questions
+written as "Row 1: ..." text or number blobs get a bordered determinant grid.
+(11) Error-spotting/marked-word VA stems ((1)…(4), (a)…(d), slash-parts) render one
+part per <p>.
 (8) pdftotext DROPS blank lines between paragraphs — caselet/passage/DI-set paragraph
 breaks MUST be rebuilt from pdftohtml -xml line gaps (same-page top-gap > ~23px = new
 paragraph; across pages, break only after sentence-final punctuation). The owner checks
@@ -108,6 +116,16 @@ concept drawer must avoid the embedded questions join (statement timeout under R
   Oct 2026 sweep); keep both in sync when granting mocks to a course.
 
 ## Performance landmines
+
+- `serversupabase` DEGRADES TO AN ANON CLIENT IN THE BROWSER (no service key, no
+  user session) — any client-side component using it reads through RLS as nobody
+  and silently gets zero rows. Correct only in API routes / getServerSideProps.
+  Client code uses `supabase` (session client). Oct 18 2026: the /test submit
+  rescue-lookup and prior-attempt check both had this bug — flaky-network students
+  stuck on "Saving your result" even when the insert had landed.
+- The `levels` embedded questions join (`*,questions!…`) statement-times-out under
+  RLS (error 57014) for demo AND enrolled students — the concept drawer selects
+  plain `*` for everyone (the question-count chip hides itself).
 
 - Mock LIST pages read `mock_test_slim` / `mock_test_view_slim` (views = config minus
   the 25KB instructions HTML). Never point list pages back at the full tables; never

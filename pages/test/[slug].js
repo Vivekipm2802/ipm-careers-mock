@@ -154,8 +154,13 @@ const Game = () => {
     // -retry an insert or we double-submit a single-attempt test — look first.
     const findExistingPlay = async () => {
       try {
+        // 2026-10-18: MUST be the session client. `serversupabase` degrades
+        // to an ANON client in the browser, and RLS hides the student's own
+        // play from anon — so this rescue path could never find a landed
+        // insert and flaky-network students got stuck on "Saving your
+        // result" / a false failure screen.
         const { data: found } = await withTimeout(
-          serversupabase
+          supabase
             .from("plays")
             .select("uid")
             .eq("test_uuid", parentData?.uuid || router.query.slug)
@@ -257,7 +262,10 @@ const Game = () => {
     setLoading(true);
 
     // Phase 12 Ship E: also fetch the existing play uid so we can offer "View result"
-    const { data, error } = await serversupabase
+    // 2026-10-18: session client, not serversupabase — in the browser that
+    // one runs as anon and RLS hides the student's plays, silently breaking
+    // the prior-attempt check (see findExistingPlay above).
+    const { data, error } = await supabase
       .from("plays")
       .select("uid,created_at,isPassed")
       .eq("test_uuid", router.query.slug)

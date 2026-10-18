@@ -279,14 +279,16 @@ export default function ConceptTestStudent({ group, onBack, role, initialCat }) 
   async function openLevel(mCat) {
     setActiveLevel(mCat);
     setLevelData(null);
-    // Demo accounts: the embedded questions join makes Postgres walk
-    // the questions RLS check per row and the statement TIMES OUT
-    // (observed live: error 57014), which surfaced as "No tests" under
-    // every topic. Plain levels select is fast — demo skips the join
-    // (the question-count chip just stays hidden there).
+    // The embedded questions join makes Postgres walk the questions
+    // RLS check per row and the statement TIMES OUT (error 57014),
+    // which surfaces as "No tests" under every topic. First observed
+    // on demo accounts (2026-09); Oct 18 an enrolled IIM B UG
+    // test-series student hit the same wall, so the join is now
+    // skipped for EVERYONE — the question-count chip simply stays
+    // hidden (it already rendered conditionally).
     const { data, error } = await supabase
       .from("levels")
-      .select(isDemo ? "*" : "*,questions!questions_parent_fkey(id)")
+      .select("*")
       .eq("parent", mCat.id)
       .order("created_at", { ascending: true });
     if (error) {
