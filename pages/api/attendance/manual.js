@@ -61,7 +61,10 @@ export default async function handler(req, res) {
         session_id: session.id,
         student_email: String(email).toLowerCase().trim(),
         zoom_name: "Manual entry",
-        zoom_email: null,
+        // zoom_email is NOT NULL in attendance_records (the Zoom sync writes
+        // "" when unknown — see sync.js). For manual entries use the student's
+        // own email so future name-matching has something real to work with.
+        zoom_email: String(email).toLowerCase().trim(),
         minutes: durationMin,
       }));
       const { error: recErr } = await serversupabase.from("attendance_records").insert(rows);
