@@ -147,3 +147,7 @@ concept drawer must avoid the embedded questions join (statement timeout under R
 
 Admin check: POST /api/isAdmin (auth token). Mock attempt page: pages/mock/[slug].js
 (time-window gate only). Leaderboards: /api/leaderboard (canonical re-scoring).
+Concept test loader: GET /api/conceptTest?uuid= — service-role read + entitlement
+mirror of the levels policy (added Oct 23 2026: the browser-side questions fetch
+took ~9s per level under RLS and hung students on "Loading..."). NOTE: enrollments
+keys on `email`, not `user`.

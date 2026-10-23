@@ -84,6 +84,9 @@ const Game = () => {
   // cleared the overlay and dumped the student back with no message.
   const [submitError, setSubmitError] = useState(null);
   const [lastReport, setLastReport] = useState(null);
+  // 2026-10-23: load failure surface — a failed/slow question fetch used to
+  // leave the student on "Loading..." forever with no error and no way out.
+  const [loadError, setLoadError] = useState(null);
   // 2026-09: slow-save reassurance — on a cold server / weak network the
   // save + redirect can take 10s+; after 8s the overlay says so explicitly
   // so nobody thinks it's stuck (their answers are already draft-saved).
@@ -311,21 +314,34 @@ const Game = () => {
   };
 
   async function getQuestions() {
-    const { data, error } = await supabase
-      .from("levels")
-      .select("*,questions!questions_parent_fkey(*)")
-      .eq("uuid", router.query.slug)
-      .order("seq", { foreignTable: "questions", ascending: true });
-    if (data) {
-      setQuestions(data[0]?.questions);
-
-      const parent = { ...data[0] };
-      delete parent["questions"];
-      setParentData(parent);
-      if (data.length == 0) {
+    // 2026-10-23: the old browser-side embedded join
+    // (levels + questions!questions_parent_fkey) walked the questions RLS
+    // policy per row — measured ~9s for a 25-question level with a real
+    // student JWT, and on slow connections it timed out into an endless
+    // "Loading...". /api/conceptTest reads with the service role (~fast)
+    // and enforces the same access rules server-side. Errors now surface
+    // with a Retry instead of hanging forever.
+    setLoadError(null);
+    try {
+      const { getAuthHeaders } = await import("@/utils/authHeaders");
+      const headers = await getAuthHeaders();
+      const res = await fetch(
+        `/api/conceptTest?uuid=${encodeURIComponent(router.query.slug)}`,
+        { headers },
+      );
+      if (res.status === 404) {
         router.push("/404");
+        return;
       }
-    } else {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `Could not load the test (${res.status})`);
+      }
+      const data = await res.json();
+      setQuestions(data.questions);
+      setParentData(data.level);
+    } catch (e) {
+      setLoadError(e?.message || "Could not load the test. Check your connection.");
     }
   }
   async function getLeaderboard(a) {
@@ -584,6 +600,28 @@ const Game = () => {
       return currentInterval - previousInterval;
     }
   };
+
+  // 2026-10-23: a failed question fetch surfaces with Retry — checked BEFORE
+  // the loading branch so it can never be masked by the spinner.
+  if (loadError && (questions == undefined || questions == null)) {
+    return (
+      <div className="flex flex-col justify-center align-middle items-center text-center sf h-[100vh] w-full" style={{ padding: 24 }}>
+        <p style={{ fontSize: 14, color: "var(--c-text-secondary)", maxWidth: "46ch", lineHeight: 1.55, margin: "0 0 18px" }}>
+          {loadError}
+        </p>
+        <button
+          onClick={() => getQuestions()}
+          style={{
+            padding: "11px 22px", borderRadius: 8, border: "none",
+            background: "var(--c-brand-primary)", color: "#fff",
+            fontFamily: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer",
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (userDetails == undefined || questions == undefined || loading) {
     return (
