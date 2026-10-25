@@ -451,6 +451,9 @@ const MockTest = ({
   }, [submitting]);
   const [gamestate, setGameState] = useState(0);
   const [questions, setQuestions] = useState(previewQuestions || undefined);
+  // 2026-10-25: signed-in student whose plan doesn't include this mock —
+  // show a message instead of the eternal "Loading..." spinner.
+  const [noAccess, setNoAccess] = useState(false);
   const [organized, setOrganized] = useState();
   const [exists, setExists] = useState(undefined);
 
@@ -493,11 +496,23 @@ const MockTest = ({
       )
       .order("seq", { ascending: true });
     if (data) {
+      if (data.length === 0) {
+        // 2026-10-25: RLS returns an EMPTY ARRAY (not an error) both for
+        // logged-out visitors and for students whose plan lacks this mock —
+        // previously this left the page on "Loading..." forever (Mock 1
+        // link complaint). Logged out → login and come back; logged in
+        // without access → clear message instead of a spinner.
+        const { data: s } = await supabase.auth.getSession();
+        if (!s?.session) {
+          router.push(
+            `/login?redirectTo=${encodeURIComponent(`/mock/${router.query.slug}`)}`,
+          );
+        } else {
+          setNoAccess(true);
+        }
+        return;
+      }
       setQuestions(data);
-
-      /* if(data.length == 0){
-        router.push('/404')
-    } */
     } else {
       router.push("/login");
     }
@@ -1019,6 +1034,21 @@ const MockTest = ({
       </div>
     );
   }
+  if (noAccess) {
+    return (
+      <div className="flex flex-col relative justify-center align-middle items-center text-center font-sans h-screen w-full">
+        <div className="flex flex-col justify-center items-center">
+          This mock test is not included in your current plan.
+          <br /> Please contact admin if you think this is a mistake.
+          <Spacer y={2} x={2}></Spacer>
+          <Button color="primary" size="sm" as={Link} href={`/`}>
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (questions == undefined || questions?.length < 1) {
     return (
       <div className="flex flex-col relative  justify-center align-middle items-center text-center font-sans h-screen w-full">
