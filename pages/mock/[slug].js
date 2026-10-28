@@ -1034,6 +1034,22 @@ const MockTest = ({
       </div>
     );
   }
+  // 2026-10-28: placeholder mock listed ahead of its paper (config.coming_soon)
+  if (config?.config?.coming_soon && router.query.preview !== "true") {
+    return (
+      <div className="flex flex-col relative justify-center align-middle items-center text-center font-sans h-screen w-full">
+        <div className="flex flex-col justify-center items-center">
+          This mock is coming soon.
+          <br /> It will unlock here as soon as it is released.
+          <Spacer y={2} x={2}></Spacer>
+          <Button color="primary" size="sm" as={Link} href={`/`}>
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (noAccess) {
     return (
       <div className="flex flex-col relative justify-center align-middle items-center text-center font-sans h-screen w-full">

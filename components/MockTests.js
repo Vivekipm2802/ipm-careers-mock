@@ -121,6 +121,12 @@ function resolveMockStatus(test, plays) {
       attempts: myPlays.length,
     };
   }
+  // 2026-10-28: "coming soon" placeholder mocks (config.coming_soon) —
+  // listed so students see the full series before the papers exist.
+  // They render as Upcoming with "Coming soon" instead of an open date.
+  if (test.config?.coming_soon) {
+    return { kind: "upcoming", comingSoon: true };
+  }
   if (!test.start_time) {
     return { kind: "available" };
   }
@@ -1224,7 +1230,9 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                     index={idx + 1}
                     isLast={idx === filteredCategoryTests.length - 1}
                     status={status}
-                    locked={isLockedByEnrollment && !isAdmin}
+                    // coming-soon placeholders show the Upcoming state for
+                    // everyone (no Unlock/upsell on a paper that isn't out yet)
+                    locked={isLockedByEnrollment && !isAdmin && !test.config?.coming_soon}
                     isAdmin={isAdmin}
                     isHidden={isHidden}
                     onDelete={() => deleteTest(test.id)}
@@ -1558,7 +1566,11 @@ function MockRow({
     if (status.kind === "live" && test.end_time) {
       metaParts.push(`closes ${format(parseISO(test.end_time), "EEE d MMM, h:mm a")}`);
     } else if (status.kind === "upcoming") {
-      metaParts.push(`opens ${format(status.opensAt, "EEE d MMM, h:mm a")}`);
+      metaParts.push(
+        status.comingSoon
+          ? "coming soon"
+          : `opens ${format(status.opensAt, "EEE d MMM, h:mm a")}`,
+      );
     } else if (scheduledDate) {
       metaParts.push(scheduledDate);
     }

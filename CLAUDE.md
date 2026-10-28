@@ -50,6 +50,19 @@ LR 15 Qs (subject 92, 2700s, seq 2), QADI 30 Qs with DI folded in (subject 90, 3
 seq 3); timeout 8100, +3/−1. Section tab names are exactly VA / LR / QADI
 (mock_subjects 91/92/90 titles — shared by ALL IIM B mocks) and instructions2 must
 list the sections in that order with those names.
+NPAT pattern (NEW series from Oct 28 2026, cat 15, test 251 "NPAT Mock 1" onward): 120 Qs
+in 3 sections — VA 40 (subject 211), QA 40 (subject 212), LR 40 (subject 213); these three
+subjects are SHARED by every new NPAT mock (label "NPAT"); +1/0 (no negative), ONE 100-min
+timer (timeout 6000, switch_section TRUE — real NPAT has no sectional limit; group time
+2000 each is unused), courses 1/11/12 in access_meta AND config.courses. Section order is
+the paper's own: VA → QA → LR. Mock 1 (251) is the FREE demo mock (public_access).
+OLD NPAT tests 97–101 were HIDDEN Oct 28 (config.hidden, courses emptied, access_meta
+rows removed — backup in outputs/old-npat-access-backup.json; 87 plays preserved).
+COMING-SOON PLACEHOLDERS: NPAT Mocks 2–10 = tests 252–260 (seq 2–10), config.coming_soon
+=true, start_time null, no sections/questions yet. MockTests.js renders them as locked
+"Upcoming · coming soon" for everyone; /mock/[slug] shows "coming soon". WHEN THE OWNER
+SENDS MOCK n: FILL THE EXISTING placeholder row (same id/uid) — add groups/modules/
+questions, then set coming_soon=false and start_time=now. Never create a duplicate row.
 Watch for: caselet/directions blocks with headers like "Directions (Q13–Q15):" that
 parsers miss; chart IMAGES in PDFs (pdfimages -list) whose data questions need; RC
 passage headers hidden inside previous Solution blocks. Section SPLITS come from the
