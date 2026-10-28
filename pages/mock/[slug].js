@@ -418,6 +418,21 @@ function LegendCard({ color, border, title, sub }) {
   );
 }
 
+// 2026-10-29: instructions marking table derived from the test's OWN
+// sections. Bug fixed: `Math.abs(neg) || 1` turned a real 0 (NPAT: no
+// negative marking) into "−1". null/undefined still fall back to the
+// canonical +4/−1; 0 is honoured. Identical sections collapse to one row.
+function insMarkingRows(sections) {
+  const rows = (sections || []).map((s) => ({
+    label: s.subject?.title || s.title || "Section",
+    pos: s.pos == null || s.pos === "" ? 4 : Number(s.pos),
+    neg: s.neg == null || s.neg === "" ? 1 : Math.abs(Number(s.neg)),
+  }));
+  if (rows.length === 0) return [{ label: "All questions", pos: 4, neg: 1 }];
+  const same = rows.every((r) => r.pos === rows[0].pos && r.neg === rows[0].neg);
+  return same ? [{ label: "All questions", pos: rows[0].pos, neg: rows[0].neg }] : rows;
+}
+
 const MockTest = ({
   config,
   is_allowed,
@@ -1443,7 +1458,9 @@ const MockTest = ({
                           carefully.
                         </h1>
                         <p style={{ fontSize: 15, lineHeight: 1.55, color: "var(--c-text-secondary)", margin: "0 0 28px", maxWidth: "56ch" }}>
-                          A quick walkthrough so you know exactly what to expect inside the test. You can switch sections, mark questions for review, and revisit anything you skipped.
+                          {config?.config?.switch_section === false
+                            ? "A quick walkthrough so you know exactly what to expect inside the test. Sections run in a fixed order, each with its own timer; within a section you can mark questions for review and revisit anything you skipped."
+                            : "A quick walkthrough so you know exactly what to expect inside the test. You can switch sections, mark questions for review, and revisit anything you skipped."}
                         </p>
 
                         {/* Phase 7.2: always render new JSX. Legacy admin HTML override
@@ -1452,7 +1469,13 @@ const MockTest = ({
                         <InsSection num={1} title="General instructions" />
                         <ol className="ins-list">
                           <li>The test contains <b>{organized?.reduce((a, s) => a + (s.child?.length || 0), 0) || "multiple"} questions</b> across <b>{organized?.length || "multiple"} section(s)</b>.</li>
-                          <li>Total time for this test is <b>{Math.floor((config?.config?.timeout || 0) / 60)} minutes</b>.</li>
+                          <li>
+                            Total time for this test is <b>{Math.floor((config?.config?.timeout || 0) / 60)} minutes</b>
+                            {config?.config?.switch_section === false && subjectSections?.some((s) => Number(s.time) > 0)
+                              ? <> ({subjectSections.map((s) => `${s.subject?.title || "Section"} ${Math.round(Number(s.time) / 60)} min`).join(", ")})</>
+                              : config?.config?.switch_section === false ? null : <> for the whole paper, with no separate time limit per section</>}
+                            .
+                          </li>
                           <li>The clock will be set at the top of your screen. The countdown timer will display the remaining time available for you to complete the test.</li>
                           <li>When the timer reaches zero, the test will end automatically and your answers will be submitted.</li>
                           <li>The question palette on the right side of the screen will show the status of each question.</li>
@@ -1461,14 +1484,20 @@ const MockTest = ({
                         <InsSection num={2} title="Question types" />
                         <ol className="ins-list">
                           <li><b>MCQ (Multiple Choice Questions):</b> Select one option from the given choices.</li>
-                          <li><b>SA (Short Answer):</b> Type your numerical answer in the input box provided.</li>
+                          {(questions || []).some((q) => q.type === "input") ? (
+                            <li><b>SA (Short Answer):</b> Type your numerical answer in the input box provided.</li>
+                          ) : null}
                         </ol>
 
                         <InsSection num={3} title="Navigation" />
                         <ol className="ins-list">
                           <li>Click on the question number in the palette to go to that question directly.</li>
                           <li>Use the <b>Next</b> and <b>Previous</b> buttons to navigate between questions.</li>
-                          <li>Click on the section names at the top to switch between sections.</li>
+                          {config?.config?.switch_section === false ? (
+                            <li>Sections are attempted <b>in order</b>. When a section&apos;s time ends you move to the next section automatically and <b>cannot return</b> to it.</li>
+                          ) : (
+                            <li>Click on the section names at the top to switch between sections at any time.</li>
+                          )}
                           <li>You can mark a question for <b>review</b> using the Mark for review button.</li>
                         </ol>
                       </>
@@ -1509,20 +1538,25 @@ const MockTest = ({
                             </tr>
                           </thead>
                           <tbody>
-                            <tr>
-                              <td style={{ ...insTd, color: "var(--c-text-primary)", fontWeight: 500 }}>MCQ</td>
-                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+{Number(subjectSections?.[0]?.pos) || 4}</td>
-                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-danger)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>−{Math.abs(Number(subjectSections?.[0]?.neg)) || 1}</td>
-                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
-                            </tr>
-                            <tr>
-                              <td style={{ ...insTd, color: "var(--c-text-primary)", fontWeight: 500 }}>Short Answer</td>
-                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+{Number(subjectSections?.[0]?.pos) || 4}</td>
-                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
-                              <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
-                            </tr>
+                            {insMarkingRows(subjectSections).map((r) => (
+                              <tr key={r.label}>
+                                <td style={{ ...insTd, color: "var(--c-text-primary)", fontWeight: 500 }}>{r.label}</td>
+                                <td style={{ ...insTd, textAlign: "center", color: "var(--c-success)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>+{r.pos}</td>
+                                {r.neg > 0 ? (
+                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-danger)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>−{r.neg}</td>
+                                ) : (
+                                  <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
+                                )}
+                                <td style={{ ...insTd, textAlign: "center", color: "var(--c-text-tertiary)", fontVariantNumeric: "tabular-nums" }}>0</td>
+                              </tr>
+                            ))}
                           </tbody>
                         </table>
+                        {insMarkingRows(subjectSections).every((r) => r.neg === 0) ? (
+                          <p style={{ fontSize: 13, color: "var(--c-text-secondary)", margin: "0 0 8px" }}>There is <b>no negative marking</b> in this test.</p>
+                        ) : (questions || []).some((q) => q.type === "input") ? (
+                          <p style={{ fontSize: 13, color: "var(--c-text-secondary)", margin: "0 0 8px" }}>Short-answer questions (where you type the answer) never carry negative marks.</p>
+                        ) : null}
 
                         <InsSection num={2} title="Question palette legend" />
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", margin: "8px 0 4px" }}>
@@ -1737,7 +1771,7 @@ const MockTest = ({
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 13 }}>
                     <span style={{ color: "var(--c-text-tertiary)" }}>Test name</span>
-                    <span style={{ color: "var(--c-text-primary)", fontWeight: 500 }}>{data?.[0]?.title || "—"}</span>
+                    <span style={{ color: "var(--c-text-primary)", fontWeight: 500 }}>{config?.title || data?.title || "—"}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 13 }}>
                     <span style={{ color: "var(--c-text-tertiary)" }}>Total questions</span>

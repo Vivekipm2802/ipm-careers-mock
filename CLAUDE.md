@@ -156,6 +156,15 @@ concept drawer must avoid the embedded questions join (statement timeout under R
   (test_id,created_at); plays ("user") and (test_uuid); trainer_runs ("user",created_at).
   Backfill tool: scripts/backfill-mock-play-stats.mjs (re-runnable).
 
+## Mock instructions screen
+
+Students see ONLY the JSX instructions in pages/mock/[slug].js (config.instructions /
+instructions2 HTML is NOT rendered). Everything there is derived from the test itself
+(Oct 29 2026 fix after NPAT showed "−1"): marking table = insMarkingRows(sections)
+(neg 0 honoured, identical sections collapse to "All questions"), SA lines only when
+input-type questions exist, navigation/timing text follows config.switch_section,
+test name = config.title. Never hardcode marks or section rules there again.
+
 ## Verification endpoints
 
 Admin check: POST /api/isAdmin (auth token). Mock attempt page: pages/mock/[slug].js
