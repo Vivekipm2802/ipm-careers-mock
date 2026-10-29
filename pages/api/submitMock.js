@@ -95,6 +95,35 @@ export default async function handler(req, res) {
       canonicalScore = null;
     }
 
+    // 2026-10-29 duplicate guard: the same student re-sending the SAME
+    // answers for the same mock (timer auto-submit after a successful
+    // submit, retries, stale tabs) returns the existing play instead of
+    // saving a second copy. Compared on question id + chosen answer only.
+    try {
+      const sig = (rep) =>
+        JSON.stringify(
+          (Array.isArray(rep) ? rep : [])
+            .map((r) => [String(r?.id), String(r?.value ?? r?.text ?? "")])
+            .sort((x, y) => (x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : 0)),
+        );
+      const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+      const { data: recent } = await supabase
+        .from('mock_plays')
+        .select('*')
+        .eq('test_id', test_id)
+        .eq('user', user.email)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      const mine = sig(report);
+      const same = (recent || []).find((p) => sig(p.report) === mine);
+      if (same && (report || []).length > 0) {
+        return res.status(200).json({ data: same, duplicate: true });
+      }
+    } catch (e) {
+      /* dedupe is best-effort — never block a submission */
+    }
+
     // Try full insert with all columns
     let result = await supabase
       .from('mock_plays')

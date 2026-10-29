@@ -216,6 +216,15 @@ async function checkRecentData(tests) {
   add("Saved attempts (24h)", noStats.length ? "FAIL" : "PASS",
     noStats.length ? `${noStats.length} of ${real.length} mock attempts in the last 24h were saved WITHOUT their stats.` : `${real.length} mock attempts in the last 24h, all saved with full stats.`);
 
+  // duplicate submissions (same student + mock + identical answers) — Oct 29 incident
+  const sig = (rep) => JSON.stringify((rep || []).map((r) => [String(r?.id), String(r?.value ?? r?.text ?? "")]).sort());
+  const seenSig = new Map(); const dupes = [];
+  for (const p of real) {
+    const k = `${p.user}|${p.test_id}|${sig(p.report)}`;
+    if ((p.report || []).length && seenSig.has(k)) dupes.push(`${p.user} (mock ${p.test_id})`); else seenSig.set(k, p.id);
+  }
+  add("Duplicate submits", dupes.length ? "WARN" : "PASS", dupes.length ? `Same answers saved twice in the last 24h: ${[...new Set(dupes)].join(", ")}.` : "No duplicate submissions in the last 24h.");
+
   // timing sanity on recent plays
   const byTest = new Map(tests.map((t) => [t.id, t]));
   const odd = [];

@@ -633,6 +633,11 @@ const MockTest = ({
   // Ship 4: wall-clock test start, so total time = submit − start instead of
   // max(at) (which missed all time spent on the final question).
   const startedAtRef = useRef(null);
+  // 2026-10-29: one submit per page. A successful submit used to leave the
+  // section timer running; when it expired the page auto-submitted the SAME
+  // answers again (duplicate plays: Jayashree Mock 7, Shardul Mock 2).
+  // Set when a submit starts; released only if that submit FAILS.
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     if (gamestate === 1) {
@@ -744,6 +749,8 @@ const MockTest = ({
   };
 
   async function submitScore(a, b, opts = {}) {
+    if (submitLockRef.current) return; // already submitting / submitted from this page
+    submitLockRef.current = true;
     const r = toast.loading("Submitting Test");
     const wasRetry = !!submitError || !!opts.fromDraft;
     setSubmitError(null);
@@ -833,6 +840,7 @@ const MockTest = ({
     }
 
     // 4) not saved: answers are on this device — Retry screen + auto-retry
+    submitLockRef.current = false; // allow Retry / auto-retry
     reportEvent("mock_submit_failed", { testId: config?.id, detail: { answers: (a || []).length, retry: wasRetry } });
     toast.remove(r);
     setLoading(false);
