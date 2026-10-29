@@ -155,6 +155,15 @@ concept drawer must avoid the embedded questions join (statement timeout under R
   auth.admin.listUsers pagination. Key indexes: mock_plays ("user",test_id) and
   (test_id,created_at); plays ("user") and (test_uuid); trainer_runs ("user",created_at).
   Backfill tool: scripts/backfill-mock-play-stats.mjs (re-runnable).
+- mock_plays has NO `data` column. Until Oct 29 2026 submitMock's full insert sent
+  `data: miscData`, failed EVERY time, and the fallback silently dropped duration/
+  name/attempted/correct/max_marks (only 4 of 447 Oct plays had them; 314 backfilled).
+  Never add a field to the play insert without checking the live column list.
+- Report entry timing: `at` = seconds on the CURRENT runner timer — on LOCKED mocks
+  that timer restarts per section, so `at` is a per-section clock. `ts` (from Oct 29
+  2026) = true seconds since test start. ALL time math (result + analytics pages,
+  late-wrong / quarter insights) goes through lib/playTiming.computePlayTimes —
+  never sort raw `at` across sections again (owner saw VA 3m / total 50m on a 2h mock).
 
 ## Mock instructions screen
 

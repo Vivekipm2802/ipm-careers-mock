@@ -1612,7 +1612,15 @@ const MockTest = ({
                     <QuestionCard
                       index={questions[currentQ]?.seq}
                       onSelect={(e) =>
-                        addItem({ ...e, at: timeDuration - totalSeconds })
+                        addItem({
+                          ...e,
+                          // `at` = seconds on the CURRENT timer (per-section clock on locked mocks)
+                          at: timeDuration - totalSeconds,
+                          // 2026-10-29: `ts` = true seconds since test start (lib/playTiming)
+                          ...(startedAtRef.current
+                            ? { ts: Math.round((Date.now() - startedAtRef.current) / 1000) }
+                            : {}),
+                        })
                       }
                       answered={answered}
                       key={"ipmc" + currentQ}

@@ -30,6 +30,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useNMNContext } from "@/components/NMNContext";
 import { serversupabase, supabase } from "@/utils/supabaseClient";
+import { computePlayTimes } from "@/lib/playTiming";
 import { Button } from "@nextui-org/react";
 import { Printer, ArrowLeft, ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -178,40 +179,33 @@ export default function MockAnalytics({ result }) {
     }
   }, [sections, modules, questions, result]);
 
-  // ── per-question time from report `at` deltas (real data only) ──
-  const questionTimes = useMemo(() => {
-    if (!result?.report) return new Map();
-    const sorted = [...result.report].filter((r) => typeof r.at === "number").sort((a, b) => a.at - b.at);
-    const map = new Map();
-    let prev = 0;
-    sorted.forEach((r) => {
-      const t = r.at - prev;
-      if (t >= 0 && t < 7200) map.set(String(r.id), t);
-      prev = r.at;
-    });
-    return map;
-  }, [result]);
-
-  const sectionTimes = useMemo(() => {
-    const map = new Map();
-    if (!sections || !modules || !questions || questionTimes.size === 0) return map;
-    sections.forEach((sec) => {
-      let t = 0;
-      modules.filter((m) => m.parent_sub === sec.id).forEach((mod) => {
-        questions.filter((q) => q.parent === mod.module.id).forEach((q) => {
-          t += questionTimes.get(String(q.id)) || 0;
-        });
+  // ── play timing (lib/playTiming, 2026-10-29) ──
+  // Locked mocks record `at` on a per-section clock; the old single
+  // timeline mixed sections. Same Map / number shapes as before.
+  const playTimes = useMemo(() => {
+    const sectionOfQ = new Map();
+    if (sections && modules && questions) {
+      sections.forEach((sec) => {
+        modules
+          .filter((m) => m.parent_sub === sec.id && m.module)
+          .forEach((mod) => {
+            questions
+              .filter((q) => q.parent === mod.module.id)
+              .forEach((q) => sectionOfQ.set(String(q.id), sec.id));
+          });
       });
-      map.set(sec.id, t);
+    }
+    return computePlayTimes({
+      report: result?.report,
+      sectionOfQ: sectionOfQ.size ? sectionOfQ : null,
+      sections: (sections || []).map((sec) => ({ id: sec.id, time: sec.time })),
+      locked: result?.test_id?.config?.switch_section === false,
+      durationSec: result?.duration,
     });
-    return map;
-  }, [sections, modules, questions, questionTimes]);
-
-  const durationSec = useMemo(() => {
-    if (Number.isFinite(Number(result?.duration)) && result.duration > 0) return Number(result.duration);
-    if (!result?.report) return 0;
-    return result.report.reduce((m, r) => (typeof r.at === "number" && r.at > m ? r.at : m), 0);
-  }, [result]);
+  }, [result, sections, modules, questions]);
+  const questionTimes = playTimes.qTimes;
+  const sectionTimes = playTimes.secTimes;
+  const durationSec = playTimes.totalSec || 0;
 
   // ── viewer identity gate (2026-09) ──
   // /api/mock-journey is always the LOGGED-IN user's history. When an
@@ -296,8 +290,9 @@ export default function MockAnalytics({ result }) {
     const qs = [[], [], [], []]; // verdicts per quarter
     result.report.forEach((r) => {
       const v = scored.verdictById[String(r.id)];
-      if (typeof r.at !== "number" || (v !== true && v !== false)) return;
-      const qi = Math.min(3, Math.floor((r.at / durationSec) * 4));
+      const gat = playTimes.globalAt.get(String(r.id));
+      if (typeof gat !== "number" || (v !== true && v !== false)) return;
+      const qi = Math.min(3, Math.floor((gat / durationSec) * 4));
       qs[qi].push(v);
     });
     const quarters = qs.map((arr, i) => {
@@ -323,7 +318,7 @@ export default function MockAnalytics({ result }) {
       read = (<><b>Stamina held.</b> Your final-quarter accuracy stayed within touching distance of your opening — endurance is not your leak.</>);
     }
     return { quarters, label, mins, read };
-  }, [scored, result, durationSec]);
+  }, [scored, result, durationSec, playTimes]);
 
   // ── BEST SELF: your proven sectional bests, stitched ──
   const bestSelf = useMemo(() => {
@@ -385,7 +380,7 @@ export default function MockAnalytics({ result }) {
     const lines = [];
     const t = scored.total;
     const entries = (result?.report || []).map((r) => ({
-      at: typeof r.at === "number" ? r.at : null,
+      at: playTimes.globalAt.has(String(r.id)) ? playTimes.globalAt.get(String(r.id)) : null,
       isCorrect: scored.verdictById[String(r.id)] ?? null,
     }));
     const swr = splitWrongs(entries, "at", FAST_WRONG_SEC);
@@ -428,7 +423,7 @@ export default function MockAnalytics({ result }) {
       }
     }
     return lines;
-  }, [scored, result, questions, durationSec, fullMocks]);
+  }, [scored, result, questions, durationSec, fullMocks, playTimes]);
 
   const sectionSeries = useMemo(() => {
     if (fullMocks.length < 2) return null;

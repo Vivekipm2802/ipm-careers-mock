@@ -49,6 +49,7 @@ import { getAuthHeaders } from "@/utils/authHeaders";
 // Mock 3) 2026") — every section label on this page renders the SHORT
 // name ("SA") via the shared helper.
 import { shortSectionName } from "@/lib/labels";
+import { computePlayTimes } from "@/lib/playTiming";
 
 // Ship 4: Supabase returns question ids as number OR string depending on the
 // query path. Compare as strings everywhere (same helper as the runners).
@@ -271,55 +272,40 @@ export default function MockResult({ result }) {
   // Ship 4: prefer the wall-clock `duration` column (runner records
   // submit − start). max(at) misses all time spent on the final question;
   // kept only as fallback for plays recorded before the column existed.
-  const totalTimeMin = useMemo(() => {
-    if (Number.isFinite(Number(result?.duration)) && result.duration > 0) {
-      return Math.round(result.duration / 60);
-    }
-    if (!result?.report) return 0;
-    const maxAt = result.report.reduce((m, r) => (typeof r.at === "number" && r.at > m ? r.at : m), 0);
-    return Math.round(maxAt / 60);
-  }, [result]);
-
-  // ── Phase 10: per-question time from report `at` deltas ─────────
-  // Same derivation the analytics page has always used: `at` is the
-  // cumulative seconds-elapsed stamp at answer time; time-on-question
-  // = delta to the previous answered stamp. Real stored data only —
-  // plays without `at` stamps simply produce an empty map and every
-  // time affordance (table column, card timer) hides itself.
-  const questionTimes = useMemo(() => {
-    if (!result?.report) return new Map();
-    const sorted = [...result.report]
-      .filter((r) => typeof r.at === "number")
-      .sort((a, b) => a.at - b.at);
-    const map = new Map();
-    let prev = 0;
-    sorted.forEach((r) => {
-      const t = r.at - prev;
-      if (t >= 0 && t < 7200) map.set(String(r.id), t);
-      prev = r.at;
-    });
-    return map;
-  }, [result]);
-
-  // Per-section time = sum of that section's question deltas.
-  const sectionTimes = useMemo(() => {
-    const map = new Map();
-    if (!sections || !modules || !questions || questionTimes.size === 0) return map;
-    sections.forEach((sec) => {
-      const secModules = modules.filter((m) => m.parent_sub === sec.id);
-      let t = 0;
-      secModules.forEach((mod) => {
-        if (!mod.module) return;
-        questions
-          .filter((q) => q.parent === mod.module.id)
-          .forEach((q) => {
-            t += questionTimes.get(String(q.id)) || 0;
+  // 2026-10-29: all play timing now comes from lib/playTiming — locked
+  // mocks record `at` on a per-section clock, so pooling every answer
+  // on one timeline (the old way) produced wrong section times.
+  const playTimes = useMemo(() => {
+    const sectionOfQ = new Map();
+    if (sections && modules && questions) {
+      sections.forEach((sec) => {
+        modules
+          .filter((m) => m.parent_sub === sec.id && m.module)
+          .forEach((mod) => {
+            questions
+              .filter((q) => q.parent === mod.module.id)
+              .forEach((q) => sectionOfQ.set(String(q.id), sec.id));
           });
       });
-      map.set(sec.id, t);
+    }
+    return computePlayTimes({
+      report: result?.report,
+      sectionOfQ: sectionOfQ.size ? sectionOfQ : null,
+      sections: (sections || []).map((sec) => ({ id: sec.id, time: sec.time })),
+      locked: result?.test_id?.config?.switch_section === false,
+      durationSec: result?.duration,
     });
-    return map;
-  }, [sections, modules, questions, questionTimes]);
+  }, [result, sections, modules, questions]);
+
+  const totalTimeMin = useMemo(
+    () => Math.round((playTimes.totalSec || 0) / 60),
+    [playTimes],
+  );
+
+  // ── per-question + per-section time (lib/playTiming, 2026-10-29) ──
+  // Same Map shapes as before so every consumer below is unchanged.
+  const questionTimes = playTimes.qTimes;
+  const sectionTimes = playTimes.secTimes;
   // 2026-08 owner feedback: the Time column self-hides unless the play
   // has SENSIBLE per-section times — every section must have tracked
   // data (> 0s) and the total must reach at least a minute. A play
@@ -436,17 +422,12 @@ export default function MockResult({ result }) {
     //     report carries timestamps and the test ran 20+ minutes).
     if (stats.wrongCount > 0 && stats.totalNeg > 0 && stats.maxScore > 0) {
       const cf = stats.totalScore + stats.totalNeg;
-      const durationSec =
-        Number.isFinite(Number(result?.duration)) && result.duration > 0
-          ? Number(result.duration)
-          : (result.report || []).reduce(
-              (m, r) => (typeof r?.at === "number" && r.at > m ? r.at : m),
-              0
-            );
+      // test-wide elapsed (lib/playTiming) — raw `at` is per-section on locked mocks
+      const durationSec = playTimes.totalSec || 0;
       const entries = (result.report || []).map((r) => {
         const q = (questions || []).find((qq) => sameId(qq.id, r.id));
         return {
-          at: typeof r?.at === "number" ? r.at : null,
+          at: playTimes.globalAt.has(String(r.id)) ? playTimes.globalAt.get(String(r.id)) : null,
           isCorrect: q ? isQuestionCorrect(q, r) : null,
         };
       });
@@ -571,7 +552,7 @@ export default function MockResult({ result }) {
     }
     return lines;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stats, result, questions, prevPlays]);
+  }, [stats, result, questions, prevPlays, playTimes]);
 
   if (userDetails == undefined) {
     return (

@@ -102,7 +102,10 @@ export default async function handler(req, res) {
         test_id: test_id,
         status: 'completed',
         report: report || [],
-        data: miscData || [],
+        // 2026-10-29: `data: miscData` REMOVED — mock_plays has no `data`
+        // column, so this full insert failed on EVERY submission and the
+        // fallback below silently dropped duration + name + the scalar
+        // stats (leaderboard columns). Only 4 of 447 Oct plays had them.
         user: user.email,
         name: user.user_metadata?.full_name || user.email,
         duration: Number.isFinite(Number(duration)) ? Math.round(Number(duration)) : null,
