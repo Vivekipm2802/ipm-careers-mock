@@ -471,6 +471,11 @@ const MockTest = ({
   const [noAccess, setNoAccess] = useState(false);
   const [organized, setOrganized] = useState();
   const [exists, setExists] = useState(undefined);
+  // 2026-10-29 submit hardening: a failed submit shows Retry (never an
+  // endless spinner); an unsubmitted attempt saved on this device is
+  // offered for submission when the page is reopened.
+  const [submitError, setSubmitError] = useState(null);
+  const [pendingDraft, setPendingDraft] = useState(null);
 
   const scrollRef = useRef(null);
 
@@ -676,47 +681,108 @@ const MockTest = ({
       if (data?.length > 0) setExists(true);
     }
   }
-  async function submitScore(a, b) {
-    const r = toast.loading("Submitting Test");
+  // ── 2026-10-29 SUBMIT HARDENING ────────────────────────────────────
+  // Incident: students sat on "Saving your result…" for 6h+. The first
+  // `await getAuthHeaders()` had no timeout; on a 2h+ mock the auth token
+  // must refresh at submit, and a stalled refresh froze every later auth
+  // call (the fallback insert too). Now: every step is time-boxed, answers
+  // are saved on the device throughout, a landed play is detected before
+  // any retry (no double submit), and failure shows Retry + auto-retry.
+  const draftKey = config?.id ? `ipm_mock_draft_${config.id}` : null;
+  const saveDraft = (report, misc, extra = {}) => {
+    if (!draftKey || router.query.preview === "true") return;
+    try {
+      window.localStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          report: report || [],
+          misc: misc || [],
+          startedAt: startedAtRef.current || extra.startedAt || null,
+          duration: extra.duration ?? (startedAtRef.current
+            ? Math.round((Date.now() - startedAtRef.current) / 1000)
+            : null),
+          savedAt: Date.now(),
+        }),
+      );
+    } catch {}
+  };
+  const clearDraft = () => {
+    try { if (draftKey) window.localStorage.removeItem(draftKey); } catch {}
+  };
+  const withTimeout = (thenable, ms) =>
+    Promise.race([
+      Promise.resolve(thenable),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms)),
+    ]);
+  // A submit that "failed" on the client may still have landed — look
+  // before retrying. Only plays created after this attempt began count.
+  const findLandedPlay = async (sinceMs) => {
+    try {
+      const email = userDetails?.email;
+      if (!email || !config?.id) return null;
+      const { data } = await withTimeout(
+        supabase
+          .from("mock_plays")
+          .select("uid, created_at")
+          .eq("test_id", config.id)
+          .eq("user", email)
+          .order("created_at", { ascending: false })
+          .limit(1),
+        10000,
+      );
+      const p = data && data[0];
+      if (!p) return null;
+      if (sinceMs && new Date(p.created_at).getTime() < sinceMs - 60000) return null;
+      return p;
+    } catch {
+      return null;
+    }
+  };
 
-    // Phase 13 Ship A: clean overlay instead of gamestate==2 inline flash
+  async function submitScore(a, b, opts = {}) {
+    const r = toast.loading("Submitting Test");
+    setSubmitError(null);
     setSubmitting(true);
     setLoading(true);
-    try {
-      // Try server-side API route first (bypasses RLS)
-      const headers = await getAuthHeaders();
-      // Ship 4: true wall-clock duration in seconds (null if start not seen)
-      const duration = startedAtRef.current
-        ? Math.round((Date.now() - startedAtRef.current) / 1000)
-        : null;
-      // 2026-10: hard timeout — under submit-storm load this call used
-      // to hang indefinitely and the student stared at "Submitting"
-      // forever. Now it fails over to the direct-insert path below.
-      const apiRes = await axios.post(
-        "/api/submitMock",
-        {
-          test_id: config?.id,
-          report: a || [],
-          data: b || [],
-          duration,
-        },
-        { headers, timeout: 15000 },
-      );
-      if (apiRes.data?.data) {
-        toast.success("Test Submitted Successfully");
-        router.push(`/mock/result/${apiRes.data.data.uid}`);
-        toast.remove(r);
-        return;
+    const startedAt = opts.startedAt ?? startedAtRef.current ?? null;
+    const duration =
+      opts.duration ??
+      (startedAtRef.current ? Math.round((Date.now() - startedAtRef.current) / 1000) : null);
+    // answers survive anything from here on
+    saveDraft(a, b, { startedAt, duration });
+
+    const done = (uid) => {
+      clearDraft();
+      setPendingDraft(null);
+      toast.success("Test Submitted Successfully");
+      toast.remove(r);
+      router.push(`/mock/result/${uid}`);
+    };
+
+    // 1) server route, up to 2 tries (fresh auth each time)
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const headers = await getAuthHeaders(); // time-boxed (utils/authHeaders)
+        const apiRes = await axios.post(
+          "/api/submitMock",
+          { test_id: config?.id, report: a || [], data: b || [], duration },
+          { headers, timeout: 20000 },
+        );
+        if (apiRes.data?.data?.uid) {
+          done(apiRes.data.data.uid);
+          return;
+        }
+      } catch (err) {
+        const landed = await findLandedPlay(startedAt);
+        if (landed?.uid) {
+          done(landed.uid);
+          return;
+        }
       }
-    } catch (err) {
-      // API route failed, try direct supabase insert as fallback
     }
 
+    // 2) direct insert fallback (time-boxed)
     try {
-      // Fallback: direct supabase insert
-      // 2026-08 correctness audit: compute the canonical score client-side
-      // too (same lib/scoring module the server uses) so the fallback path
-      // also writes a trustworthy score column. Never blocks submission.
       let fallbackScore = null;
       try {
         const scored = scoreMockPlay(
@@ -727,55 +793,79 @@ const MockTest = ({
           questions || [],
           a || [],
         );
-        if (scored && Number.isFinite(scored.total.score)) {
-          fallbackScore = scored.total.score;
-        }
-      } catch (e) {
-        fallbackScore = null;
-      }
+        if (scored && Number.isFinite(scored.total.score)) fallbackScore = scored.total.score;
+      } catch (e) {}
       const fallbackRow = {
         test_id: config?.id,
         status: "completed",
         report: a || [],
         score: fallbackScore,
-        duration: startedAtRef.current
-          ? Math.round((Date.now() - startedAtRef.current) / 1000)
-          : null,
+        duration,
       };
-      let { data, error } = await supabase
-        .from("mock_plays")
-        .insert(fallbackRow)
-        .select();
+      let { data, error } = await withTimeout(
+        supabase.from("mock_plays").insert(fallbackRow).select(),
+        20000,
+      );
       if (error) {
-        // Ship 4: if the duration/score columns don't exist yet, never block
-        // a student's submission — retry without them.
-        const { duration, score, ...withoutDuration } = fallbackRow;
-        ({ data, error } = await supabase
-          .from("mock_plays")
-          .insert(withoutDuration)
-          .select());
+        const { duration: _d, score: _s, ...minimal } = fallbackRow;
+        ({ data, error } = await withTimeout(
+          supabase.from("mock_plays").insert(minimal).select(),
+          20000,
+        ));
       }
-      if (data && data.length > 0) {
-        toast.success("Test Submitted Successfully");
-        router.push(`/mock/result/${data[0].uid}`);
-        toast.remove(r);
-      } else {
-        toast.error(
-          error?.message || "Unable to Submit Test. Please try again.",
-        );
-        setSubmitting(false);
-        setLoading(false);
-        setGameState(1);
-        toast.remove(r);
+      if (data && data[0]?.uid) {
+        done(data[0].uid);
+        return;
       }
-    } catch (err2) {
-      toast.error("Unable to Submit Test. Please try again.");
-      setSubmitting(false);
-      setLoading(false);
-      setGameState(1);
-      toast.remove(r);
+    } catch (e) {}
+
+    // 3) last look — it may have landed after all
+    const landed = await findLandedPlay(startedAt);
+    if (landed?.uid) {
+      done(landed.uid);
+      return;
     }
+
+    // 4) not saved: answers are on this device — Retry screen + auto-retry
+    toast.remove(r);
+    setLoading(false);
+    setSubmitting(false);
+    setSubmitError(
+      "We couldn't reach the server to save your answers. They are safe on this device — keep this tab open. We'll keep retrying automatically, or tap Retry now.",
+    );
   }
+
+  const retrySubmit = () => {
+    let d = null;
+    try { d = draftKey ? JSON.parse(window.localStorage.getItem(draftKey) || "null") : null; } catch {}
+    const report = d?.report || answered || [];
+    const misc = d?.misc || miscData || [];
+    submitScore(report, misc, { startedAt: d?.startedAt, duration: d?.duration });
+  };
+
+  // auto-retry every 30s while the Retry screen is showing
+  useEffect(() => {
+    if (!submitError) return;
+    const t = setInterval(() => retrySubmit(), 30000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitError]);
+
+  // autosave answers on the device during the test (crash / reload safety)
+  useEffect(() => {
+    if (gamestate === 1 && answered) saveDraft(answered, miscData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answered, miscData, gamestate]);
+
+  // reopened page with an unsubmitted attempt for this mock → offer it
+  useEffect(() => {
+    if (!draftKey || router.query.preview === "true") return;
+    try {
+      const d = JSON.parse(window.localStorage.getItem(draftKey) || "null");
+      if (d && Array.isArray(d.report) && d.report.length > 0) setPendingDraft(d);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey]);
 
   useEffect(() => {
     if (userDetails != undefined) {
@@ -791,6 +881,40 @@ const MockTest = ({
   }, [router]);
 
   async function getSections(a) {
+    // 2026-10-29: load through /api/mockData (service-role read + the same
+    // access rule as the mock list). The browser RLS path statement-timed-out
+    // (57014, ~8s) for every zero-enrollment/demo account, so free demo
+    // mocks sat on "Loading..." forever. The old client path below stays as
+    // a fallback if the route itself can't be reached.
+    try {
+      const headers = await getAuthHeaders();
+      if (!headers.Authorization) {
+        router.push(`/login?redirectTo=${encodeURIComponent(`/mock/${router.query.slug}`)}`);
+        return;
+      }
+      const ctl = new AbortController();
+      const tm = setTimeout(() => ctl.abort(), 20000);
+      const resp = await fetch(`/api/mockData?test=${encodeURIComponent(a)}`, { headers, signal: ctl.signal });
+      clearTimeout(tm);
+      if (resp.status === 401) {
+        router.push(`/login?redirectTo=${encodeURIComponent(`/mock/${router.query.slug}`)}`);
+        return;
+      }
+      if (resp.status === 403) {
+        setNoAccess(true);
+        return;
+      }
+      if (resp.ok) {
+        const j = await resp.json();
+        setSections(j.sections || []);
+        setModules(j.modules || []);
+        if (!j.questions || j.questions.length === 0) setNoAccess(true);
+        else setQuestions(j.questions);
+        return;
+      }
+    } catch (e) {
+      /* fall through to the client path */
+    }
     const { data, error } = await supabase
       .from("mock_groups")
       .select("*,subject(*)")
@@ -1155,6 +1279,42 @@ const MockTest = ({
     );
   }
 
+  // 2026-10-29: submit failed after every time-boxed attempt — never an
+  // endless spinner and never back into the test. Answers are on the device
+  // (localStorage draft); Retry + 30s auto-retry keep trying.
+  if (submitError && !submitting) {
+    return (
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "var(--c-bg)", color: "var(--c-text-primary)",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        textAlign: "center", padding: 24,
+        fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--c-text-tertiary)", marginBottom: 10 }}>
+          Not submitted yet
+        </div>
+        <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--c-text-primary)", margin: "0 0 10px" }}>
+          Your answers are{" "}
+          <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>safe</span>
+        </h1>
+        <p style={{ fontSize: 13.5, color: "var(--c-text-secondary)", margin: "0 0 22px", maxWidth: "46ch", lineHeight: 1.55 }}>
+          {submitError}
+        </p>
+        <button
+          onClick={retrySubmit}
+          style={{ padding: "11px 22px", borderRadius: 8, border: "none", background: "var(--c-brand-primary)", color: "#fff", fontFamily: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+        >
+          Retry submission
+        </button>
+        <p style={{ fontSize: 12, color: "var(--c-text-tertiary)", margin: "16px 0 0", maxWidth: "44ch", lineHeight: 1.5 }}>
+          Even if you close this tab, your answers stay saved on this device — open this mock again and you&apos;ll be offered to submit them.
+        </p>
+      </div>
+    );
+  }
+
   // Phase 13 Ship A: clean overlay while submitting (replaces the flash of the old inline gamestate==2 view)
   if (submitting) {
     return (
@@ -1194,8 +1354,8 @@ const MockTest = ({
         </p>
         {slowHint && (
           <p style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", margin: "14px 0 0", maxWidth: "44ch", lineHeight: 1.6 }}>
-            Taking longer than usual — slow connection or a waking server. Keep this tab open;
-            it will finish on its own.
+            Taking longer than usual — slow connection. Your answers are already saved on this
+            device; if this doesn&apos;t finish in a couple of minutes you&apos;ll get a Retry button.
           </p>
         )}
         <style jsx global>{`
@@ -1211,6 +1371,28 @@ const MockTest = ({
       For Best Experience Please use any device with bigger screen.<br/> This test cannot be performed on mobile display.
       
     </div> */}
+      {/* 2026-10-29: unsubmitted attempt saved on this device — offer to submit it */}
+      {pendingDraft && gamestate === 0 && (
+        <div style={{
+          position: "fixed", left: "50%", top: 16, transform: "translateX(-50%)", zIndex: 9998,
+          width: "min(640px, calc(100vw - 32px))", padding: "14px 18px", borderRadius: 12,
+          background: "var(--c-surface)", border: "1px solid var(--c-brand-gold)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.12)", display: "flex", alignItems: "center", gap: 14,
+          fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+        }}>
+          <div style={{ flex: 1, fontSize: 13.5, lineHeight: 1.5, color: "var(--c-text-primary)" }}>
+            <b>You have an unsubmitted attempt of this mock</b> saved on this device
+            {pendingDraft.savedAt ? ` (from ${new Date(pendingDraft.savedAt).toLocaleString()})` : ""} —{" "}
+            {pendingDraft.report?.length || 0} answers. Submit it to see your result.
+          </div>
+          <button
+            onClick={() => submitScore(pendingDraft.report, pendingDraft.misc, { startedAt: pendingDraft.startedAt, duration: pendingDraft.duration })}
+            style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "var(--c-brand-primary)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+          >
+            Submit saved attempt
+          </button>
+        </div>
+      )}
       {/* Phase 13 Ship A: redesigned submit confirmation modal (brand-aligned, matches Concept Tests) */}
       {submitModal && (
         <div

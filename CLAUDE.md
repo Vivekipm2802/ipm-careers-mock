@@ -130,6 +130,20 @@ concept drawer must avoid the embedded questions join (statement timeout under R
 
 ## Performance landmines
 
+- NO NETWORK CALL MAY BE UNBOUNDED (Oct 29 2026 "Saving your result…" 6h incident):
+  a 2h mock outlives the 1h access token, so submit triggers a token refresh; a stalled
+  refresh fetch froze gotrue's queue and every getSession()/query behind it — the
+  unguarded `await getAuthHeaders()` hung submit forever. Fixes: utils/supabaseClient
+  browser client uses fetchWithTimeout (30s; storage objects exempt); getAuthHeaders
+  races 6s then falls back to the stored token; mock submit is fully time-boxed, saves a
+  device draft (`ipm_mock_draft_<testId>`, also autosaved during the test), checks for a
+  landed play before retrying, and ends on a Retry screen with 30s auto-retry; reopening
+  the mock offers "Submit saved attempt". Stuck OLD tabs: outputs/rescue-snippet.js
+  (reads answers from React state, downloads backup, refreshes login, submits).
+- Mock page loads via /api/mockData (service role + list-equivalent access rule): the
+  mock_groups RLS policy statement-times-out (57014, ~8s) for zero-enrollment/demo
+  accounts — free demo mocks were stuck on "Loading...". Client RLS path kept as fallback.
+
 - `serversupabase` DEGRADES TO AN ANON CLIENT IN THE BROWSER (no service key, no
   user session) — any client-side component using it reads through RLS as nobody
   and silently gets zero rows. Correct only in API routes / getServerSideProps.
