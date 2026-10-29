@@ -188,6 +188,25 @@ instructions2 HTML is NOT rendered). Everything there is derived from the test i
 input-type questions exist, navigation/timing text follows config.switch_section,
 test name = config.title. Never hardcode marks or section rules there again.
 
+## Monitoring (owner directive Oct 29 2026: "find problems before students do")
+
+- `node scripts/health-check.mjs` — robot student (throwaway healthcheck.robot@example.com,
+  created + fully deleted each run; example.com can never receive the result-email trigger)
+  exercises login, /api/mockData (enrolled + every free mock as demo + paid stays locked),
+  /api/conceptTest + concept save, /api/submitMock + verifies stats columns, result page,
+  leaderboard; then data checks (24h plays missing stats, impossible section times via
+  lib/playTiming), real-device reports (client_events), and a content audit of every mock
+  a student can reach (blank/no-correct/multi-correct/not-4-options/code-in-options/
+  leaked key/broken image/course-access gaps — image-only stems are NOT blank).
+  Report → health-reports/<date>.md (git-ignored). Exit 1 on any FAIL.
+- Runs daily 07:40 IST on GitHub Actions (.github/workflows/health-check.yml; needs repo
+  secrets NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_KEY);
+  a failing run emails the owner. RUN IT after every deploy and after every mock import.
+- Real-device reports: lib/reportEvent → POST /api/clientEvent → public.client_events
+  (service-role only, RLS on, no policies). Kinds: mock_submit_slow/failed/recovered,
+  mock_draft_submitted, mock_load_fallback, concept_load_failed, concept_submit_failed.
+- Add a check to health-check.mjs for EVERY new incident class, so it can't recur silently.
+
 ## Verification endpoints
 
 Admin check: POST /api/isAdmin (auth token). Mock attempt page: pages/mock/[slug].js

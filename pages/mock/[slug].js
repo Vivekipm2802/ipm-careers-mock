@@ -38,6 +38,7 @@ import { useMediaQuery } from "react-responsive";
 import { useTimer } from "react-timer-hook";
 import { CtoLocal } from "@/utils/DateUtil";
 import { getAuthHeaders } from "@/utils/authHeaders";
+import { reportEvent } from "@/lib/reportEvent";
 import { scoreMockPlay } from "@/lib/scoring";
 
 // Ship 4: Supabase returns question ids as number OR string depending on the
@@ -461,7 +462,10 @@ const MockTest = ({
   const [slowHint, setSlowHint] = useState(false);
   useEffect(() => {
     if (!submitting) { setSlowHint(false); return; }
-    const t = setTimeout(() => setSlowHint(true), 8000);
+    const t = setTimeout(() => {
+      setSlowHint(true);
+      reportEvent("mock_submit_slow", { testId: config?.id }); // 2026-10-29 monitoring
+    }, 8000);
     return () => clearTimeout(t);
   }, [submitting]);
   const [gamestate, setGameState] = useState(0);
@@ -741,6 +745,7 @@ const MockTest = ({
 
   async function submitScore(a, b, opts = {}) {
     const r = toast.loading("Submitting Test");
+    const wasRetry = !!submitError || !!opts.fromDraft;
     setSubmitError(null);
     setSubmitting(true);
     setLoading(true);
@@ -752,6 +757,7 @@ const MockTest = ({
     saveDraft(a, b, { startedAt, duration });
 
     const done = (uid) => {
+      if (wasRetry) reportEvent("mock_submit_recovered", { testId: config?.id, detail: { fromDraft: !!opts.fromDraft } });
       clearDraft();
       setPendingDraft(null);
       toast.success("Test Submitted Successfully");
@@ -827,6 +833,7 @@ const MockTest = ({
     }
 
     // 4) not saved: answers are on this device — Retry screen + auto-retry
+    reportEvent("mock_submit_failed", { testId: config?.id, detail: { answers: (a || []).length, retry: wasRetry } });
     toast.remove(r);
     setLoading(false);
     setSubmitting(false);
@@ -912,7 +919,9 @@ const MockTest = ({
         else setQuestions(j.questions);
         return;
       }
+      reportEvent("mock_load_fallback", { testId: a, detail: { status: resp.status } });
     } catch (e) {
+      reportEvent("mock_load_fallback", { testId: a, detail: { error: String(e?.message || e).slice(0, 120) } });
       /* fall through to the client path */
     }
     const { data, error } = await supabase
@@ -1386,7 +1395,10 @@ const MockTest = ({
             {pendingDraft.report?.length || 0} answers. Submit it to see your result.
           </div>
           <button
-            onClick={() => submitScore(pendingDraft.report, pendingDraft.misc, { startedAt: pendingDraft.startedAt, duration: pendingDraft.duration })}
+            onClick={() => {
+              reportEvent("mock_draft_submitted", { testId: config?.id, detail: { answers: pendingDraft.report?.length || 0 } });
+              submitScore(pendingDraft.report, pendingDraft.misc, { startedAt: pendingDraft.startedAt, duration: pendingDraft.duration, fromDraft: true });
+            }}
             style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "var(--c-brand-primary)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
           >
             Submit saved attempt

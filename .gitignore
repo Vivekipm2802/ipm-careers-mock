@@ -34,3 +34,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# daily health-check reports (scripts/health-check.mjs)
+health-reports/

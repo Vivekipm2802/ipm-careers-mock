@@ -17,7 +17,7 @@
 //     questions: mock_questions ordered by seq }
 // ============================================================
 
-import { getAuthUser, requireAdmin } from "@/lib/apiAuth";
+import { getAuthUser, isAdminEmail } from "@/lib/apiAuth";
 import { serversupabase } from "@/utils/supabaseClient";
 
 export default async function handler(req, res) {
@@ -29,51 +29,41 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: "Sign in required" });
 
   try {
-    const { data: tests, error: tErr } = await serversupabase
-      .from("mock_test")
-      .select("id, course, config")
-      .eq("id", testId)
-      .limit(1);
-    if (tErr) throw new Error(tErr.message);
-    const test = tests && tests[0];
+    // Speed (2026-10-29): was 9 sequential round-trips (~5s from Vercel).
+    // Everything independent now runs in parallel → 3 rounds.
+    const [tRes, admin, enrRes, amRes, sRes] = await Promise.all([
+      serversupabase.from("mock_test").select("id, course, config").eq("id", testId).limit(1),
+      isAdminEmail(user.email).catch(() => false),
+      serversupabase.from("enrollments").select("course").eq("email", user.email), // keys on email
+      serversupabase.from("access_meta").select("course_id").eq("type", "mt").eq("content_id", testId),
+      serversupabase.from("mock_groups").select("*,subject(*)").eq("test", testId).order("seq", { ascending: true }),
+    ]);
+    if (tRes.error) throw new Error(tRes.error.message);
+    const test = tRes.data && tRes.data[0];
     if (!test) return res.status(404).json({ error: "Mock not found" });
     const cfg = test.config || {};
 
-    const admin = await requireAdmin(req);
     let allowed = !!admin;
     if (!allowed) {
       if (cfg.coming_soon) return res.status(403).json({ error: "coming_soon" });
       if (cfg.public_access === true) {
         allowed = true;
       } else {
-        const { data: enr, error: eErr } = await serversupabase
-          .from("enrollments")
-          .select("course")
-          .eq("email", user.email); // enrollments keys on email
-        if (eErr) throw new Error(eErr.message);
-        const mine = new Set((enr || []).map((e) => e.course));
-        const { data: am } = await serversupabase
-          .from("access_meta")
-          .select("course_id")
-          .eq("type", "mt")
-          .eq("content_id", testId);
+        if (enrRes.error) throw new Error(enrRes.error.message);
+        const mine = new Set((enrRes.data || []).map((e) => e.course));
         const grant = new Set([
           test.course,
           ...(Array.isArray(cfg.courses) ? cfg.courses : []),
-          ...((am || []).map((a) => a.course_id)),
+          ...((amRes.data || []).map((a) => a.course_id)),
         ]);
         allowed = [...mine].some((c) => grant.has(c));
       }
     }
     if (!allowed) return res.status(403).json({ error: "Not included in your plan" });
 
-    const { data: sections, error: sErr } = await serversupabase
-      .from("mock_groups")
-      .select("*,subject(*)")
-      .eq("test", testId)
-      .order("seq", { ascending: true });
-    if (sErr) throw new Error(sErr.message);
-    const sectionIds = (sections || []).map((s) => s.id);
+    if (sRes.error) throw new Error(sRes.error.message);
+    const sections = sRes.data || [];
+    const sectionIds = sections.map((s) => s.id);
     let modules = [];
     if (sectionIds.length) {
       const { data, error } = await serversupabase

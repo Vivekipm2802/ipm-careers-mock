@@ -11,6 +11,7 @@ import {
   Spacer,
 } from "@nextui-org/react";
 import { serversupabase, supabase } from "@/utils/supabaseClient";
+import { reportEvent } from "@/lib/reportEvent";
 import { useRouter } from "next/router";
 import HeaderMock from "./components/HeaderMock";
 import { useTimer } from "react-timer-hook";
@@ -221,6 +222,7 @@ const Game = () => {
         finish(existing.uid, existing);
         return;
       }
+      reportEvent("concept_submit_failed", { detail: { uuid: parentData?.uuid || router.query.slug } }); // 2026-10-29 monitoring
       setSubmitError(
         "We couldn't reach the server. Your answers are saved on this device, check your connection and tap Retry.",
       );
@@ -242,6 +244,7 @@ const Game = () => {
       return;
     }
     console.error("[concept submit] insert failed:", error?.message || error);
+    reportEvent("concept_submit_failed", { detail: { uuid: parentData?.uuid || router.query.slug } }); // 2026-10-29 monitoring
     setSubmitError(
       error?.message ||
         "Your test could not be saved. Your answers are safe on this device, tap Retry.",
@@ -342,6 +345,7 @@ const Game = () => {
       setParentData(data.level);
     } catch (e) {
       setLoadError(e?.message || "Could not load the test. Check your connection.");
+      reportEvent("concept_load_failed", { detail: { uuid: router.query.slug, error: String(e?.message || e).slice(0, 120) } });
     }
   }
   async function getLeaderboard(a) {

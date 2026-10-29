@@ -19,7 +19,7 @@
 // 200 { level, questions } | 401 | 403 | 404 | 5xx { error }
 // ============================================================
 
-import { getAuthUser, requireAdmin } from "@/lib/apiAuth";
+import { getAuthUser, isAdminEmail } from "@/lib/apiAuth";
 import { serversupabase } from "@/utils/supabaseClient";
 
 export default async function handler(req, res) {
@@ -33,51 +33,46 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: "Sign in required" });
 
   try {
-    const { data: levels, error: lvErr } = await serversupabase
-      .from("levels")
-      .select("*")
-      .eq("uuid", uuid)
-      .limit(1);
-    if (lvErr) throw new Error(lvErr.message);
-    const level = levels && levels[0];
-    if (!level) return res.status(404).json({ error: "Test not found" });
-
-    // ── entitlement (mirrors the levels RLS policy) ──
-    const admin = await requireAdmin(req);
-    let allowed = !!admin;
-
-    if (!allowed) {
+    // Speed (2026-10-29): independent lookups in parallel (was 5–6
+    // sequential round-trips incl. a second auth call via requireAdmin).
+    const [lvRes, admin, enrRes, lvlGrants] = await Promise.all([
+      serversupabase.from("levels").select("*").eq("uuid", uuid).limit(1),
+      isAdminEmail(user.email).catch(() => false),
       // enrollments keys on `email` (not `user`). No is_expired filter —
       // the levels RLS policy this mirrors doesn't apply one either.
-      const { data: enr, error: enErr } = await serversupabase
-        .from("enrollments")
-        .select("course")
-        .eq("email", user.email);
-      if (enErr) throw new Error(enErr.message);
-      const courses = (enr || []).map((e) => e.course);
+      serversupabase.from("enrollments").select("course").eq("email", user.email),
+      serversupabase.from("access_meta").select("course_id,value").eq("type", "lvl"),
+    ]);
+    if (lvRes.error) throw new Error(lvRes.error.message);
+    const level = lvRes.data && lvRes.data[0];
+    if (!level) return res.status(404).json({ error: "Test not found" });
 
+    // questions can load while we finish the entitlement check
+    const qPromise = serversupabase
+      .from("questions")
+      .select("*")
+      .eq("parent", level.id)
+      .order("seq", { ascending: true })
+      .then((r) => r); // .then() starts the request now (query builders are lazy)
+
+    // ── entitlement (mirrors the levels RLS policy) ──
+    let allowed = !!admin;
+    if (!allowed) {
+      if (enrRes.error) throw new Error(enrRes.error.message);
+      const courses = (enrRes.data || []).map((e) => e.course);
       if (courses.length === 0) {
-        // demo account: only demo-flagged levels
-        allowed = level.demo === true;
+        allowed = level.demo === true; // demo account: only demo-flagged levels
       } else {
-        const { data: grants, error: gErr } = await serversupabase
-          .from("access_meta")
-          .select("course_id,value")
-          .eq("type", "lvl")
-          .in("course_id", courses);
-        if (gErr) throw new Error(gErr.message);
-        allowed = (grants || []).some(
-          (g) => g.value === "all" || g.value === String(level.difficulty),
+        if (lvlGrants.error) throw new Error(lvlGrants.error.message);
+        const mine = new Set(courses);
+        allowed = (lvlGrants.data || []).some(
+          (g) => mine.has(g.course_id) && (g.value === "all" || g.value === String(level.difficulty)),
         );
       }
     }
     if (!allowed) return res.status(403).json({ error: "Not available on your plan" });
 
-    const { data: questions, error: qErr } = await serversupabase
-      .from("questions")
-      .select("*")
-      .eq("parent", level.id)
-      .order("seq", { ascending: true });
+    const { data: questions, error: qErr } = await qPromise;
     if (qErr) throw new Error(qErr.message);
 
     return res.status(200).json({ level, questions: questions || [] });
