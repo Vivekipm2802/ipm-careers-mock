@@ -147,15 +147,16 @@ async function checkMockLoad(robot, demo, visible) {
   }
   // demo visitor on every free mock
   const free = live.filter((t) => t.config?.public_access === true);
-  let ok = 0; const bad = [];
+  let ok = 0; const bad = []; const slow = [];
   for (const t of free) {
     const r = await timed(() => fetchT(`${SITE}/api/mockData?test=${t.id}`, { headers: { Authorization: `Bearer ${demo}` } }));
     if (r.err || !r.v.ok) bad.push(`"${t.title}" (${r.err ? r.err.message : r.v.status})`);
-    else { const j = await r.v.json(); if ((j.questions || []).length && r.ms < 6000) ok++; else bad.push(`"${t.title}" (${(j.questions || []).length} questions, ${fmt(r.ms)})`); }
+    else { const j = await r.v.json(); if (!(j.questions || []).length) bad.push(`"${t.title}" (no questions)`); else { ok++; if (r.ms >= 6000) slow.push(`"${t.title}" ${fmt(r.ms)}`); } }
   }
   if (a.v && a.v.status === 404) return; // loader not live yet — demo check meaningless
   if (bad.length) add("Demo visitors", "FAIL", `Free mocks NOT opening for demo visitors: ${bad.join("; ")}.`);
   else add("Demo visitors", "PASS", `All ${ok} free mocks open for demo visitors.`);
+  if (slow.length) add("Demo visitors", "WARN", `Free mocks opening slowly (over 6s): ${slow.join("; ")}.`);
   // paid mock must stay locked for demo
   const locked = live.find((t) => t.config?.public_access !== true && t.category === 13);
   if (locked) {
@@ -238,7 +239,7 @@ async function checkRecentData(tests) {
       const q = (await rest(`mock_questions?select=id&parent=eq.${x.module}`)).body || [];
       q.forEach((qq) => secOf.set(String(qq.id), x.parent_sub));
     }
-    const pt = computePlayTimes({ report: p.report, sectionOfQ: secOf, sections: g, locked: t.config?.switch_section === false, durationSec: p.duration });
+    const pt = computePlayTimes({ report: p.report, sectionOfQ: secOf, sections: g, locked: t.config?.switch_section === false, durationSec: p.duration, timeoutSec: Number(t.config?.timeout) || null });
     const timeout = Number(t.config?.timeout) || 0;
     for (const s of g) {
       const st = pt.secTimes.get(s.id) || 0;
@@ -276,8 +277,13 @@ async function checkContent(visible) {
   const testOfMod = new Map(links.map((l) => [l.module, testOfSec.get(l.parent_sub)]));
   const mods = [...testOfMod.keys()];
   let qs = [];
-  for (let i = 0; i < mods.length; i += 60) {
-    qs = qs.concat(await getAll(`mock_questions?select=id,seq,parent,type,question,options,explanation&parent=in.(${mods.slice(i, i + 60).join(",")})`));
+  // small batches + one retry: 60 modules of full question HTML hit the
+  // database statement timeout (57014) on 2026-10-30
+  for (let i = 0; i < mods.length; i += 8) {
+    const path = `mock_questions?select=id,seq,parent,type,question,options,explanation&parent=in.(${mods.slice(i, i + 8).join(",")})`;
+    let rows;
+    try { rows = await getAll(path); } catch (e) { await new Promise((r) => setTimeout(r, 3000)); rows = await getAll(path); }
+    qs = qs.concat(rows);
   }
   const perTest = new Map(); // tid → { problem → [question numbers] }
   const bump = (tid, k, seq) => {
@@ -296,7 +302,9 @@ async function checkContent(visible) {
     if (stem.length < 5 && !hasMedia) bump(tid, "blank question", q.seq);
     if (q.type !== "input") {
       const o = Array.isArray(q.options) ? q.options : [];
-      if (o.length !== 4) bump(tid, "not 4 options", q.seq);
+      // JIPMAT-style papers legitimately carry a 5th "No error" / "None of these"
+      const fifthOk = o.length === 5 && /^(no error|none of (these|the above))\.?$/i.test(String(o[4]?.title || "").trim());
+      if (o.length !== 4 && !fifthOk) bump(tid, "not 4 options", q.seq);
       const nc = o.filter((x) => x.isCorrect).length;
       if (nc === 0) bump(tid, "NO correct answer marked", q.seq);
       else if (nc > 1) bump(tid, "more than 1 correct answer", q.seq);

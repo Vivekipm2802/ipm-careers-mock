@@ -206,6 +206,9 @@ test name = config.title. Never hardcode marks or section rules there again.
   (service-role only, RLS on, no policies). Kinds: mock_submit_slow/failed/recovered,
   mock_draft_submitted, mock_load_fallback, concept_load_failed, concept_submit_failed.
 - Add a check to health-check.mjs for EVERY new incident class, so it can't recur silently.
+- Content audit accepts a 5th option only when it is "No error"/"None of these" (JIPMAT
+  papers). Question fetch is batched 8 modules at a time (60 hit statement timeout 57014).
+- GitHub's scheduled runs can start hours late (Oct 30: 07:40 IST run started ~14:00 IST).
 
 ## Verification endpoints
 

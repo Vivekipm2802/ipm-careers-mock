@@ -201,6 +201,7 @@ export default function MockAnalytics({ result }) {
       sections: (sections || []).map((sec) => ({ id: sec.id, time: sec.time })),
       locked: result?.test_id?.config?.switch_section === false,
       durationSec: result?.duration,
+      timeoutSec: Number(result?.test_id?.config?.timeout) || null,
     });
   }, [result, sections, modules, questions]);
   const questionTimes = playTimes.qTimes;

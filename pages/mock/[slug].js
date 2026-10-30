@@ -464,7 +464,8 @@ const MockTest = ({
     if (!submitting) { setSlowHint(false); return; }
     const t = setTimeout(() => {
       setSlowHint(true);
-      reportEvent("mock_submit_slow", { testId: config?.id }); // 2026-10-29 monitoring
+      // only a slow SAVE is a problem — a slow redirect after saving is not
+      if (!savedRef.current) reportEvent("mock_submit_slow", { testId: config?.id }); // 2026-10-29 monitoring
     }, 8000);
     return () => clearTimeout(t);
   }, [submitting]);
@@ -638,6 +639,8 @@ const MockTest = ({
   // answers again (duplicate plays: Jayashree Mock 7, Shardul Mock 2).
   // Set when a submit starts; released only if that submit FAILS.
   const submitLockRef = useRef(false);
+  // true once the attempt is saved (the result-page redirect can still be slow)
+  const savedRef = useRef(false);
 
   useEffect(() => {
     if (gamestate === 1) {
@@ -764,6 +767,7 @@ const MockTest = ({
     saveDraft(a, b, { startedAt, duration });
 
     const done = (uid) => {
+      savedRef.current = true;
       if (wasRetry) reportEvent("mock_submit_recovered", { testId: config?.id, detail: { fromDraft: !!opts.fromDraft } });
       clearDraft();
       setPendingDraft(null);
