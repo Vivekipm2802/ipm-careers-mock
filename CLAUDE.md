@@ -63,6 +63,23 @@ COMING-SOON PLACEHOLDERS: NPAT Mocks 2–10 = tests 252–260 (seq 2–10), conf
 "Upcoming · coming soon" for everyone; /mock/[slug] shows "coming soon". WHEN THE OWNER
 SENDS MOCK n: FILL THE EXISTING placeholder row (same id/uid) — add groups/modules/
 questions, then set coming_soon=false and start_time=now. Never create a duplicate row.
+CHRIST UNIVERSITY pattern (NEW series Oct 31 2026, mock_categories 54 "Christ University", test 261
+"Christ University Mock 1" onward): 120 Qs, 6 sections in paper order — English 25 (subject 214),
+Reasoning 25 (215), GK 20 (216), Maths 20 (217), DI 20 (218), Accounting 10 (219); subjects SHARED
+by every Christ mock (label "Christ"); +1 / −0.25, ONE 90-min timer (timeout 5400, switch_section
+TRUE, group time 900 each unused), calculator off, ONLY course 13 "Christ University" (own course,
+owner directive; access_meta AND config.courses), Mock 1 = free demo (public_access). Placeholders
+Mocks 2–10 = tests 262–270 (coming_soon, same rule as NPAT: fill the existing row, never duplicate). mock_groups.neg was BIGINT → −0.25 impossible: owner must run
+`alter table public.mock_groups alter column neg type numeric using neg::numeric;` — until then
+test 261 is config.hidden with neg 0; afterwards set neg −0.25 on groups 1093–1098 and unhide.
+(neg ALTER done Oct 31; groups now −0.25.) mock_plays.score is ALSO bigint → a 2.5 score made
+submitMock fall through to the last-resort insert (which used to DROP `user` — fixed: it keeps the
+student now). Needs `alter table public.mock_plays alter column score type numeric using
+score::numeric;` then re-test the rank RPCs (snapshot in /tmp is not durable — just call
+get_alltime_ipmat_rank / get_weekly_ipmat_rank / get_my_xp / get_my_badge_stats) and unhide 261.
+Christ PDFs (IPM Careers ReportLab) parse cleanly from pdftohtml -xml: Q rows, "(k)" options,
+"Answer: (k)" bold, "Solution"; superscripts are font size 10/11 cells (→ <sup>); DI sets carry a
+chart image AND a text table (upload chart to pdfs/mock-assets/christ-mockN-diK.png, keep both).
 Watch for: caselet/directions blocks with headers like "Directions (Q13–Q15):" that
 parsers miss; chart IMAGES in PDFs (pdfimages -list) whose data questions need; RC
 passage headers hidden inside previous Solution blocks. Section SPLITS come from the

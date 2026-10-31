@@ -225,7 +225,10 @@ async function checkMockSubmit(robot, visible) {
 async function checkRecentData(tests) {
   const since = new Date(Date.now() - 24 * 3600e3).toISOString();
   const plays = await getAll(`mock_plays?select=id,test_id,user,score,attempted,max_marks,duration,report,created_at&created_at=gte.${since}`);
-  const real = plays.filter((p) => p.user !== ROBOT_EMAIL);
+  // 2026-10-31: a play saved without its student is invisible to them
+  const orphans = plays.filter((p) => !p.user);
+  if (orphans.length) add("Saved attempts (24h)", "FAIL", `${orphans.length} mock attempt(s) were saved WITHOUT the student's email (ids ${orphans.map((p) => p.id).join(", ")}) — the student cannot see them.`);
+  const real = plays.filter((p) => p.user && p.user !== ROBOT_EMAIL);
   const noStats = real.filter((p) => p.attempted == null || p.max_marks == null);
   // 2026-10-31: attempts ARE saved in this case (answers + score) — only the
   // leaderboard columns are missing. Heal them automatically, then re-check.

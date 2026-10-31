@@ -195,7 +195,10 @@ export default async function handler(req, res) {
         .select();
     }
 
-    // If still failing, try absolute minimum
+    // If still failing (e.g. a score the column type can't hold), save the
+    // attempt WITHOUT the score — but NEVER without the student (2026-10-31:
+    // the old last resort dropped `user`, leaving an orphan play nobody could
+    // see). Missing stats are healed by scripts/backfill-mock-play-stats.mjs.
     if (result.error) {
       result = await supabase
         .from('mock_plays')
@@ -203,6 +206,7 @@ export default async function handler(req, res) {
           test_id: test_id,
           status: 'completed',
           report: report || [],
+          user: user.email,
         })
         .select();
     }
