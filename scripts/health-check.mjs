@@ -203,6 +203,19 @@ async function checkMockSubmit(robot, visible) {
   const missing = ["score", "attempted", "max_marks", "duration"].filter((k) => row[k] == null);
   if (missing.length) add("Mock submit", "FAIL", `Mock submits, but these are NOT being saved: ${missing.join(", ")} — results/leaderboards will be wrong.`);
   else add("Mock submit", r.ms < 6000 ? "PASS" : "WARN", `Mock submits and saves score + stats + time (${fmt(r.ms)}).`);
+  // 2026-10-31: the "expired login at submit" case (2h mock > 1h token).
+  // Submit with a dead access token + a valid refresh token: the server must
+  // renew the login and save the attempt, not answer 401.
+  try {
+    const gl = await (await fetchT(`${SB}/auth/v1/admin/generate_link`, { method: "POST", headers: { ...SH, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email: ROBOT_EMAIL }) })).json();
+    const sess = await (await fetchT(`${SB}/auth/v1/verify`, { method: "POST", headers: { apikey: ANON, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", token_hash: gl.hashed_token }) })).json();
+    const exp = await timed(() => fetchT(`${SITE}/api/submitMock`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer expired.login.token" }, body: JSON.stringify({ test_id: t.id, report: report.slice(0, 1), data: [], duration: 7300, refresh_token: sess.refresh_token }) }));
+    const ej = exp.v && exp.v.ok ? await exp.v.json() : null;
+    if (ej?.data?.uid && ej?.session?.access_token) add("Expired-login submit", "PASS", `A student whose login expired during a long mock can still submit (${fmt(exp.ms)}).`);
+    else add("Expired-login submit", "FAIL", `A student whose login expired during a long mock could NOT submit (${exp.err ? exp.err.message : exp.v.status}) — this is the daily "slow submit" cause.`);
+  } catch (e) {
+    add("Expired-login submit", "WARN", `Could not run the expired-login submit test (${e.message}).`);
+  }
   const res = await timed(() => fetchT(`${SITE}/mock/result/${uid}`));
   add("Result page", res.v && res.v.ok ? "PASS" : "FAIL", res.v && res.v.ok ? `Result page opens (${fmt(res.ms)}).` : `Result page did not open (${res.err ? res.err.message : res.v.status}).`);
   const lb = await timed(() => fetchT(`${SITE}/api/leaderboard?type=mock&testId=${t.id}`, { headers: { Authorization: `Bearer ${robot}` } }));
@@ -214,8 +227,25 @@ async function checkRecentData(tests) {
   const plays = await getAll(`mock_plays?select=id,test_id,user,score,attempted,max_marks,duration,report,created_at&created_at=gte.${since}`);
   const real = plays.filter((p) => p.user !== ROBOT_EMAIL);
   const noStats = real.filter((p) => p.attempted == null || p.max_marks == null);
-  add("Saved attempts (24h)", noStats.length ? "FAIL" : "PASS",
-    noStats.length ? `${noStats.length} of ${real.length} mock attempts in the last 24h were saved WITHOUT their stats.` : `${real.length} mock attempts in the last 24h, all saved with full stats.`);
+  // 2026-10-31: attempts ARE saved in this case (answers + score) — only the
+  // leaderboard columns are missing. Heal them automatically, then re-check.
+  let healed = 0;
+  if (noStats.length) {
+    try {
+      const { execFileSync } = await import("child_process");
+      execFileSync(process.execPath, [path.join(path.dirname(fileURLToPath(import.meta.url)), "backfill-mock-play-stats.mjs")], { stdio: "ignore", timeout: 180000 });
+      const ids = noStats.map((p) => p.id).join(",");
+      const after = await getAll(`mock_plays?select=id&id=in.(${ids})&attempted=not.is.null&max_marks=not.is.null`);
+      healed = after.length;
+    } catch (e) { /* reported below */ }
+  }
+  const stillMissing = noStats.length - healed;
+  add("Saved attempts (24h)", stillMissing ? "FAIL" : healed ? "WARN" : "PASS",
+    stillMissing
+      ? `${stillMissing} of ${real.length} mock attempts in the last 24h are missing their stats and could not be fixed automatically (answers ARE saved).`
+      : healed
+        ? `${real.length} mock attempts in the last 24h, all saved. ${healed} came in by the backup route without leaderboard stats — fixed automatically.`
+        : `${real.length} mock attempts in the last 24h, all saved with full stats.`);
 
   // duplicate submissions (same student + mock + identical answers) — Oct 29 incident
   const sig = (rep) => JSON.stringify((rep || []).map((r) => [String(r?.id), String(r?.value ?? r?.text ?? "")]).sort());
@@ -252,7 +282,7 @@ async function checkRecentData(tests) {
 
 async function checkDeviceReports() {
   const since = new Date(Date.now() - 24 * 3600e3).toISOString();
-  const r = await rest(`client_events?select=kind,email,test_id,created_at&created_at=gte.${since}&order=created_at.desc&limit=500`);
+  const r = await rest(`client_events?select=kind,email,test_id,detail,created_at&created_at=gte.${since}&order=created_at.desc&limit=500`);
   if (r.status === 404 || (r.body && r.body.code === "PGRST205")) return add("Student devices", "WARN", "Real-device problem reporting is not switched on yet (the client_events table needs creating — one SQL paste).");
   const rows = Array.isArray(r.body) ? r.body : [];
   const by = {};
@@ -266,7 +296,18 @@ async function checkDeviceReports() {
   const recovered = by.mock_submit_recovered || [];
   if (failed.length) add("Student devices", "FAIL", `${failed.length} mock submit(s) failed on students' devices in the last 24h (answers kept on device, auto-retrying): ${[...new Set(failed.map((x) => x.email || "unknown"))].join(", ")}.`);
   if (cFail.length) add("Student devices", "FAIL", `${cFail.length} concept test load/submit failure(s) on students' devices: ${[...new Set(cFail.map((x) => x.email || "unknown"))].join(", ")}.`);
-  if (slow.length > 3) add("Student devices", "WARN", `${slow.length} slow mock submits (over 8s) in the last 24h.`);
+  // Every slow submit is checked against the database: was the attempt saved?
+  if (slow.length) {
+    let lost = [];
+    for (const e of slow) {
+      if (!e.email || !e.test_id) continue;
+      const from = new Date(new Date(e.created_at).getTime() - 5 * 60e3).toISOString();
+      const p = await rest(`mock_plays?select=id&user=eq.${encodeURIComponent(e.email)}&test_id=eq.${e.test_id}&created_at=gte.${from}&limit=1`);
+      if (!(Array.isArray(p.body) && p.body.length)) lost.push(e.email);
+    }
+    if (lost.length) add("Student devices", "FAIL", `${lost.length} slow submit(s) with NO saved attempt yet: ${[...new Set(lost)].join(", ")} (answers are kept on their device and auto-retry).`);
+    else add("Student devices", slow.length > 3 ? "WARN" : "PASS", `${slow.length} mock submit(s) took over 8s — every one of them IS saved.`);
+  }
   if (!failed.length && !cFail.length) add("Student devices", "PASS", `No submit/load failures reported from students' devices in the last 24h${recovered.length ? ` (${recovered.length} recovered automatically)` : ""}.`);
   if (by.mock_load_fallback?.length) add("Student devices", "WARN", `Fast mock loader failed ${by.mock_load_fallback.length} time(s) and fell back to the slow path.`);
 }

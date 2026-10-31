@@ -55,7 +55,43 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const user = await getAuthUser(req);
+  // 2026-10-31 ROOT-CAUSE FIX for slow/failed submits: the login token lasts
+  // 1 hour, mocks last 2h+. When the student's browser couldn't refresh it
+  // (laptop slept, tab in background, slow link to the US auth server) the
+  // submit arrived with an EXPIRED token → 401 → retries → slow fallback
+  // insert without stats (Oct 30: 68s, play saved without stats). Now the
+  // runner also sends the refresh token, and the SERVER (fast, reliable link)
+  // renews the login and hands the new session back to the browser.
+  let user = await getAuthUser(req);
+  let renewedSession = null;
+  if (!user && typeof req.body?.refresh_token === 'string' && req.body.refresh_token.length > 10) {
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 10000);
+      const r = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
+        {
+          method: 'POST',
+          headers: {
+            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ refresh_token: req.body.refresh_token }),
+          signal: ctl.signal,
+        },
+      );
+      clearTimeout(timer);
+      if (r.ok) {
+        const s = await r.json();
+        if (s?.user?.email && s.access_token) {
+          user = s.user;
+          renewedSession = { access_token: s.access_token, refresh_token: s.refresh_token };
+        }
+      }
+    } catch (e) {
+      /* fall through to 401 */
+    }
+  }
   if (!user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -118,7 +154,7 @@ export default async function handler(req, res) {
       const mine = sig(report);
       const same = (recent || []).find((p) => sig(p.report) === mine);
       if (same && (report || []).length > 0) {
-        return res.status(200).json({ data: same, duplicate: true });
+        return res.status(200).json({ data: same, duplicate: true, session: renewedSession });
       }
     } catch (e) {
       /* dedupe is best-effort — never block a submission */
@@ -176,7 +212,7 @@ export default async function handler(req, res) {
     }
 
     if (result.data && result.data.length > 0) {
-      return res.status(200).json({ data: result.data[0] });
+      return res.status(200).json({ data: result.data[0], session: renewedSession });
     }
 
     return res.status(500).json({ error: 'Insert returned no data' });

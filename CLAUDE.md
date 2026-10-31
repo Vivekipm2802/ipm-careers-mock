@@ -140,6 +140,13 @@ concept drawer must avoid the embedded questions join (statement timeout under R
   landed play before retrying, and ends on a Retry screen with 30s auto-retry; reopening
   the mock offers "Submit saved attempt". Stuck OLD tabs: outputs/rescue-snippet.js
   (reads answers from React state, downloads backup, refreshes login, submits).
+- EXPIRED LOGIN AT SUBMIT (Oct 31 2026 root cause of the daily slow submits): token
+  lasts 1h, mocks 2h+, sleeping laptops/background tabs miss the auto-refresh. Fixes:
+  the mock page renews the login every 5 min / on tab return when <20 min remain;
+  submit sends refresh_token and /api/submitMock renews an expired login SERVER-side
+  and returns `session` (client setSession). Overlay switches to "Saved ✓" once saved.
+  health-check: "Expired-login submit" robot test; slow-submit events are verified
+  against mock_plays; missing-stats plays are auto-backfilled.
 - Mock page loads via /api/mockData (service role + list-equivalent access rule): the
   mock_groups RLS policy statement-times-out (57014, ~8s) for zero-enrollment/demo
   accounts — free demo mocks were stuck on "Loading...". Client RLS path kept as fallback.

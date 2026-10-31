@@ -37,7 +37,7 @@ import Link from "next/link";
 import { useMediaQuery } from "react-responsive";
 import { useTimer } from "react-timer-hook";
 import { CtoLocal } from "@/utils/DateUtil";
-import { getAuthHeaders } from "@/utils/authHeaders";
+import { getAuthHeaders, storedRefreshToken, storedTokenSecondsLeft } from "@/utils/authHeaders";
 import { reportEvent } from "@/lib/reportEvent";
 import { scoreMockPlay } from "@/lib/scoring";
 
@@ -469,6 +469,32 @@ const MockTest = ({
     }, 8000);
     return () => clearTimeout(t);
   }, [submitting]);
+  // 2026-10-31: once the answers are saved, say so — the remaining wait is
+  // only the result page opening (students read the spinner as "not saved").
+  const [savedOk, setSavedOk] = useState(false);
+  // 2026-10-31: keep the login fresh for the whole 2h+ mock. The token lasts
+  // 1h; background tabs / sleeping laptops miss the automatic refresh, so the
+  // submit used to arrive with an expired login. Check every 5 min and when
+  // the tab comes back into view; renew when <20 min remain. Never blocks.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let busy = false;
+    const keepFresh = () => {
+      if (busy) return;
+      const left = storedTokenSecondsLeft();
+      if (left == null || left > 20 * 60) return;
+      busy = true;
+      Promise.race([
+        supabase.auth.refreshSession(),
+        new Promise((r) => setTimeout(r, 15000)),
+      ]).catch(() => {}).finally(() => { busy = false; });
+    };
+    const onVis = () => { if (document.visibilityState === "visible") keepFresh(); };
+    const iv = setInterval(keepFresh, 5 * 60 * 1000);
+    document.addEventListener("visibilitychange", onVis);
+    keepFresh();
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", onVis); };
+  }, []);
   const [gamestate, setGameState] = useState(0);
   const [questions, setQuestions] = useState(previewQuestions || undefined);
   // 2026-10-25: signed-in student whose plan doesn't include this mock —
@@ -768,6 +794,7 @@ const MockTest = ({
 
     const done = (uid) => {
       savedRef.current = true;
+      setSavedOk(true);
       if (wasRetry) reportEvent("mock_submit_recovered", { testId: config?.id, detail: { fromDraft: !!opts.fromDraft } });
       clearDraft();
       setPendingDraft(null);
@@ -782,9 +809,15 @@ const MockTest = ({
         const headers = await getAuthHeaders(); // time-boxed (utils/authHeaders)
         const apiRes = await axios.post(
           "/api/submitMock",
-          { test_id: config?.id, report: a || [], data: b || [], duration },
+          // refresh_token: the server renews an expired login itself (2026-10-31)
+          { test_id: config?.id, report: a || [], data: b || [], duration, refresh_token: storedRefreshToken() },
           { headers, timeout: 20000 },
         );
+        const renewed = apiRes.data?.session;
+        if (renewed?.access_token && renewed?.refresh_token) {
+          // keep the student signed in with the server-renewed login (never blocks)
+          withTimeout(supabase.auth.setSession(renewed), 5000).catch(() => {});
+        }
         if (apiRes.data?.data?.uid) {
           done(apiRes.data.data.uid);
           return;
@@ -1365,15 +1398,17 @@ const MockTest = ({
           fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em",
           color: "var(--c-text-primary)", margin: "0 0 8px",
         }}>
-          Saving your{" "}
+          {savedOk ? "Saved ✓ " : "Saving your "}
           <span style={{ fontFamily: "var(--font-accent)", fontStyle: "italic", fontWeight: 400, color: "var(--c-brand-primary)" }}>
-            result
+            {savedOk ? "opening your result" : "result"}
           </span>…
         </h1>
         <p style={{ fontSize: 13.5, color: "var(--c-text-secondary)", margin: 0, maxWidth: "42ch", lineHeight: 1.5 }}>
-          Just a moment while we record your answers across all sections. You&apos;ll be redirected to your result page.
+          {savedOk
+            ? "Your attempt is safely recorded. Your result page is loading — this can take a few seconds on a slow connection."
+            : "Just a moment while we record your answers across all sections. You'll be redirected to your result page."}
         </p>
-        {slowHint && (
+        {slowHint && !savedOk && (
           <p style={{ fontSize: 12.5, color: "var(--c-text-tertiary)", margin: "14px 0 0", maxWidth: "44ch", lineHeight: 1.6 }}>
             Taking longer than usual — slow connection. Your answers are already saved on this
             device; if this doesn&apos;t finish in a couple of minutes you&apos;ll get a Retry button.
