@@ -721,6 +721,13 @@ export default function MockResult({ result }) {
           </table>
         </div>
 
+        {/* Nov 2026 exam-style screen: tab switches recorded during the attempt */}
+        {Number(result?.tab_switches) > 0 && (
+          <div style={{ margin: "-14px 0 22px", padding: "10px 14px", borderRadius: 12, background: "var(--c-warning-soft, #FBEED2)", border: "1px solid var(--c-warning, #B66C00)", color: "var(--c-warning, #B66C00)", fontSize: 13, lineHeight: 1.5 }}>
+            You left the test window <b>{result.tab_switches}</b> time{Number(result.tab_switches) === 1 ? "" : "s"} during this mock. On the real exam day you can&apos;t, so practise staying on the paper.
+          </div>
+        )}
+
         {/* === QUESTION MAP — ONE card (2026-08 owner feedback): a single
             header row with one legend and ONE set of filter chips, then a
             slim per-section label above each wrapped row of cells. The one

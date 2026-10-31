@@ -77,6 +77,8 @@ submitMock fall through to the last-resort insert (which used to DROP `user` —
 student now). Needs `alter table public.mock_plays alter column score type numeric using
 score::numeric;` then re-test the rank RPCs (snapshot in /tmp is not durable — just call
 get_alltime_ipmat_rank / get_weekly_ipmat_rank / get_my_xp / get_my_badge_stats) and unhide 261.
+DONE Oct 31: mock_plays.score is numeric, rank RPCs unchanged, 261 LIVE (robot e2e: 3 right +
+2 wrong = 2.5 saved, leaderboard/result/analytics OK, demo opens it).
 Christ PDFs (IPM Careers ReportLab) parse cleanly from pdftohtml -xml: Q rows, "(k)" options,
 "Answer: (k)" bold, "Solution"; superscripts are font size 10/11 cells (→ <sup>); DI sets carry a
 chart image AND a text table (upload chart to pdfs/mock-assets/christ-mockN-diK.png, keep both).
@@ -220,6 +222,22 @@ Seq backup: health-reports/backup-video-seq-2026-10-31.json.
   2026) = true seconds since test start. ALL time math (result + analytics pages,
   late-wrong / quarter insights) goes through lib/playTiming.computePlayTimes —
   never sort raw `at` across sections again (owner saw VA 3m / total 50m on a 2h mock).
+
+## Exam-style mock screen (Nov 2026, owner-approved preview → pilot)
+
+components/ExamPlayer.js renders the WHOLE mock (instructions + test) when the test's
+config.exam_ui === true. PILOT: test 250 (IIM Bangalore UG Mock 15) only; owner wants to try it
+there, THEN roll out to every mock (set exam_ui on each, fetching full config first). Colours =
+real exam portal (navy top bar, orange title, blue tabs/strips/Save & Next, light-blue Submit,
+shaded green/red/grey/purple palette shapes); ALL popups use IPM Careers gold buttons; NO em
+dashes in student text. Real-exam answer rule: only Save & Next / Mark for Review & Next save;
+palette click/Previous move without saving (toast warns). misc status 'saved' clears a review
+mark. Picture = original female/male drawing (NOT the student's photo, owner directive) from
+user_metadata.gender (ProfileGate asks gender; instructions page asks if unknown). Tab switches:
+owl popup + count → submit body tab_switches → best-effort update of mock_plays.tab_switches
+(sql/add-exam-screen.sql) → result page warning line. Resume: draft now stores section,
+remaining seconds, tabs; resumeRemainingRef/skipSectionRestartRef feed the timer effects.
+Calculator: built-in mouse-only, fixed top-right (cannot move); is_scientific keeps the iframe.
 
 ## Mock instructions screen
 

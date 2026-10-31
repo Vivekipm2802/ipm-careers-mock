@@ -1425,6 +1425,42 @@ console.log("\n[13] language toggle — English default, Hinglish opt-in");
 // transporter: validates the batchIds gate and that recipients
 // resolve from batch_admits rows for 2 batches with case-insensitive
 // de-dupe. nodemailer stays stubbed — nothing can actually send.
+// ── 15 · Exam-style mock screen (components/ExamPlayer.js, Nov 2026) ──
+console.log("\n[15] ExamPlayer — exam-style mock screen");
+{
+  const ExamPlayer = require(path.join(root, "components", "ExamPlayer.js")).default;
+  const qs = [
+    { id: 11, type: "options", question: "<p>Long passage paragraph one. " + "x".repeat(400) + "</p><p>Paragraph two " + "y".repeat(400) + "</p><p>Which of the following is true?</p>", options: [{ title: "Alpha" }, { title: "Beta" }, { title: "Gamma" }, { title: "Delta" }] },
+    { id: 12, type: "options", question: "<p>2 + 2 = ?</p>", options: [{ title: "3" }, { title: "4" }, { title: "5" }, { title: "6" }] },
+    { id: 21, type: "input", question: "<p>Type 7</p>", options: { answer: "7" } },
+  ];
+  const organized = [{ title: "VA", child: [{ id: 11, index: 1 }, { id: 12, index: 2 }] }, { title: "QA", child: [{ id: 21, index: 3 }] }];
+  const base = {
+    testTitle: "Pilot Mock", cfg: { switch_section: false, timeout: "3600", calculator_allowed: true },
+    organized, questions: qs, subjectSections: [{ pos: 3, neg: -1, time: 1800 }, { pos: 3, neg: 0, time: 1800 }],
+    currentSection: 0, setCurrentSection: () => {}, currentQ: 0, setCurrentQ: () => {},
+    answered: [{ id: 12, value: "2" }], miscData: [{ id: 11, status: "pending" }, { id: 12, status: "review" }],
+    addMiscItem: () => {}, recordAnswer: () => {}, clearResponse: () => {},
+    remaining: 1500, onStart: () => {}, onSubmit: () => {}, userDetails: { user_metadata: { full_name: "Rishita Gupta" } },
+    gender: null, onSetGender: () => {}, draft: null, onResume: () => {}, onDiscardDraft: () => {}, onTabSwitch: () => {}, tabSwitches: 0,
+  };
+  let h = clean(ReactDOMServer.renderToString(React.createElement(ExamPlayer, { ...base, gamestate: 0 })));
+  check(h.includes("Pilot Mock") && h.includes("Start Mock") && /\+3/.test(h) && h.includes("This answer IS counted"),
+    "instructions page: title, marks table and palette key render");
+  check(h.includes("Your exam-screen picture") && h.includes("Female") && h.includes("Male"),
+    "instructions page asks for the exam-screen picture when gender is unknown");
+  check(!h.includes("\u2014") && !h.includes("—"), "no em dashes on the instructions page");
+  h = clean(ReactDOMServer.renderToString(React.createElement(ExamPlayer, { ...base, gamestate: 1, gender: "female" })));
+  check(h.includes("Time Left: 25:00") && h.includes("Question 1 of 2") && h.includes("Save &amp; Next") && h.includes("Mark for Review &amp; Next"),
+    "exam screen: timer, question counter and exam buttons");
+  check(h.includes("xp-left") && h.includes("xp-right"), "long passage opens split (passage left, question right)");
+  check(/xp-st xp-na[^"]*"[^>]*>1</.test(h) && /xp-st xp-am[^"]*"[^>]*>2</.test(h), "palette: Q1 visited-not-answered (red), Q2 answered and marked (purple + tick)");
+  check(h.includes("Calculator") && h.includes("Question Paper") && h.includes("Submit Mock"), "top bar + submit present");
+  check(!h.includes("—"), "no em dashes on the exam screen");
+  h = clean(ReactDOMServer.renderToString(React.createElement(ExamPlayer, { ...base, gamestate: 1, gender: "male", currentQ: 2, currentSection: 1 })));
+  check(h.includes("xp-sa") && h.includes("Backspace") && h.includes("Question 1 of 1"), "type-in question shows the keypad");
+}
+
 (async () => {
   console.log("\n[11] pages/api/announce.js — batches audience (handler)");
   // Fake env so getServiceClient() constructs the stub client. These

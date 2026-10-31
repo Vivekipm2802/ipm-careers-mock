@@ -44,7 +44,7 @@ export default function ProfileGate() {
   const [f, setF] = useState({
     full_name: "", phone: "", parent_name: "", parent_phone: "",
     city: "", current_class: "", school: "", target_exams: [], dob: "", photo_url: "",
-    category: "", target_year: "",
+    category: "", target_year: "", gender: "",
   });
 
   useEffect(() => {
@@ -88,8 +88,11 @@ export default function ProfileGate() {
         if (rows && rows.length) {
           // 2026-10-31: profiles saved before the target-year question get
           // asked that ONE question once (class can be corrected too)
-          if (rows[0].target_year || meta.target_year) { setState("hidden"); return; }
-          setF((p) => ({ ...p, current_class: rows[0].current_class || "" }));
+          // Nov 2026: also ask the exam-screen picture (gender) once
+          const hasYear = rows[0].target_year || meta.target_year;
+          const hasGender = meta.gender === "male" || meta.gender === "female";
+          if (hasYear && hasGender) { setState("hidden"); return; }
+          setF((p) => ({ ...p, current_class: rows[0].current_class || "", target_year: hasYear ? String(rows[0].target_year || meta.target_year) : "", gender: hasGender ? meta.gender : "" }));
           setState("year");
           return;
         }
@@ -134,6 +137,7 @@ export default function ProfileGate() {
     if (!f.city.trim()) missing.push("city");
     if (!f.current_class) missing.push("class");
     if (!f.target_year) missing.push("target IPMAT year");
+    if (!f.gender) missing.push("gender");
     if (!f.school.trim()) missing.push("school");
     if (!f.target_exams.length) missing.push("target exam");
     if (!f.category) missing.push("admission category");
@@ -147,18 +151,18 @@ export default function ProfileGate() {
         parent_name: f.parent_name.trim(), parent_phone: f.parent_phone.trim(),
         city: f.city.trim(), current_class: f.current_class, school: f.school.trim(),
         target_exams: f.target_exams, dob: f.dob, photo_url: f.photo_url,
-        category: f.category, target_year: Number(f.target_year),
+        category: f.category, target_year: Number(f.target_year), gender: f.gender,
         updated_at: new Date().toISOString(),
       };
       let { error } = await supabase.from("student_profiles").upsert(row);
-      if (error && /target_year/i.test(error.message || "")) {
-        // column not added yet — save the rest; the year lives in user_metadata
-        const { target_year: _ty, ...rest } = row;
+      if (error && /target_year|gender/i.test(error.message || "")) {
+        // column not added yet — save the rest; year + gender live in user_metadata
+        const { target_year: _ty, gender: _g, ...rest } = row;
         ({ error } = await supabase.from("student_profiles").upsert(rest));
       }
       if (error) { toast.error("Could not save: " + error.message); setSaving(false); return; }
       try {
-        await supabase.auth.updateUser({ data: { full_name: f.full_name.trim(), profile_pic: f.photo_url, target_year: Number(f.target_year) } });
+        await supabase.auth.updateUser({ data: { full_name: f.full_name.trim(), profile_pic: f.photo_url, target_year: Number(f.target_year), gender: f.gender } });
       } catch (e) { /* avatar sync is best-effort */ }
       toast.success("Profile saved. Welcome aboard!");
       setState("hidden");
@@ -168,24 +172,38 @@ export default function ProfileGate() {
 
   async function saveYear() {
     if (saving) return;
-    if (!f.target_year || !f.current_class) { toast.error("Please pick your class and target IPMAT year"); return; }
+    if (!f.target_year || !f.current_class || !f.gender) { toast.error("Please pick your class, gender and target IPMAT year"); return; }
     setSaving(true);
     try {
       let { error } = await supabase.from("student_profiles")
-        .update({ target_year: Number(f.target_year), current_class: f.current_class, updated_at: new Date().toISOString() })
+        .update({ target_year: Number(f.target_year), current_class: f.current_class, gender: f.gender, updated_at: new Date().toISOString() })
         .ilike("email", email);
-      if (error && /target_year/i.test(error.message || "")) {
+      if (error && /target_year|gender/i.test(error.message || "")) {
         ({ error } = await supabase.from("student_profiles")
           .update({ current_class: f.current_class, updated_at: new Date().toISOString() })
           .ilike("email", email));
       }
-      try { await supabase.auth.updateUser({ data: { target_year: Number(f.target_year) } }); } catch (e) {}
+      try { await supabase.auth.updateUser({ data: { target_year: Number(f.target_year), gender: f.gender } }); } catch (e) {}
       if (error) { toast.error("Could not save: " + error.message); setSaving(false); return; }
       toast.success("Saved. Your plan now follows your target year.");
       setState("hidden");
     } catch (e) { toast.error("Could not save, try again"); }
     setSaving(false);
   }
+
+  const genderPicker = (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      {[["female", "Female"], ["male", "Male"]].map(([v, l]) => (
+        <button key={v} type="button" onClick={() => setF((p) => ({ ...p, gender: v }))} style={{
+          padding: "7px 16px", borderRadius: 999, fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+          border: "1px solid " + (f.gender === v ? "var(--c-brand-gold)" : "var(--c-border-soft)"),
+          background: f.gender === v ? "var(--c-brand-gold-tint)" : "var(--c-surface)",
+          color: f.gender === v ? "var(--c-text-primary)" : "var(--c-text-secondary)",
+          fontWeight: f.gender === v ? 600 : 400,
+        }}>{l}</button>
+      ))}
+    </div>
+  );
 
   const yearPicker = (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -206,7 +224,7 @@ export default function ProfileGate() {
       <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.45)", display: "grid", placeItems: "center", padding: 16 }}>
         <div style={{ width: "100%", maxWidth: 440, background: "var(--c-bg)", borderRadius: 18, padding: "26px 22px", border: "1px solid var(--c-border-faint)" }}>
           <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-brand-gold)" }}>
-            One quick question
+            A couple of quick questions
           </div>
           <h2 className="ds-display" style={{ fontSize: 24, lineHeight: 1.15, color: "var(--c-text-primary)", margin: "6px 0 6px" }}>
             Which year will you take IPMAT?
@@ -222,6 +240,10 @@ export default function ProfileGate() {
               <option value="">Select…</option>
               {CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <span style={label}>Gender (for your picture on the mock exam screen)</span>
+            {genderPicker}
           </div>
           <button type="button" onClick={saveYear} disabled={saving} style={{
             marginTop: 20, width: "100%", height: 46, borderRadius: 999, border: "none",
@@ -294,6 +316,10 @@ export default function ProfileGate() {
           <div style={{ gridColumn: "1 / -1" }}>
             <span style={label}>Target IPMAT year</span>
             {yearPicker}
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <span style={label}>Gender (for your picture on the mock exam screen)</span>
+            {genderPicker}
           </div>
           <div style={{ gridColumn: "1 / -1" }}>
             <span style={label}>School</span>

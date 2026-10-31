@@ -216,6 +216,16 @@ export default async function handler(req, res) {
     }
 
     if (result.data && result.data.length > 0) {
+      // Nov 2026 exam-style screen: tab switches during the attempt. Saved
+      // separately and best-effort, so a missing column (sql/add-tab-switches.sql)
+      // can never break the attempt insert above.
+      const tabs = Math.round(Number(req.body?.tab_switches));
+      if (Number.isFinite(tabs) && tabs > 0) {
+        try {
+          await supabase.from('mock_plays').update({ tab_switches: tabs }).eq('id', result.data[0].id);
+          result.data[0].tab_switches = tabs;
+        } catch (e) { /* column not added yet */ }
+      }
       return res.status(200).json({ data: result.data[0], session: renewedSession });
     }
 

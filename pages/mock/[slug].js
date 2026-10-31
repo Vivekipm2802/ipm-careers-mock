@@ -40,6 +40,7 @@ import { CtoLocal } from "@/utils/DateUtil";
 import { getAuthHeaders, storedRefreshToken, storedTokenSecondsLeft } from "@/utils/authHeaders";
 import { reportEvent } from "@/lib/reportEvent";
 import { scoreMockPlay } from "@/lib/scoring";
+import ExamPlayer from "@/components/ExamPlayer";
 
 // Ship 4: Supabase returns question ids as number OR string depending on the
 // query path. Compare as strings everywhere (same helper as the test runner).
@@ -507,6 +508,14 @@ const MockTest = ({
   // offered for submission when the page is reopened.
   const [submitError, setSubmitError] = useState(null);
   const [pendingDraft, setPendingDraft] = useState(null);
+  // Nov 2026 exam-style screen (config.exam_ui): tab-switch count (owner:
+  // "warn + count it"), the student's exam-screen picture, and a resume
+  // override for the timer when an unfinished attempt is continued.
+  const [tabSwitches, setTabSwitches] = useState(0);
+  const tabSwitchesRef = useRef(0);
+  const [avatarGender, setAvatarGender] = useState(null);
+  const resumeRemainingRef = useRef(null);
+  const skipSectionRestartRef = useRef(false);
 
   const scrollRef = useRef(null);
 
@@ -672,7 +681,9 @@ const MockTest = ({
     if (gamestate === 1) {
       if (!startedAtRef.current) startedAtRef.current = Date.now();
       const time = new Date();
-      time.setSeconds(time.getSeconds() + timeDuration);
+      const resumeLeft = Number(resumeRemainingRef.current);
+      resumeRemainingRef.current = null;
+      time.setSeconds(time.getSeconds() + (resumeLeft > 0 ? resumeLeft : timeDuration));
 
       restart(time);
     }
@@ -680,6 +691,8 @@ const MockTest = ({
 
   useEffect(() => {
     if (gamestate === 1 && !config?.config?.switch_section) {
+      // a resumed attempt landing in a later section keeps its saved time
+      if (skipSectionRestartRef.current) { skipSectionRestartRef.current = false; return; }
       const time = new Date();
       time.setSeconds(time.getSeconds() + timeDuration);
 
@@ -740,6 +753,9 @@ const MockTest = ({
             ? Math.round((Date.now() - startedAtRef.current) / 1000)
             : null),
           savedAt: Date.now(),
+          section: currentSection,
+          remaining: gamestate === 1 ? totalSeconds : null,
+          tabs: tabSwitchesRef.current,
         }),
       );
     } catch {}
@@ -810,7 +826,7 @@ const MockTest = ({
         const apiRes = await axios.post(
           "/api/submitMock",
           // refresh_token: the server renews an expired login itself (2026-10-31)
-          { test_id: config?.id, report: a || [], data: b || [], duration, refresh_token: storedRefreshToken() },
+          { test_id: config?.id, report: a || [], data: b || [], duration, refresh_token: storedRefreshToken(), tab_switches: tabSwitchesRef.current },
           { headers, timeout: 20000 },
         );
         const renewed = apiRes.data?.session;
@@ -908,6 +924,19 @@ const MockTest = ({
     if (gamestate === 1 && answered) saveDraft(answered, miscData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answered, miscData, gamestate]);
+
+  // keep the saved time-left fresh for Resume (every 15 s while playing)
+  useEffect(() => {
+    if (gamestate === 1 && totalSeconds > 0 && totalSeconds % 15 === 0) saveDraft(answered || [], miscData || []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalSeconds]);
+
+  // the exam-screen picture: saved once on the student's login (user_metadata)
+  useEffect(() => {
+    const g = userDetails?.user_metadata?.gender;
+    if ((g === "male" || g === "female") && !avatarGender) setAvatarGender(g);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userDetails]);
 
   // reopened page with an unsubmitted attempt for this mock → offer it
   useEffect(() => {
@@ -1418,6 +1447,77 @@ const MockTest = ({
           @keyframes ipm-spin { to { transform: rotate(360deg); } }
         `}</style>
       </div>
+    );
+  }
+
+  // Nov 2026: real-exam style screen (pilot via config.exam_ui)
+  if (config?.config?.exam_ui === true && organized && (gamestate === 0 || gamestate === 1)) {
+    const firstOf = (d) => organized?.[d]?.child?.[0]?.id;
+    return (
+      <ExamPlayer
+        testTitle={config?.title}
+        cfg={config?.config}
+        organized={organized}
+        questions={questions}
+        subjectSections={subjectSections}
+        currentSection={currentSection}
+        setCurrentSection={setCurrentSection}
+        currentQ={currentQ}
+        setCurrentQ={setCurrentQ}
+        answered={answered}
+        miscData={miscData}
+        addMiscItem={addMiscItem}
+        clearResponse={clearResponse}
+        recordAnswer={(e) =>
+          addItem({
+            ...e,
+            at: timeDuration - totalSeconds,
+            ...(startedAtRef.current ? { ts: Math.round((Date.now() - startedAtRef.current) / 1000) } : {}),
+          })
+        }
+        gamestate={gamestate}
+        remaining={totalSeconds}
+        userDetails={userDetails}
+        gender={avatarGender}
+        onSetGender={(g) => {
+          setAvatarGender(g);
+          withTimeout(supabase.auth.updateUser({ data: { gender: g } }), 8000).catch(() => {});
+        }}
+        tabSwitches={tabSwitches}
+        onTabSwitch={() => {
+          tabSwitchesRef.current += 1;
+          setTabSwitches(tabSwitchesRef.current);
+        }}
+        draft={pendingDraft}
+        onDiscardDraft={() => { clearDraft(); setPendingDraft(null); }}
+        onResume={() => {
+          const d = pendingDraft || {};
+          const secIdx = Math.min(Math.max(0, Number(d.section) || 0), organized.length - 1);
+          setAnswered(Array.isArray(d.report) ? d.report : []);
+          setMiscData(Array.isArray(d.misc) ? d.misc : []);
+          tabSwitchesRef.current = Number(d.tabs) || 0;
+          setTabSwitches(tabSwitchesRef.current);
+          if (d.startedAt) startedAtRef.current = d.startedAt;
+          resumeRemainingRef.current = Number(d.remaining) > 0 ? Number(d.remaining) : null;
+          if (secIdx > 0) skipSectionRestartRef.current = true;
+          setCurrentSection(secIdx);
+          const qid = firstOf(secIdx);
+          setCurrentQ(questions.findIndex((item) => item.id == qid));
+          addMiscItem({ id: qid, status: "pending" });
+          setPendingDraft(null);
+          setGameState(1);
+          openFullscreen();
+        }}
+        onStart={() => {
+          clearDraft();
+          setPendingDraft(null);
+          setGameState(1);
+          setCurrentQ(questions.findIndex((item) => item.id == firstOf(0)));
+          addMiscItem({ id: firstOf(0), status: "pending" });
+          openFullscreen();
+        }}
+        onSubmit={() => submitScore(answered || [], miscData || [])}
+      />
     );
   }
 
