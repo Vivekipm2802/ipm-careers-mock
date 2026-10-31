@@ -784,6 +784,11 @@ const Selector = ({ type, onSelect, role, title, demoPackLocked, isDemo }) => {
                 const la = lockedOf(a) ? 1 : 0;
                 const lb = lockedOf(b) ? 1 : 0;
                 if (la !== lb) return la - lb;
+                // chapters whose videos don't play (scripts/video-health.mjs
+                // pushes their seq past 10000) go to the very end
+                const da = Number(a.seq) >= 10000 ? 1 : 0;
+                const db = Number(b.seq) >= 10000 ? 1 : 0;
+                if (da !== db) return da - db;
                 const pa = visibleGroups.findIndex((g) => g.id === a.group_id);
                 const pb = visibleGroups.findIndex((g) => g.id === b.group_id);
                 if (pa !== pb) return pa - pb;

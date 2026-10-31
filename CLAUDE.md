@@ -127,6 +127,12 @@ Percentage → Ratio and Proportion → Average first, and easyEntry() opens EAS
 Plan share the same day-seed. Ratio and Proportion has NO Easy level (3 × Moderate).
 Video Lessons: packs ordered by id (QA first); "Explore by topic" strip grouped by pack, and
 for demo accounts playable chapters (lib/demo DEMO_OPEN_VIDEO_CHAPTERS) first, locked last.
+BROKEN VIDEOS GO LAST (owner directive, repeated Oct 31): scripts/video-health.mjs scans every
+video (Bunny embed "<title>404" page / YouTube oEmbed non-200 / no link) and adds 10000 to seq
+of broken videos, all-broken lessons and all-broken chapters (removes it when fixed). Runs
+inside health-check daily. Oct 31: 342/889 broken — ALL 324 Bunny videos 404 (10 Bunny
+libraries gone); dead chapters incl. Time and work, SI/CI, Mixture & Alligations, Averages.
+Seq backup: health-reports/backup-video-seq-2026-10-31.json.
 
 ## Access-control landmines
 

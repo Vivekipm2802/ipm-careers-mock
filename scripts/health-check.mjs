@@ -312,6 +312,23 @@ async function checkDeviceReports() {
   if (by.mock_load_fallback?.length) add("Student devices", "WARN", `Fast mock loader failed ${by.mock_load_fallback.length} time(s) and fell back to the slow path.`);
 }
 
+// 2026-10-31: videos that don't play (Bunny 404 / YouTube embedding off /
+// no link) are moved to the END of every list automatically, and reported.
+async function checkVideos() {
+  try {
+    const { execFileSync } = await import("child_process");
+    const outp = execFileSync(process.execPath, [path.join(path.dirname(fileURLToPath(import.meta.url)), "video-health.mjs")], { encoding: "utf8", timeout: 400000 });
+    const last = outp.trim().split("\n").pop();
+    const sm = JSON.parse(last);
+    const top = Object.entries(sm.byChapter || {}).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => `${k} ${v}`).join(", ");
+    if (sm.broken > 0)
+      add("Videos", "WARN", `${sm.broken} of ${sm.total} videos don't play (kept at the END of their lists${sm.moved ? `, ${sm.moved} moved today` : ""}). Fully dead chapters: ${(sm.deadChapters || []).join(", ") || "none"}. Most affected: ${top}. List: health-reports/video-health-<date>.json`);
+    else add("Videos", "PASS", `All ${sm.total} videos play${sm.restored ? ` (${sm.restored} fixed ones moved back into place)` : ""}.`);
+  } catch (e) {
+    add("Videos", "WARN", `Could not run the video check (${e.message.slice(0, 120)}).`);
+  }
+}
+
 async function checkContent(visible) {
   const live = visible.filter((t) => !t.config?.coming_soon);
   const groups = await getAll(`mock_groups?select=id,test,subject,pos,neg,time&test=in.(${live.map((t) => t.id).join(",")})`);
@@ -402,6 +419,7 @@ try {
   await checkRecentData(tests);
   await checkDeviceReports();
   await checkContent(visible);
+  await checkVideos();
 } catch (e) {
   add("Health check", "FAIL", `The check itself crashed: ${e.message}`);
 } finally {
