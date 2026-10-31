@@ -30,7 +30,7 @@
 import { supabase } from "@/utils/supabaseClient";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNMNContext } from "@/components/NMNContext";
-import { openUpsell } from "@/lib/demo";
+import { openUpsell, DEMO_OPEN_VIDEO_CHAPTERS } from "@/lib/demo";
 import { toast } from "react-hot-toast";
 
 const FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
@@ -156,7 +156,7 @@ export default function PackPlayer({
   // pack itself is gated in VideoGroups). Locked chapters stay VISIBLE,
   // sorted below the open ones, and clicking them opens the upgrade
   // modal instead of expanding.
-  const DEMO_OPEN_CHAPTERS = [/profit and loss/i, /direction and distance/i, /blood relation/i];
+  const DEMO_OPEN_CHAPTERS = DEMO_OPEN_VIDEO_CHAPTERS;
   const chapterLocked = (ch) => !!(isDemo && ch && !DEMO_OPEN_CHAPTERS.some((re) => re.test(ch.title || "")));
   const orderedChapters = useMemo(
     () => (isDemo ? [...chapters].sort((a, b) => (chapterLocked(a) ? 1 : 0) - (chapterLocked(b) ? 1 : 0)) : chapters),

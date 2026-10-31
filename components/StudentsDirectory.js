@@ -47,7 +47,7 @@ export default function StudentsDirectory() {
   }, [rows, q]);
 
   const exportCsv = () => {
-    const cols = ["full_name", "email", "phone", "parent_name", "parent_phone", "city", "current_class", "category", "school", "target_exams", "dob", "batches"];
+    const cols = ["full_name", "email", "phone", "parent_name", "parent_phone", "city", "current_class", "target_year", "category", "school", "target_exams", "dob", "batches"];
     const esc = (v) => '"' + String(v == null ? "" : Array.isArray(v) ? v.join("; ") : v).replaceAll('"', '""') + '"';
     const csv = [cols.join(",")]
       .concat(filtered.map((r) => cols.map((c) => esc(r[c])).join(",")))
@@ -107,7 +107,7 @@ export default function StudentsDirectory() {
                   <td style={td}>{r.phone || "—"}</td>
                   <td style={td}>{r.parent_name ? <>{r.parent_name}<div style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>{r.parent_phone}</div></> : "—"}</td>
                   <td style={td}>{r.city || "—"}</td>
-                  <td style={td}>{r.current_class || "—"}</td>
+                  <td style={td}>{r.current_class || "—"}{r.target_year ? <div style={{ fontSize: 12, color: "var(--c-text-tertiary)" }}>IPMAT {r.target_year}</div> : null}</td>
                   <td style={td}>{r.category || "—"}</td>
                   <td style={td}>{r.school || "—"}</td>
                   <td style={td}>{Array.isArray(r.target_exams) && r.target_exams.length ? r.target_exams.join(", ") : "—"}</td>

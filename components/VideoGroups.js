@@ -43,7 +43,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import ImageUploader from "./ImageUploader";
 import { useNMNContext } from "./NMNContext";
-import { openUpsell } from "@/lib/demo";
+import { openUpsell, DEMO_OPEN_VIDEO_CHAPTERS } from "@/lib/demo";
 
 const FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
 
@@ -144,7 +144,7 @@ const TOPICS = [
 // Selector — main view
 // ============================================================
 
-const Selector = ({ type, onSelect, role, title, demoPackLocked }) => {
+const Selector = ({ type, onSelect, role, title, demoPackLocked, isDemo }) => {
   const ctx = useNMNContext();
   const userDetails = ctx?.userDetails;
   const isAdmin = role === "admin";
@@ -197,7 +197,10 @@ const Selector = ({ type, onSelect, role, title, demoPackLocked }) => {
     const { data, error } = await supabase
       .from("video_groups")
       .select("*")
-      .eq("type", type);
+      .eq("type", type)
+      // 2026-10-31: stable order (was database order → LR pack "featured"
+      // and topics interleaved). QA pack (id 1) comes first.
+      .order("id", { ascending: true });
     if (data) {
       setGroups(data);
       setLoading(false);
@@ -767,7 +770,26 @@ const Selector = ({ type, onSelect, role, title, demoPackLocked }) => {
               paddingRight: 28,
             }}
           >
-            {realTopics.map((t) => {
+            {/* 2026-10-31: ordered pack by pack (same order as the packs grid),
+                then by chapter order — no more QA/LR/VA interleaving. Demo /
+                free accounts see the chapters they can PLAY first and the
+                locked ones at the end (same rule as inside a pack). */}
+            {[...realTopics]
+              .sort((a, b) => {
+                const lockedOf = (t) =>
+                  isDemo && role !== "admin"
+                    ? (typeof demoPackLocked === "function" && demoPackLocked(t.group_id)) ||
+                      !DEMO_OPEN_VIDEO_CHAPTERS.some((re) => re.test(t.title || ""))
+                    : false;
+                const la = lockedOf(a) ? 1 : 0;
+                const lb = lockedOf(b) ? 1 : 0;
+                if (la !== lb) return la - lb;
+                const pa = visibleGroups.findIndex((g) => g.id === a.group_id);
+                const pb = visibleGroups.findIndex((g) => g.id === b.group_id);
+                if (pa !== pb) return pa - pb;
+                return (Number(a.seq) || 0) - (Number(b.seq) || 0);
+              })
+              .map((t) => {
               const pack = visibleGroups.find((g) => g.id === t.group_id);
               const packTopicMeta = TOPICS.find(
                 (x) => x.key === pack?.topic,

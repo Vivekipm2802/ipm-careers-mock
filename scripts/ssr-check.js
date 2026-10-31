@@ -742,6 +742,31 @@ items7.push(mk7(16, "Algebra", { streak: 3 }));
     "under the cap the copy stays simple: '3 questions due … then you're clear'");
 }
 
+// ── 7f · Foundation plan (2026-10-31 owner directive) ───────────
+// Target IPMAT 2029+ (or Class 9/10 with no year) starts with Number
+// System → Percentage → Ratio and Proportion → Average; 2027/2028 keep
+// the weak-chapter-first plan. A new student must NOT get Alligations.
+console.log("\n[7f] foundation plan by target year");
+{
+  const { buildPlan } = require(path.join(root, "components", "AdaptivePlan.js"));
+  const { isFoundation } = require(path.join(root, "lib", "studyStage.js"));
+  const ch = (id, chapter, tests = 0, attempted = 0, correct = 0) => ({ chapter_id: id, chapter, tests, attempted, correct, tests_today: 0 });
+  const fresh = [ch(64, "Alligations & Mixtures "), ch(67, "Average"), ch(50, "Number System"), ch(75, "Percentage"), ch(136, "Ratio and Proportion "), ch(154, "TSD")];
+  const f = buildPlan(fresh, 0, { foundation: true });
+  check(f.task2.chapter === "Number System" && f.task3.chapter === "Percentage",
+    "brand-new foundation student: Number System then Percentage (not Alligations)");
+  const shaky = fresh.map((c) => (c.chapter === "Percentage" ? ch(75, "Percentage", 2, 20, 8) : c.chapter === "Number System" ? ch(50, "Number System", 2, 20, 18) : c));
+  check(buildPlan(shaky, 0, { foundation: true }).task2.chapter === "Percentage",
+    "foundation: a shaky foundation chapter comes before untouched ones");
+  const weak = fresh.map((c) => (c.chapter === "TSD" ? ch(154, "TSD", 2, 20, 6) : c));
+  check(buildPlan(weak, 0, {}).task2.chapter === "TSD" && buildPlan(weak, 0, { foundation: true }).task2.chapter === "Number System",
+    "2027/2028 keep weak-chapter-first; foundation still starts with the basics");
+  check(isFoundation({ targetYear: "2029" }) && isFoundation({ targetYear: 2030 }) && !isFoundation({ targetYear: "2028" }) && !isFoundation({ targetYear: "2027", cls: "Class 10" }),
+    "target year decides: 2029/2030 foundation, 2027/2028 not");
+  check(isFoundation({ cls: "Class 10" }) && isFoundation({ cls: "Class 9" }) && !isFoundation({ cls: "Class 11" }) && !isFoundation({}),
+    "no year saved: Class 9/10 → foundation, others not");
+}
+
 // ── 8 · Featured-mock priority (lib/featuredMock.js) ────────────
 // The Dashboard/MockTests live-banner pick is a pure helper so the
 // rule is testable without SSR: featured live beats earlier-ending

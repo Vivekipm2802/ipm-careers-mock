@@ -11,6 +11,7 @@ import axios from "axios";
 import { ArrowRight } from "lucide-react";
 import { vaultState, DAILY_CAP } from "./MistakeVault";
 import { buildPlan, shortName } from "./AdaptivePlan";
+import { getStudyStage, easyEntry } from "@/lib/studyStage";
 import { levelFromXp } from "./DSBChallenge";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
 import { pickLiveMock } from "@/lib/featuredMock";
@@ -160,6 +161,14 @@ export default function Dashboard({ userData }) {
     if (!ch?.chapter_id || openingRef.current) return;
     openingRef.current = true;
     setOpening(true);
+    // foundation students (target 2029+ / Class 9-10) only get EASY tests
+    const easy = today3?.foundation ? await easyEntry(supabase, userData?.email, ch.chapter_id) : null;
+    if (easy) {
+      openingRef.current = false;
+      setOpening(false);
+      router.push(`/test/${easy}`);
+      return;
+    }
     const { data } = await supabase.rpc("get_chapter_entry", {
       p_email: userData?.email || "",
       p_chapter: ch.chapter_id,
@@ -359,7 +368,8 @@ export default function Dashboard({ userData }) {
       supabase.rpc("get_my_mistakes", { p_email: userData.email }),
       supabase.rpc("get_my_own_mistakes", { p_email: userData.email }),
       supabase.rpc("get_my_chapter_stats", { p_email: userData.email }),
-    ]).then(([quizRuns, redoRuns, mine, own, chapters]) => {
+      getStudyStage(supabase, userData.email),
+    ]).then(([quizRuns, redoRuns, mine, own, chapters, stage]) => {
       const now = new Date();
       const all = [
         ...(Array.isArray(mine.data) ? mine.data : []),
@@ -370,7 +380,9 @@ export default function Dashboard({ userData }) {
         return !st.mastered && st.dueNow;
       }).length;
       const budget = Math.max(0, DAILY_CAP - (redoRuns.count || 0));
-      const plan = buildPlan(Array.isArray(chapters.data) ? chapters.data : []);
+      // same day-seed as My Plan so the two pages always agree (2026-10-31)
+      const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+      const plan = buildPlan(Array.isArray(chapters.data) ? chapters.data : [], dayOfYear, { foundation: !!stage?.foundation });
       const t2 = plan.task2;
       setToday3({
         quizDone: (quizRuns.count || 0) > 0,
@@ -378,6 +390,7 @@ export default function Dashboard({ userData }) {
         redosDone: (redoRuns.count || 0) > 0 && Math.min(due, budget) === 0,
         attack: t2 ? { name: t2.chapter, acc: t2.acc, done: Number(t2.tests_today || 0) > 0 } : null,
         attackCh: t2 || null,
+        foundation: !!stage?.foundation,
       });
     });
   }, [userData?.email]);
@@ -638,7 +651,9 @@ export default function Dashboard({ userData }) {
         why:
           today3.attack.acc != null
             ? t(`${today3.attack.acc}% accuracy, thoda kamzor lag raha hai`, `${today3.attack.acc}% accuracy, looking a little shaky`)
-            : t("naya chapter, plan yahin se shuru karega", "new chapter, your plan picks it up from here"),
+            : today3.foundation
+              ? t("foundation chapter, easy test se shuruaat", "foundation chapter, starting with an easy test")
+              : t("naya chapter, plan yahin se shuru karega", "new chapter, your plan picks it up from here"),
         cta: t("Dekho", "View"),
         busy: opening,
         go: () => openChapter(today3.attackCh),

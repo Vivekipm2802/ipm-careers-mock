@@ -19,6 +19,7 @@ import { ArrowRight } from "lucide-react";
 import { useNMNContext } from "./NMNContext";
 import PortalTour, { useFirstVisitTour } from "./PortalTour";
 import { useLang } from "@/lib/lang";
+import { FOUNDATION_CHAPTERS, getStudyStage, easyEntry } from "@/lib/studyStage";
 
 // Tour copy follows the language toggle — built with t(hi, en) at render.
 const PLAN_TOUR_STEPS = (t) => [
@@ -84,7 +85,7 @@ export function daysToExam(examDate = EXAM_DATE, now = new Date()) {
 // "weaknesses" and excluded from the plan entirely.
 export const BUCKET_PATTERN = /topic\s*wise|mixed\s*test|full\s*mock|pyq/i;
 
-export function buildPlan(chapters, daySeed = 0) {
+export function buildPlan(chapters, daySeed = 0, opts = {}) {
   const withClass = (chapters || [])
     .filter((c) => !BUCKET_PATTERN.test(String(c.chapter || "")))
     .map((c) => ({ ...c, cls: classify(c), acc: accuracyOf(c) }));
@@ -99,8 +100,22 @@ export function buildPlan(chapters, daySeed = 0) {
     .sort((a, b) => (a.acc ?? 101) - (b.acc ?? 101));
 
   const freshPick = fresh.length ? fresh[daySeed % fresh.length] : null;
-  const task2 = attack[0] || maintain[0] || freshPick || null;
+  let task2 = attack[0] || maintain[0] || freshPick || null;
   let task3 = freshPick && freshPick !== task2 ? freshPick : attack.find((c) => c !== task2) || maintain.find((c) => c !== task2) || null;
+
+  // 2026-10-31 FOUNDATION students (target IPMAT 2029+ / Class 9-10):
+  // the four foundation chapters come first, in teaching order — shaky
+  // ones before untouched ones — before anything else in the syllabus.
+  const foundationFirst = [];
+  if (opts.foundation) {
+    const fch = FOUNDATION_CHAPTERS.map((rx) => withClass.find((c) => rx.test(String(c.chapter || "")))).filter(Boolean);
+    fch.filter((c) => c.cls === "attack" || c.cls === "warming").forEach((c) => foundationFirst.push(c));
+    fch.filter((c) => c.cls === "new").forEach((c) => foundationFirst.push(c));
+    if (foundationFirst.length) {
+      task2 = foundationFirst[0];
+      task3 = foundationFirst[1] || attack.find((c) => c !== task2) || freshPick || maintain.find((c) => c !== task2) || null;
+    }
+  }
   if (task3 === task2) task3 = null;
 
   // queue for the week strip (unique, excluding Sat/Sun specials)
@@ -108,6 +123,7 @@ export function buildPlan(chapters, daySeed = 0) {
   const push = (c) => c && !queue.includes(c) && queue.push(c);
   push(task2);
   push(task3);
+  foundationFirst.forEach(push);
   attack.forEach(push);
   fresh.forEach(push);
   maintain.forEach(push);
@@ -158,6 +174,12 @@ export default function AdaptivePlan({ userData }) {
   const openingRef = useRef(false);
   // mini-tour: auto on first visit, replay via "How it works?"
   const [tourRun, setTourRun] = useFirstVisitTour("tour_plan_v1");
+  // 2026-10-31: foundation students (target 2029+ / Class 9-10)
+  const [stage, setStage] = useState({ foundation: false });
+  useEffect(() => {
+    if (!userData?.email) return;
+    getStudyStage(supabase, userData.email).then(setStage);
+  }, [userData?.email]);
 
   useEffect(() => {
     if (!userData?.email) return;
@@ -180,7 +202,7 @@ export default function AdaptivePlan({ userData }) {
 
   const now = new Date();
   const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
-  const plan = buildPlan(chapters || [], dayOfYear);
+  const plan = buildPlan(chapters || [], dayOfYear, { foundation: stage.foundation });
   const days = daysToExam();
   const weekNum = Math.max(1, Math.ceil((46 * 7 - days) / 7) + 1);
   const todayIdx = (now.getDay() + 6) % 7; // 0 = Monday
@@ -192,6 +214,14 @@ export default function AdaptivePlan({ userData }) {
     if (!ch || openingRef.current) return;
     openingRef.current = true;
     setOpening(ch.chapter_id);
+    // foundation students only ever get EASY tests
+    const easy = stage.foundation ? await easyEntry(supabase, userData?.email, ch.chapter_id) : null;
+    if (easy) {
+      openingRef.current = false;
+      setOpening(null);
+      router.push(`/test/${easy}`);
+      return;
+    }
     const { data } = await supabase.rpc("get_chapter_entry", {
       p_email: userData?.email || "",
       p_chapter: ch.chapter_id,

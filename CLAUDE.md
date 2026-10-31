@@ -116,6 +116,18 @@ https://ipmcareer.com/hash-ipmat/). Demo account reseed: scripts/seed-demo-accou
 RLS note: non-enrolled accounts only read `levels` rows flagged demo=true, and the
 concept drawer must avoid the embedded questions join (statement timeout under RLS).
 
+## Study stage / target year (Oct 31 2026 owner directive)
+
+ProfileGate asks Class 9/10/11/12/Dropper + target IPMAT year (2027–2030); old profiles
+get a one-question year popup. Year → student_profiles.target_year (sql/add-target-year.sql)
+AND auth user_metadata.target_year (works before the SQL). lib/studyStage.js: target ≥2029
+(or Class 9/10 with no year) = FOUNDATION → buildPlan(…, {foundation}) puts Number System →
+Percentage → Ratio and Proportion → Average first, and easyEntry() opens EASY levels only
+(m_categories.parent = chapter_id → levels.parent). 2027/2028 unchanged. Dashboard and My
+Plan share the same day-seed. Ratio and Proportion has NO Easy level (3 × Moderate).
+Video Lessons: packs ordered by id (QA first); "Explore by topic" strip grouped by pack, and
+for demo accounts playable chapters (lib/demo DEMO_OPEN_VIDEO_CHAPTERS) first, locked last.
+
 ## Access-control landmines
 
 - The `levels` SELECT policy grants by access_meta type='lvl' with value='all' (or a
