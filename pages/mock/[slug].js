@@ -1288,6 +1288,22 @@ const MockTest = ({
   }
 
   if (questions == undefined || questions?.length < 1) {
+    if (config?.config?.exam_ui === true) {
+      return (
+        <div style={{ position: "fixed", inset: 0, background: "#fff", display: "flex", flexDirection: "column", fontFamily: "Inter, -apple-system, Arial, sans-serif" }}>
+          <div style={{ background: "#1e2433", color: "#f5a623", height: 46, display: "flex", alignItems: "center", padding: "0 14px", fontWeight: 600 }}>
+            IPM Careers · {config?.title}
+          </div>
+          <div style={{ flex: 1, display: "grid", placeItems: "center", color: "#5f6368", fontSize: 15 }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ width: 36, height: 36, margin: "0 auto 14px", borderRadius: "50%", border: "3px solid #dcdfe4", borderTopColor: "#2f80ed", animation: "xpspin .8s linear infinite" }} />
+              Preparing your paper…
+              <style dangerouslySetInnerHTML={{ __html: "@keyframes xpspin{to{transform:rotate(360deg)}}" }} />
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col relative  justify-center align-middle items-center text-center font-sans h-screen w-full">
         Loading...
@@ -2286,6 +2302,12 @@ export async function getServerSideProps(context) {
     return true; // Return true if no time limits are set
   }
 
+  // Speed (Nov 2026): the legacy instructions HTML (~25 KB, sent TWICE as
+  // config + data) is never rendered on this page — trim it from the props.
+  if (data[0]?.config) {
+    const { instructions: _i1, instructions2: _i2, ...slimCfg } = data[0].config;
+    data[0] = { ...data[0], config: slimCfg };
+  }
   const props = {
     config: data[0],
     is_allowed:

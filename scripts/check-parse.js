@@ -30,6 +30,7 @@ const files = [
   "pages/api/leaderboard.js",
   "pages/api/mock-journey.js",
   "pages/api/submitMock.js",
+  "pages/api/mockData.js",
   "pages/mock/[slug].js",
   "components/ExamPlayer.js",
   "components/ProfileGate.js",
