@@ -12,6 +12,9 @@ import {
 } from "@nextui-org/react";
 import { serversupabase, supabase } from "@/utils/supabaseClient";
 import { reportEvent } from "@/lib/reportEvent";
+import { WHATSAPP_UPSELL_URL } from "@/lib/demo";
+
+const LOCKED_MSG = "__locked__";
 import { useRouter } from "next/router";
 import HeaderMock from "./components/HeaderMock";
 import { useTimer } from "react-timer-hook";
@@ -336,6 +339,12 @@ const Game = () => {
         router.push("/404");
         return;
       }
+      if (res.status === 403) {
+        // 2026-10-31: a free account opening a paid concept test is a LOCK,
+        // not a failure — show the unlock screen, never a Retry loop.
+        setLoadError(LOCKED_MSG);
+        return;
+      }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.error || `Could not load the test (${res.status})`);
@@ -607,6 +616,39 @@ const Game = () => {
 
   // 2026-10-23: a failed question fetch surfaces with Retry — checked BEFORE
   // the loading branch so it can never be masked by the spinner.
+  if (loadError === LOCKED_MSG && (questions == undefined || questions == null)) {
+    return (
+      <div className="flex flex-col justify-center align-middle items-center text-center sf h-[100vh] w-full" style={{ padding: 24 }}>
+        <p style={{ fontSize: 17, fontWeight: 700, margin: "0 0 8px" }}>This practice test is part of the full course</p>
+        <p style={{ fontSize: 14, color: "var(--c-text-secondary)", maxWidth: "46ch", lineHeight: 1.55, margin: "0 0 18px" }}>
+          Unlock every concept test, mock and video with an IPM Careers plan.
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          <a
+            href={WHATSAPP_UPSELL_URL}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              padding: "11px 22px", borderRadius: 8, background: "var(--c-brand-primary)", color: "#fff",
+              fontSize: 14, fontWeight: 600, textDecoration: "none",
+            }}
+          >
+            Unlock full access
+          </a>
+          <button
+            onClick={() => router.back()}
+            style={{
+              padding: "11px 22px", borderRadius: 8, border: "1px solid var(--c-border, #ddd)", background: "transparent",
+              fontFamily: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer",
+            }}
+          >
+            Go back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loadError && (questions == undefined || questions == null)) {
     return (
       <div className="flex flex-col justify-center align-middle items-center text-center sf h-[100vh] w-full" style={{ padding: 24 }}>

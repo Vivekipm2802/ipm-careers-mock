@@ -258,7 +258,10 @@ async function checkDeviceReports() {
   const by = {};
   rows.forEach((x) => { (by[x.kind] ||= []).push(x); });
   const failed = by.mock_submit_failed || [];
-  const cFail = [...(by.concept_submit_failed || []), ...(by.concept_load_failed || [])];
+  // "Not available on your plan" = a free account hitting a paid test: a lock, not a fault
+  const cFail = [...(by.concept_submit_failed || []), ...(by.concept_load_failed || [])].filter(
+    (x) => !/not available on your plan/i.test(String(x.detail?.error || "")),
+  );
   const slow = by.mock_submit_slow || [];
   const recovered = by.mock_submit_recovered || [];
   if (failed.length) add("Student devices", "FAIL", `${failed.length} mock submit(s) failed on students' devices in the last 24h (answers kept on device, auto-retrying): ${[...new Set(failed.map((x) => x.email || "unknown"))].join(", ")}.`);
