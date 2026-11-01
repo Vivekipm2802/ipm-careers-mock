@@ -243,6 +243,13 @@ owl popup + count → submit body tab_switches → best-effort update of mock_pl
 remaining seconds, tabs; resumeRemainingRef/skipSectionRestartRef feed the timer effects.
 Calculator: built-in mouse-only, fixed top-right (cannot move); is_scientific keeps the iframe.
 
+## Mock list page (components/MockTests.js, Nov 1 2026, owner-approved Option A)
+
+The sideways category tab strip is GONE: exams render as cards in two groups, "Full-length
+mocks" and "Previous year papers" (title contains "PYQ"), each with count, "N done", a progress
+bar and (demo accounts only) a "1 free" tag. Overall 4 stat tiles stay on top; the chosen exam
+shows its own Done / Best / Average / Last score line above its mock rows.
+
 ## Mock instructions screen
 
 Students see ONLY the JSX instructions in pages/mock/[slug].js (config.instructions /

@@ -1077,69 +1077,64 @@ export default function MockTests({ enrolled = [], role = "user" }) {
         />
       </div>
 
-      {/* ===== Underline category tabs ===== */}
-      <div
-        className="scrollbar-hide"
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 14,
-          borderBottom: "1px solid var(--c-border-faint)",
-          overflowX: "auto",
-        }}
-      >
-        {categories &&
-          categories.map((c, idx) => {
-            const isActive = idx === activeCategory;
-            const count = visibleTests.filter(
-              (t) => t.category === c.id,
-            ).length;
-            return (
-              <button
-                key={c.id}
-                onClick={() => setActiveCategory(idx)}
-                style={{
-                  padding: "10px 14px",
-                  fontSize: 13,
-                  fontWeight: isActive ? 600 : 500,
-                  color: isActive
-                    ? "var(--c-brand-primary)"
-                    : "var(--c-text-tertiary)",
-                  background: "transparent",
-                  border: "none",
-                  borderBottom: `2px solid ${
-                    isActive ? "var(--c-brand-primary)" : "transparent"
-                  }`,
-                  marginBottom: -1,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  flexShrink: 0,
-                }}
-              >
-                {c.title}
-                <span
+      {/* ===== Exam cards (Nov 2026, owner-approved Option A) =====
+          Replaces the sideways-scrolling tab strip: every exam is visible
+          at once, grouped into full-length mocks and previous year papers,
+          with each student's own progress. */}
+      {categories && (() => {
+        const playedIds = new Set(results.map((r) => r.test_id));
+        const cardsFor = (pyq) =>
+          categories
+            .map((c, idx) => ({ c, idx }))
+            .filter(({ c }) => /pyq/i.test(c.title || "") === pyq)
+            .map(({ c, idx }) => {
+              const isActive = idx === activeCategory;
+              const catTests = visibleTests.filter((t) => t.category === c.id);
+              const count = catTests.length;
+              const done = catTests.filter((t) => playedIds.has(t.id)).length;
+              const hasFree = isDemo && catTests.some((t) => t.config?.public_access === true && !t.config?.coming_soon);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setActiveCategory(idx)}
                   style={{
-                    background: isActive
-                      ? "var(--c-brand-gold-tint)"
-                      : "var(--c-surface-sunken, var(--c-surface-muted))",
-                    color: isActive
-                      ? "var(--c-brand-primary)"
-                      : "var(--c-text-tertiary)",
-                    borderRadius: 999,
-                    padding: "1px 7px",
-                    fontSize: 11,
-                    fontWeight: 500,
-                    fontVariantNumeric: "tabular-nums",
+                    textAlign: "left",
+                    background: isActive ? "var(--c-brand-gold-tint)" : "var(--c-surface)",
+                    border: `1px solid ${isActive ? "var(--c-brand-primary)" : "var(--c-border-faint)"}`,
+                    boxShadow: isActive ? "inset 0 0 0 1px var(--c-brand-primary)" : "none",
+                    borderRadius: 14,
+                    padding: pyq ? "10px 12px" : "12px 14px",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    color: "var(--c-text-primary)",
                   }}
                 >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontWeight: 600, fontSize: pyq ? 13.5 : 14.5, color: isActive ? "var(--c-brand-primary)" : "var(--c-text-primary)" }}>{c.title}</span>
+                    {hasFree && (
+                      <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 999, padding: "2px 7px", background: "var(--c-success-soft, rgba(34,197,94,.14))", color: "var(--c-success, #22a052)", whiteSpace: "nowrap" }}>1 free</span>
+                    )}
+                  </div>
+                  <div style={{ color: "var(--c-text-tertiary)", fontSize: 12, marginTop: 4, fontVariantNumeric: "tabular-nums" }}>
+                    {count} {pyq ? (count === 1 ? "paper" : "papers") : (count === 1 ? "mock" : "mocks")} · {done} done
+                  </div>
+                  <div style={{ height: 4, borderRadius: 4, background: "var(--c-surface-sunken, var(--c-surface-muted))", marginTop: 10, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${count ? Math.round((100 * done) / count) : 0}%`, background: "var(--c-brand-primary)" }} />
+                  </div>
+                </button>
+              );
+            });
+        const grpLabel = { fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-text-tertiary)", margin: "4px 0 10px" };
+        const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 10, marginBottom: 18 };
+        const mocks = cardsFor(false);
+        const papers = cardsFor(true);
+        return (
+          <div>
+            {mocks.length > 0 && (<><div style={grpLabel}>Full-length mocks</div><div style={grid}>{mocks}</div></>)}
+            {papers.length > 0 && (<><div style={grpLabel}>Previous year papers</div><div style={grid}>{papers}</div></>)}
+            {isAdmin && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 14 }}>
         {isAdmin &&
           categories &&
           allCategories
@@ -1162,7 +1157,41 @@ export default function MockTests({ enrolled = [], role = "user" }) {
                 {c.title}
               </div>
             ))}
-      </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ===== Stats for the chosen exam ===== */}
+      {categories && categories[activeCategory] && (() => {
+        const catTests = visibleTests.filter((t) => t.category === categories[activeCategory].id);
+        const ids = new Set(catTests.map((t) => t.id));
+        const mine = results.filter((r) => ids.has(r.test_id));
+        const done = new Set(mine.map((r) => r.test_id)).size;
+        const sc = mine.map((r) => (typeof r.score === "number" ? r.score : Number(r.score))).filter((x) => Number.isFinite(x));
+        const best = sc.length ? Math.max(...sc) : null;
+        const avg = sc.length ? Math.round((sc.reduce((a, b) => a + b, 0) / sc.length) * 10) / 10 : null;
+        const last = mine.length && Number.isFinite(Number(mine[0].score)) ? Number(mine[0].score) : null; // results are newest first
+        const item = (label, v) => (
+          <span style={{ color: "var(--c-text-tertiary)", fontSize: 12.5 }}>
+            {label} <b style={{ color: "var(--c-text-primary)", fontSize: 14, fontVariantNumeric: "tabular-nums" }}>{v}</b>
+          </span>
+        );
+        return (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap", margin: "2px 2px 10px" }}>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: "var(--c-text-primary)" }}>{categories[activeCategory].title}</div>
+              <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginTop: 4 }}>
+                {item("Done", `${done} / ${catTests.length}`)}
+                {item("Best", best ?? "-")}
+                {item("Average", avg ?? "-")}
+                {item("Last score", last ?? "-")}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ===== Mock rows ===== */}
       <AnimatePresence mode="wait">
