@@ -229,8 +229,9 @@ Seq backup: health-reports/backup-video-seq-2026-10-31.json.
 ## Exam-style mock screen (Nov 2026, owner-approved preview → pilot)
 
 components/ExamPlayer.js renders the WHOLE mock (instructions + test) when the test's
-config.exam_ui === true. PILOT: test 250 (IIM Bangalore UG Mock 15) only; owner wants to try it
-there, THEN roll out to every mock (set exam_ui on each, fetching full config first). Colours =
+config.exam_ui !== false. ROLLED OUT Nov 1 2026 to ALL 183 mocks (exam_ui:true set on every row,
+backup health-reports/backup-exam-ui-2026-11-01.json); the code default is ON, so new mocks get it
+automatically — set exam_ui:false only to fall back to the old player for one test. Colours =
 real exam portal (navy top bar, orange title, blue tabs/strips/Save & Next, light-blue Submit,
 shaded green/red/grey/purple palette shapes); ALL popups use IPM Careers gold buttons; NO em
 dashes in student text. Real-exam answer rule: only Save & Next / Mark for Review & Next save;

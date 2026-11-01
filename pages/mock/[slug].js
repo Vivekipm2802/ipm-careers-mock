@@ -1288,7 +1288,7 @@ const MockTest = ({
   }
 
   if (questions == undefined || questions?.length < 1) {
-    if (config?.config?.exam_ui === true) {
+    if (config?.config?.exam_ui !== false) {
       return (
         <div style={{ position: "fixed", inset: 0, background: "#fff", display: "flex", flexDirection: "column", fontFamily: "Inter, -apple-system, Arial, sans-serif" }}>
           <div style={{ background: "#1e2433", color: "#f5a623", height: 46, display: "flex", alignItems: "center", padding: "0 14px", fontWeight: 600 }}>
@@ -1467,7 +1467,7 @@ const MockTest = ({
   }
 
   // Nov 2026: real-exam style screen (pilot via config.exam_ui)
-  if (config?.config?.exam_ui === true && organized && (gamestate === 0 || gamestate === 1)) {
+  if (config?.config?.exam_ui !== false && organized && (gamestate === 0 || gamestate === 1)) {
     const firstOf = (d) => organized?.[d]?.child?.[0]?.id;
     return (
       <ExamPlayer
