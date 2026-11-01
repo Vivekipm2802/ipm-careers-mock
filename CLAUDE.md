@@ -222,6 +222,9 @@ Seq backup: health-reports/backup-video-seq-2026-10-31.json.
   2026) = true seconds since test start. ALL time math (result + analytics pages,
   late-wrong / quarter insights) goes through lib/playTiming.computePlayTimes —
   never sort raw `at` across sections again (owner saw VA 3m / total 50m on a 2h mock).
+  LOCKED mocks (Nov 1 2026): secTimes = time IN the section (can't leave early): with duration,
+  fill sections in order up to their limits; without it, earlier sections = full limit, the last
+  answered one = its last answer. Never show 'time until last answer' as section time again.
 
 ## Exam-style mock screen (Nov 2026, owner-approved preview → pilot)
 

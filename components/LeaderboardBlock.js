@@ -230,8 +230,10 @@ function CompactVs({ board }) {
   const you = board.you || board.top.find((r) => r.isYou);
   const topper = board.top && board.top.length > 0 ? board.top[0] : null;
   if (!you || !topper || topper.isYou) return null;
-  const hasTime =
-    Number.isFinite(Number(you.timeMin)) && Number.isFinite(Number(topper.timeMin));
+  // 2026-11-01: Number(null) is 0 → "nullm vs nullm" showed for plays
+  // saved before the duration column was filled. Hide the row instead.
+  const okTime = (v) => v != null && v !== "" && Number.isFinite(Number(v)) && Number(v) > 0;
+  const hasTime = okTime(you.timeMin) && okTime(topper.timeMin);
   const rows = [
     ["Score", num(you.scoreMarks), num(topper.scoreMarks)],
     ["Attempted", num(you.attempted), num(topper.attempted)],

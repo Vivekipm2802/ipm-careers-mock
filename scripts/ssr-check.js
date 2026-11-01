@@ -1425,6 +1425,23 @@ console.log("\n[13] language toggle — English default, Hinglish opt-in");
 // transporter: validates the batchIds gate and that recipients
 // resolve from batch_admits rows for 2 batches with case-insensitive
 // de-dupe. nodemailer stays stubbed — nothing can actually send.
+// ── 14b · Locked-mock section times = time IN the section (2026-11-01) ──
+console.log("\n[14b] playTiming: locked sections show the full time spent in them");
+{
+  const { computePlayTimes } = require(path.join(root, "lib", "playTiming.js"));
+  const secOf = new Map([["1", "A"], ["2", "A"], ["3", "B"], ["4", "C"]]);
+  const sections = [{ id: "A", time: 1800 }, { id: "B", time: 2700 }, { id: "C", time: 3600 }];
+  const report = [{ id: 1, at: 300 }, { id: 2, at: 600 }, { id: 3, at: 540 }, { id: 4, at: 1020 }];
+  const a = computePlayTimes({ report, sectionOfQ: secOf, sections, locked: true, durationSec: null, timeoutSec: 8100 });
+  check(a.secTimes.get("A") === 1800 && a.secTimes.get("B") === 2700 && a.secTimes.get("C") === 1020 && a.totalSec === 5520,
+    "no duration: earlier sections full (30m/45m), last = last answer (17m), total 92m (Shardul case)");
+  const b = computePlayTimes({ report, sectionOfQ: secOf, sections, locked: true, durationSec: 6000, timeoutSec: 8100 });
+  check(b.secTimes.get("A") === 1800 && b.secTimes.get("B") === 2700 && b.secTimes.get("C") === 1500,
+    "with duration: sections fill in order up to their limits (30m/45m/25m)");
+  const c = computePlayTimes({ report, sectionOfQ: secOf, sections, locked: false, durationSec: 6000, timeoutSec: 8100 });
+  check(c.secTimes.get("A") < 1800, "unlocked mocks keep per-answer section times");
+}
+
 // ── 15 · Exam-style mock screen (components/ExamPlayer.js, Nov 2026) ──
 console.log("\n[15] ExamPlayer — exam-style mock screen");
 {
