@@ -218,6 +218,13 @@ async function checkMockSubmit(robot, visible) {
   }
   const res = await timed(() => fetchT(`${SITE}/mock/result/${uid}`));
   add("Result page", res.v && res.v.ok ? "PASS" : "FAIL", res.v && res.v.ok ? `Result page opens (${fmt(res.ms)}).` : `Result page did not open (${res.err ? res.err.message : res.v.status}).`);
+  // 2026-11-04: the result/analytics paper loads via /api/resultData (free/demo
+  // students sat on "Loading your result…" when it was read in the browser).
+  const rd = await timed(() => fetchT(`${SITE}/api/resultData?uid=${uid}`, { headers: { Authorization: `Bearer ${robot}` } }));
+  let rdq = 0;
+  try { rdq = rd.v && rd.v.ok ? ((await rd.v.json()).questions || []).length : 0; } catch (e) {}
+  add("Result data", rdq > 0 ? (rd.ms < 6000 ? "PASS" : "WARN") : "FAIL",
+    rdq > 0 ? `Result and analytics pages get their questions (${rdq} in ${fmt(rd.ms)}).` : `Result/analytics questions did NOT load (${rd.err ? rd.err.message : rd.v.status}); students would sit on "Loading your result".`);
   const lb = await timed(() => fetchT(`${SITE}/api/leaderboard?type=mock&testId=${t.id}`, { headers: { Authorization: `Bearer ${robot}` } }));
   add("Leaderboard", lb.v && lb.v.ok && lb.ms < 8000 ? "PASS" : "WARN", lb.v && lb.v.ok ? `Leaderboard loads (${fmt(lb.ms)}).` : `Leaderboard problem (${lb.err ? lb.err.message : lb.v.status}).`);
 }

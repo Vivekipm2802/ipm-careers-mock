@@ -31,6 +31,8 @@ const files = [
   "pages/api/mock-journey.js",
   "pages/api/submitMock.js",
   "pages/api/mockData.js",
+  "pages/api/resultData.js",
+  "lib/mockContent.js",
   "pages/mock/[slug].js",
   "components/ExamPlayer.js",
   "components/ProfileGate.js",

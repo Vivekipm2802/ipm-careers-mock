@@ -76,7 +76,34 @@ export default function MockAnalytics({ result }) {
   const router = useRouter();
   const { userDetails, isRouting } = useNMNContext();
 
+  // 2026-11-04: load the paper through /api/resultData (service role,
+  // owner-or-admin). The browser RLS read below statement-times-out for
+  // free / demo students, who then sat on "Loading…" forever.
+  async function loadViaApi() {
+    try {
+      const uid = result?.uid || router?.query?.uid;
+      if (!uid) return false;
+      const headers = await getAuthHeaders();
+      const ctl = new AbortController();
+      const tm = setTimeout(() => ctl.abort(), 20000);
+      const r = await fetch(`/api/resultData?uid=${encodeURIComponent(uid)}`, { headers, signal: ctl.signal });
+      clearTimeout(tm);
+      if (!r.ok) return false;
+      const j = await r.json();
+      if (!Array.isArray(j.questions) || j.questions.length === 0) return false;
+      const subjectGroups = (j.sections || []).filter(
+        (s) => s.type === "subject" || (s.subject != null && s.module == null),
+      );
+      setSections(subjectGroups);
+      setModules((j.modules || []).filter((m) => m.module));
+      setQuestions(j.questions);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
   async function getSections(a) {
+    if (await loadViaApi()) return;
     const { data } = await supabase
       .from("mock_groups").select("*,subject(*)").eq("test", a)
       .order("seq", { ascending: true });
