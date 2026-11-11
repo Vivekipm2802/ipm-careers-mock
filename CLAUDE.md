@@ -44,10 +44,16 @@ Structure always clones the SIBLING mocks' pattern, never the PDF's.
 IPMAT Indore pattern (tests 220 "Hash IPMAT Mock 1", 242 "Hash IPMAT Mock 2", cat 39):
 3 sections, subjects 179/180/181 (QA-SA 15 input Qs +4/0, QA-MCQ 30 +4/−1, VA 45 +4/−1),
 2400s each, timeout 7200, switch_section false.
-IIM Bangalore UG pattern (cat 13, tests 219/221-223/238-241/244+): section ORDER is
+IIM Bangalore UG pattern (cat 13, tests 219/221-223/238-241/244+): section ORDER for
+MOCK 10 AND BEYOND (tests 245-250, 271 = Mock 16, all future) is QADI → LR → VA (owner
+directive Nov 11 2026: QADI seq 1, LR seq 2, VA seq 3; instructions2 line 5 rewritten;
+config.section_order_history [{until, subjects:[91,92,90]}] keeps OLD plays' section
+times right — lib/playTiming reorders by answer `ts`, else by that history). Mocks 1-9 keep
 VA → LR → QADI (owner directive Oct 16 2026): VA 15 Qs (subject 91, 1800s, seq 1),
 LR 15 Qs (subject 92, 2700s, seq 2), QADI 30 Qs with DI folded in (subject 90, 3600s,
-seq 3); timeout 8100, +3/−1. Section tab names are exactly VA / LR / QADI
+seq 3) [Mock 10+: QADI seq 1, LR seq 2, VA seq 3]; timeout 8100, +3/−1. Mock 16 (test 271)
+is FREE for all (public_access, owner Nov 11). Test 272 = hidden admin-only review copy of
+Mock 16 with switch_section true (same modules) — delete when the owner is done. Section tab names are exactly VA / LR / QADI
 (mock_subjects 91/92/90 titles — shared by ALL IIM B mocks) and instructions2 must
 list the sections in that order with those names.
 NPAT pattern (NEW series from Oct 28 2026, cat 15, test 251 "NPAT Mock 1" onward): 120 Qs

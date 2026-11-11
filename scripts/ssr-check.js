@@ -1440,6 +1440,16 @@ console.log("\n[14b] playTiming: locked sections show the full time spent in the
     "with duration: sections fill in order up to their limits (30m/45m/25m)");
   const c = computePlayTimes({ report, sectionOfQ: secOf, sections, locked: false, durationSec: 6000, timeoutSec: 8100 });
   check(c.secTimes.get("A") < 1800, "unlocked mocks keep per-answer section times");
+  // 2026-11-11: section order changed after plays (IIM B Mock 10+ QADI first)
+  const reord = [{ id: "C", time: 3600, subject: 90 }, { id: "B", time: 2700, subject: 92 }, { id: "A", time: 1800, subject: 91 }];
+  const hist = [{ until: "2026-11-11T18:00:00Z", subjects: [91, 92, 90] }];
+  const d = computePlayTimes({ report, sectionOfQ: secOf, sections: reord, locked: true, durationSec: 6000, timeoutSec: 8100, orderHistory: hist, playAt: "2026-11-01T10:00:00Z" });
+  check(d.secTimes.get("A") === 1800 && d.secTimes.get("B") === 2700 && d.secTimes.get("C") === 1500,
+    "old play after a reorder: section_order_history keeps VA 30m / LR 45m / QADI 25m");
+  const tsRep = [{ id: 4, at: 300, ts: 300 }, { id: 3, at: 200, ts: 3800 }, { id: 1, at: 100, ts: 6400 }];
+  const e = computePlayTimes({ report: tsRep, sectionOfQ: secOf, sections: reord, locked: true, durationSec: 7000, timeoutSec: 8100, orderHistory: hist, playAt: "2026-11-12T10:00:00Z" });
+  check(e.secTimes.get("C") === 3600 && e.secTimes.get("B") === 2700 && e.secTimes.get("A") === 700,
+    "new play (QADI → LR → VA): order from answer times, VA gets the remaining 700s");
 }
 
 // ── 15 · Exam-style mock screen (components/ExamPlayer.js, Nov 2026) ──

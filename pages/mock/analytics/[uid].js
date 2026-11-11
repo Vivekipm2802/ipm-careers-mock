@@ -225,10 +225,13 @@ export default function MockAnalytics({ result }) {
     return computePlayTimes({
       report: result?.report,
       sectionOfQ: sectionOfQ.size ? sectionOfQ : null,
-      sections: (sections || []).map((sec) => ({ id: sec.id, time: sec.time })),
+      sections: (sections || []).map((sec) => ({ id: sec.id, time: sec.time, subject: sec.subject?.id ?? sec.subject })),
       locked: result?.test_id?.config?.switch_section === false,
       durationSec: result?.duration,
       timeoutSec: Number(result?.test_id?.config?.timeout) || null,
+      // section order can change after a play (IIM B Mock 10+, Nov 2026)
+      orderHistory: result?.test_id?.config?.section_order_history,
+      playAt: result?.created_at,
     });
   }, [result, sections, modules, questions]);
   const questionTimes = playTimes.qTimes;
