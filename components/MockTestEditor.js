@@ -185,9 +185,16 @@ function MockTestEditor({ userData, role }) {
       return positive + negative;
     }
 
+    if (error) toast.error("Could not load submissions: " + (error.message || "unknown error"));
     const scoreMap = {};
     await Promise.all(
       (data || []).map(async (i) => {
+        // 2026-11-12: use the score saved at submit time (same canonical
+        // score as the leaderboard); only re-score the rare play without one.
+        if (i.score != null && Number.isFinite(Number(i.score))) {
+          scoreMap[i.uid] = Number(i.score);
+          return;
+        }
         const { data: fullResult, error: fullResultError } = await supabase
           .from("mock_plays")
           .select("report")

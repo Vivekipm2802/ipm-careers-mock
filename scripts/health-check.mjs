@@ -339,6 +339,16 @@ async function checkVideos() {
   }
 }
 
+// 2026-11-12: the admin "Total Submissions" panel calls RPC get_mock_results.
+// Its result type said score bigint while mock_plays.score became numeric
+// (Oct 31), so every call failed and admins saw no submissions for 12 days.
+async function checkAdminRpcs(tests) {
+  const t = tests.find((x) => x.category === 13 && x.config?.featured) || tests[0];
+  const r = await rest("rpc/get_mock_results", { method: "POST", body: JSON.stringify({ p_test_id: t.id }) });
+  if (r.status !== 200 || !Array.isArray(r.body)) add("Admin panel", "FAIL", `Admin "Total Submissions" list is broken for "${t.title}" (${r.status}: ${JSON.stringify(r.body).slice(0, 120)}).`);
+  else add("Admin panel", "PASS", `Admin submissions list loads (${r.body.length} for "${t.title}").`);
+}
+
 async function checkContent(visible) {
   const live = visible.filter((t) => !t.config?.coming_soon);
   const groups = await getAll(`mock_groups?select=id,test,subject,pos,neg,time&test=in.(${live.map((t) => t.id).join(",")})`);
@@ -427,6 +437,7 @@ try {
   await checkConcept(robot);
   await checkMockSubmit(robot, visible);
   await checkRecentData(tests);
+  await checkAdminRpcs(tests);
   await checkDeviceReports();
   await checkContent(visible);
   await checkVideos();

@@ -41,7 +41,7 @@ mock_test (config JSON: timeout/switch_section/instructions/public_access/featur
 → access_meta {type:'mt', course_id, content_id} — WITHOUT access_meta rows the mock is
    invisible to students (admin still sees it — deceptive when testing).
 Structure always clones the SIBLING mocks' pattern, never the PDF's.
-IPMAT Indore pattern (tests 220 "Hash IPMAT Mock 1", 242 "Hash IPMAT Mock 2", 273 "Hash IPMAT Mock 3" (Nov 12 2026; replaced old test 105 "Hash IPMAT Mock 3 (2026)", now config.hidden, 49 plays kept, backup health-reports/backup-hash-mock3-test105-2026-11-12.json), cat 39, courses 1/12; VA para-jumbles are type:input; test 275 = hidden public review copy of Mock 3 with switch_section true, same modules — delete its plays then the test when the owner is done):
+IPMAT Indore pattern (tests 220 "Hash IPMAT Mock 1", 242 "Hash IPMAT Mock 2", 273 "Hash IPMAT Mock 3" (Nov 12 2026; replaced old test 105 "Hash IPMAT Mock 3 (2026)", now config.hidden, 49 plays kept, backup health-reports/backup-hash-mock3-test105-2026-11-12.json), cat 39, courses 1/12; Mock 3 (273) FREE for all (public_access, owner Nov 12); VA para-jumbles are type:input; sentence-correction Qs whose options rewrite the WHOLE sentence get NO underline + "Choose the option that best corrects the sentence" (owner Nov 12: whole-sentence underline looked wrong); test 275 = hidden public review copy of Mock 3 with switch_section true, same modules — delete its plays then the test when the owner is done):
 3 sections, subjects 179/180/181 (QA-SA 15 input Qs +4/0, QA-MCQ 30 +4/−1, VA 45 +4/−1),
 2400s each, timeout 7200, switch_section false.
 IIM Bangalore UG pattern (cat 13, tests 219/221-223/238-241/244+): section ORDER for
@@ -52,7 +52,7 @@ times right — lib/playTiming reorders by answer `ts`, else by that history). M
 VA → LR → QADI (owner directive Oct 16 2026): VA 15 Qs (subject 91, 1800s, seq 1),
 LR 15 Qs (subject 92, 2700s, seq 2), QADI 30 Qs with DI folded in (subject 90, 3600s,
 seq 3) [Mock 10+: QADI seq 1, LR seq 2, VA seq 3]; timeout 8100, +3/−1. Mock 16 (test 271)
-is FREE for all (public_access, owner Nov 11). (Review copy test 272 deleted Nov 12 after owner check.) Section tab names are exactly VA / LR / QADI
+is FREE for all (public_access, owner Nov 11). Owner directive Nov 12: Mock 16 QADI Q6 keyed C (36) and LR Q2 keyed B (PDF keys) — explanations cut to the Answer line, plays rescored; backup health-reports/backup-mock16-keys-2026-11-12.json. Do not "fix" these back. (Review copy test 272 deleted Nov 12 after owner check.) Section tab names are exactly VA / LR / QADI
 (mock_subjects 91/92/90 titles — shared by ALL IIM B mocks) and instructions2 must
 list the sections in that order with those names.
 NPAT pattern (NEW series from Oct 28 2026, cat 15, test 251 "NPAT Mock 1" onward): 120 Qs
@@ -218,6 +218,10 @@ Seq backup: health-reports/backup-video-seq-2026-10-31.json.
   auth.admin.listUsers pagination. Key indexes: mock_plays ("user",test_id) and
   (test_id,created_at); plays ("user") and (test_uuid); trainer_runs ("user",created_at).
   Backfill tool: scripts/backfill-mock-play-stats.mjs (re-runnable).
+- RPC get_mock_results (admin Mock Tests Editor → "Total Submissions") returns score NUMERIC
+  (recreated Nov 12 2026: its old bigint result type broke when mock_plays.score became numeric
+  Oct 31 → admins saw an empty list). Any SQL function returning mock_plays.score must use
+  numeric. health-check "Admin panel" calls it. The editor now shows the saved score.
 - mock_plays has NO `data` column. Until Oct 29 2026 submitMock's full insert sent
   `data: miscData`, failed EVERY time, and the fallback silently dropped duration/
   name/attempted/correct/max_marks (only 4 of 447 Oct plays had them; 314 backfilled).
