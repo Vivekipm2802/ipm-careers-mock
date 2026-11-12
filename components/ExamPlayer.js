@@ -126,7 +126,11 @@ function splitStem(html) {
   const blocks = String(html || "").match(/<p[\s\S]*?<\/p>|<table[\s\S]*?<\/table>|<img[^>]*>|<ol[\s\S]*?<\/ol>|<ul[\s\S]*?<\/ul>/g);
   if (!blocks || blocks.length < 3) return null;
   const text = String(html).replace(/<[^>]+>/g, "");
-  if (text.length < 700) return null;
+  // DI / graph sets (Nov 12 2026 owner): any stem with a picture and text
+  // around it opens split too, picture left and question right, even when
+  // the words are short (Hash IPMAT Mock 3 Q42 stayed full-width).
+  const hasImg = /<img/i.test(String(html));
+  if (text.length < 700 && !hasImg) return null;
   const last = blocks[blocks.length - 1];
   if (/<(table|img)/i.test(last)) return null;
   return [blocks.slice(0, -1).join(""), last];
@@ -475,7 +479,8 @@ export default function ExamPlayer(props) {
       .xp-opt{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid ${C.line};border-radius:8px;margin:8px 0;cursor:pointer;background:#fff;width:100%;text-align:left;font-family:inherit;font-size:inherit;color:${C.ink};line-height:1.55}
       .xp-opt:hover{border-color:#a9c7f2}.xp-opt.sel{border-color:${C.blue};background:${C.blueT}}
       .xp-radio{width:16px;height:16px;border-radius:50%;border:2px solid #8a94a6;flex-shrink:0;margin-top:4px;display:grid;place-items:center}.sel .xp-radio{border-color:${C.blue}}.sel .xp-radio:after{content:"";width:8px;height:8px;border-radius:50%;background:${C.blue}}
-      .xp-sa{border:1px solid ${C.line};border-radius:8px;padding:10px 12px;font-size:18px;width:260px;max-width:100%;font-variant-numeric:tabular-nums;font-family:inherit}
+      .xp-sa{border:1px solid ${C.line};border-radius:8px;padding:10px 12px;font-size:20px;font-weight:600;background:#fff !important;color:#111 !important;caret-color:#111;-webkit-text-fill-color:#111;width:260px;max-width:100%;font-variant-numeric:tabular-nums;font-family:inherit}
+      .xp-sa::placeholder{color:#8a8f98;-webkit-text-fill-color:#8a8f98;font-weight:400}
       .xp-pad{display:grid;grid-template-columns:repeat(3,64px);gap:6px;margin-top:10px}
       .xp-foot{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:1px solid ${C.line};gap:8px;flex-wrap:wrap;flex-shrink:0}.xp-foot .g{display:flex;gap:8px;flex-wrap:wrap}
       .xp-side{width:310px;border-left:1px solid ${C.line};display:flex;flex-direction:column;background:#fff;flex-shrink:0;min-height:0}

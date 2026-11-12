@@ -1486,6 +1486,13 @@ console.log("\n[15] ExamPlayer — exam-style mock screen");
   check(!h.includes("—"), "no em dashes on the exam screen");
   h = clean(ReactDOMServer.renderToString(React.createElement(ExamPlayer, { ...base, gamestate: 1, gender: "male", currentQ: 2, currentSection: 1 })));
   check(h.includes("xp-sa") && h.includes("Backspace") && h.includes("Question 1 of 1"), "type-in question shows the keypad");
+  check(/\.xp-sa\{[^}]*background:#fff[^}]*color:#111/.test(h), "type-in answer box: dark text on white (owner: typed digits were hard to see)");
+  // Nov 12 2026: short DI stems with a graph open split (graph left, question right)
+  const diQs = qs.map((x) => (x.id === 12 ? { ...x, question: '<p>Study the bar graphs.</p><p><img src="https://x.invalid/fig1.png"/></p><p>How many runs in Match 6?</p>' } : x));
+  h = clean(ReactDOMServer.renderToString(React.createElement(ExamPlayer, { ...base, questions: diQs, gamestate: 1, gender: "male", currentQ: 1 })));
+  check(/class="xp-pane xp-left"/.test(h) && h.includes("fig1.png"), "short graph (DI) question opens split: graph left, question right");
+  h = clean(ReactDOMServer.renderToString(React.createElement(ExamPlayer, { ...base, gamestate: 1, gender: "male", currentQ: 1 })));
+  check(!/class="xp-pane xp-left"/.test(h), "short text-only question stays full width");
 }
 
 (async () => {

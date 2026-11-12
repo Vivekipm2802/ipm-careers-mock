@@ -41,7 +41,7 @@ mock_test (config JSON: timeout/switch_section/instructions/public_access/featur
 → access_meta {type:'mt', course_id, content_id} — WITHOUT access_meta rows the mock is
    invisible to students (admin still sees it — deceptive when testing).
 Structure always clones the SIBLING mocks' pattern, never the PDF's.
-IPMAT Indore pattern (tests 220 "Hash IPMAT Mock 1", 242 "Hash IPMAT Mock 2", cat 39):
+IPMAT Indore pattern (tests 220 "Hash IPMAT Mock 1", 242 "Hash IPMAT Mock 2", 273 "Hash IPMAT Mock 3" (Nov 12 2026; replaced old test 105 "Hash IPMAT Mock 3 (2026)", now config.hidden, 49 plays kept, backup health-reports/backup-hash-mock3-test105-2026-11-12.json), cat 39, courses 1/12; VA para-jumbles are type:input; test 275 = hidden public review copy of Mock 3 with switch_section true, same modules — delete its plays then the test when the owner is done):
 3 sections, subjects 179/180/181 (QA-SA 15 input Qs +4/0, QA-MCQ 30 +4/−1, VA 45 +4/−1),
 2400s each, timeout 7200, switch_section false.
 IIM Bangalore UG pattern (cat 13, tests 219/221-223/238-241/244+): section ORDER for
@@ -52,8 +52,7 @@ times right — lib/playTiming reorders by answer `ts`, else by that history). M
 VA → LR → QADI (owner directive Oct 16 2026): VA 15 Qs (subject 91, 1800s, seq 1),
 LR 15 Qs (subject 92, 2700s, seq 2), QADI 30 Qs with DI folded in (subject 90, 3600s,
 seq 3) [Mock 10+: QADI seq 1, LR seq 2, VA seq 3]; timeout 8100, +3/−1. Mock 16 (test 271)
-is FREE for all (public_access, owner Nov 11). Test 272 = hidden admin-only review copy of
-Mock 16 with switch_section true (same modules) — delete when the owner is done. Section tab names are exactly VA / LR / QADI
+is FREE for all (public_access, owner Nov 11). (Review copy test 272 deleted Nov 12 after owner check.) Section tab names are exactly VA / LR / QADI
 (mock_subjects 91/92/90 titles — shared by ALL IIM B mocks) and instructions2 must
 list the sections in that order with those names.
 NPAT pattern (NEW series from Oct 28 2026, cat 15, test 251 "NPAT Mock 1" onward): 120 Qs
